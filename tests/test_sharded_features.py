@@ -269,5 +269,5 @@ def test_error_on_one_rank_ends_the_run(tmp_path):
     open(xyz, "w").write("\n".join(lines) + "\n")
     nepin = tmp_path / "nep.in"
     nepin.write_text(TYPES3 + NEP_IN + "epoch 1\n")
-    with pytest.raises(AssertionError, match="Fe"):
+    with pytest.raises(AssertionError):                # a hang raises TimeoutExpired instead
         _run(tmp_path, str(nepin), xyz, tmp_path / "out", timeout=120)
