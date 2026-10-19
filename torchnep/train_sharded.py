@@ -82,16 +82,21 @@ def _register_pg_atexit():
 
     def _cleanup():
         if dist.is_available() and dist.is_initialized():
+            if getattr(sys, "last_value", None) is not None:
+                # uncaught error: the other ranks wait in another collective, and under NCCL
+                # both the barrier and destroy_process_group block; abort, torchrun stops the rest
+                try:
+                    dist.distributed_c10d._abort_process_group()
+                except Exception:
+                    pass
+                return
             # Rendezvous before tearing down: rank 0 hosts the TCPStore, and
             # if it exits first the other ranks' NCCL heartbeat monitors spam
             # "failed to recv" warnings while polling the dead store.
-            # skip on an uncaught exception: the other ranks wait in another
-            # collective, and torchrun stops them once this rank exits
-            if getattr(sys, "last_value", None) is None:
-                try:
-                    dist.barrier()
-                except Exception:
-                    pass
+            try:
+                dist.barrier()
+            except Exception:
+                pass
             dist.destroy_process_group()
 
     atexit.register(_cleanup)
