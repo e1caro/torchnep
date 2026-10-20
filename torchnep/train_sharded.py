@@ -30,6 +30,7 @@ Single-rank (N=1) runs but offers nothing over ``train_nep`` in that case.
 """
 
 import os
+import sys
 import atexit
 import time
 import warnings
@@ -81,6 +82,14 @@ def _register_pg_atexit():
 
     def _cleanup():
         if dist.is_available() and dist.is_initialized():
+            if getattr(sys, "last_value", None) is not None:
+                # uncaught error: the other ranks wait in another collective, and under NCCL
+                # both the barrier and destroy_process_group block; abort, torchrun stops the rest
+                try:
+                    dist.distributed_c10d._abort_process_group()
+                except Exception:
+                    pass
+                return
             # Rendezvous before tearing down: rank 0 hosts the TCPStore, and
             # if it exits first the other ranks' NCCL heartbeat monitors spam
             # "failed to recv" warnings while polling the dead store.
