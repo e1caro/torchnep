@@ -1,0 +1,12 @@
+# Codecov status checks on pull requests (neither is a required check).
+coverage:
+  status:
+    project:
+      default:
+        # total coverage may drop by up to 0.5 % (the multi-process tests vary a little from run to run)
+        threshold: 0.5%
+    patch:
+      default:
+        # coverage of the changed lines, reported but never failing: GPU-only code and the exit paths of
+        # torchrun workers are not seen by the CPU coverage run
+        informational: true
