@@ -6,12 +6,11 @@
 const BUB = { open: null };
 // id: [icon, bubble label, panel title]
 const BUB_DEF = {
-  train: ['lifter', 'Train', 'Next training'], quests: ['scroll', 'Quests', 'Daily quests'], boss: ['golem', 'Boss', 'Weekly boss'],
-  loot: ['treasure', 'Loot', 'Daily loot'], meals: ['cutlery', 'Meals', 'Meals today'],
-  fuel: ['flame', 'Fuel', 'Fuel'], dungeon: ['gate', 'Dungeon', 'Dungeon of the day'], academy: ['trophy', 'Academy', 'Sports Academy'],
-  earn: ['bolt', 'Earn', 'More ways to earn'], bets: ['ticket', 'Bets', 'Your bets'],
+  train: ['lifter', 'Train', 'Next training'], quests: ['scroll', 'Quests', 'Quests and boss'], loot: ['treasure', 'Loot', 'Daily loot'],
+  meals: ['cutlery', 'Meals', 'Meals and fuel'], earn: ['bolt', 'Earn', 'Earn and bet'], academy: ['trophy', 'Academy', 'Sports Academy'],
 };
-const BUB_ORDER = ['quests', 'boss', 'loot', 'meals', 'fuel', 'dungeon', 'academy', 'earn', 'bets']; // clockwise from the top
+// at most six circles: training in the middle and five around it, clockwise from the top
+const BUB_ORDER = ['quests', 'loot', 'meals', 'earn', 'academy'];
 let BUB_INFO = {};
 
 function bubble(id, i, big) {
@@ -27,10 +26,11 @@ function bubbleHome() {
   const q = s => view.querySelector(':scope > ' + s), prevH = el => el?.previousElementSibling?.matches('h2.sec') ? el.previousElementSibling : null;
   const next = q('.card.next'), boss = q('.card.boss'), g4 = q('.grid4'), meals = q('section.card[onclick*="#/meals"],section.card[onclick*="#/recipe"]');
   const groups = {
-    train: [prevH(next), next], quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest')], boss: [prevH(boss), boss],
-    loot: [q('button[onclick="checkIn()"]'), q('.chestbtn')], meals: [meals],
-    fuel: [prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
-    dungeon: [q('section[onclick*="#/dungeons"]')], academy: [q('.sp-row')], earn: [q('button[onclick*="#/earn"]')], bets: [q('button[onclick*="#/bets"]')],
+    train: [prevH(next), next, q('section[onclick*="#/dungeons"]')],
+    quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest'), prevH(boss), boss],
+    loot: [q('button[onclick="checkIn()"]'), q('.chestbtn')],
+    meals: [meals, prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
+    earn: [q('button[onclick*="#/earn"]'), q('button[onclick*="#/bets"]')], academy: [q('.sp-row')],
   };
   // the daily check-in and the chests share one bubble; it stays even when both are done
   if (!groups.loot.some(Boolean)) {
@@ -45,23 +45,20 @@ function bubbleHome() {
   const [qd, qn] = [G.quests.claimed.length, G.quests.list.length];
   BUB_INFO = {
     train: { p: hits / p.days, v: `${hits}/${p.days}`, name: next?.querySelector('h2')?.textContent },
-    quests: { p: qd / qn, v: `${qd}/${qn}`, bad: !!view.querySelector(':scope > .quest.ok:not(.cl)') },
-    boss: { ico: BOSSES[hash(weekId()) % BOSSES.length][1], p: 1 - hits / p.days, v: hits >= p.days ? '✓' : `${p.days - hits}`, bad: !!boss?.querySelector('button') },
+    quests: { p: qd / qn, v: `${qd}/${qn}`, bad: !!view.querySelector(':scope > .quest.ok:not(.cl)') || !!boss?.querySelector('button') },
     loot: (c => { const day = ((c.st - 1) % 7) + 1, ci = G.checkin !== dayId();
       return { p: day / 7, v: G.chests.length ? `×${G.chests.length}` : `${day}/7`, bad: ci || G.chests.length > 0 }; })(ciInfo()),
-    meals: (([a, b]) => ({ p: b ? a / b : 0, v: b ? `${a}/${b}` : null }))(num(meals?.querySelector('.mut'))),
-    fuel: { v: g4?.querySelector('b')?.textContent },
-    dungeon: { ico: featuredId() ? DUNGEONS[featuredId()].ico : 'gate', v: '+50%' },
+    meals: (([a, b]) => (b ? { p: a / b, v: `${a}/${b}` } : { v: g4?.querySelector('b')?.textContent }))(num(meals?.querySelector('.mut'))),
     academy: { v: groups.academy?.[0].querySelector('.pc-mini b')?.textContent ?? null },
-    earn: { bad: typeof spinsLeft === 'function' && spinsLeft() > 0 },
-    bets: { v: typeof BT === 'object' ? BT.open.length : null },
+    earn: { bad: typeof spinsLeft === 'function' && spinsLeft() > 0, v: typeof BT === 'object' && BT.open.length ? `${BT.open.length}` : null },
   };
 
   const store = document.createElement('div');
   store.className = 'bstore'; store.hidden = true;
   Object.entries(groups).forEach(([id, nodes]) => {
     const box = document.createElement('div'); box.dataset.b = id;
-    nodes.forEach(n => (n.matches('h2.sec,.sec2') ? n.remove() : box.append(n)));
+    // the panel title replaces the first heading; later ones stay as section titles inside the panel
+    nodes.forEach((n, i) => (n.matches('h2.sec,.sec2') && i === 0 ? n.remove() : box.append(n)));
     store.append(box);
   });
   const rest = BUB_ORDER.filter(id => groups[id]);
@@ -83,17 +80,16 @@ function layoutOrbs() {
   const big = orbs.querySelector('.bub.big'), sats = [...orbs.querySelectorAll('.bub:not(.big)')], n = sats.length, LBL = 24;
   orbs.style.height = `${H}px`;
   const E = 1.12; // ring ornaments reach a bit past each circle; neighbours' ornaments may touch, circles may not
-  let d = 90, rx, ry, per = 0, pts = [];
-  for (let k = 0; k < 3; k++) { // circle size and orbit depend on each other: settle them in a few passes
-    rx = W / 2 - d * E / 2 - 2; ry = H / 2 - d * E / 2 - LBL / 2 - 2;
-    pts = []; per = 0; // walk the ellipse so the circles sit at equal distances along it, not at equal angles
-    for (let j = 0, px = 0, py = -ry; j <= 720; j++) { const t = -Math.PI / 2 + j * Math.PI / 360, x = rx * Math.cos(t), y = ry * Math.sin(t); per += Math.hypot(x - px, y - py); pts.push([per, x, y]); px = x; py = y; }
-    d = Math.round(Math.max(60, Math.min(104, W * .23, (per / Math.max(n, 1) - LBL * .5) / E)));
-  }
+  // spots around the middle, as fractions of the free width and height (clockwise from the top), kept away from the middle row
+  const SPOTS = [[], [[0, -1]], [[0, -1], [0, 1]], [[0, -1], [1, .82], [-1, .82]], [[1, -.6], [1, .82], [-1, .82], [-1, -.6]],
+    [[0, -1], [1, -.48], [1, .86], [-1, .86], [-1, -.48]]][n] || [...Array(n)].map((_, i) => [Math.sin(i * 2 * Math.PI / n), -Math.cos(i * 2 * Math.PI / n)]);
+  const d = Math.round(Math.max(64, Math.min(120, W * .27))), rx = W / 2 - d * E / 2 - 2, ry = H / 2 - d * E / 2 - LBL / 2 - 2;
   const cx = W / 2, cy = H / 2 - LBL / 2;
   const put = (el, x, y, size) => { el.style.setProperty('--d', `${size}px`); el.style.left = `${x}px`; el.style.top = `${y - size / 2}px`; };
-  if (big) put(big, cx, cy, Math.round(Math.max(110, Math.min(220, 2 * (rx - d * E / 2 - 6) / E, 2 * (ry - d * E / 2 - 40) / E))));
-  sats.forEach((el, i) => { const L = i * per / n, [, x, y] = pts.find(q => q[0] >= L) || pts[0]; put(el, cx + x, cy + y, d); });
+  const at = sats.map((el, i) => { const x = rx * SPOTS[i][0], y = ry * SPOTS[i][1]; put(el, cx + x, cy + y, d); return Math.hypot(x, y); });
+  // the middle circle grows until it nearly touches the closest one around it
+  const room = Math.min(...at, ry) - d * E / 2 - 10;
+  if (big) put(big, cx, cy, Math.round(Math.max(110, Math.min(230, W * .56, 2 * room / E))));
   orbs.querySelectorAll('.orbit ellipse').forEach((e, i) => { e.setAttribute('cx', cx); e.setAttribute('cy', cy); e.setAttribute('rx', rx + i * 8); e.setAttribute('ry', ry + i * 8); });
 }
 addEventListener('resize', () => { if (view.querySelector('.orbs')) layoutOrbs(); });
@@ -160,7 +156,7 @@ home = function () { _bubHome(); bubbleHome(); };
 routes.home = home;
 
 if (typeof i18nAdd === 'function') i18nAdd({
-  Train: 'Entrenar', Quests: 'Misiones', Boss: 'Jefe', 'Check-in': 'Check-in', Earn: 'Ganar', Bets: 'Apuestas', Dungeon: 'Mazmorra',
-  Academy: 'Academia', Loot: 'Botín', 'Your bets': 'Tus apuestas', 'Daily loot': 'Botín diario',
+  Train: 'Entrenar', Quests: 'Misiones', Earn: 'Ganar', 'Quests and boss': 'Misiones y jefe', 'Meals and fuel': 'Comidas y combustible', 'Earn and bet': 'Ganar y apostar',
+  Academy: 'Academia', Loot: 'Botín', 'Daily loot': 'Botín diario',
   'Checked in today. Come back tomorrow for day {n}.': 'Ya has hecho el check-in hoy. Vuelve mañana para el día {n}.',
 });
