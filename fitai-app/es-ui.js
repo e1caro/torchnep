@@ -40,7 +40,7 @@ i18nAdd({
   'kettlebells': 'pesa rusa', 'machine': 'máquina', 'medicine ball': 'balón medicinal', 'none': 'ninguno', 'other': 'otro',
   'strength': 'fuerza', 'stretching': 'estiramientos', 'plyometrics': 'pliometría', 'cardio': 'cardio', 'powerlifting': 'powerlifting', 'olympic weightlifting': 'halterofilia', 'strongman': 'strongman',
 });
-i18nAdd({ 'Rookie ·': 'Novato ·', 'Iron Will ·': 'Voluntad de hierro ·', 'Challenger ·': 'Aspirante ·', 'Warrior ·': 'Guerrero ·', 'Champion ·': 'Campeón ·', 'Legend ·': 'Leyenda ·', 'Titan ·': 'Titán ·', 'Banners · {n}/{n}': 'Banners · {n}/{n}', 'Heavy Metal': 'Heavy metal' });
+i18nAdd({ 'FitQuest version {n}': 'FitQuest versión {n}', 'Rookie ·': 'Novato ·', 'Iron Will ·': 'Voluntad de hierro ·', 'Challenger ·': 'Aspirante ·', 'Warrior ·': 'Guerrero ·', 'Champion ·': 'Campeón ·', 'Legend ·': 'Leyenda ·', 'Titan ·': 'Titán ·', 'Banners · {n}/{n}': 'Banners · {n}/{n}', 'Heavy Metal': 'Heavy metal' });
 i18nPat(/^(\d+) \/ (\d+) XP to level (\d+)$/, (a, b, c) => `${a} / ${b} XP para el nivel ${c}`);
 i18nPat(/^· ×(\d+) this week$/, a => `· ×${a} esta semana`);
 i18nPat(/^(FitQuest is free[\s\S]*?\(public domain\)\.) ([\s\S]+)$/, (a, b) => `${tr(a)} ${tr(b)}`);

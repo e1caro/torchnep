@@ -16,7 +16,7 @@ self.addEventListener('fetch', e => {
   if (req.method !== 'GET') return;
   // The app's own files: network first so updates arrive, cache when offline.
   if (new URL(req.url).origin === location.origin) {
-    e.respondWith(fetch(req).then(r => store(req, r)).catch(() => caches.match(req)));
+    e.respondWith(fetch(req, { cache: 'no-cache' }).then(r => store(req, r)).catch(() => caches.match(req)));
     return;
   }
   // Exercise photos and fonts: cache first.
