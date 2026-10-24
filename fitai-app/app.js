@@ -434,7 +434,7 @@ function route() {
   timers.forEach(clearInterval); timers = [];
   const [, name = 'home', arg] = (location.hash || '#/home').split('/');
   if (name !== 'start') wiz = null;
-  const tab = { exercise: 'plan', library: 'plan', workout: 'home', victory: 'home', start: 'me' }[name] || name;
+  const tab = { exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
   document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
   (routes[name] || home)(arg);

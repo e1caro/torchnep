@@ -74,14 +74,15 @@ const QT = [
   { id: 'weigh', t: 'Log your weight', n: 1, m: 'weigh', xp: 25, ico: '⚖️' },
   { id: 'min', t: 'Train for 25 minutes', n: 25, m: 'minutes', xp: 60, ico: '⏱️' },
   { id: 'dungeon', t: 'Clear a dungeon', n: 1, m: 'dungeons', xp: 100, ico: '🏰', needLv: 2 },
+  { id: 'meals', t: 'Eat 3 planned meals', n: 3, m: 'meals', xp: 50, ico: '🍽️', need: () => typeof M !== 'undefined' && !!M.set },
 ];
-const metric = m => m === 'guides' ? G.today.guides.length : G.today[m];
+const metric = m => m === 'guides' ? G.today.guides.length : (G.today[m] || 0);
 
 function ensureDay() {
   const d = dayId();
   if (G.today?.day === d && G.quests?.day === d) return;
-  G.today = { day: d, sets: 0, workouts: 0, minutes: 0, guides: [], weigh: 0, dungeons: 0 };
-  const pool = shuffle(QT.slice(1).filter(q => !q.needLv || lvl() >= q.needLv), rng(hash(d)));
+  G.today = { day: d, sets: 0, workouts: 0, minutes: 0, guides: [], weigh: 0, dungeons: 0, meals: 0 };
+  const pool = shuffle(QT.slice(1).filter(q => (!q.needLv || lvl() >= q.needLv) && (!q.need || q.need())), rng(hash(d)));
   G.quests = { day: d, list: ['workout', ...pool.slice(0, 2).map(q => q.id)], claimed: [], bonus: false };
   commit();
 }

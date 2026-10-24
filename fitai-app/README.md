@@ -8,7 +8,11 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 - **Game layer:** XP and levels (every set, workout, record and quest earns XP), daily quests, a weekly boss that takes damage from each workout, coins, a daily check-in, badges and sound effects.
 - **Rewards:** levelling up unlocks 21 **dungeons** (special workouts from Tabata Blitz at level 2 to the Olympian Gauntlet at level 28, built from your own equipment and limits, with a bonus-XP "dungeon of the day"), 12 app **themes**, 16 hero avatars, 6 animated avatar rings and titles earned from badges. Anything can also be unlocked early with coins.
 - **Loot chests:** wooden, silver and golden chests drop from dungeons, the weekly boss, the daily bonus and every 5th level, and can contain coins, XP, cosmetics or an early dungeon unlock.
+- **Meal plan:** 56 recipes (breakfast, lunch/dinner, snacks) with calories and macros worked out from ingredient weights. Pick your diet (vegan, vegetarian, pescatarian), allergies, meals per day and how long you can cook on each day (15, 30 or 60 minutes). Portions are scaled to hit your calorie target, there is a swap button per meal, a weekly shopping list, and logging a meal earns XP.
 - **Progress:** body-weight chart against your target, volume per workout, personal records, history.
+
+## Gym pass
+The Hero tab and the Today screen have an **Open Synergym** button that launches the Synergym member app on Android (default app id `digifit.android.virtuagym.pro.synergym`, editable under "Wrong app opens?"). FitQuest never handles your Synergym login. If your gym's QR is fixed you can also save a screenshot of it and show it full screen; a code that changes each time cannot be saved.
 
 ## Install on a phone
 It is published with the docs site at `/fitcoach/` (repo Settings → Pages → Source: GitHub Actions; see `.github/workflows/docs.yml`).
