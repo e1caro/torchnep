@@ -4,7 +4,7 @@
 // It needs the Client ID of a Spotify app: set SPOTIFY_CLIENT_ID below, or paste one in Hero > Music.
 const SPOTIFY_CLIENT_ID = '';
 const SP_SCOPES = 'user-top-read user-library-read user-read-private playlist-modify-private playlist-modify-public';
-const SPF = Object.assign({ cid: '', tok: '', exp: 0, refresh: '', user: null, used: [], lists: {} }, load('spotify', {}));
+const SPF = Object.assign({ cid: '', tok: '', exp: 0, refresh: '', user: null, used: [], lists: {}, genres: [], mine: [], rot: 0 }, load('spotify', {}));
 const spoSave = () => save('spotify', SPF);
 const spCid = () => SPF.cid || SPOTIFY_CLIENT_ID;
 const spOn = () => !!(spCid() && SPF.refresh);
@@ -172,13 +172,63 @@ function spRefreshView() {
 }
 const spLogo = '<svg class="splogo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1ed760"/><path d="M6 9.2c4-1.2 8.6-.8 12 1.2M6.6 12.4c3.3-1 7-.6 9.8 1M7.2 15.4c2.7-.7 5.4-.4 7.6.8" fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round"/></svg>';
 
+// ---------- music without linking an account ----------
+// Spotify only lets a handful of hand-picked accounts link to an app, so everyone else gets music through plain links:
+// their own playlists (pasted once) and workout playlists of the genres they like, a different one each workout.
+const SP_GENRES = [['rock', 'Rock'], ['metal', 'Metal'], ['reggaeton', 'Reggaeton'], ['hiphop', 'Hip hop'], ['trap', 'Trap'], ['edm', 'EDM'],
+  ['techno', 'Techno'], ['house', 'House'], ['pop', 'Pop'], ['latin', 'Latin'], ['phonk', 'Phonk'], ['kpop', 'K-pop'], ['punk', 'Punk'], ['dnb', 'Drum and bass']];
+const SP_SUFFIX = ['workout', 'gym', 'training', 'cardio', 'beast mode'];
+const spParse = u => { const m = String(u).match(/(playlist|album|artist)[/:]([A-Za-z0-9]{22})/); return m && { type: m[1], id: m[2] }; };
+const spUrl = x => `https://open.spotify.com/${x.type}/${x.id}`;
+function spPick() {
+  const opts = [...SPF.mine.map(x => ({ kind: 'mine', x })), ...SPF.genres.map(g => ({ kind: 'genre', g }))];
+  if (!opts.length) return null;
+  const k = S.history.length + (SPF.rot || 0), o = opts[k % opts.length];
+  if (o.kind === 'genre') {
+    const name = (SP_GENRES.find(([g]) => g === o.g) || [, o.g])[1], q = `${name} ${SP_SUFFIX[k % SP_SUFFIX.length]}`;
+    return { ...o, name, q, url: `https://open.spotify.com/search/${encodeURIComponent(q)}/playlists` };
+  }
+  return o;
+}
+window.spGenre = g => { SPF.genres = SPF.genres.includes(g) ? SPF.genres.filter(x => x !== g) : [...SPF.genres, g]; spoSave(); spRefreshView(); };
+window.spNext = () => { SPF.rot = (SPF.rot || 0) + 1; spoSave(); sfx('tick'); spRefreshView(); };
+window.spAddMine = async () => {
+  const inp = document.querySelector('.music .spadd input'), x = spParse(inp?.value || '');
+  if (!x) { toast('Paste a Spotify playlist, album or artist link.'); return; }
+  if (SPF.mine.some(m => m.id === x.id)) { toast('That one is already in your list.'); return; }
+  SPF.mine.push(x); spoSave(); toast('Added'); spRefreshView();
+  try { // its name, from Spotify's public oEmbed (no account needed)
+    const j = await (await fetch('https://open.spotify.com/oembed?url=' + encodeURIComponent(spUrl(x)))).json();
+    if (j.title) { x.name = j.title; spoSave(); spRefreshView(); }
+  } catch { /* the link works without a name */ }
+};
+window.spDelMine = i => { SPF.mine.splice(i, 1); spoSave(); spRefreshView(); };
+function musicPrefs() {
+  return `<div class="lbl">Genres you like to train to</div>
+    <div class="chips">${SP_GENRES.map(([g, n]) => `<button class="chip ${SPF.genres.includes(g) ? 'on' : ''}" onclick="spGenre('${g}')">${n}</button>`).join('')}</div>
+    <div class="lbl">Your playlists</div>
+    ${SPF.mine.map((x, i) => `<div class="row between spmine"><a href="${spUrl(x)}" target="_blank" rel="noopener" translate="no">${esc(x.name || `${x.type} ${x.id.slice(0, 6)}…`)}</a><button class="icon" aria-label="Remove" onclick="spDelMine(${i})">✕</button></div>`).join('')}
+    <div class="row spadd"><input placeholder="Paste a Spotify playlist link" autocomplete="off" spellcheck="false"><button class="btn sm" onclick="spAddMine()">Add</button></div>`;
+}
+function musicFree() {
+  const pick = spPick(), link = spCid() ? `<button class="btn ghost sm" onclick="spConnect()">${spLogo} Link Spotify for playlists made from your own songs</button>` : '';
+  if (!pick) {
+    return `<section class="card music"><h3>${spLogo} Workout music</h3>
+      <div class="mut">Pick the music you train to, or paste your Spotify playlists. Each workout gets a different one.</div>${musicPrefs()}${link}</section>`;
+  }
+  const play = pick.kind === 'mine'
+    ? `<iframe class="spembed" src="https://open.spotify.com/embed/${pick.x.type}/${pick.x.id}?theme=0" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" title="Spotify"></iframe>
+      <a class="btn spbtn" href="${spUrl(pick.x)}" target="_blank" rel="noopener">${spLogo} Play in Spotify</a>`
+    : `<div class="spgenre"><b translate="no">${esc(pick.q)}</b><span class="mut">Workout playlists on Spotify</span></div>
+      <a class="btn spbtn" href="${pick.url}" target="_blank" rel="noopener">${spLogo} Open in Spotify</a>`;
+  return `<section class="card music"><div class="row between"><h3>${spLogo} Workout music</h3><span class="mut">For this workout</span></div>
+    ${play}<button class="btn ghost sm" onclick="spNext()">Something else</button>
+    <details class="spprefs"><summary>Change my music</summary>${musicPrefs()}</details>${link}</section>`;
+}
+
 function musicCard() {
   const di = nextDayIdx(), pl = SPF.lists[`${dayId()}:${di}`];
-  if (!spOn()) {
-    return `<section class="card music"><div class="row between"><h3>${spLogo} Workout music</h3></div>
-      <div class="mut">A new playlist for every workout, with energetic songs you like.</div>
-      <button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button></section>`;
-  }
+  if (!spOn()) return musicFree();
   if (SP_BUSY) return `<section class="card music"><h3>${spLogo} Workout music</h3><div class="mut sppulse">Picking energetic songs…</div></section>`;
   if (!pl) {
     return `<section class="card music"><h3>${spLogo} Workout music</h3><div class="mut">Get a playlist for this workout: energetic songs you like, plus a few new ones.</div>
@@ -192,19 +242,18 @@ function musicCard() {
 }
 
 function musicSettings() {
-  if (!spCid()) {
-    return `<h2 class="sec">Music</h2><section class="card music"><h3>${spLogo} Spotify</h3>
-      <div class="mut">To link Spotify, create a free app at developer.spotify.com (choose Web API), add this redirect URI, and paste the app's Client ID here.</div>
+  const acct = !spCid()
+    ? `<details class="spprefs"><summary>Link your Spotify account (advanced)</summary>
+      <div class="mut">For playlists made from your own songs. Spotify lets an app link only up to 5 accounts, chosen by its owner. Create a free app at developer.spotify.com (choose Web API, needs Premium), add this redirect URI, add your account under User Management, and paste the app's Client ID here.</div>
       <div class="spuri" translate="no">${esc(spRedirect())}</div>
       <input id="spcid" placeholder="Client ID" autocomplete="off" spellcheck="false" translate="no">
-      <button class="btn" onclick="spSetCid()">Save</button></section>`;
-  }
-  return `<h2 class="sec">Music</h2><section class="card music"><div class="row between"><h3>${spLogo} Spotify</h3>
-    ${spOn() ? `<span class="mut">Linked</span>` : ''}</div>
-    ${spOn() ? `<div class="mut">Linked as <b translate="no">${esc(SPF.user?.name || '')}</b>. Each workout gets its own playlist on Today › Train.</div>
+      <button class="btn" onclick="spSetCid()">Save</button></details>`
+    : spOn() ? `<div class="mut">Linked as <b translate="no">${esc(SPF.user?.name || '')}</b>. Each workout gets its own playlist on Today › Train.</div>
       <button class="btn ghost" onclick="spDisconnect()">Unlink Spotify</button>`
-      : `<button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button>`}
-    ${SPOTIFY_CLIENT_ID ? '' : '<button class="btn ghost sm" onclick="spEditCid()">Change Client ID</button>'}</section>`;
+    : `<button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button>`;
+  return `<h2 class="sec">Music</h2><section class="card music"><div class="row between"><h3>${spLogo} Spotify</h3>${spOn() ? '<span class="mut">Linked</span>' : ''}</div>
+    ${spOn() ? '' : musicPrefs()}${acct}
+    ${spCid() && !SPOTIFY_CLIENT_ID ? '<button class="btn ghost sm" onclick="spEditCid()">Change Client ID</button>' : ''}</section>`;
 }
 
 const _spoHome = home;
@@ -219,7 +268,15 @@ if (typeof i18nAdd === 'function') i18nAdd({
   'Get a playlist for this workout: energetic songs you like, plus a few new ones.': 'Consigue una lista para este entrenamiento: canciones enérgicas que te gustan y algunas nuevas.',
   'Make my workout playlist': 'Crear mi lista para entrenar', 'Play in Spotify': 'Escuchar en Spotify', 'Another playlist': 'Otra lista',
   '{n} songs · {n} min': '{n} canciones · {n} min', '{n} more · {n} new to you': '{n} más · {n} nuevas para ti', '{n} more': '{n} más',
-  Music: 'Música', Linked: 'Vinculado', 'Linked as': 'Vinculado como', 'Change Client ID': 'Cambiar Client ID',
+  Music: 'Música', Linked: 'Vinculado', Latin: 'Latino', 'Drum and bass': 'Drum and bass',
+  'Genres you like to train to': 'Géneros con los que te gusta entrenar', 'Your playlists': 'Tus listas', 'Paste a Spotify playlist link': 'Pega un enlace de una lista de Spotify',
+  Add: 'Añadir', Added: 'Añadida', Remove: 'Quitar', 'Paste a Spotify playlist, album or artist link.': 'Pega un enlace de Spotify a una lista, un álbum o un artista.',
+  'That one is already in your list.': 'Esa ya está en tu lista.', 'Link Spotify for playlists made from your own songs': 'Vincula Spotify para listas hechas con tus canciones',
+  'Pick the music you train to, or paste your Spotify playlists. Each workout gets a different one.': 'Elige la música con la que entrenas o pega tus listas de Spotify. Cada entrenamiento tendrá una distinta.',
+  'For this workout': 'Para este entrenamiento', 'Workout playlists on Spotify': 'Listas para entrenar en Spotify', 'Open in Spotify': 'Abrir en Spotify',
+  'Something else': 'Otra cosa', 'Change my music': 'Cambiar mi música', 'Link your Spotify account (advanced)': 'Vincular tu cuenta de Spotify (avanzado)',
+  'For playlists made from your own songs. Spotify lets an app link only up to 5 accounts, chosen by its owner. Create a free app at developer.spotify.com (choose Web API, needs Premium), add this redirect URI, add your account under User Management, and paste the app\'s Client ID here.':
+    'Para listas hechas con tus propias canciones. Spotify solo deja vincular hasta 5 cuentas a una app, elegidas por su dueño. Crea una app gratis en developer.spotify.com (elige Web API, necesita Premium), añade esta URI de redirección, añade tu cuenta en User Management y pega aquí el Client ID de la app.', 'Linked as': 'Vinculado como', 'Change Client ID': 'Cambiar Client ID',
   'Each workout gets its own playlist on Today › Train.': 'Cada entrenamiento tiene su propia lista en Hoy › Entrenar.',
   'To link Spotify, create a free app at developer.spotify.com (choose Web API), add this redirect URI, and paste the app\'s Client ID here.':
     'Para vincular Spotify, crea una app gratis en developer.spotify.com (elige Web API), añade esta URI de redirección y pega aquí el Client ID de la app.',

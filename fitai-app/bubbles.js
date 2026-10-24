@@ -20,6 +20,23 @@ function bubble(id, i, big) {
     <span class="bl">${label}</span></button>`;
 }
 
+// The check-in streak runs in weeks of 7 days; day 7 brings a silver chest. A streak is always at least day 1
+// (older saves could hold 0 for a check-in already made today).
+function streak() {
+  const st = Math.max(1, ciInfo().st), today = G.checkin === dayId(), day = ((st - 1) % 7) + 1;
+  const n = today ? st + 1 : st, k = Math.min(n - 1, 6); // the next check-in still to make
+  return { today, done: today ? day : day - 1, next: { xp: 10 + 2 * k, coins: 15 + 5 * k, chest: n % 7 === 0 } };
+}
+function streakCard() {
+  const s = streak(), el = document.createElement('section');
+  el.className = 'card streak';
+  el.innerHTML = `<div class="row between"><h3>Check-in streak</h3><span class="mut">Day ${s.done} of 7</span></div>
+    <div class="ckdots">${[...Array(7)].map((_, i) => `<i class="${i < s.done ? 'on' : ''}">${i === 6 ? gi('chest-silver', 'hero') : i + 1}</i>`).join('')}</div>
+    ${s.today ? `<div class="row between"><span class="mut">Done for today. Tomorrow</span><b>+${s.next.xp} XP · ${gi('coin', 'cn')} ${s.next.coins}${s.next.chest ? ` · ${gi('chest-silver')}` : ''}</b></div>`
+    : '<div class="mut">Check in today to keep your streak.</div>'}`;
+  return el;
+}
+
 function bubbleHome() {
   const hudEl = view.querySelector(':scope > .hud');
   if (!hudEl) return; // the profile wizard, not Today
@@ -30,14 +47,12 @@ function bubbleHome() {
     quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest'), prevH(boss), boss],
     loot: [q('button[onclick="checkIn()"]'), q('.chestbtn')],
     meals: [meals, prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
-    earn: [q('button[onclick*="#/earn"]'), q('button[onclick*="#/bets"]')], academy: [q('.sp-row')],
+    earn: earnNodes(), academy: [q('.sp-row')],
   };
+  // the old shortcut buttons to the Earn and Bets screens: their content now sits inside the Earn circle
+  view.querySelectorAll(':scope > button[onclick*="#/earn"], :scope > button[onclick*="#/bets"]').forEach(n => n.remove());
   // the daily check-in and the chests share one bubble; it stays even when both are done
-  if (!groups.loot.some(Boolean)) {
-    const note = document.createElement('div'); note.className = 'card mut';
-    note.textContent = `Checked in today. Come back tomorrow for day ${(G.ciStreak % 7) + 1}.`;
-    groups.loot = [note];
-  }
+  groups.loot.unshift(streakCard());
   Object.keys(groups).forEach(k => { groups[k] = groups[k].filter(Boolean); if (!groups[k].some(n => !n.matches('h2.sec,.sec2'))) delete groups[k]; });
 
   // what each bubble shows: a value, a progress ring (0..1) and a "!" when something is ready to claim
@@ -46,8 +61,7 @@ function bubbleHome() {
   BUB_INFO = {
     train: { p: hits / p.days, v: `${hits}/${p.days}`, name: next?.querySelector('h2')?.textContent },
     quests: { p: qd / qn, v: `${qd}/${qn}`, bad: !!view.querySelector(':scope > .quest.ok:not(.cl)') || !!boss?.querySelector('button') },
-    loot: (c => { const day = ((c.st - 1) % 7) + 1, ci = G.checkin !== dayId();
-      return { p: day / 7, v: G.chests.length ? `×${G.chests.length}` : `${day}/7`, bad: ci || G.chests.length > 0 }; })(ciInfo()),
+    loot: (({ done }) => ({ p: done / 7, v: G.chests.length ? `×${G.chests.length}` : `${done}/7`, bad: G.checkin !== dayId() || G.chests.length > 0 }))(streak()),
     meals: (([a, b]) => (b ? { p: a / b, v: `${a}/${b}` } : { v: g4?.querySelector('b')?.textContent }))(num(meals?.querySelector('.mut'))),
     academy: { v: groups.academy?.[0].querySelector('.pc-mini b')?.textContent ?? null },
     earn: { bad: typeof spinsLeft === 'function' && spinsLeft() > 0, v: typeof BT === 'object' && BT.open.length ? `${BT.open.length}` : null },
@@ -58,7 +72,7 @@ function bubbleHome() {
   Object.entries(groups).forEach(([id, nodes]) => {
     const box = document.createElement('div'); box.dataset.b = id;
     // the panel title replaces the first heading; later ones stay as section titles inside the panel
-    nodes.forEach((n, i) => (n.matches('h2.sec,.sec2') && i === 0 ? n.remove() : box.append(n)));
+    nodes.forEach((n, i) => (n.matches('h2.sec,.sec2') && i === 0 && !n.matches('.keep') ? n.remove() : box.append(n)));
     store.append(box);
   });
   const rest = BUB_ORDER.filter(id => groups[id]);
@@ -87,7 +101,7 @@ function layoutOrbs() {
   const cx = W / 2, cy = PAD + (H - PAD) / 2 - LBL / 2;
   // try the largest outer circles first; on short screens shrink them until the middle circle is clearly the biggest
   const plan = d => {
-    const rx = W / 2 - d * E / 2 - 2, ry = (H - PAD) / 2 - d * O / 2 - LBL / 2;
+    const rx = W / 2 - d * O / 2 - 2, ry = (H - PAD) / 2 - d * O / 2 - LBL / 2;
     const at = SPOTS.slice(0, n).map(([fx, fy]) => [rx * fx, ry * fy]);
     // the middle circle sits halfway between the side circles above and below it, and grows until its ornament
     // stays well clear of the closest circle or label around it
@@ -136,7 +150,7 @@ window.openBub = (id, instant) => {
   bx.getBoundingClientRect();
   BUB.open = id;
   document.body.classList.add('bubopen');
-  if (instant) { bx.classList.add('open'); return; }
+  if (instant) { bx.classList.add('open'); bx.scrollTop = BUB.st || 0; return; } // redrawn after a tap inside: stay where you were
   bx.classList.remove('now');
   view.querySelector(`.bub[data-b="${id}"]`)?.classList.add('tap');
   sfx('tick');
@@ -167,11 +181,33 @@ addEventListener('hashchange', () => { if (!/^#\/home|^#?$/.test(location.hash))
 addEventListener('keydown', e => { if (e.key === 'Escape' && view.querySelector('.bx')) closeBub(); });
 
 const _bubHome = home;
-home = function () { _bubHome(); bubbleHome(); };
+home = function () { BUB.st = view.querySelector('.bx')?.scrollTop || 0; _bubHome(); bubbleHome(); };
+
+// The Earn circle shows the Bets and Ways to earn screens themselves. Their buttons redraw their own screen;
+// while that screen lives inside the open circle on Today, they redraw Today instead, so the circle stays open.
+const onTodayIn = id => /^#\/home|^#?$/.test(location.hash) && BUB.open === id;
+const _bubEarn = earn, _bubBets = typeof betsView === 'function' ? betsView : null;
+earn = function () { if (onTodayIn('earn')) home(); else _bubEarn(); };
+if (_bubBets) betsView = function () { if (onTodayIn('earn')) home(); else _bubBets(); };
+// draw another screen and take its content, leaving Today as it was
+function screenNodes(draw) {
+  const keep = document.createDocumentFragment();
+  keep.append(...view.childNodes);
+  let out = [];
+  try { draw(); out = [...view.children]; } catch { /* leave the circle without it */ } finally { view.replaceChildren(keep); }
+  return out.filter(n => !n.matches('.hud, h1, .back'));
+}
+function earnNodes() {
+  const head = t => Object.assign(document.createElement('h2'), { className: 'sec keep', textContent: t });
+  const bets = _bubBets ? screenNodes(_bubBets) : [];
+  const ways = screenNodes(_bubEarn).filter(n => !n.querySelector?.('button[onclick*="#/bets"]')); // its "Open bets" card
+  return [...(bets.length ? [head('Bets'), ...bets] : []), head('Ways to earn'), ...ways];
+}
 routes.home = home;
 
 if (typeof i18nAdd === 'function') i18nAdd({
   Train: 'Entrenar', Quests: 'Misiones', Earn: 'Ganar', 'Quests and boss': 'Misiones y jefe', 'Meals and fuel': 'Comidas y combustible', 'Earn and bet': 'Ganar y apostar',
   Academy: 'Academia', Loot: 'Botín', 'Daily loot': 'Botín diario',
-  'Checked in today. Come back tomorrow for day {n}.': 'Ya has hecho el check-in hoy. Vuelve mañana para el día {n}.',
+  'Check-in streak': 'Racha de check-in', 'Day {n} of {n}': 'Día {n} de {n}', 'Check in today to keep your streak.': 'Haz el check-in hoy para mantener la racha.',
+  'Done for today. Tomorrow': 'Hecho por hoy. Mañana',
 });
