@@ -259,3 +259,5 @@ i18nAdd({ 'Themes recolour the Sci-fi HUD interface.': 'Los temas cambian los co
 i18nPat(/^(.+) Themes recolour the Sci-fi HUD interface\. (.+) uses its own colours\.$/, (e, n) => `${e} Los temas cambian los colores de la interfaz HUD de ciencia ficción. ${tr(n)} usa sus propios colores.`);
 i18nAdd({ 'Something to claim': 'Hay algo para reclamar' });
 i18nPat(/^(.+) Themes recolour (.+) too\. Choose Cyber HUD to see its original colours\.$/, (e, n) => `${e} Los temas también cambian los colores de ${tr(n)}. Elige Cyber HUD para ver sus colores originales.`);
+i18nAdd({ '1 person': '1 persona', 'light serving': 'ración ligera', 'hearty serving': 'ración abundante', 'standard serving': 'ración normal',
+  'One serving per meal falls short of your target.': 'Una ración por comida se queda corta para tu objetivo.', 'Choose {n} meals a day': 'Elige {n} comidas al día', 'to eat enough.': 'para comer suficiente.' });

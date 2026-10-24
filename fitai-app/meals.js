@@ -19,6 +19,13 @@ const SLOTS = {
   5: [['Breakfast', 'b', .22], ['Snack', 's', .09], ['Lunch', 'm', .28], ['Snack', 's', .09], ['Dinner', 'm', .32]],
 };
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+// Every recipe is one serving for one person. Portions only move a little (lighter or heartier serving);
+// bigger calorie targets are met with more meals a day, not with huge plates.
+const PMIN = .85, PMAX = 1.15, SERVE_CAP = { b: 500, m: 600, s: 280 };
+RECIPES.forEach(r => {
+  const kcal = nutOf(r).kcal, cap = SERVE_CAP[r.meal];
+  if (kcal > cap) r.ing = r.ing.map(([k, g]) => [k, Math.max(5, Math.round(g * cap / kcal / 5) * 5)]);
+});
 const target = () => analyze({ ...S.profile, weight: curWeight() });
 
 function recipeOk(r, set = M.set, ignoreCuisine = false) {
@@ -28,7 +35,7 @@ function recipeOk(r, set = M.set, ignoreCuisine = false) {
   if (cu.length && !ignoreCuisine) { const hit = r.cu?.some(c => cu.includes(c)); if (r.meal === 'm' ? !hit : (r.cu && !hit)) return false; }
   return ![...fl].some(f => ban.includes(f)) && (!r.chef || has(item('r-' + r.id)));
 }
-function portion(r, kcal) { return Math.round(clamp(kcal / nutOf(r).kcal, .5, 2.2) * 20) / 20; }
+function portion(r, kcal) { return Math.round(clamp(kcal / nutOf(r).kcal, PMIN, PMAX) * 20) / 20; }
 
 // How much variety the week gets. ing: cost of each new ingredient, rep: cost of repeating a recipe, max: most uses of one recipe per week.
 const VARIETY = {
@@ -52,7 +59,7 @@ function fitScore(r, kcal, a) {
   const n = nutFast(r), ratio = kcal / n.kcal;
   const pd = n.p * 4 / n.kcal - a.protein * 4 / a.kcal;
   return -(pd < 0 ? -pd * 14 : pd * 6) - Math.abs(n.c * 4 / n.kcal - a.carbs * 4 / a.kcal) * 3
-    - Math.abs(n.f * 9 / n.kcal - a.fat * 9 / a.kcal) * 3 - (ratio < .6 ? .6 - ratio : ratio > 1.8 ? ratio - 1.8 : 0) * 2;
+    - Math.abs(n.f * 9 / n.kcal - a.fat * 9 / a.kcal) * 3 - (ratio < PMIN ? PMIN - ratio : ratio > PMAX ? ratio - PMAX : 0) * 2;
 }
 
 // Recipes allowed for a slot: right meal, diet and allergies, cuisine (softly, when the chosen cuisines have too few), time limit.
@@ -131,7 +138,7 @@ function refine(days, only) {
 // Scales the portions so the day lands on the calorie target.
 function finalizeDay(d) {
   const a = target(), total = d.items.reduce((s, it) => s + nutFast(RBY[it.rid]).kcal * it.k, 0), f = a.kcal / total;
-  if (Math.abs(f - 1) > .02) d.items.forEach(it => { if (!it.eaten) it.k = Math.round(clamp(it.k * f, .5, 2.2) * 20) / 20; });
+  if (Math.abs(f - 1) > .02) d.items.forEach(it => { if (!it.eaten) it.k = Math.round(clamp(it.k * f, PMIN, PMAX) * 20) / 20; });
   delete d.fit; return d;
 }
 
@@ -172,14 +179,17 @@ function buildWeek() {
   }
   // polish the best few random weeks by swapping single meals, then keep the best result
   const best = trials.sort((x, y) => y.j - x.j).slice(0, 4).map(t => refine(t.days)).reduce((x, y) => weekScore(y) > weekScore(x) ? y : x);
-  M.plan = { week: weekId(), v: 2, days: addChefPicks(best).map(finalizeDay) };
+  M.plan = { week: weekId(), v: 3, days: addChefPicks(best).map(finalizeDay) };
   M.shop = []; mealSave();
 }
 const weekIngredients = () => new Set(M.plan.days.flatMap(d => d.items.flatMap(it => RBY[it.rid].ing.map(g => g[0])))).size;
 const timesInWeek = rid => M.plan.days.reduce((s, d) => s + d.items.filter(i => i.rid === rid).length, 0);
 function ensureMeals() {
   if (!M.set) return false;
-  if (!M.plan || M.plan.week !== weekId() || M.plan.v !== 2) buildWeek(); // v2: ingredient-aware planner
+  if (M.plan?.v === 2 && M.plan.week === weekId()) { // portions are now one serving each: shrink this week's plan in place, keeping what was eaten
+    M.plan.days.forEach(d => { d.items.forEach(it => { it.k = Math.round(clamp(it.k, PMIN, PMAX) * 20) / 20; }); finalizeDay(d); }); M.plan.v = 3; mealSave();
+  }
+  if (!M.plan || M.plan.week !== weekId() || M.plan.v !== 3) buildWeek(); // v3: one serving per person
   return true;
 }
 // Warn when diet and allergy filters leave very few recipes.
@@ -253,7 +263,8 @@ function mealsView(arg) {
   <div class="days">${DAYN.map((n, i) => `<button class="dpill ${i === mDay ? 'on' : ''} ${i === todayIdx() ? 'td' : ''}" onclick="mealDay(${i})"><span>${n}</span><i>${M.plan.days[i].items.every(x => x.eaten) ? '✓' : ''}</i></button>`).join('')}</div>
   <section class="card"><div class="row between"><h3>${Math.round(t.kcal)} kcal planned</h3><span class="mut">target ${a.kcal}</span></div>
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div><div class="mut">${Math.round(t.eat)} kcal eaten so far</div>
-  ${bar('Protein', t.p, a.protein, 'pr')}${bar('Carbs', t.c, a.carbs, 'cb')}${bar('Fat', t.f, a.fat, 'ft')}</section>
+  ${bar('Protein', t.p, a.protein, 'pr')}${bar('Carbs', t.c, a.carbs, 'cb')}${bar('Fat', t.f, a.fat, 'ft')}
+  ${t.kcal < a.kcal * .9 && M.set.meals < 5 ? `<div class="mut" style="margin-top:8px">💡 One serving per meal falls short of your target. <a href="#/meals/setup" style="color:var(--acc2)">Choose ${M.set.meals + 1} meals a day</a> to eat enough.</div>` : ''}</section>
   ${(() => { const avgP = M.plan.days.reduce((x, y) => x + dayTotals(y).p, 0) / 7; return avgP < a.protein * .9 ? `<p class="mut">💡 This week averages ${Math.round(avgP)} g protein against a ${a.protein} g target. A longer cooking time, "Balanced" variety or a protein snack closes the gap.</p>` : ''; })()}
   <div class="mut">🛒 ${weekIngredients()} ingredients this week · ${VAR().name}${M.set.style === 'ai' ? ' · Anti-inflammatory' : ''}${(M.set.cuisines || []).length ? ' · ' + M.set.cuisines.map(c => CUISINES[c]).join(' + ') : ''} · <a href="#/meals/setup" style="color:var(--acc2)">change</a></div>
   <div class="lbl">Time to cook this day</div>
@@ -282,7 +293,7 @@ function recipeView() {
   <div class="rhero">${r.ico}</div><div class="mut">${DAYN[+di]} · ${it.slot}</div><h1>${esc(r.name)}</h1>
   <div class="grid4"><div class="stat"><b>${Math.round(n.kcal * it.k)}</b><span>kcal</span></div><div class="stat"><b>${Math.round(n.p * it.k)}g</b><span>protein</span></div>
   <div class="stat"><b>${Math.round(n.c * it.k)}g</b><span>carbs</span></div><div class="stat"><b>${Math.round(n.f * it.k)}g</b><span>fat</span></div></div>
-  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}${r.ai ? `<span class="chip on">${gi('leaf')} Anti-inflammatory</span>` : ''}<span class="chip">${it.k}× portion</span></div>
+  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}${r.ai ? `<span class="chip on">${gi('leaf')} Anti-inflammatory</span>` : ''}<span class="chip">1 person · ${it.k < .95 ? 'light serving' : it.k > 1.05 ? 'hearty serving' : 'standard serving'}</span></div>
   ${r.ai ? `<p class="mut">${gi('leaf')} Rich in ${r.aiGood.slice(0, 4).map(k => ING[k][0].toLowerCase()).join(', ')}. No red meat, refined pasta or added sugar.</p>` : ''}
   <h2 class="sec">Ingredients</h2><div class="card">${r.ing.map(([k, g]) => `<div class="row between ing"><span>${ING[k][0]}</span><b>${fmtAmt(k, g * it.k)}</b></div>`).join('')}
   <div class="mut">Plus salt, pepper, herbs and spices to taste.</div></div>

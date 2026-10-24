@@ -47,6 +47,9 @@ Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open 
 
 Local test: `python3 -m http.server -d fitai-app 8000`.
 
+## Meal portions
+Every recipe is one serving for one person: mains are capped at about 600 kcal, breakfasts at 500 and snacks at 280. The planner only makes a serving 15% lighter or heartier. Bigger calorie targets are met with more meals a day, and the plan suggests adding a meal when one serving per meal falls short.
+
 ## HUD look and cosmetics
 The app icon matches the HUD: a glowing hexagon with a weightlifter, a tick ring and corner brackets. Long explanations fold into a small "More info" dropdown on every screen, and the bottom bar uses bigger icons with a highlighted active section.
 
