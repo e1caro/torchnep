@@ -51,6 +51,12 @@ Local test: `python3 -m http.server -d fitai-app 8000`.
 
 Today is six circles that fill the screen: Train in the middle (next workout and the dungeon of the day), with Quests (daily quests and the weekly boss), Loot (daily check-in and chests), Meals (meals and fuel), Earn (ways to earn and bets) and the Academy around it. Each circle shows a value and a progress ring, and a "!" when something is ready to claim. Tapping one grows it into a panel with what is inside; ✕, the back button or Esc shrink it back. Every interface draws its own animated rings (turning gears, swaying vines and laurels, a rocking rope, flickering torchlight, neon, pixels...), a soft light runs over panel frames, and every avatar ring moves, built by `tools/build_skins.py` (code in `bubbles.js`).
 
+## Workout music (Spotify)
+
+Link Spotify in Hero > Music and every workout gets its own private playlist on Today > Train: energetic songs you like (from your top and saved tracks) plus about 30% new ones from your most energetic artists, long enough for the workout, warming up, peaking in the middle and easing off at the end. "Another playlist" makes a different one. Spotify no longer shares a song's energy with apps, so energy is judged from the artists' genres and the song title; calm genres (ambient, acoustic, sleep...) are left out.
+
+Setup (once): create a free app at developer.spotify.com (Web API), add the redirect URI shown in Hero > Music (on GitHub Pages: `https://e1caro.github.io/torchnep/fitcoach/`), and paste the app's Client ID in Hero > Music, or set `SPOTIFY_CLIENT_ID` in `spotify.js` so nobody has to paste it. Sign-in uses PKCE in the browser, with no server and no secret. While the Spotify app is in development mode, only accounts added under its User Management (up to 25) can link.
+
 ## Meal portions
 Every recipe is one serving for one person: mains are capped at about 600 kcal, breakfasts at 500 and snacks at 280. The planner only makes a serving 15% lighter or heartier, and on each recipe you can pick how hungry you are (×0.75 to ×1.5, or −/+ in 10% steps); your choice changes kcal, macros, ingredients and the shopping list, and the planner keeps it. Bigger calorie targets are met with more meals a day, and the plan suggests adding a meal when one serving per meal falls short.
 

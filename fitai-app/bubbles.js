@@ -26,7 +26,7 @@ function bubbleHome() {
   const q = s => view.querySelector(':scope > ' + s), prevH = el => el?.previousElementSibling?.matches('h2.sec') ? el.previousElementSibling : null;
   const next = q('.card.next'), boss = q('.card.boss'), g4 = q('.grid4'), meals = q('section.card[onclick*="#/meals"],section.card[onclick*="#/recipe"]');
   const groups = {
-    train: [prevH(next), next, q('section[onclick*="#/dungeons"]')],
+    train: [prevH(next), next, q('.card.music'), q('section[onclick*="#/dungeons"]')],
     quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest'), prevH(boss), boss],
     loot: [q('button[onclick="checkIn()"]'), q('.chestbtn')],
     meals: [meals, prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
