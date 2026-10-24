@@ -174,3 +174,39 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .ing{padding:7px 0;border-bottom:1px solid var(--line)}.ing:last-of-type{border:0}
 .shop{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.shop:last-child{border:0}.shop input{width:22px;height:22px;accent-color:var(--acc);flex:none}.shop input:checked~*{opacity:.45;text-decoration:line-through}
 .earnlist .row{padding:8px 0;border-bottom:1px solid var(--line);gap:12px;align-items:flex-start}.earnlist .row:last-child{border:0}.earnlist b{text-align:right;font-weight:500;max-width:55%}
+
+/* ---- icons (game-icons.net, CC BY 3.0) ---- */
+.gi{display:inline-block;width:1em;height:1em;vertical-align:-.14em;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat;flex:none}
+.gi.hero{background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.gi.cn{color:#ffc53d}
+.qi .gi,.mi .gi,.dgi .gi{font-size:28px;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.dgi .gi{font-size:34px}.mi .gi{font-size:30px}
+.av span .gi{font-size:34px}.be .gi{font-size:56px}.chest .gi{font-size:84px;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+.avbig .gi{font-size:40px}.avbig.sm .gi{font-size:26px}
+.btn .gi{font-size:1.15em}
+
+/* ---- banners (profile backgrounds, coin shop) ---- */
+.hud,.pcard{background-color:var(--card)}
+.bn-plain{background:linear-gradient(135deg,var(--glow),var(--card) 80%)}
+.bn-grid{background:linear-gradient(var(--line) 1px,#0000 1px) 0 0/22px 22px,linear-gradient(90deg,var(--line) 1px,#0000 1px) 0 0/22px 22px,linear-gradient(135deg,var(--glow),var(--card))}
+.bn-stripes{background:repeating-linear-gradient(115deg,#0000 0 18px,color-mix(in srgb,var(--acc) 12%,transparent) 18px 20px),linear-gradient(135deg,var(--glow),var(--card))}
+.bn-dots{background:radial-gradient(var(--line) 1.5px,#0000 2px) 0 0/16px 16px,linear-gradient(135deg,var(--glow),var(--card))}
+.bn-waves{background:repeating-radial-gradient(circle at 100% 0,#0000 0 14px,color-mix(in srgb,var(--acc) 16%,transparent) 15px 16px),linear-gradient(135deg,var(--glow),var(--card))}
+.bn-peaks{background:linear-gradient(160deg,#0000 55%,color-mix(in srgb,var(--acc) 22%,transparent) 55% 76%,color-mix(in srgb,var(--acc2) 22%,transparent) 76%),linear-gradient(135deg,var(--glow),var(--card))}
+.bn-glow{background:radial-gradient(120% 140% at 0 0,color-mix(in srgb,var(--acc) 38%,transparent),#0000 60%),radial-gradient(100% 120% at 100% 100%,color-mix(in srgb,var(--acc2) 32%,transparent),#0000 60%),var(--card)}
+.bn-heat{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 45%,var(--card)),var(--card) 75%)}
+
+/* ---- profile editor and shop ---- */
+.av[onclick]{cursor:pointer}
+.pcard{display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid var(--line);border-radius:22px;padding:22px 16px;text-align:center;margin:8px 0 12px}
+.pcard .av{width:92px;height:92px;margin-bottom:6px}.pcard .av span .gi{font-size:50px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;margin:8px 0}.pgrid.wide{grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+.pick{background:var(--card);border:2px solid var(--line);border-radius:16px;aspect-ratio:1;display:grid;place-items:center;cursor:pointer;color:var(--fg);padding:6px;min-width:0}
+.pgrid.wide .pick{aspect-ratio:2/1}.pick .gi{font-size:34px}.pick.on{border-color:var(--acc);box-shadow:0 0 14px color-mix(in srgb,var(--acc) 40%,transparent)}
+.pick .av{margin:0}.pick .av span .gi{font-size:20px}
+.bnp{display:block;width:100%;height:100%;border-radius:10px;min-height:44px}.sw .bnp{height:54px}
+.pv{height:54px;display:grid;place-items:center}.pv .gi{font-size:42px}
+.swc.round{display:block;width:34px;height:34px;border-radius:50%}
+.moreb{display:inline-block;margin:4px 0 0}
+.bst{color:var(--ok)}
+.sw .btn.sm,.sw .eq{margin-top:auto}

@@ -42,12 +42,12 @@ window.pickQr = file => {
 window.removeQr = () => { GYM.qr = null; gymSave(); route(); };
 window.setPkg = v => { v = v.trim(); if (!validPkg(v)) { toast('That does not look like an app package name.'); return; } GYM.pkg = v; gymSave(); toast('Saved'); };
 
-const gymRow = () => `<div class="gymrow"><button class="btn sm" onclick="openGym()">🎫 Open Synergym</button>${GYM.qr ? '<button class="btn sm ghost" onclick="showQr()">My saved QR</button>' : ''}</div>`;
+const gymRow = () => `<div class="gymrow"><button class="btn sm" onclick="openGym()">${gi('ticket')} Open Synergym</button>${GYM.qr ? '<button class="btn sm ghost" onclick="showQr()">My saved QR</button>' : ''}</div>`;
 
 function gymCard() {
   return `<section class="card"><h3>Gym access</h3>
   <p class="mut">Open the Synergym app to show your entry QR. FitQuest never sees your Synergym login.</p>
-  <button class="btn" onclick="openGym()">🎫 Open Synergym</button>
+  <button class="btn" onclick="openGym()">${gi('ticket')} Open Synergym</button>
   ${GYM.qr ? `<div class="row"><button class="btn ghost" onclick="showQr()">Show saved QR</button><button class="btn ghost" onclick="removeQr()">Remove</button></div>` : ''}
   <label class="btn ghost" for="qrfile">${GYM.qr ? 'Replace' : 'Save'} a QR screenshot</label><input id="qrfile" type="file" accept="image/*" hidden onchange="pickQr(this.files[0])">
   <p class="mut">A saved picture only works if your gym's QR never changes. If Synergym makes a new code each time, use the button above.</p>

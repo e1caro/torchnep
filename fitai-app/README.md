@@ -6,7 +6,9 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 - **Plans:** full body, upper/lower or push/pull/legs, with extra sets for the muscles you want to bring up and low-impact choices for older users or higher BMI.
 - **Workouts:** exercise demo loop, weight and reps per set (pre-filled from last time), rest timer.
 - **Game layer:** XP and levels (every set, workout, record and quest earns XP), daily quests, a weekly boss that takes damage from each workout, coins, a daily check-in, badges and sound effects.
-- **Rewards:** levelling up unlocks 21 **dungeons** (special workouts from Tabata Blitz at level 2 to the Olympian Gauntlet at level 28, built from your own equipment and limits, with a bonus-XP "dungeon of the day"), 12 app **themes**, 16 hero avatars, 6 animated avatar rings and titles earned from badges. Anything can also be unlocked early with coins.
+- **Two separate reward streams.** *Levels* unlock new **meals** (21 chef recipes), new **workouts** (21 dungeons, from Tabata Blitz at level 2 to the Olympian Gauntlet at level 28) and **perks** such as XP and coin boosts, a fourth daily quest, a second daily spin, a rest-day shield for your streak, bigger boss loot and bigger record bonuses. *Coins* buy looks and boosts only: 31 profile pictures, 6 animated rings, 8 banners, 12 app themes, an XP booster, extra spins and chests. Nothing can be bought with coins that levels give, and the other way round.
+- **Profile editor:** tap your avatar or Hero → Edit profile and looks to pick your name, profile picture, ring, banner, theme and title from everything you own, and to edit your body data and training plan.
+- **Icons:** profile pictures, quests, bosses, dungeons, badges and chests use minimalist icons from game-icons.net (credit below), tinted by the theme.
 - **Loot chests:** wooden, silver and golden chests drop from dungeons, the weekly boss, the daily bonus and every 5th level, and can contain coins, XP, cosmetics or an early dungeon unlock.
 - **Meal plan:** 56 everyday recipes plus 21 chef recipes you unlock with coins or levels (breakfast, lunch/dinner, snacks) with calories and macros worked out from ingredient weights. Pick your diet (vegan, vegetarian, pescatarian), allergies, meals per day and how long you can cook on each day (15, 30 or 60 minutes). Portions are scaled to hit your calorie target, there is a swap button per meal, a weekly shopping list, and logging a meal earns XP.
 - **Cuisines:** pick one or more of Spanish, Italian, Chinese, Japanese, Mexican, Indian, Greek, Thai and Middle Eastern (about 150 recipes in total). Lunches and dinners come from your cuisines; if your diet or allergies leave too few, other cuisines fill in and the app says so.
@@ -16,6 +18,9 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 
 ## Gym pass
 The Hero tab and the Today screen have an **Open Synergym** button that launches the Synergym member app on Android (default app id `digifit.android.virtuagym.pro.synergym`, editable under "Wrong app opens?"). FitQuest never handles your Synergym login. If your gym's QR is fixed you can also save a screenshot of it and show it full screen; a code that changes each time cannot be saved.
+
+## Credits
+Icons by Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed and Carl Olsen from [game-icons.net](https://game-icons.net), licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Edited by removing the black background. Exercise photos from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain).
 
 ## Install on a phone
 It is published with the docs site at `/fitcoach/` (repo Settings → Pages → Source: GitHub Actions; see `.github/workflows/docs.yml`).

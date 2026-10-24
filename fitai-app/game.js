@@ -13,7 +13,7 @@ const TITLES = [[1, 'Rookie'], [3, 'Iron Will'], [5, 'Challenger'], [8, 'Warrior
 
 // ---------- state ----------
 const G = Object.assign({
-  xp: 0, coins: 0, owned: [], theme: 'ember', avatar: '🥊', ach: [], bosses: 0, questsDone: 0,
+  xp: 0, coins: 0, owned: [], theme: 'ember', avatar: 'glove', banner: 'plain', boostUntil: 0, extraSpins: 0, ver: 0, ach: [], bosses: 0, questsDone: 0,
   sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '', ciStreak: 0, spun: '', spins: 0, waterGoalDays: 0, perfectDays: 0, sleepGood: 0, wk: null,
 }, load('game', {}));
 let LAST = null; // result of the latest workout, shown on the victory screen
@@ -24,60 +24,80 @@ const title = () => {
   return a && G.ach.includes(a.id) ? a.t : TITLES.filter(t => t[0] <= lvl()).at(-1)[1];
 };
 
-// ---------- catalog of unlockables ----------
+// ---------- catalog ----------
+// Two separate streams:
+//  - Level rewards unlock automatically: workouts (dungeons), meals (chef recipes) and perks.
+//  - The coin shop sells looks and boosts only: profile pictures, rings, banners, themes, boosters and chests.
 const rep = (g, n) => Array.from({ length: n }, () => g);
 const DUNGEONS = {
-  'd-tabata': { ico: '⚡', name: 'Tabata Blitz', lv: 2, mult: 1.3, desc: 'Four bodyweight moves. 20 s on, 10 s off, four rounds each.', sets: 4, reps: '20s', rest: 10, bw: true, groups: [['quadriceps'], ['chest'], ['abdominals'], ['glutes', 'hamstrings']] },
-  'd-core': { ico: '🔥', name: 'Core Inferno', lv: 3, mult: 1.3, desc: 'Six abs and back exercises that light up your middle.', sets: 3, reps: '15', rest: 40, groups: [...rep(['abdominals'], 5), ['lower back', 'abdominals']] },
-  'd-pushup': { ico: '🧗', name: 'Push-Up Pyramid', lv: 4, mult: 1.4, desc: 'Five push-up variations, five sets each. No equipment.', sets: 5, reps: '10', rest: 45, bw: true, re: /push.?up/i, groups: rep(null, 5) },
-  'd-mobility': { ico: '🧘', name: 'Mobility Monk', lv: 5, mult: 1, desc: 'Eight stretches for recovery days. Easy XP, happy joints.', sets: 1, reps: '30s', rest: 15, cats: ['stretching'], groups: rep(null, 8) },
-  'd-glute': { ico: '🍑', name: 'Glute Forge', lv: 6, mult: 1.4, desc: 'Glutes and hamstrings, four heavy sets each.', sets: 4, reps: '12', rest: 60, groups: [['glutes'], ['glutes'], ['glutes'], ['hamstrings'], ['hamstrings'], ['quadriceps']] },
-  'd-arms': { ico: '💪', name: 'Arm Arena', lv: 8, mult: 1.4, desc: 'Biceps, triceps and forearms until your sleeves complain.', sets: 3, reps: '12', rest: 45, groups: [...rep(['biceps'], 3), ...rep(['triceps'], 3), ['forearms']] },
-  'd-legs': { ico: '🦵', name: 'Leg Day Dungeon', lv: 10, mult: 1.6, desc: 'Quads, hamstrings, glutes and calves. Bring snacks.', sets: 4, reps: '10', rest: 90, groups: [['quadriceps'], ['quadriceps'], ['hamstrings'], ['hamstrings'], ['glutes'], ['calves']] },
-  'd-back': { ico: '🦅', name: 'Back Raid', lv: 12, mult: 1.6, desc: 'Pull heavy: lats, mid-back, traps and a little biceps.', sets: 4, reps: '10', rest: 75, groups: [...rep(['lats'], 3), ...rep(['middle back'], 2), ['traps'], ['biceps']] },
-  'd-rush': { ico: '👹', name: 'Boss Rush', lv: 15, mult: 2, desc: 'One exercise for every major muscle, two quick sets each. Double XP.', sets: 2, reps: '15', rest: 30, groups: [['chest'], ['lats'], ['quadriceps'], ['shoulders'], ['hamstrings'], ['biceps'], ['triceps'], ['abdominals'], ['glutes'], ['calves']] },
-  'd-titan': { ico: '🏛️', name: 'Titan Trial', lv: 20, mult: 3, desc: 'Five heavy lifts, 5 × 5, long rests. Triple XP for the brave.', sets: 5, reps: '5', rest: 180, expert: true, cats: ['powerlifting', 'olympic weightlifting', 'strength'], groups: [['quadriceps'], ['chest'], ['lats'], ['shoulders'], ['hamstrings']] },
-  'd-cardio': { ico: '💨', name: 'Cardio Crusher', lv: 7, mult: 1.4, desc: 'Six fast bodyweight moves, 40 s each. Heart rate up, excuses down.', sets: 3, reps: '40s', rest: 20, bw: true, groups: rep(null, 6) },
-  'd-shoulder': { ico: '🛡️', name: 'Shoulder Siege', lv: 9, mult: 1.5, desc: 'Boulder delts and traps, hit from every angle.', sets: 4, reps: '12', rest: 60, groups: [...rep(['shoulders'], 4), ['traps'], ['triceps']] },
-  'd-spine': { ico: '🌿', name: 'Spine Sanctuary', lv: 9, mult: 1, desc: 'Slow stretches for back, hips and hamstrings. Recovery XP.', sets: 1, reps: '40s', rest: 15, cats: ['stretching'], groups: [['lower back'], ['lower back'], ['hamstrings'], ['glutes'], ['lats'], ['quadriceps']] },
-  'd-chest': { ico: '🏰', name: 'Chest Citadel', lv: 11, mult: 1.6, desc: 'Five chest exercises, four sets each. Storm the walls.', sets: 4, reps: '10', rest: 75, groups: rep(['chest'], 5) },
-  'd-camp': { ico: '🪖', name: 'Boot Camp', lv: 13, mult: 1.6, desc: 'Eight bodyweight exercises, 3 × 15. Works anywhere.', sets: 3, reps: '15', rest: 30, bw: true, groups: rep(null, 8) },
-  'd-kb': { ico: '🔔', name: 'Kettlebell Krypt', lv: 14, mult: 1.7, need: 'kettlebells', desc: 'Swing, press and carry. Needs kettlebells in your equipment.', sets: 4, reps: '12', rest: 45, groups: rep(null, 6) },
-  'd-band': { ico: '🪢', name: 'Band Brawl', lv: 16, mult: 1.7, need: 'bands', desc: 'Constant tension with resistance bands. Needs bands.', sets: 4, reps: '15', rest: 40, groups: rep(null, 6) },
-  'd-upper': { ico: '🦍', name: 'Upper-Body Annihilation', lv: 18, mult: 2, desc: 'Ten exercises for chest, back, shoulders and arms. Double XP.', sets: 3, reps: '10', rest: 60, groups: [['chest'], ['chest'], ['lats'], ['lats'], ['shoulders'], ['shoulders'], ['biceps'], ['biceps'], ['triceps'], ['triceps']] },
-  'd-lower': { ico: '🌋', name: 'Lower-Body Apocalypse', lv: 22, mult: 2.2, desc: 'Quads, hamstrings, glutes and calves, plus abs to finish.', sets: 4, reps: '10', rest: 90, groups: [['quadriceps'], ['quadriceps'], ['hamstrings'], ['hamstrings'], ['glutes'], ['glutes'], ['calves'], ['abdominals']] },
-  'd-marathon': { ico: '♾️', name: 'Endless Marathon', lv: 25, mult: 2.5, desc: 'Fourteen exercises, two sets each, almost no rest.', sets: 2, reps: '12', rest: 30, groups: rep(null, 14) },
-  'd-olymp': { ico: '🏅', name: 'Olympian Gauntlet', lv: 28, mult: 3.5, need: 'barbell', expert: true, cats: ['powerlifting', 'olympic weightlifting', 'strength'], desc: 'Heavy barbell work, 5 × 3, three-minute rests. Needs a barbell.', sets: 5, reps: '3', rest: 180, groups: [['quadriceps'], ['hamstrings'], ['chest'], ['lats'], ['shoulders'], ['traps']] },
+  'd-tabata': { ico: 'stopwatch', name: 'Tabata Blitz', lv: 2, mult: 1.3, desc: 'Four bodyweight moves. 20 s on, 10 s off, four rounds each.', sets: 4, reps: '20s', rest: 10, bw: true, groups: [['quadriceps'], ['chest'], ['abdominals'], ['glutes', 'hamstrings']] },
+  'd-core': { ico: 'abs', name: 'Core Inferno', lv: 3, mult: 1.3, desc: 'Six abs and back exercises that light up your middle.', sets: 3, reps: '15', rest: 40, groups: [...rep(['abdominals'], 5), ['lower back', 'abdominals']] },
+  'd-pushup': { ico: 'push', name: 'Push-Up Pyramid', lv: 4, mult: 1.4, desc: 'Five push-up variations, five sets each. No equipment.', sets: 5, reps: '10', rest: 45, bw: true, re: /push.?up/i, groups: rep(null, 5) },
+  'd-mobility': { ico: 'lotus', name: 'Mobility Monk', lv: 5, mult: 1, desc: 'Eight stretches for recovery days. Easy XP, happy joints.', sets: 1, reps: '30s', rest: 15, cats: ['stretching'], groups: rep(null, 8) },
+  'd-glute': { ico: 'glute', name: 'Glute Forge', lv: 6, mult: 1.4, desc: 'Glutes and hamstrings, four heavy sets each.', sets: 4, reps: '12', rest: 60, groups: [['glutes'], ['glutes'], ['glutes'], ['hamstrings'], ['hamstrings'], ['quadriceps']] },
+  'd-arms': { ico: 'biceps', name: 'Arm Arena', lv: 8, mult: 1.4, desc: 'Biceps, triceps and forearms until your sleeves complain.', sets: 3, reps: '12', rest: 45, groups: [...rep(['biceps'], 3), ...rep(['triceps'], 3), ['forearms']] },
+  'd-legs': { ico: 'leg', name: 'Leg Day Dungeon', lv: 10, mult: 1.6, desc: 'Quads, hamstrings, glutes and calves. Bring snacks.', sets: 4, reps: '10', rest: 90, groups: [['quadriceps'], ['quadriceps'], ['hamstrings'], ['hamstrings'], ['glutes'], ['calves']] },
+  'd-back': { ico: 'torso', name: 'Back Raid', lv: 12, mult: 1.6, desc: 'Pull heavy: lats, mid-back, traps and a little biceps.', sets: 4, reps: '10', rest: 75, groups: [...rep(['lats'], 3), ...rep(['middle back'], 2), ['traps'], ['biceps']] },
+  'd-rush': { ico: 'minotaur', name: 'Boss Rush', lv: 15, mult: 2, desc: 'One exercise for every major muscle, two quick sets each. Double XP.', sets: 2, reps: '15', rest: 30, groups: [['chest'], ['lats'], ['quadriceps'], ['shoulders'], ['hamstrings'], ['biceps'], ['triceps'], ['abdominals'], ['glutes'], ['calves']] },
+  'd-titan': { ico: 'temple', name: 'Titan Trial', lv: 20, mult: 3, desc: 'Five heavy lifts, 5 × 5, long rests. Triple XP for the brave.', sets: 5, reps: '5', rest: 180, expert: true, cats: ['powerlifting', 'olympic weightlifting', 'strength'], groups: [['quadriceps'], ['chest'], ['lats'], ['shoulders'], ['hamstrings']] },
+  'd-cardio': { ico: 'sprint', name: 'Cardio Crusher', lv: 7, mult: 1.4, desc: 'Six fast bodyweight moves, 40 s each. Heart rate up, excuses down.', sets: 3, reps: '40s', rest: 20, bw: true, groups: rep(null, 6) },
+  'd-shoulder': { ico: 'shoulder', name: 'Shoulder Siege', lv: 9, mult: 1.5, desc: 'Boulder delts and traps, hit from every angle.', sets: 4, reps: '12', rest: 60, groups: [...rep(['shoulders'], 4), ['traps'], ['triceps']] },
+  'd-spine': { ico: 'spine', name: 'Spine Sanctuary', lv: 9, mult: 1, desc: 'Slow stretches for back, hips and hamstrings. Recovery XP.', sets: 1, reps: '40s', rest: 15, cats: ['stretching'], groups: [['lower back'], ['lower back'], ['hamstrings'], ['glutes'], ['lats'], ['quadriceps']] },
+  'd-chest': { ico: 'chestplate', name: 'Chest Citadel', lv: 11, mult: 1.6, desc: 'Five chest exercises, four sets each. Storm the walls.', sets: 4, reps: '10', rest: 75, groups: rep(['chest'], 5) },
+  'd-camp': { ico: 'centurion', name: 'Boot Camp', lv: 13, mult: 1.6, desc: 'Eight bodyweight exercises, 3 × 15. Works anywhere.', sets: 3, reps: '15', rest: 30, bw: true, groups: rep(null, 8) },
+  'd-kb': { ico: 'weight', name: 'Kettlebell Krypt', lv: 14, mult: 1.7, need: 'kettlebells', desc: 'Swing, press and carry. Needs kettlebells in your equipment.', sets: 4, reps: '12', rest: 45, groups: rep(null, 6) },
+  'd-band': { ico: 'rope', name: 'Band Brawl', lv: 16, mult: 1.7, need: 'bands', desc: 'Constant tension with resistance bands. Needs bands.', sets: 4, reps: '15', rest: 40, groups: rep(null, 6) },
+  'd-upper': { ico: 'strong', name: 'Upper-Body Annihilation', lv: 18, mult: 2, desc: 'Ten exercises for chest, back, shoulders and arms. Double XP.', sets: 3, reps: '10', rest: 60, groups: [['chest'], ['chest'], ['lats'], ['lats'], ['shoulders'], ['shoulders'], ['biceps'], ['biceps'], ['triceps'], ['triceps']] },
+  'd-lower': { ico: 'shoe', name: 'Lower-Body Apocalypse', lv: 22, mult: 2.2, desc: 'Quads, hamstrings, glutes and calves, plus abs to finish.', sets: 4, reps: '10', rest: 90, groups: [['quadriceps'], ['quadriceps'], ['hamstrings'], ['hamstrings'], ['glutes'], ['glutes'], ['calves'], ['abdominals']] },
+  'd-marathon': { ico: 'infinity', name: 'Endless Marathon', lv: 25, mult: 2.5, desc: 'Fourteen exercises, two sets each, almost no rest.', sets: 2, reps: '12', rest: 30, groups: rep(null, 14) },
+  'd-olymp': { ico: 'laurel', name: 'Olympian Gauntlet', lv: 28, mult: 3.5, need: 'barbell', expert: true, cats: ['powerlifting', 'olympic weightlifting', 'strength'], desc: 'Heavy barbell work, 5 × 3, three-minute rests. Needs a barbell.', sets: 5, reps: '3', rest: 180, groups: [['quadriceps'], ['hamstrings'], ['chest'], ['lats'], ['shoulders'], ['traps']] },
 };
+const PERKS = [
+  ['xp1', 4, 'XP Boost I', '+5% XP from every workout', 'upgrade'], ['coin1', 6, 'Coin Boost I', '+10% coins from every workout', 'coins'],
+  ['quest4', 8, 'Fourth quest', 'A fourth daily quest every day', 'scroll'], ['spin2', 10, 'Double spin', 'Two free daily spins', 'slot'],
+  ['shield', 12, 'Rest-day shield', 'Your streak survives one missed day', 'shield'], ['boss', 14, 'Boss hunter', 'The weekly boss drops a golden chest', 'golem'],
+  ['xp2', 16, 'XP Boost II', '+10% XP from every workout', 'upgrade'], ['rec', 18, 'Record breaker', 'New personal records are worth 80 XP', 'medal'],
+  ['coin2', 20, 'Coin Boost II', '+20% coins from every workout', 'coins'], ['xp3', 24, 'XP Boost III', '+15% XP from every workout', 'upgrade'],
+];
+const THEMES = [['ember', 'Ember', 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 120, '#00e5ff', '#ff2bd6'], ['sakura', 'Sakura', 140, '#ff7eb6', '#ffd1e8'], ['frost', 'Frostbite', 160, '#7cc6ff', '#e0f4ff'],
+  ['toxic', 'Toxic', 200, '#8dff3a', '#e6ff5a'], ['ocean', 'Deep Ocean', 240, '#2ee6d6', '#3a8dff'], ['royal', 'Royal', 300, '#a66bff', '#ffd166'], ['retro', 'Arcade', 400, '#ff3d7f', '#ffe14d'],
+  ['lava', 'Lava Flow', 420, '#ff4b1f', '#ffd000'], ['matrix', 'Mainframe', 520, '#2bff88', '#b7ffd8'], ['gold', 'Golden Hour', 700, '#ffd34d', '#fff1a8'], ['aurora', 'Aurora', 800, '#5cffc8', '#b46bff']];
+const AVATARS = [['glove', 'Boxer', 0], ['wolf', 'Wolf', 60], ['lion', 'Lion', 80], ['tiger', 'Tiger', 100], ['bear', 'Bear', 120], ['fox', 'Fox', 120], ['eagle', 'Eagle', 150], ['rooster', 'Rooster', 150],
+  ['shark', 'Shark', 160], ['gorilla', 'Gorilla', 180], ['horse', 'Stallion', 180], ['bull', 'Bull', 200], ['ram', 'Ram', 200], ['raven', 'Raven', 220], ['owl', 'Owl', 220], ['scorpion', 'Scorpion', 260],
+  ['ninja', 'Ninja', 280], ['samurai', 'Samurai', 320], ['viking', 'Viking', 320], ['spartan', 'Spartan', 340], ['minotaur', 'Minotaur', 380], ['robot', 'Robot', 400], ['wyvern', 'Wyvern', 420],
+  ['unicorn', 'Unicorn', 450], ['astronaut', 'Astronaut', 480], ['dragon', 'Dragon', 500], ['kraken', 'Kraken', 520], ['alien', 'Alien', 560], ['trex', 'T-Rex', 600], ['rocket', 'Rocket', 700], ['crown', 'Crown', 800]];
+const FRAMES = [['none', 'Plain ring', 0], ['flame', 'Flame ring', 120], ['electric', 'Electric ring', 200], ['diamond', 'Diamond ring', 300], ['rainbow', 'Rainbow ring', 450], ['galaxy', 'Galaxy ring', 700]];
+const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', 'Speed lines', 100], ['dots', 'Dotted', 100], ['waves', 'Ripples', 120], ['peaks', 'Peaks', 150], ['glow', 'Glow', 250], ['heat', 'Heat', 300]];
 const ITEMS = [
-  ...[['ember', 'Ember', 1, 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 3, 120, '#00e5ff', '#ff2bd6'], ['frost', 'Frostbite', 5, 160, '#7cc6ff', '#e0f4ff'],
-    ['toxic', 'Toxic', 7, 200, '#8dff3a', '#e6ff5a'], ['royal', 'Royal', 10, 300, '#a66bff', '#ffd166'], ['retro', 'Arcade', 13, 400, '#ff3d7f', '#ffe14d'], ['gold', 'Golden Hour', 18, 700, '#ffd34d', '#fff1a8'],
-    ['sakura', 'Sakura', 4, 140, '#ff7eb6', '#ffd1e8'], ['ocean', 'Deep Ocean', 9, 240, '#2ee6d6', '#3a8dff'], ['lava', 'Lava Flow', 15, 420, '#ff4b1f', '#ffd000'], ['matrix', 'Mainframe', 20, 520, '#2bff88', '#b7ffd8'], ['aurora', 'Aurora', 25, 800, '#5cffc8', '#b46bff']]
-    .map(([k, name, lv, cost, a, b]) => ({ id: 't-' + k, type: 'theme', key: k, name, lv, cost, sw: [a, b] })),
-  ...[['🥊', 1, 0], ['🦁', 2, 40], ['🐺', 4, 80], ['🦅', 6, 120], ['🐉', 9, 200], ['⚡', 12, 280], ['👑', 16, 400], ['🚀', 22, 600],
-    ['🐯', 3, 60], ['🦈', 7, 160], ['🥷', 11, 240], ['🤖', 14, 320], ['🦖', 18, 450], ['🧙', 20, 500], ['🦄', 26, 800], ['👽', 30, 1000]]
-    .map(([e, lv, cost]) => ({ id: 'a-' + e, type: 'avatar', key: e, name: 'Hero skin', lv, cost })),
-  ...[['none', 'Plain ring', 1, 0], ['flame', 'Flame ring', 5, 100], ['electric', 'Electric ring', 8, 160], ['diamond', 'Diamond ring', 12, 260], ['rainbow', 'Rainbow ring', 17, 380], ['galaxy', 'Galaxy ring', 24, 600]]
-    .map(([k, name, lv, cost]) => ({ id: 'f-' + k, type: 'frame', key: k, name, lv, cost })),
-  ...RECIPES.filter(r => r.chef).map(r => ({ id: 'r-' + r.id, type: 'recipe', name: r.name, lv: r.chef[0], cost: r.chef[1], rid: r.id })),
-  ...Object.entries(DUNGEONS).map(([id, d]) => ({ id, type: 'dungeon', name: d.name, lv: d.lv, cost: d.lv * 35 })),
+  ...THEMES.map(([k, name, cost, a, b]) => ({ id: 't-' + k, type: 'theme', key: k, name, cost, sw: [a, b], shop: true })),
+  ...AVATARS.map(([k, name, cost]) => ({ id: 'a-' + k, type: 'avatar', key: k, name, cost, shop: true })),
+  ...FRAMES.map(([k, name, cost]) => ({ id: 'f-' + k, type: 'frame', key: k, name, cost, shop: true })),
+  ...BANNERS.map(([k, name, cost]) => ({ id: 'b-' + k, type: 'banner', key: k, name: name + ' banner', cost, shop: true })),
+  ...RECIPES.filter(r => r.chef).map(r => ({ id: 'r-' + r.id, type: 'recipe', name: r.name, lv: r.chef[0], rid: r.id })),
+  ...Object.entries(DUNGEONS).map(([id, d]) => ({ id, type: 'dungeon', name: d.name, lv: d.lv })),
+  ...PERKS.map(([k, lv, name, desc, ico]) => ({ id: 'p-' + k, type: 'perk', key: k, name, lv, desc, ico })),
 ];
 const item = id => ITEMS.find(i => i.id === id);
-const has = i => lvl() >= i.lv || G.owned.includes(i.id);
-const KIND = { theme: 'Theme', avatar: 'Avatar', frame: 'Frame', dungeon: 'Workout', recipe: 'Recipe' };
-const ICO = i => i.type === 'dungeon' ? DUNGEONS[i.id].ico : i.type === 'avatar' ? i.key : i.type === 'frame' ? '💠' : i.type === 'recipe' ? '🍽️' : '🎨';
+// Shop items are owned once bought (or free); level rewards open at their level. Dungeons and recipes bought before this split stay owned.
+const has = i => i.shop ? (i.cost === 0 || G.owned.includes(i.id)) : (lvl() >= i.lv || G.owned.includes(i.id));
+const perk = k => has(item('p-' + k));
+const xpPerk = () => perk('xp3') ? .15 : perk('xp2') ? .10 : perk('xp1') ? .05 : 0;
+const coinPerk = () => perk('coin2') ? .20 : perk('coin1') ? .10 : 0;
+const boostOn = () => Date.now() < (G.boostUntil || 0);
+const KIND = { theme: 'Theme', avatar: 'Profile picture', frame: 'Ring', banner: 'Banner', dungeon: 'Workout', recipe: 'Meal', perk: 'Perk' };
+const ICO = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : gi('palette', 'hero');
 
 // ---------- daily quests ----------
 const QT = [
-  { id: 'workout', t: 'Finish a workout', n: 1, m: 'workouts', xp: 80, ico: '⚔️' },
-  { id: 'sets', t: 'Complete 12 sets', n: 12, m: 'sets', xp: 60, ico: '💪' },
-  { id: 'guide', t: 'Study 2 exercise guides', n: 2, m: 'guides', xp: 30, ico: '📖' },
-  { id: 'weigh', t: 'Log your weight', n: 1, m: 'weigh', xp: 25, ico: '⚖️' },
-  { id: 'min', t: 'Train for 25 minutes', n: 25, m: 'minutes', xp: 60, ico: '⏱️' },
-  { id: 'dungeon', t: 'Clear a dungeon', n: 1, m: 'dungeons', xp: 100, ico: '🏰', needLv: 2 },
-  { id: 'water', t: 'Drink 8 glasses of water', n: 8, m: 'water', xp: 40, ico: '💧' },
-  { id: 'sleep', t: 'Sleep 7 hours or more', n: 7, m: 'sleep', xp: 40, ico: '😴' },
-  { id: 'meals', t: 'Eat 3 planned meals', n: 3, m: 'meals', xp: 50, ico: '🍽️', need: () => typeof M !== 'undefined' && !!M.set },
+  { id: 'workout', t: 'Finish a workout', n: 1, m: 'workouts', xp: 80, ico: 'swords' },
+  { id: 'sets', t: 'Complete 12 sets', n: 12, m: 'sets', xp: 60, ico: 'biceps' },
+  { id: 'guide', t: 'Study 2 exercise guides', n: 2, m: 'guides', xp: 30, ico: 'book' },
+  { id: 'weigh', t: 'Log your weight', n: 1, m: 'weigh', xp: 25, ico: 'scale' },
+  { id: 'min', t: 'Train for 25 minutes', n: 25, m: 'minutes', xp: 60, ico: 'stopwatch' },
+  { id: 'dungeon', t: 'Clear a dungeon', n: 1, m: 'dungeons', xp: 100, ico: 'gate', needLv: 2 },
+  { id: 'water', t: 'Drink 8 glasses of water', n: 8, m: 'water', xp: 40, ico: 'water' },
+  { id: 'sleep', t: 'Sleep 7 hours or more', n: 7, m: 'sleep', xp: 40, ico: 'sleep' },
+  { id: 'meals', t: 'Eat 3 planned meals', n: 3, m: 'meals', xp: 50, ico: 'cutlery', need: () => typeof M !== 'undefined' && !!M.set },
 ];
 const metric = m => m === 'guides' ? G.today.guides.length : (G.today[m] || 0);
 
@@ -86,7 +106,7 @@ function ensureDay() {
   if (G.today?.day === d && G.quests?.day === d) return;
   G.today = { day: d, sets: 0, workouts: 0, minutes: 0, guides: [], weigh: 0, dungeons: 0, meals: 0, water: 0, sleep: 0 };
   const pool = shuffle(QT.slice(1).filter(q => (!q.needLv || lvl() >= q.needLv) && (!q.need || q.need())), rng(hash(d)));
-  G.quests = { day: d, list: ['workout', ...pool.slice(0, 2).map(q => q.id)], claimed: [], bonus: false };
+  G.quests = { day: d, list: ['workout', ...pool.slice(0, perk('quest4') ? 3 : 2).map(q => q.id)], claimed: [], bonus: false };
   commit();
 }
 
@@ -141,41 +161,41 @@ function award(xp, coins = 0) {
 }
 function flushLevelUp(after) {
   if (!G.pend) { after?.(); return; }
-  const { from, to } = G.pend, unlocked = ITEMS.filter(i => i.lv > from && i.lv <= to && i.lv > 1);
+  const { from, to } = G.pend, unlocked = ITEMS.filter(i => !i.shop && i.lv > from && i.lv <= to && i.lv > 1);
   const bonus = Array.from({ length: to - from }, (_, k) => 20 + 5 * (from + 1 + k)).reduce((a, b) => a + b, 0);
   G.pend = null; commit(); sfx('level'); confetti();
   modal(`<div class="lvup">LEVEL UP</div><div class="bignum">${to}</div><div class="mut">${title()}</div>
-    ${unlocked.length ? `<h3>Unlocked</h3>${unlocked.map(i => `<div class="unl">${ICO(i)} <b>${esc(i.name)}</b><span class="mut">${KIND[i.type]}</span></div>`).join('')}` : ''}
-    <div class="unl">🪙 <b>+${bonus} coins</b></div>${[...Array(to - from)].some((_, k) => (from + 1 + k) % 5 === 0) ? '<div class="unl">🎁 <b>Milestone chest</b><span class="mut">Open it on Today</span></div>' : ''}<button class="btn" data-close>Awesome</button>`, after);
+    ${unlocked.length ? `<h3>Unlocked</h3>${unlocked.map(i => `<div class="unl">${ICO(i)} <b>${esc(i.name)}${i.desc ? `<span class="mut" style="display:block;font-weight:400">${esc(i.desc)}</span>` : ''}</b><span class="mut">${KIND[i.type]}</span></div>`).join('')}` : ''}
+    <div class="unl">${gi('coin', 'cn')} <b>+${bonus} coins</b></div>${[...Array(to - from)].some((_, k) => (from + 1 + k) % 5 === 0) ? `<div class="unl">${gi('crate', 'hero')} <b>Milestone chest</b><span class="mut">Open it on Today</span></div>` : ''}<button class="btn" data-close>Awesome</button>`, after);
 }
 
 // ---------- achievements ----------
 const totalVol = () => S.history.reduce((a, h) => a + volume(h), 0);
 const ACH = [
-  { id: 'first', t: 'Blooded', n: 'First Blood', d: 'Finish your first workout', i: '🩸', xp: 50, ok: () => S.history.length >= 1 },
-  { id: 'w5', n: 'Warming Up', d: 'Finish 5 workouts', i: '🔆', xp: 100, ok: () => S.history.length >= 5 },
-  { id: 'w25', t: 'Gym Rat', n: 'Gym Rat', d: 'Finish 25 workouts', i: '🐀', xp: 400, ok: () => S.history.length >= 25 },
-  { id: 'st3', n: 'On Fire', d: 'Train 3 days in a row', i: '🔥', xp: 100, ok: () => streak() >= 3 },
-  { id: 'st7', t: 'Unstoppable', n: 'Unstoppable', d: 'Train 7 days in a row', i: '🚂', xp: 300, ok: () => streak() >= 7 },
-  { id: 'ton', n: 'One Ton Club', d: 'Lift 1,000 kg in total', i: '🏋️', xp: 100, ok: () => totalVol() >= 1000 },
-  { id: 'ton10', t: 'Heavy Metal', n: 'Heavy Metal', d: 'Lift 10,000 kg in total', i: '🤘', xp: 400, ok: () => totalVol() >= 10000 },
-  { id: 'early', t: 'Early Bird', n: 'Early Bird', d: 'Finish a workout before 8 am', i: '🌅', xp: 80, ok: () => S.history.some(h => new Date(h.t).getHours() < 8) },
-  { id: 'night', n: 'Night Owl', d: 'Finish a workout after 9 pm', i: '🦉', xp: 80, ok: () => S.history.some(h => new Date(h.t).getHours() >= 21) },
-  { id: 'dg1', n: 'Dungeon Crawler', d: 'Clear a dungeon', i: '🏰', xp: 120, ok: () => S.history.some(h => h.dungeon) },
-  { id: 'dg5', t: 'Dungeon Master', n: 'Dungeon Master', d: 'Clear 5 dungeons', i: '🗝️', xp: 350, ok: () => S.history.filter(h => h.dungeon).length >= 5 },
-  { id: 'wt5', n: 'Scale Master', d: 'Log your weight 5 times', i: '⚖️', xp: 80, ok: () => S.weights.length >= 5 },
-  { id: 'boss', t: 'Boss Slayer', n: 'Boss Slayer', d: 'Defeat a weekly boss', i: '🗡️', xp: 200, ok: () => G.bosses >= 1 },
-  { id: 'w50', t: 'Iron Veteran', n: 'Iron Veteran', d: 'Finish 50 workouts', i: '🛡️', xp: 600, ok: () => S.history.length >= 50 },
-  { id: 'st14', t: 'Two Weeks Strong', n: 'Two Weeks Strong', d: 'Train 14 days in a row', i: '🗓️', xp: 600, ok: () => streak() >= 14 },
-  { id: 'dg10', t: 'Dungeon Lord', n: 'Dungeon Lord', d: 'Clear 10 dungeons', i: '👹', xp: 600, ok: () => S.history.filter(h => h.dungeon).length >= 10 },
-  { id: 'lv10', t: 'Double Digits', n: 'Double Digits', d: 'Reach level 10', i: '🔟', xp: 300, ok: () => lvl() >= 10 },
-  { id: 'ch5', t: 'Treasure Hunter', n: 'Treasure Hunter', d: 'Open 5 chests', i: '💎', xp: 250, ok: () => G.chestsOpened >= 5 },
-  { id: 'wat7', n: 'Aqua Hero', d: 'Hit your water goal on 7 days', i: '💧', xp: 150, ok: () => G.waterGoalDays >= 7 },
-  { id: 'spin5', n: 'Lucky Streak', d: 'Use the daily spin 5 times', i: '🎰', xp: 100, ok: () => G.spins >= 5 },
-  { id: 'chef1', n: 'Gourmet', d: 'Buy your first chef recipe with coins', i: '👨‍🍳', xp: 100, ok: () => G.owned.some(id => id.startsWith('r-')) },
-  { id: 'perf', n: 'Perfect Plate', d: 'Eat every planned meal in one day', i: '🍽️', xp: 100, ok: () => G.perfectDays >= 1 },
-  { id: 'rest5', n: 'Well Rested', d: 'Log 7+ hours of sleep on 5 days', i: '😴', xp: 120, ok: () => G.sleepGood >= 5 },
-  { id: 'q10', t: 'Questmaster', n: 'Questmaster', d: 'Claim 10 daily quests', i: '📜', xp: 200, ok: () => G.questsDone >= 10 },
+  { id: 'first', t: 'Blooded', n: 'First Blood', d: 'Finish your first workout', i: 'punch', xp: 50, ok: () => S.history.length >= 1 },
+  { id: 'w5', n: 'Warming Up', d: 'Finish 5 workouts', i: 'sunrise', xp: 100, ok: () => S.history.length >= 5 },
+  { id: 'w25', t: 'Gym Rat', n: 'Gym Rat', d: 'Finish 25 workouts', i: 'fist', xp: 400, ok: () => S.history.length >= 25 },
+  { id: 'st3', n: 'On Fire', d: 'Train 3 days in a row', i: 'flame', xp: 100, ok: () => streak() >= 3 },
+  { id: 'st7', t: 'Unstoppable', n: 'Unstoppable', d: 'Train 7 days in a row', i: 'bolt', xp: 300, ok: () => streak() >= 7 },
+  { id: 'ton', n: 'One Ton Club', d: 'Lift 1,000 kg in total', i: 'lifter', xp: 100, ok: () => totalVol() >= 1000 },
+  { id: 'ton10', t: 'Heavy Metal', n: 'Heavy Metal', d: 'Lift 10,000 kg in total', i: 'anvil', xp: 400, ok: () => totalVol() >= 10000 },
+  { id: 'early', t: 'Early Bird', n: 'Early Bird', d: 'Finish a workout before 8 am', i: 'rooster', xp: 80, ok: () => S.history.some(h => new Date(h.t).getHours() < 8) },
+  { id: 'night', n: 'Night Owl', d: 'Finish a workout after 9 pm', i: 'owl', xp: 80, ok: () => S.history.some(h => new Date(h.t).getHours() >= 21) },
+  { id: 'dg1', n: 'Dungeon Crawler', d: 'Clear a dungeon', i: 'gate', xp: 120, ok: () => S.history.some(h => h.dungeon) },
+  { id: 'dg5', t: 'Dungeon Master', n: 'Dungeon Master', d: 'Clear 5 dungeons', i: 'key', xp: 350, ok: () => S.history.filter(h => h.dungeon).length >= 5 },
+  { id: 'wt5', n: 'Scale Master', d: 'Log your weight 5 times', i: 'scale', xp: 80, ok: () => S.weights.length >= 5 },
+  { id: 'boss', t: 'Boss Slayer', n: 'Boss Slayer', d: 'Defeat a weekly boss', i: 'golem', xp: 200, ok: () => G.bosses >= 1 },
+  { id: 'w50', t: 'Iron Veteran', n: 'Iron Veteran', d: 'Finish 50 workouts', i: 'chestplate', xp: 600, ok: () => S.history.length >= 50 },
+  { id: 'st14', t: 'Two Weeks Strong', n: 'Two Weeks Strong', d: 'Train 14 days in a row', i: 'calendar', xp: 600, ok: () => streak() >= 14 },
+  { id: 'dg10', t: 'Dungeon Lord', n: 'Dungeon Lord', d: 'Clear 10 dungeons', i: 'minotaur', xp: 600, ok: () => S.history.filter(h => h.dungeon).length >= 10 },
+  { id: 'lv10', t: 'Double Digits', n: 'Double Digits', d: 'Reach level 10', i: 'upgrade', xp: 300, ok: () => lvl() >= 10 },
+  { id: 'ch5', t: 'Treasure Hunter', n: 'Treasure Hunter', d: 'Open 5 chests', i: 'treasure', xp: 250, ok: () => G.chestsOpened >= 5 },
+  { id: 'wat7', n: 'Aqua Hero', d: 'Hit your water goal on 7 days', i: 'water', xp: 150, ok: () => G.waterGoalDays >= 7 },
+  { id: 'spin5', n: 'Lucky Streak', d: 'Use the daily spin 5 times', i: 'dice', xp: 100, ok: () => G.spins >= 5 },
+  { id: 'chef1', n: 'Gourmet', d: 'Unlock your first chef recipe', i: 'chef', xp: 100, ok: () => ITEMS.some(i => i.type === 'recipe' && has(i)) },
+  { id: 'perf', n: 'Perfect Plate', d: 'Eat every planned meal in one day', i: 'pot', xp: 100, ok: () => G.perfectDays >= 1 },
+  { id: 'rest5', n: 'Well Rested', d: 'Log 7+ hours of sleep on 5 days', i: 'sleep', xp: 120, ok: () => G.sleepGood >= 5 },
+  { id: 'q10', t: 'Questmaster', n: 'Questmaster', d: 'Claim 10 daily quests', i: 'scroll', xp: 200, ok: () => G.questsDone >= 10 },
 ];
 function checkAch() {
   const got = [];
@@ -196,13 +216,16 @@ function gameWorkout(h) {
   const sets = h.ex.reduce((a, x) => a + x.sets.length, 0);
   const prs = h.ex.filter(x => prev[x.id] > 0 && Math.max(...x.sets.map(s => s.w)) > prev[x.id]).length;
   const dg = h.dungeon ? DUNGEONS[h.dungeon] : null, st = streak(), feat = dg && featuredId() === h.dungeon;
-  const sm = 1 + Math.min(0.5, (st - 1) * 0.05), mult = (dg?.mult || 1) * sm * (feat ? 1.5 : 1);
-  const base = sets * 10 + 100 + prs * 40, xp = Math.round(base * mult), coins = Math.round(xp / 6);
+  const xpP = xpPerk(), coinP = coinPerk(), boost = boostOn(), recXp = perk('rec') ? 80 : 40;
+  const sm = 1 + Math.min(0.5, (st - 1) * 0.05), mult = (dg?.mult || 1) * sm * (feat ? 1.5 : 1) * (1 + xpP) * (boost ? 2 : 1);
+  const base = sets * 10 + 100 + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 6 * (1 + coinP));
   const lines = [[`${sets} sets × 10`, sets * 10], ['Workout cleared', 100]];
-  if (prs) lines.push([`${prs} new record${prs > 1 ? 's' : ''} × 40`, prs * 40]);
+  if (prs) lines.push([`${prs} new record${prs > 1 ? 's' : ''} × ${recXp}`, prs * recXp]);
   if (dg) lines.push([`${dg.name} ×${dg.mult}`, null]);
   if (feat) lines.push(['Dungeon of the day ×1.5', null]);
   if (sm > 1) lines.push([`${st}-day streak ×${sm.toFixed(2)}`, null]);
+  if (xpP) lines.push([`Level perk +${Math.round(xpP * 100)}% XP`, null]);
+  if (boost) lines.push(['XP booster ×2', null]);
   const before = G.xp;
   G.today.sets += sets; G.today.workouts++; G.today.minutes += h.dur; if (dg) G.today.dungeons++;
   const chest = dg ? (dg.mult >= 2 ? 'gold' : 'wood') : null;
@@ -250,7 +273,7 @@ window.claimQuest = id => {
   flushLevelUp(home);
 };
 window.claimQuestBonus = () => {
-  if (G.quests.bonus || G.quests.claimed.length < 3) return;
+  if (G.quests.bonus || G.quests.claimed.length < G.quests.list.length) return;
   G.quests.bonus = true; G.chests.push('wood'); award(60, 25); sfx('claim'); flushLevelUp(home);
 };
 const ciInfo = () => {
@@ -263,39 +286,40 @@ window.checkIn = () => {
   if (c.chest) G.chests.push('silver');
   toast(`Check-in day ${c.st}${c.chest ? ': silver chest!' : ''}`); award(c.xp, c.coins); sfx('claim'); flushLevelUp(home);
 };
-const BOSSES = [['Iron Golem', '🗿'], ['Sloth Dragon', '🐲'], ['Couch Lord', '🛋️'], ['Fatigue Wraith', '👻'], ['Gravity Beast', '🦍']];
+const BOSSES = [['Iron Golem', 'golem'], ['Sloth Dragon', 'dragon'], ['Couch Lord', 'sofa'], ['Fatigue Wraith', 'ghost'], ['Gravity Beast', 'gorilla']];
 window.claimBoss = () => {
   if (G.bossClaimed === weekId() || weekCount() < S.profile.days) return;
-  G.bossClaimed = weekId(); G.bosses++; G.chests.push('silver'); award(250, 100); sfx('claim'); checkAch(); flushLevelUp(home);
+  G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(250, 100); sfx('claim'); checkAch(); flushLevelUp(home);
 };
 window.buy = id => {
   const i = item(id);
+  if (!i.shop) { toast(`${i.name} unlocks at level ${i.lv}.`); return; }
   if (has(i) || G.coins < i.cost) { toast(has(i) ? 'Already yours.' : `Need ${i.cost - G.coins} more coins.`); return; }
-  G.coins -= i.cost; G.owned.push(id); commit(); sfx('claim'); toast(i.type === 'recipe' ? `${i.name} added to your meal pool. Shuffle your week to try it.` : `Unlocked ${i.name}`); checkAch(); route();
+  G.coins -= i.cost; G.owned.push(id); commit(); sfx('claim'); toast(`Unlocked ${i.name}`); checkAch(); route();
 };
 window.equip = id => {
   const i = item(id); if (!has(i)) return;
-  if (i.type === 'theme') G.theme = i.key; else if (i.type === 'frame') G.frame = i.key; else G.avatar = i.key;
+  if (i.type === 'theme') G.theme = i.key; else if (i.type === 'frame') G.frame = i.key; else if (i.type === 'banner') G.banner = i.key; else if (i.type === 'avatar') G.avatar = i.key; else return;
   commit(); applyTheme(); route();
 };
 window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(); };
-const CHEST = { wood: ['Wooden chest', '📦', [80, 95, 100, 100], [20, 60], [50, 120]], silver: ['Silver chest', '🎁', [50, 70, 100, 100], [60, 150], [100, 250]], gold: ['Golden chest', '🏆', [30, 50, 90, 100], [150, 400], [300, 600]] };
+const CHEST = { wood: ['Wooden chest', 'crate', [80, 95, 100, 100], [20, 60], [50, 120]], silver: ['Silver chest', 'chest-silver', [50, 70, 100, 100], [60, 150], [100, 250]], gold: ['Golden chest', 'chest-gold', [30, 50, 90, 100], [150, 400], [300, 600]] };
 const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
 window.openChest = () => {
   if (!G.chests.length) return;
   const tier = G.chests.shift(), [name, ico, cut, cr, xr] = CHEST[tier], roll = Math.random() * 100;
-  const cos = ITEMS.filter(i => ['theme', 'avatar', 'frame'].includes(i.type) && !has(i) && i.lv > 1), dg = ITEMS.filter(i => i.type === 'dungeon' && !has(i));
+  const cos = ITEMS.filter(i => i.shop && !has(i)), dg = []; // chests drop looks only; workouts and meals come from levels
   let html;
   if (roll < cut[0] || (roll >= cut[1] && roll < cut[2] && !cos.length) || (roll >= cut[2] && !dg.length && !cos.length)) {
-    const c = rand(cr); G.coins += c; html = `<div class="avbig">🪙</div><h2>${c} coins</h2>`;
+    const c = rand(cr); G.coins += c; html = `<div class="avbig">${gi('coin', 'cn')}</div><h2>${c} coins</h2>`;
   } else if (roll < cut[1]) {
-    const x = rand(xr); award(x); html = `<div class="avbig">✨</div><h2>${x} XP</h2>`;
+    const x = rand(xr); award(x); html = `<div class="avbig">${gi('sparkles', 'hero')}</div><h2>${x} XP</h2>`;
   } else {
     const pool = roll < cut[2] || !dg.length ? cos : dg, i = pool[Math.floor(Math.random() * pool.length)];
     G.owned.push(i.id); html = `<div class="avbig">${ICO(i)}</div><div class="lvup">New ${KIND[i.type].toLowerCase()}</div><h2>${esc(i.name)}</h2>`;
   }
   G.chestsOpened++; commit();
-  modal(`<div class="chest">${ico}</div><div class="mut">${name}</div><div class="reveal">${html}<button class="btn" data-close>Nice</button></div>`, () => { checkAch(); flushLevelUp(route); });
+  modal(`<div class="chest">${gi(ico)}</div><div class="mut">${name}</div><div class="reveal">${html}<button class="btn" data-close>Nice</button></div>`, () => { checkAch(); flushLevelUp(route); });
   setTimeout(() => { sfx('claim'); confetti(); }, 900);
 };
 window.toggleSound = () => { G.sound = !G.sound; commit(); if (G.sound) sfx('tick'); route(); };
@@ -315,10 +339,10 @@ function featuredId() {
 // ---------- views ----------
 function hud() {
   const L = lvl(), a = totalXp(L), b = totalXp(L + 1), pct = (G.xp - a) / (b - a);
-  return `<div class="hud"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${G.avatar}</span><i class="lv">${L}</i></div>
-  <div class="grow"><div class="hn">${esc(S.profile?.name || 'Player')}</div><div class="mut">${title()}</div>
+  return `<div class="hud bn-${G.banner}"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}" onclick="location.hash='#/profile'" role="button" aria-label="Edit profile"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
+  <div class="grow"><div class="hn">${esc(S.profile?.name || 'Player')}</div><div class="mut">${title()}${boostOn() ? ' · <b style="color:var(--ok)">2× XP</b>' : ''}</div>
   <div class="xpbar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div><div class="xpt">${G.xp - a} / ${b - a} XP to level ${L + 1}</div></div>
-  <div class="coins">🪙 <b>${G.coins}</b></div></div>`;
+  <div class="coins">${gi('coin', 'cn')} <b>${G.coins}</b></div></div>`;
 }
 
 function home() {
@@ -327,23 +351,23 @@ function home() {
   const p = S.profile, a = analyze({ ...p, weight: curWeight() }), di = nextDayIdx(), d = S.plan.days[di], first = BY[d.items[0].id];
   const done = G.quests.claimed.length, hits = Math.min(weekCount(), p.days), bossDone = hits >= p.days, [bn, be] = BOSSES[hash(weekId()) % BOSSES.length];
   view.innerHTML = `${hud()}
-  <div class="row between sec2"><h2>Daily quests</h2><span class="mut">${done}/3 claimed</span></div>
+  <div class="row between sec2"><h2>Daily quests</h2><span class="mut">${done}/${G.quests.list.length} claimed</span></div>
   ${G.quests.list.map(id => {
     const q = QT.find(x => x.id === id), v = Math.min(q.n, metric(q.m)), ok = v >= q.n, cl = G.quests.claimed.includes(id);
-    return `<div class="quest ${cl ? 'cl' : ok ? 'ok' : ''}"><div class="qi">${q.ico}</div><div class="grow"><div class="qt">${q.t}</div>
-    <div class="qbar"><i style="width:${v / q.n * 100}%"></i></div><div class="mut">${v}/${q.n} · +${q.xp} XP · 🪙${Math.round(q.xp / 5)}</div></div>
+    return `<div class="quest ${cl ? 'cl' : ok ? 'ok' : ''}"><div class="qi">${gi(q.ico)}</div><div class="grow"><div class="qt">${q.t}</div>
+    <div class="qbar"><i style="width:${v / q.n * 100}%"></i></div><div class="mut">${v}/${q.n} · +${q.xp} XP · ${gi('coin', 'cn')} ${Math.round(q.xp / 5)}</div></div>
     ${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimQuest('${id}')">Claim</button>` : ''}</div>`;
   }).join('')}
-  ${G.quests.bonus ? '' : `<div class="quest ${done >= 3 ? 'ok' : ''}"><div class="qi">🎁</div><div class="grow"><div class="qt">Clear all three quests</div><div class="mut">Bonus chest: +60 XP · 🪙25</div></div>
-  ${done >= 3 ? '<button class="btn sm" onclick="claimQuestBonus()">Open</button>' : ''}</div>`}
-  ${G.checkin === dayId() ? '' : (c => `<button class="btn gold" onclick="checkIn()">Daily check-in · day ${c.st} · +${c.xp} XP · 🪙${c.coins}${c.chest ? ' · chest' : ''}</button>`)(ciInfo())}
-  ${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${CHEST[G.chests[0]][1]} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : ''}
+  ${G.quests.bonus ? '' : `<div class="quest ${done >= G.quests.list.length ? 'ok' : ''}"><div class="qi">${gi('crate')}</div><div class="grow"><div class="qt">Clear every quest</div><div class="mut">Bonus chest: +60 XP · ${gi('coin', 'cn')} 25</div></div>
+  ${done >= G.quests.list.length ? '<button class="btn sm" onclick="claimQuestBonus()">Open</button>' : ''}</div>`}
+  ${G.checkin === dayId() ? '' : (c => `<button class="btn gold" onclick="checkIn()">Daily check-in · day ${c.st} · +${c.xp} XP · ${gi('coin', 'cn')} ${c.coins}${c.chest ? ' · chest' : ''}</button>`)(ciInfo())}
+  ${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${gi(CHEST[G.chests[0]][1])} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : ''}
   <h2 class="sec">Weekly boss</h2>
-  <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${be}</div><div class="grow"><h3>${bn}</h3>
+  <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${gi(be, 'hero')}</div><div class="grow"><h3>${bn}</h3>
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
     <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left. Every workout deals damage.`}</div>
-    ${bossDone && G.bossClaimed !== weekId() ? '<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · +250 XP · 🪙100</button>' : ''}</div></section>
-  ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${DUNGEONS[featuredId()].ico}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
+    ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · +250 XP · ${gi('coin', 'cn')} 100</button>` : ''}</div></section>
+  ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
   <section class="card next"><div class="mut">${d.items.length} exercises · ~${p.minutes} min · +${d.items.reduce((s, i) => s + i.sets, 0) * 10 + 100} XP</div><h2>${esc(d.name.split(' · ')[1])}</h2>
     ${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
@@ -357,38 +381,13 @@ function home() {
 function dungeons() {
   if (needProfile()) return;
   const feat = featuredId(), list = Object.entries(DUNGEONS).sort((x, y) => x[1].lv - y[1].lv);
-  view.innerHTML = `<h1>Dungeons</h1><p class="mut">Special workouts built from your equipment and limits. They unlock as you level up, or early with coins. Clearing one earns bonus XP and a chest. ${list.filter(([id]) => has(item(id))).length} of ${list.length} unlocked.</p>` +
+  view.innerHTML = `<h1>Dungeons</h1><p class="mut">Special workouts built from your equipment and limits. They unlock as you level up. Clearing one earns bonus XP and a chest. ${list.filter(([id]) => has(item(id))).length} of ${list.length} unlocked.</p>` +
     list.map(([id, d]) => {
       const i = item(id), ok = has(i), miss = d.need && !S.profile.equipment.includes(d.need);
-      return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? d.ico : '🔒'}</div><div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div>
+      return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div>
       <div class="chips static"><span class="chip">Lv ${d.lv}</span><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
-      ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : G.coins >= i.cost ? `<button class="btn sm gold" onclick="buy('${id}')">🪙 ${i.cost}</button>` : `<span class="mut cost">🪙 ${i.cost}</span>`}</section>`;
+      ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
     }).join('');
-}
-
-function rewards() {
-  if (needProfile()) return;
-  const L = lvl(), max = Math.min(30, Math.max(L + 8, 14));
-  const state = i => has(i) ? (i.type === 'theme' ? G.theme === i.key : i.type === 'avatar' ? G.avatar === i.key : i.type === 'frame' ? G.frame === i.key : false) ? '<b class="eq">Equipped</b>' : (i.type === 'dungeon' ? '' : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>`)
-    : G.coins >= i.cost ? `<button class="btn sm gold" onclick="buy('${i.id}')">🪙 ${i.cost}</button>` : `<span class="mut">🔒 Lv ${i.lv} · 🪙${i.cost}</span>`;
-  const by = t => ITEMS.filter(i => i.type === t).sort((x, y) => x.lv - y.lv);
-  view.innerHTML = `${hud()}${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${CHEST[G.chests[0]][1]} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : '<div class="mut">Chests drop from dungeons, bosses, the daily bonus and every 5th level.</div>'}
-  <button class="btn ghost" onclick="location.hash='#/earn'">⚡ Ways to earn points</button>
-  <h2 class="sec">Reward road</h2><div class="road">` +
-    Array.from({ length: max }, (_, k) => k + 1).map(n => {
-      const its = ITEMS.filter(i => i.lv === n && n > 1);
-      return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
-      ${n % 5 === 0 ? `<div class="ri">${n % 10 === 0 ? '🏆' : '🎁'} ${n % 10 === 0 ? 'Golden' : 'Silver'} chest</div>` : ''}${its.map(i => `<div class="ri">${ICO(i)} ${esc(i.name)} <span class="mut">${KIND[i.type]}</span></div>`).join('')}</div></div>`;
-    }).join('') + `</div>
-  <h2 class="sec">App themes</h2><div class="grid2">${by('theme').map(i => `<div class="card sw ${has(i) ? '' : 'locked'}"><div class="swc" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></div><b>${i.name}</b>${state(i)}</div>`).join('')}</div>
-  <h2 class="sec">Avatars</h2><div class="grid4">${by('avatar').map(i => `<div class="card sw ${has(i) ? '' : 'locked'}"><div class="avbig">${has(i) ? i.key : '🔒'}</div>${state(i)}</div>`).join('')}</div>
-  <h2 class="sec">Avatar rings</h2><div class="grid3">${by('frame').map(i => `<div class="card sw ${has(i) ? '' : 'locked'}"><div class="av fr-${i.key}" style="--p:.6;width:54px;height:54px"><span style="font-size:24px">${G.avatar}</span></div><b>${i.name.replace(' ring', '')}</b>${state(i)}</div>`).join('')}</div>
-  <h2 class="sec">Titles</h2><div class="chips">${ACH.filter(a => a.t).map(a => G.ach.includes(a.id) ? `<button class="chip ${G.title === a.id ? 'on' : ''}" onclick="equipTitle('${a.id}')">${a.t}</button>` : `<span class="chip locked">🔒 ${a.t}</span>`).join('')}</div>
-  <div class="mut">Titles come from badges. Tap one to show it under your name.</div>
-  <h2 class="sec">Chef's recipes · ${ITEMS.filter(i => i.type === 'recipe' && has(i)).length}/${ITEMS.filter(i => i.type === 'recipe').length}</h2>
-  <p class="mut">Nicer dishes for your meal plan. Unlock them with coins or by levelling up, then shuffle your week.</p>
-  ${ITEMS.filter(i => i.type === 'recipe').sort((x, y) => x.lv - y.lv).map(i => { const r = RBY[i.rid], n = nutOf(r), ok = has(i); return `<div class="card row ${ok ? '' : 'locked'}"><div class="mi">${ok ? r.ico : '🔒'}</div><div class="grow"><b>${esc(r.name)}</b><div class="mut">${r.time} min · ${Math.round(n.kcal)} kcal · P ${Math.round(n.p)} · ${{ b: 'breakfast', m: 'lunch or dinner', s: 'snack' }[r.meal]}</div></div>${ok ? '<span class="mut">✓ Unlocked</span>' : G.coins >= i.cost ? `<button class="btn sm gold" onclick="buy('${i.id}')">🪙 ${i.cost}</button>` : `<span class="mut">Lv ${i.lv} · 🪙${i.cost}</span>`}</div>`; }).join('')}
-  <h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>${ACH.map(a => `<div class="card row ${G.ach.includes(a.id) ? '' : 'locked'}"><div class="avbig sm">${G.ach.includes(a.id) ? a.i : '🔒'}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}</div></div><span class="mut">+${a.xp} XP</span></div>`).join('')}`;
 }
 
 function victory() {
@@ -396,10 +395,10 @@ function victory() {
   const r = LAST, la = levelOf(r.before), lb = levelOf(r.after), pc = x => { const L = levelOf(x); return (x - totalXp(L)) / (totalXp(L + 1) - totalXp(L)) * 100; };
   view.innerHTML = `<div class="vic"><div class="lvup">${r.dungeon ? 'Dungeon cleared' : 'Workout cleared'}</div><h1>${esc(r.name)}</h1>
   <div class="card">${r.lines.map(([t, v]) => `<div class="row between"><span>${t}</span><b>${v == null ? '' : '+' + v}</b></div>`).join('')}
-  <div class="row between tot"><span>Total</span><b>+${r.xp} XP · 🪙${r.coins}</b></div></div>
-  <div class="hud solo"><div class="av" style="--p:0"><span>${G.avatar}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
-  ${r.chest ? `<div class="card row"><div class="avbig sm">${CHEST[r.chest][1]}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}
-  ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${a.i}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked · +${a.xp} XP</div></div></div>`).join('')}
+  <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
+  <div class="hud solo"><div class="av fr-${G.frame}" style="--p:0"><span>${gi(G.avatar, 'hero')}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
+  ${r.chest ? `<div class="card row"><div class="avbig sm">${gi(CHEST[r.chest][1])}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}
+  ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${gi(a.i, 'hero')}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked · +${a.xp} XP</div></div></div>`).join('')}
   <button class="btn" id="col">Collect</button></div>`;
   sfx('claim'); confetti();
   setTimeout(() => { const b = $('#vb'); if (b) { b.style.width = (lb > la ? 100 : pc(r.after)) + '%'; } }, 150);
@@ -409,6 +408,7 @@ function victory() {
 function heroCard() {
   const vol = totalVol(), mins = S.history.reduce((a, h) => a + h.dur, 0);
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
+  <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>`;
 }
 
@@ -416,6 +416,20 @@ function initGame() {
   if (!localStorage.getItem('fc.game') && S.history.length) { // welcome back: convert past workouts to XP
     G.xp = S.history.reduce((a, h) => a + 100 + h.ex.reduce((b, x) => b + x.sets.length * 10, 0), 0);
   }
-  ensureDay(); applyTheme(); commit();
+  migrateGame(); ensureDay(); applyTheme(); commit();
 }
-Object.assign(routes, { home, dungeons, rewards, victory });
+// Version 3 split rewards: levels give workouts, meals and perks; coins buy looks. Keep everything players already had.
+function migrateGame() {
+  if (G.ver >= 3) return;
+  const L = lvl(), oldAv = { '🥊': ['glove', 1], '🦁': ['lion', 2], '🐺': ['wolf', 4], '🦅': ['eagle', 6], '🐉': ['dragon', 9], '⚡': ['robot', 12], '👑': ['crown', 16], '🚀': ['rocket', 22], '🐯': ['tiger', 3], '🦈': ['shark', 7], '🥷': ['ninja', 11], '🤖': ['robot', 14], '🦖': ['trex', 18], '🧙': ['wyvern', 20], '🦄': ['unicorn', 26], '👽': ['alien', 30] };
+  const oldTheme = { ember: 1, neon: 3, frost: 5, toxic: 7, royal: 10, retro: 13, gold: 18, sakura: 4, ocean: 9, lava: 15, matrix: 20, aurora: 25 };
+  const oldFrame = { none: 1, flame: 5, electric: 8, diamond: 12, rainbow: 17, galaxy: 24 };
+  const own = new Set(G.owned.map(id => id.startsWith('a-') && oldAv[id.slice(2)] ? 'a-' + oldAv[id.slice(2)][0] : id));
+  Object.entries(oldAv).forEach(([, [k, lv]]) => { if (L >= lv) own.add('a-' + k); });
+  Object.entries(oldTheme).forEach(([k, lv]) => { if (L >= lv) own.add('t-' + k); });
+  Object.entries(oldFrame).forEach(([k, lv]) => { if (L >= lv) own.add('f-' + k); });
+  G.owned = [...own];
+  if (oldAv[G.avatar]) G.avatar = oldAv[G.avatar][0]; else if (!ITEMS.some(i => i.type === 'avatar' && i.key === G.avatar)) G.avatar = 'glove';
+  G.ver = 3;
+}
+Object.assign(routes, { home, dungeons, victory });

@@ -173,9 +173,13 @@ function generatePlan(p) {
 const dayKey = t => new Date(t).toDateString();
 function streak() {
   const set = new Set(S.history.map(h => dayKey(h.t)));
-  let n = 0; const d = new Date();
+  let n = 0, used = false; const d = new Date(), shield = typeof perk === 'function' && perk('shield'); // the Rest-day shield level perk bridges one missed day
   if (!set.has(d.toDateString())) d.setDate(d.getDate() - 1);
-  while (set.has(d.toDateString())) { n++; d.setDate(d.getDate() - 1); }
+  for (;;) {
+    if (set.has(d.toDateString())) n++;
+    else { const p = new Date(d); p.setDate(p.getDate() - 1); if (shield && !used && n > 0 && set.has(p.toDateString())) used = true; else break; }
+    d.setDate(d.getDate() - 1);
+  }
   return n;
 }
 const volume = h => h.ex.reduce((a, x) => a + x.sets.reduce((b, s) => b + (+s.w || 0) * (+s.r || 0), 0), 0);
@@ -413,9 +417,9 @@ function me() {
   <div class="row between"><span class="mut">Goal</span><b>${GOALS[p.goal][0]}</b></div>
   <div class="row between"><span class="mut">Schedule</span><b>${p.days} days · ${p.minutes} min</b></div>
   <div class="row between"><span class="mut">Equipment</span><b>${p.equipment.map(k => EQUIP[k]).join(', ')}</b></div></section>
-  <button class="btn" onclick="location.hash='#/start/edit'">Edit profile and rebuild plan</button>
+  <button class="btn" onclick="location.hash='#/start/edit'">Edit body data and training plan</button>
   <button class="btn ghost" id="exp">Export my data</button><button class="btn ghost" id="rst">Reset everything</button>
-  <p class="mut">FitQuest is free, with no ads and no payments. Coins and XP are just for fun. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain).</p>`;
+  <p class="mut">FitQuest is free, with no ads and no payments. Coins and XP are just for fun. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain). ${GI_CREDIT}</p>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -434,7 +438,7 @@ function route() {
   timers.forEach(clearInterval); timers = [];
   const [, name = 'home', arg] = (location.hash || '#/home').split('/');
   if (name !== 'start') wiz = null;
-  const tab = { exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', earn: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
+  const tab = { profile: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', earn: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
   document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
   (routes[name] || home)(arg);
