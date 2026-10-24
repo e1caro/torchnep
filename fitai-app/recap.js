@@ -74,7 +74,7 @@ window.openRecap = (which = 'last') => {
   closeRecap(true);
   const el = document.createElement('div');
   el.id = 'recap'; el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true');
-  el.innerHTML = `<div class="rbg"><i></i><i></i><i></i></div><div class="rtop"><div class="rprog">${slides.map(() => '<i><b></b></i>').join('')}</div>
+  el.innerHTML = `<div class="rbg"><i></i><i></i><i></i></div><div class="rframe"></div><div class="rtop"><div class="rprog">${slides.map(() => '<i><b></b></i>').join('')}</div>
     <button class="rx" aria-label="Close" onclick="closeRecap()">✕</button></div><div class="rslides">${slides.map(s => `<section class="rs">${s}</section>`).join('')}</div>
     <div class="rnav"><button aria-label="Back" onclick="recapGo(-1)"></button><button aria-label="Next" onclick="recapGo(1)"></button></div>`;
   document.body.append(el);
@@ -89,7 +89,7 @@ window.recapGo = d => {
   RC.i = i;
   RC.el.querySelectorAll('.rs').forEach((s, k) => s.classList.toggle('on', k === i));
   RC.el.querySelectorAll('.rprog i').forEach((b, k) => { b.className = k < i ? 'done' : k === i ? 'now' : ''; });
-  RC.el.style.setProperty('--hue', `${i * 40}deg`);
+  RC.el.style.setProperty('--hue', `${i * 75}deg`); // the colour blobs turn around the slide; the colours stay the interface's
   // count the numbers up
   RC.el.querySelectorAll('.rs.on .rbig').forEach(b => {
     const to = +b.dataset.to, t0 = performance.now();

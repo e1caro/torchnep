@@ -469,12 +469,12 @@ html,body,main{overflow-x:clip;max-width:100%}
 @keyframes rfill{from{width:0}to{width:100%}}
 @keyframes rgrow{from{width:0}}
 @keyframes rpop{0%{transform:scale(.2) rotate(-20deg);opacity:0}70%{transform:scale(1.15) rotate(4deg)}100%{transform:none;opacity:1}}
-#recap{position:fixed;inset:0;z-index:28;color:#fff;background:#05070c;overflow:hidden;font-family:var(--body);text-shadow:0 2px 10px #0008}
-.rbg{position:absolute;inset:0;filter:blur(40px) hue-rotate(var(--hue,0deg));transition:filter .8s;opacity:.85}
+#recap{position:fixed;inset:0;z-index:28;color:var(--fg);background:inherit;background-color:var(--bg);overflow:hidden;font-family:var(--body);text-shadow:0 2px 10px color-mix(in srgb,var(--bg) 80%,#000)}
+.rbg{position:absolute;inset:-20%;filter:blur(40px);transform:rotate(var(--hue,0deg)) scale(1.1);transition:transform 1.2s cubic-bezier(.2,.8,.2,1);opacity:.85}
 .rbg i{position:absolute;width:70vmax;height:70vmax;border-radius:50%;animation:rblob 9s ease-in-out infinite alternate}
 .rbg i:nth-child(1){left:-30vmax;top:-20vmax;background:radial-gradient(circle,var(--acc),#0000 65%)}
 .rbg i:nth-child(2){right:-30vmax;bottom:-25vmax;background:radial-gradient(circle,var(--acc2),#0000 65%);animation-duration:11s}
-.rbg i:nth-child(3){left:10vmax;top:40vh;width:40vmax;height:40vmax;background:radial-gradient(circle,#ff3cc7aa,#0000 65%);animation-duration:7s}
+.rbg i:nth-child(3){left:10vmax;top:40vh;width:40vmax;height:40vmax;background:radial-gradient(circle,var(--glow,var(--acc)),#0000 65%);animation-duration:7s}
 .rtop{position:absolute;z-index:3;left:0;right:0;top:0;padding:calc(10px + env(safe-area-inset-top)) 12px 0;display:flex;align-items:center;gap:10px}
 .rprog{flex:1;display:flex;gap:4px}
 .rprog i{flex:1;height:3px;border-radius:3px;background:#ffffff40;overflow:hidden}
@@ -529,3 +529,24 @@ html,body,main{overflow-x:clip;max-width:100%}
 .wkstats span{display:block;font-size:11px;color:var(--mut);line-height:1.2}
 .wkstats i{font-style:normal;font:700 10.5px var(--disp)}.wkstats i.up{color:var(--ok,#4dff9a)}.wkstats i.down{color:#ff6b8a}
 .wkbtns{gap:8px;margin-top:10px}.wkbtns .btn{flex:1}
+
+/* the summary wears the current interface: its scenery behind, its panel frame around the slides, its title ornament */
+#recap::before{content:"";position:absolute;inset:0;background:radial-gradient(120% 80% at 50% 45%,color-mix(in srgb,var(--bg) 45%,transparent),color-mix(in srgb,var(--bg) 88%,transparent))}
+html[data-skin]:not([data-skin=hud]) .rbg{opacity:.55}
+.rframe{position:absolute;z-index:1;pointer-events:none;inset:calc(52px + env(safe-area-inset-top)) 12px calc(16px + env(safe-area-inset-bottom));
+  background:var(--deco);background-repeat:var(--rep,no-repeat);box-shadow:var(--pshadow,none);clip-path:var(--clip,none)}
+html[data-tint][data-skin] .rframe{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--deco);mask:var(--deco);-webkit-mask-repeat:var(--rep,no-repeat);mask-repeat:var(--rep,no-repeat)}
+html[data-tint][data-skin=pirate] .rframe{background:var(--deco);-webkit-mask:none;mask:none}
+html[data-skin=arcade] .rframe{box-shadow:inset 0 0 0 3px var(--acc),inset 0 0 0 6px transparent,inset 0 0 0 7px var(--line)}
+.rkick::after{content:"";display:block;height:var(--orn-h,0);width:min(240px,70vw);margin:10px auto 0;background:var(--orn,none) center/100% 100% no-repeat}
+html[data-tint][data-skin] .rkick::after{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-mask:var(--orn) center/100% 100% no-repeat;mask:var(--orn) center/100% 100% no-repeat}
+html[data-skin=hud] .rkick::after{height:2px;width:120px;background:linear-gradient(90deg,#0000,var(--acc),#0000);box-shadow:0 0 10px var(--acc)}
+.rpr{background:color-mix(in srgb,var(--card) 85%,transparent);box-shadow:inset 0 0 0 1px var(--line2);border-radius:var(--r,14px)}
+.rdelta{background:color-mix(in srgb,var(--card) 80%,transparent)}
+.rdays i{background:color-mix(in srgb,var(--card2) 85%,transparent);box-shadow:inset 0 0 0 1px var(--line2)}
+.rdays .on i{color:var(--on,#05070c)}
+.rprog i{background:color-mix(in srgb,var(--fg) 25%,transparent)}.rprog i b{background:var(--acc)}
+.rx{background:color-mix(in srgb,var(--card) 80%,transparent);color:var(--fg)}
+html[data-skin=arcade] #recap .rbig{font-size:38px}html[data-skin=arcade] #recap .rgrid .rbig{font-size:26px}html[data-skin=arcade] #recap .rkick{font-size:15px;line-height:1.5}
+html[data-skin=arcade] #recap .rgrade{font-size:80px}html[data-skin=arcade] #recap .rnote{font-size:20px}html[data-skin=arcade] #recap .rlbl{font-size:9px}
+html[data-skin=arcade] #recap :is(.rbar,.rpr){font-size:18px}
