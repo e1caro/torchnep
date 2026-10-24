@@ -363,9 +363,9 @@ function academyGuide(open) {
   <div class="mut" style="margin-top:8px">Your normal workouts also raise your attributes a little.</div></details>`;
 }
 
-function matchHelp(open) {
+function matchHelp() {
   const li = t => `<li>${t}</li>`;
-  return `<details class="howmatch" ${open ? 'open' : ''}><summary><b>How matches work</b></summary><ol>
+  return `<ol>
   ${li(TT('Every Monday you get a new opponent in your sport. Their rating is based on yours and goes up as you win more matches.', 'Cada lunes tienes un rival nuevo en tu deporte. Su valoración depende de la tuya y sube a medida que ganas partidos.'))}
   ${li(TT('To unlock the match, finish 2 drills of this sport between Monday and Sunday. Drills of any position in this sport count.', 'Para desbloquear el partido, termina 2 ejercicios de este deporte entre el lunes y el domingo. Cuentan los ejercicios de cualquier posición de este deporte.'))}
   ${li(TT('Press Play match and the game is decided at once. You can play only one match per week.', 'Pulsa Jugar partido y el resultado se decide al momento. Solo puedes jugar un partido por semana.'))}
@@ -373,7 +373,7 @@ function matchHelp(open) {
   ${li(TT('In football, futsal, rugby, running and combat sports, about 1 match in 7 ends in a draw. Basketball, tennis and volleyball have no draws.', 'En fútbol, fútbol sala, rugby, atletismo y deportes de combate, más o menos 1 de cada 7 partidos acaba en empate. En baloncesto, tenis y voleibol no hay empates.'))}
   ${li(TT('Every result pays: a win gives the most XP and coins plus a silver chest, a draw or a loss gives less. All results also give career XP (80 for a win, 40 for a draw, 30 for a loss).', 'Todos los resultados dan premio: ganar da más XP y monedas y un cofre de plata; empatar o perder da menos. Además, todos dan XP de carrera (80 por ganar, 40 por empatar y 30 por perder).'))}
   ${li(TT('After the match you see which attribute won it, or which one to train if you lost. To raise your chances, train more drills and raise your rating.', 'Después del partido ves qué atributo te dio la victoria, o cuál entrenar si perdiste. Para tener más opciones, entrena más ejercicios y sube tu valoración.'))}
-  </ol></details>`;
+  </ol>`;
 }
 
 function sportView(arg) {
@@ -392,22 +392,23 @@ function sportView(arg) {
     <div class="score">${m.text ? esc(m.text) : `${m.a}–${m.b}`}</div><div class="mut">${m.note}</div><div class="mut" style="margin-top:6px">Match reward: +${m.xp} XP · +${m.coins} coins</div>${m.res === 'W' ? '<div class="mut">Silver chest added. Open it on Today.</div>' : ''}
     <div class="mut" style="margin-top:6px">Next opponent in ${(8 - new Date().getDay()) % 7 || 7} days (on Monday).</div>`
     : `<div class="row between"><h3>${esc(opp.name)}</h3><span class="mut">OVR ${opp.ovr}</span></div>
-    <div class="mut">You: OVR ${ovr}</div>
-    ${(c => `<div class="odds"><div class="row between"><span>Starting chance</span><b>50%</b></div>
+    <div class="mut">You: OVR ${ovr} · Chance to win: ${Math.round(winChance(key).pw * 100)}%</div>
+    <div class="qbar" style="margin-top:8px"><i style="width:${Math.min(wk, 2) / 2 * 100}%"></i></div><div class="mut">Drills this week: ${Math.min(wk, 2)}/2</div>
+    ${wk >= 2 ? `<button class="btn" onclick="playMatch()" style="margin-top:10px">Play match</button>` : `<div class="mut" style="margin-top:6px">Do 2 drills in a week to play the match.</div>`}`}
+  <div class="chips static" style="margin-top:10px"><span class="chip">Won ${rs.w}</span><span class="chip">Drawn ${rs.d}</span><span class="chip">Lost ${rs.l}</span></div>
+  <details class="howmatch"><summary><b>Odds, prizes and rules</b></summary>
+    ${(c => `<div class="odds" style="margin-top:10px"><div class="row between"><span>Starting chance</span><b>50%</b></div>
     <div class="row between"><span>Your rating against theirs</span><b>${c.diff >= 0 ? '+' : ''}${Math.round(c.diff * 100)}%</b></div>
     <div class="row between"><span>Extra drills this week</span><b>+${Math.round(c.extra * 100)}%</b></div>
     ${c.draw ? `<div class="row between"><span>Part that becomes draws</span><b>-${Math.round(c.draw * 50)}%</b></div>` : ''}
     <div class="row between tot"><span>Chance to win</span><b>${Math.round(c.pw * 100)}%</b></div>
     ${c.draw ? `<div class="row between"><span>Chance of a draw</span><b>${Math.round(c.draw * 100)}%</b></div>` : ''}</div>`)(winChance(key))}
-    <div class="qbar" style="margin-top:8px"><i style="width:${Math.min(wk, 2) / 2 * 100}%"></i></div><div class="mut">Drills this week: ${Math.min(wk, 2)}/2</div>
-    ${wk >= 2 ? `<button class="btn" onclick="playMatch()" style="margin-top:10px">Play match</button>` : `<div class="mut" style="margin-top:6px">Do 2 drills in a week to play the match.</div>`}
     <div class="prize"><div class="lbl">Prizes</div>
     <div class="row between"><span>Win</span><b>+${MATCH_REW.W[0]} XP · ${MATCH_REW.W[1]} coins · Silver chest</b></div>${winChance(key).draw ? `
     <div class="row between"><span>Draw</span><b>+${MATCH_REW.D[0]} XP · ${MATCH_REW.D[1]} coins</b></div>` : ''}
     <div class="row between"><span>Loss</span><b>+${MATCH_REW.L[0]} XP · ${MATCH_REW.L[1]} coins</b></div>
-    <div class="mut">Every match also gives career XP. The match resets each Monday.</div></div>`}
-  ${matchHelp(!(rs.w + rs.d + rs.l))}
-  <div class="chips static" style="margin-top:10px"><span class="chip">Won ${rs.w}</span><span class="chip">Drawn ${rs.d}</span><span class="chip">Lost ${rs.l}</span></div></section>
+    <div class="mut">Every match also gives career XP. The match resets each Monday.</div></div>
+  <div class="lbl" style="margin-top:12px">How matches work</div>${matchHelp()}</details></section>
   <h2 class="sec">Drills</h2>
   ${role.drills.map((d, i) => {
     const ok = lv >= DRILL_LV[i], K = KINDS[d.kind], top = Object.entries(K.gains).sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => x[0]);
@@ -441,7 +442,7 @@ if (typeof i18nAdd === 'function') {
     'Match reward: {n} XP': 'Premio del partido: {n} XP', 'Won {n}': 'Ganados {n}', 'Drawn {n}': 'Empatados {n}', 'Lost {n}': 'Perdidos {n}', 'Attributes up': 'Atributos al alza', 'OVR {n} → {n}': 'OVR {n} → {n}', Drills: 'Ejercicios', Milestones: 'Hitos', Train: 'Entrenar',
     'OVR {n}': 'OVR {n}', 'Everyday workouts raise your attributes a little too. Reach each rating to open a chest.': 'Tus entrenamientos normales también suben un poco tus atributos. Alcanza cada valoración para abrir un cofre.',
     'Open Sports Academy': 'Abrir Academia deportiva', 'Not enough exercises match your equipment and limits.': 'No hay suficientes ejercicios para tu material y tus límites.',
-    'How matches work': 'Cómo funcionan los partidos', 'Starting chance': 'Probabilidad inicial', 'Your rating against theirs': 'Tu valoración frente a la suya', 'Extra drills this week': 'Ejercicios extra esta semana', 'Chance of a draw': 'Probabilidad de empate', 'Part that becomes draws': 'Parte que se convierte en empates', 'Chance to win': 'Probabilidad de ganar',
+    'How matches work': 'Cómo funcionan los partidos', 'Odds, prizes and rules': 'Probabilidades, premios y reglas', 'Starting chance': 'Probabilidad inicial', 'Your rating against theirs': 'Tu valoración frente a la suya', 'Extra drills this week': 'Ejercicios extra esta semana', 'Chance of a draw': 'Probabilidad de empate', 'Part that becomes draws': 'Parte que se convierte en empates', 'Chance to win': 'Probabilidad de ganar',
     'Silver chest added. Open it on Today.': 'Cofre de plata añadido. Ábrelo en Hoy.', 'Next opponent in {n} days (on Monday).': 'Próximo rival en {n} días (el lunes).',
     'How the Academy works': 'Cómo funciona la Academia', 'Your normal workouts also raise your attributes a little.': 'Tus entrenamientos normales también suben un poco tus atributos.',
     'Career level {n} unlocks': 'El nivel de carrera {n} desbloquea', 'You: OVR {n}': 'Tú: OVR {n}', 'Chance to win: {n}%': 'Probabilidad de ganar: {n}%', Prizes: 'Premios', Win: 'Victoria', Draw: 'Empate', Loss: 'Derrota',
