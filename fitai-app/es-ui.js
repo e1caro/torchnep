@@ -258,3 +258,4 @@ i18nAdd({
   'Sci-fi HUD': 'HUD de ciencia ficción', 'Imperial China': 'China imperial', 'Zen Japan': 'Japón zen', 'Fairy Tale Forest': 'Bosque de cuento', 'Medieval Castle': 'Castillo medieval', 'Steampunk Works': 'Taller steampunk',
 });
 i18nAdd({ 'More info': 'Más info' });
+i18nAdd({ Preview: 'Vista previa', End: 'Terminar', 'Preview for one minute. Look around the app!': 'Vista previa durante un minuto. ¡Recorre la app!' });

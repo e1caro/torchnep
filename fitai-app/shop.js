@@ -112,9 +112,23 @@ function profileView() {
   <button class="btn" onclick="location.hash='#/start/edit'">Edit body data and training plan</button>
   <p class="mut">${GI_CREDIT}</p>`;
 }
-// preview an interface until you leave the shop
-window.trySkin = k => { setSkin(k); toast('Previewing. Leave the Shop to go back.'); scrollTo(0, 0); };
-window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#/rewards/shop')) setSkin(G.skin || 'hud'); });
+// preview an interface for one minute anywhere in the app, with a countdown bar
+let tryT = null;
+window.endTry = () => { clearInterval(tryT); tryT = null; document.getElementById('trybar')?.remove(); setSkin(G.skin || 'hud'); };
+window.trySkin = k => {
+  if (tryT) clearInterval(tryT);
+  setSkin(k);
+  const it = ITEMS.find(i => i.type === 'skin' && i.key === k), end = Date.now() + 60000;
+  let bar = document.getElementById('trybar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'trybar'; document.body.appendChild(bar); }
+  const draw = () => {
+    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    if (!left || (G.skin || 'hud') === k || document.documentElement.dataset.skin !== k) { endTry(); return; }
+    bar.innerHTML = `<span>${it.emo} ${esc(tr(it.name))} · ${tr('Preview')} 0:${String(left).padStart(2, '0')}</span><button class="btn sm" onclick="endTry()">${tr('End')}</button>`;
+  };
+  draw(); tryT = setInterval(draw, 1000);
+  toast('Preview for one minute. Look around the app!');
+};
 window.equipTitle = id => { G.title = id; commit(); route(); };
 
 Object.assign(routes, { rewards, profile: profileView });
