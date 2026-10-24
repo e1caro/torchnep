@@ -510,9 +510,22 @@ html,body,main{overflow-x:clip;max-width:100%}
 .rdays i{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:900;background:#ffffff1f;box-shadow:inset 0 0 0 1px #ffffff40}
 .rdays .on i{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#05070c;box-shadow:0 0 14px var(--acc);animation:rpop .5s both}
 .rdays span:nth-child(2) i{animation-delay:.08s}.rdays span:nth-child(3) i{animation-delay:.16s}.rdays span:nth-child(4) i{animation-delay:.24s}.rdays span:nth-child(5) i{animation-delay:.32s}.rdays span:nth-child(6) i{animation-delay:.4s}.rdays span:nth-child(7) i{animation-delay:.48s}
-.rgrade{font:900 120px/1 var(--disp);background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px var(--acc));animation:rpop .8s both}
+.rgrade{font:900 120px/1 var(--disp);text-shadow:none;background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px var(--acc));animation:rpop .8s both}
 .rs .btn{width:100%;max-width:320px;position:relative;z-index:3}
 .rnav{position:absolute;inset:60px 0 0;z-index:2;display:grid;grid-template-columns:1fr 2fr}
 .rnav button{all:unset;cursor:pointer}
 .rs:last-child{z-index:3;pointer-events:none}.rs:last-child .btn{pointer-events:auto}
 @media(prefers-reduced-motion:reduce){#recap *,.coach{animation:none!important}}
+/* this week, on Progress */
+.wkcard h3{display:flex;align-items:center;gap:8px}
+.wkgrade{font:900 26px var(--disp);text-shadow:none;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--acc) 50%,transparent));background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.wkdays{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:12px 0}
+.wkdays span{display:grid;justify-items:center;gap:4px}
+.wkdays i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-weight:900;background:var(--card2);box-shadow:inset 0 0 0 1px var(--line2)}
+.wkdays .on i{background:linear-gradient(135deg,var(--acc),var(--acc2));color:var(--on,#021016);text-shadow:none;box-shadow:0 0 10px color-mix(in srgb,var(--acc) 45%,transparent)}
+.wkdays .now b{color:var(--acc)}.wkdays b{font:700 11px var(--disp);color:var(--mut)}
+.wkstats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;margin-bottom:10px}
+.wkstats b{display:block;font:800 19px var(--disp)}.wkstats small{font-size:12px;color:var(--mut)}
+.wkstats span{display:block;font-size:11px;color:var(--mut);line-height:1.2}
+.wkstats i{font-style:normal;font:700 10.5px var(--disp)}.wkstats i.up{color:var(--ok,#4dff9a)}.wkstats i.down{color:#ff6b8a}
+.wkbtns{gap:8px;margin-top:10px}.wkbtns .btn{flex:1}

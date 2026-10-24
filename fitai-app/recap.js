@@ -8,8 +8,8 @@ const MUS = { legs: ['Legs', 'Piernas'], chest: ['Chest', 'Pecho'], back: ['Back
 const musName = g => MUS[g][LANG === 'es' ? 1 : 0];
 const fmtN = n => Math.round(n).toLocaleString(LANG === 'es' ? 'es-ES' : 'en-GB');
 
-function weekStats(ws) {
-  const we = ws + WEEK, hs = S.history.filter(h => h.t >= ws && h.t < we).sort((a, b) => a.t - b.t);
+function weekStats(ws, upto = WEEK) {
+  const we = ws + upto, hs = S.history.filter(h => h.t >= ws && h.t < we).sort((a, b) => a.t - b.t);
   const sets = hs.reduce((a, h) => a + h.ex.reduce((b, x) => b + x.sets.length, 0), 0);
   const reps = hs.reduce((a, h) => a + h.ex.reduce((b, x) => b + x.sets.reduce((c, s) => c + (+s.r || 0), 0), 0), 0);
   const days = [...Array(7)].map((_, i) => hs.some(h => h.t >= ws + i * 864e5 && h.t < ws + (i + 1) * 864e5));
@@ -174,9 +174,15 @@ home = function () {
 const _rcProgress = routes.progress;
 routes.progress = function () {
   _rcProgress();
-  view.querySelector('.grid3')?.insertAdjacentHTML('afterend', `<section class="card recapcard row" onclick="openRecap('this')"><span class="cav">${gi('calendar', 'hero')}</span>
-    <div class="grow"><h3>Your week</h3><div class="mut">${weekStats(weekStart()).n} workouts so far</div></div><button class="btn sm" onclick="event.stopPropagation();openRecap('this')">See it</button></section>
-    ${weekStats(weekStart() - WEEK).n ? `<button class="btn ghost" onclick="openRecap('last')">${gi('calendar')} Last week's summary</button>` : ''}`);
+  const w = weekStats(weekStart()), prev = weekStats(weekStart() - WEEK, Date.now() - weekStart()), goal = S.profile?.days || 3, wd = [...Array(7)].map((_, i) => new Date(weekStart() + i * 864e5).toLocaleDateString(LANG, { weekday: 'narrow' }));
+  const today = (new Date().getDay() + 6) % 7;
+  const d = (a, b) => (b ? `<i class="${a >= b ? 'up' : 'down'}">${a >= b ? '▲' : '▼'}${fmtN(Math.abs(a - b))}</i>` : '');
+  view.querySelector('.grid3')?.insertAdjacentHTML('afterend', `<section class="card wkcard"><div class="row between"><h3>${gi('calendar', 'hero')} Your week</h3><span class="wkgrade">${grade(w.n, goal)}</span></div>
+    <div class="wkdays">${w.days.map((x, i) => `<span class="${x ? 'on' : ''}${i === today ? ' now' : ''}"><i>${x ? '✓' : ''}</i><b>${wd[i]}</b></span>`).join('')}</div>
+    <div class="wkstats"><div><b>${w.n}<small>/${goal}</small></b><span>workouts</span>${d(w.n, prev.n)}</div><div><b>${fmtN(w.min)}</b><span>minutes</span>${d(w.min, prev.min)}</div>
+      <div><b>${fmtN(w.kg)}</b><span>kg lifted</span>${d(w.kg, prev.kg)}</div><div><b>${w.prs.length}</b><span>records</span></div></div>
+    <div class="qbar"><i style="width:${Math.min(100, w.n / goal * 100)}%"></i></div>
+    <div class="row wkbtns"><button class="btn sm" onclick="openRecap('this')">${gi('sparkles')} Play my week</button>${weekStats(weekStart() - WEEK).n ? `<button class="btn sm ghost" onclick="openRecap('last')">Last week</button>` : ''}</div></section>`);
 };
 Object.assign(routes, { home });
 
@@ -201,5 +207,5 @@ if (typeof i18nAdd === 'function') i18nAdd({
   'The weekly boss has {n} hits left. Every workout is a hit.': 'Al jefe semanal le quedan {n} golpes. Cada entrenamiento es un golpe.',
   'Small steps every day add up.': 'Los pasos pequeños de cada día suman.', 'Strong today, stronger tomorrow.': 'Fuerte hoy, más fuerte mañana.',
   'You never regret a workout.': 'Nunca te arrepientes de entrenar.', 'Discipline beats motivation.': 'La disciplina gana a la motivación.', 'Progress, not perfection.': 'Progreso, no perfección.',
-  '{n} workouts so far': '{n} entrenamientos hasta ahora', "Last week's summary": 'Resumen de la semana pasada',
+  '{n} workouts so far': '{n} entrenamientos hasta ahora', "Last week's summary": 'Resumen de la semana pasada', records: 'récords', 'Play my week': 'Ver mi semana', 'Last week': 'Semana pasada',
 });
