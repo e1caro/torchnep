@@ -144,15 +144,43 @@ function refine(days, only) {
 
 // Scales the portions so the day lands on the calorie target.
 function finalizeDay(d) {
-  const a = target(), total = d.items.reduce((s, it) => s + nutFast(RBY[it.rid]).kcal * it.k, 0), f = a.kcal / total;
+  const a = target(), total = d.items.reduce((s, it) => s + nutIt(it).kcal * it.k, 0), f = a.kcal / total;
   if (Math.abs(f - 1) > .02) d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, PMAX) * 20) / 20; });
   delete d.fit; return d;
+}
+
+// Makes sure a day's meals cover the energy and protein the training needs: when one serving per meal falls short,
+// training snacks are added (protein-rich ones when protein is short), and only then do servings grow, up to ×1.35.
+const PFUEL = 1.35;
+const dayK = d => d.items.reduce((s, it) => s + nutIt(it).kcal * it.k, 0), dayP = d => d.items.reduce((s, it) => s + nutIt(it).p * it.k, 0);
+function fuelDay(d) {
+  const a = target();
+  d.items = d.items.filter(it => !it.fuel || it.eaten); // training snacks are planned again
+  finalizeDay(d);
+  const used = new Set(d.items.map(x => x.rid));
+  for (let n = 0; n < (M.set.meals <= 3 ? 4 : 3) && dayK(d) < a.kcal * .95; n++) {
+    const miss = a.kcal - dayK(d), protShort = dayP(d) < a.protein * .9, { pool } = candidates('s', 99, used);
+    if (!pool.length) break;
+    const score = r => { const nu = nutFast(r); return fitScore(r, Math.min(miss, nu.kcal * PMAX), a) + (protShort ? nu.p * 4 / nu.kcal * 6 : 0) - (used.has(r.id) ? 3 : 0); };
+    const r = pool.reduce((x, y) => score(y) > score(x) ? y : x), k = portion(r, Math.min(miss, nutFast(r).kcal * PMAX));
+    d.items.push({ slot: 'Training snack', kind: 's', share: nutFast(r).kcal * k / a.kcal, rid: r.id, k, eaten: false, fuel: true });
+    used.add(r.id);
+  }
+  // too much even at the smallest servings (small targets with many meals): leave out a snack, biggest first
+  for (let guard = 0; guard < 2 && dayK(d) > a.kcal * 1.05; guard++) {
+    const sn = d.items.map((it, i) => [it, i]).filter(([it]) => it.kind === 's' && !it.eaten).sort((x, y) => nutIt(y[0]).kcal * y[0].k - nutIt(x[0]).kcal * x[0].k)[0];
+    if (!sn || d.items.length <= 3) break;
+    d.items.splice(sn[1], 1); finalizeDay(d);
+  }
+  const tot = dayK(d);
+  if (tot < a.kcal * .97) { const f = a.kcal / tot; d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, PFUEL) * 20) / 20; }); }
+  return d;
 }
 
 function buildDay(di, cook, old) {
   const ctx = weekCtx(M.plan.days, di), day = pickDay(cook, ctx, old, .5);
   refine(M.plan.days.map((x, i) => i === di ? day : x), day); // only this day's meals may change; the rest of the week is the reference
-  return finalizeDay(day);
+  return fuelDay(day);
 }
 
 // Tries many weeks and keeps the one with the best nutrition fit and the shortest shopping list.
@@ -186,7 +214,7 @@ function buildWeek() {
   }
   // polish the best few random weeks by swapping single meals, then keep the best result
   const best = trials.sort((x, y) => y.j - x.j).slice(0, 4).map(t => refine(t.days)).reduce((x, y) => weekScore(y) > weekScore(x) ? y : x);
-  M.plan = { week: weekId(), v: 3, days: addChefPicks(best).map(finalizeDay) };
+  M.plan = { week: weekId(), v: 3, days: addChefPicks(best).map(fuelDay), kcal: target().kcal, prot: target().protein };
   M.shop = []; mealSave();
 }
 const weekIngredients = () => new Set(M.plan.days.flatMap(d => d.items.flatMap(it => RBY[it.rid].ing.map(g => g[0])))).size;
@@ -197,6 +225,12 @@ function ensureMeals() {
     M.plan.days.forEach(d => { d.items.forEach(it => { it.k = Math.round(clamp(it.k, PMIN, PMAX) * 20) / 20; }); finalizeDay(d); }); M.plan.v = 3; mealSave();
   }
   if (!M.plan || M.plan.week !== weekId() || M.plan.v !== 3) buildWeek(); // v3: one serving per person
+  // the training plan or your weight changed what you need: fit today and the days ahead again
+  const a = target();
+  if (M.plan.kcal !== a.kcal || M.plan.prot !== a.protein) {
+    M.plan.days.forEach((d, i) => { if (i >= todayIdx()) fuelDay(d); });
+    M.plan.kcal = a.kcal; M.plan.prot = a.protein; mealSave();
+  }
   return true;
 }
 // Warn when diet and allergy filters leave very few recipes.
@@ -391,6 +425,7 @@ function groceryView() {
 }
 
 function mealsCard() {
+  if (M.set) ensureMeals();
   if (!M.set || !M.plan || M.plan.week !== weekId()) return `<section class="card tap row" onclick="location.hash='#/meals'"><div class="dgi">${gi('cutlery')}</div><div class="grow"><h3>Meal plan</h3><div class="mut">Set your diet and cooking time to get a week of recipes that hit your calories.</div></div></section>`;
   const d = M.plan.days[todayIdx()], t = dayTotals(d), nxt = d.items.findIndex(x => !x.eaten), a = target();
   return `<section class="card tap" onclick="location.hash='#/${nxt < 0 ? 'meals' : 'recipe/' + todayIdx() + '/' + nxt}'"><div class="row between"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>

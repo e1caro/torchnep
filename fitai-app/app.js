@@ -100,7 +100,8 @@ function analyze(p) {
   const bmiLabel = bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Healthy range' : bmi < 30 ? 'Overweight' : 'Obese';
   const sex = p.gender === 'male' ? 5 : p.gender === 'female' ? -161 : -78;
   const bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age + sex; // Mifflin-St Jeor
-  const tdee = bmr * (1.2 + 0.08 * p.days + (p.minutes >= 60 ? 0.05 : 0));
+  // daily life (light activity) plus what the training plan really burns, spread over the week
+  const ses = sessionBurn(p), tdee = bmr * 1.3 + ses.kcal * p.days / 7;
   const diff = p.target ? p.target - p.weight : 0;
   const adj = p.goal === 'fat' ? -0.2 : p.goal === 'muscle' ? 0.1 : p.goal === 'strength' ? 0.05 : 0;
   let kcal = tdee * (1 + adj);
@@ -112,6 +113,7 @@ function analyze(p) {
   const water = round(p.weight * 0.035, 0.1);
   const notes = [];
   notes.push(`BMI ${bmi.toFixed(1)} (${bmiLabel.toLowerCase()}). Estimated maintenance is ${round(tdee, 50)} kcal a day.`);
+  notes.push(`Each workout burns about ${round(ses.kcal, 10)} kcal (${ses.strength} min of strength${ses.cardio ? `, ${ses.cardio} min of cardio` : ''}, ${ses.stretch} min of stretching), already counted in your daily calories.`);
   if (p.target && diff && (p.goal === 'fat' ? diff > 0 : p.goal === 'muscle' ? diff < 0 : false)) notes.push('Your target weight points the other way from your goal. Check both numbers in your profile.');
   if (p.goal === 'fat' && bmi < 20) notes.push('You are already lean, so the calorie deficit is kept small. Consider "Stay fit" or "Build muscle".');
   if (p.target && Math.abs(diff) >= 1) {
@@ -123,7 +125,7 @@ function analyze(p) {
   if (bmi >= 30) notes.push('Jumping and high-impact moves are left out to protect joints. Walking on non-training days helps.');
   if (p.limits.length) notes.push(`Exercises that commonly aggravate ${p.limits.map(l => LIMITS[l][0].toLowerCase()).join(' and ')} are filtered out.`);
   if (p.focus.length) notes.push(`Extra sets go to: ${p.focus.map(f => FOCUS[f][0].toLowerCase()).join(', ')}.`);
-  return { bmi, bmiLabel, bmr, tdee, kcal, protein, fat, carbs, water, notes };
+  return { bmi, bmiLabel, bmr, tdee, kcal, protein, fat, carbs, water, notes, burn: ses.kcal };
 }
 
 // ---------- plan generator ----------
@@ -161,6 +163,17 @@ const stretchCount = p => Math.max(1, Math.round(stretchMin(p) * 60 / exSecs(STR
 const CARDIO_TYPES = [['auto', 'Any', null], ['run', 'Run / treadmill', /running|jogging|trail/i], ['bike', 'Bike', /bicycl|bike/i], ['row', 'Rowing', /rowing/i],
   ['elliptical', 'Elliptical', /elliptical/i], ['stairs', 'Stairs', /stair|step mill/i], ['rope', 'Jump rope', /rope/i], ['walk', 'Walking', /walking/i], ['hiit', 'Sprints', /sprint|rope/i]];
 const CARDIO_MINS = ['auto', 5, 10, 15, 20, 30, 45];
+// Energy a workout burns, from how its minutes are spent (MET values: energy per kg and hour; the resting 1 MET is
+// left out because daily life already counts it). Uses the same split as the plan: warm-up, cardio, stretching, strength.
+const CARDIO_MET = { auto: 7, run: 9, bike: 7, row: 7, elliptical: 5.5, stairs: 9, rope: 11, walk: 3.8, hiit: 10 };
+const LIFT_MET = { muscle: 5, strength: 5, fat: 6, general: 5 };
+function sessionBurn(p) {
+  const kg = typeof curWeight === 'function' && S.profile === p ? curWeight() : p.weight, on = cardioPos(p) !== 'none';
+  const warm = on && cardioPos(p) === 'start' ? 3 : 7, cardio = on ? cardioMin(p) : 0, stretch = stretchMin(p);
+  const strength = Math.max(10, p.minutes - warm - cardio - stretch);
+  const kcal = kg * ((3.5 - 1) * warm + ((CARDIO_MET[p.cardioType] || 7) - 1) * cardio + ((LIFT_MET[p.goal] || 5) - 1) * strength + (2.3 - 1) * stretch) / 60;
+  return { kcal, strength, cardio, stretch };
+}
 const STRETCH_MINS = ['auto', 3, 5, 10, 15];
 const SESSIONS = [30, 45, 60, 75, 90, 120];
 const sessionLabel = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60}` : ''}`);
