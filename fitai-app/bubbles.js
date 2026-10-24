@@ -83,13 +83,20 @@ function layoutOrbs() {
   // spots around the middle, as fractions of the free width and height (clockwise from the top), kept away from the middle row
   const SPOTS = [[], [[0, -1]], [[0, -1], [0, 1]], [[0, -1], [1, .82], [-1, .82]], [[1, -.6], [1, .82], [-1, .82], [-1, -.6]],
     [[0, -1], [1, -.48], [1, .86], [-1, .86], [-1, -.48]]][n] || [...Array(n)].map((_, i) => [Math.sin(i * 2 * Math.PI / n), -Math.cos(i * 2 * Math.PI / n)]);
-  const d = Math.round(Math.max(64, Math.min(120, W * .27))), rx = W / 2 - d * E / 2 - 2, ry = H / 2 - d * E / 2 - LBL / 2 - 2;
-  const cx = W / 2, cy = H / 2 - LBL / 2;
+  const O = 1.3, PAD = 18; // O: full reach of the ring ornaments; PAD: clear space under the name card (ornaments float a little)
+  const d = Math.round(Math.max(64, Math.min(120, W * .27))), rx = W / 2 - d * E / 2 - 2, ry = (H - PAD) / 2 - d * O / 2 - LBL / 2;
+  const cx = W / 2, cy = PAD + (H - PAD) / 2 - LBL / 2;
   const put = (el, x, y, size) => { el.style.setProperty('--d', `${size}px`); el.style.left = `${x}px`; el.style.top = `${y - size / 2}px`; };
-  const at = sats.map((el, i) => { const x = rx * SPOTS[i][0], y = ry * SPOTS[i][1]; put(el, cx + x, cy + y, d); return Math.hypot(x, y); });
-  // the middle circle grows until it nearly touches the closest one around it
-  const room = Math.min(...at, ry) - d * E / 2 - 10;
-  if (big) put(big, cx, cy, Math.round(Math.max(110, Math.min(230, W * .56, 2 * room / E))));
+  const at = sats.map((el, i) => { const x = rx * SPOTS[i][0], y = ry * SPOTS[i][1]; put(el, cx + x, cy + y, d); return [x, y]; });
+  // the middle circle sits halfway between the side circles above and below it, and grows until its ornament
+  // nearly reaches the closest circle or label around it
+  const up = at.filter(([x, y]) => x && y < 0).map(([, y]) => y), down = at.filter(([, y]) => y > 0).map(([, y]) => y);
+  const by = up.length && down.length ? (Math.max(...up) + Math.min(...down)) / 2 : 0;
+  const room = Math.min(H / 2, ...at.flatMap(([x, y]) => [
+    Math.hypot(x, y - by) - d * O / 2 - 16,
+    Math.hypot(x - Math.sign(x) * Math.min(Math.abs(x), 36), y + d * O / 2 + 8 - by) - 14, // its label
+  ]));
+  if (big) put(big, cx, cy + by, Math.round(Math.max(100, Math.min(230, W * .56, 2 * room / O))));
   orbs.querySelectorAll('.orbit ellipse').forEach((e, i) => { e.setAttribute('cx', cx); e.setAttribute('cy', cy); e.setAttribute('rx', rx + i * 8); e.setAttribute('ry', ry + i * 8); });
 }
 addEventListener('resize', () => { if (view.querySelector('.orbs')) layoutOrbs(); });
