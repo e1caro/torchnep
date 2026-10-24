@@ -226,6 +226,58 @@ function musicFree() {
     <details class="spprefs"><summary>Change my music</summary>${musicPrefs()}</details>${link}</section>`;
 }
 
+// ---------- song of the day ----------
+// A well-known energetic song from one of your genres each day, with links to play it and to its song radio on Spotify.
+// Spotify only shares song ids with signed-in apps, so the links open Spotify's own search for the song and its "Radio".
+const SP_SONGS = {
+  rock: [['Thunderstruck', 'AC/DC'], ['Eye of the Tiger', 'Survivor'], ['We Will Rock You', 'Queen'], ['Seven Nation Army', 'The White Stripes'], ['Back in Black', 'AC/DC'],
+    ["Welcome to the Jungle", "Guns N' Roses"], ['Smells Like Teen Spirit', 'Nirvana'], ["Can't Stop", 'Red Hot Chili Peppers'], ['The Pretender', 'Foo Fighters'], ['Highway to Hell', 'AC/DC'],
+    ['Mr. Brightside', 'The Killers'], ['Uprising', 'Muse'], ["Livin' on a Prayer", 'Bon Jovi'], ['Kickstart My Heart', 'Mötley Crüe']],
+  metal: [['Enter Sandman', 'Metallica'], ['Master of Puppets', 'Metallica'], ['Duality', 'Slipknot'], ['Down with the Sickness', 'Disturbed'], ['Chop Suey!', 'System of a Down'],
+    ['Walk', 'Pantera'], ['Bodies', 'Drowning Pool'], ['The Trooper', 'Iron Maiden'], ['Raining Blood', 'Slayer'], ['Du hast', 'Rammstein'], ['Psychosocial', 'Slipknot'],
+    ['Freak on a Leash', 'Korn'], ['Last Resort', 'Papa Roach'], ['Indestructible', 'Disturbed']],
+  reggaeton: [['Gasolina', 'Daddy Yankee'], ['Dákiti', 'Bad Bunny'], ['Tití Me Preguntó', 'Bad Bunny'], ['Danza Kuduro', 'Don Omar'], ['Safaera', 'Bad Bunny'], ['Con Calma', 'Daddy Yankee'],
+    ['Tusa', 'KAROL G'], ['Provenza', 'KAROL G'], ['Hawái', 'Maluma'], ['Pepas', 'Farruko'], ['Callaíta', 'Bad Bunny'], ['Mayores', 'Becky G']],
+  hiphop: [['Lose Yourself', 'Eminem'], ["Till I Collapse", 'Eminem'], ['Stronger', 'Kanye West'], ['POWER', 'Kanye West'], ['HUMBLE.', 'Kendrick Lamar'], ['Remember the Name', 'Fort Minor'],
+    ["X Gon' Give It to Ya", 'DMX'], ["Can't Hold Us", 'Macklemore & Ryan Lewis'], ['SICKO MODE', 'Travis Scott'], ['Not Afraid', 'Eminem'], ['In Da Club', '50 Cent'], ['DNA.', 'Kendrick Lamar'], ['Berzerk', 'Eminem']],
+  trap: [['Mask Off', 'Future'], ['goosebumps', 'Travis Scott'], ['Bad and Boujee', 'Migos'], ['rockstar', 'Post Malone'], ['XO Tour Llif3', 'Lil Uzi Vert'], ['Mo Bamba', 'Sheck Wes'],
+    ['Panda', 'Desiigner'], ['FE!N', 'Travis Scott'], ['Rich Flex', 'Drake & 21 Savage'], ['Magnolia', 'Playboi Carti'], ['Look at Me!', 'XXXTENTACION']],
+  edm: [['Levels', 'Avicii'], ['Titanium', 'David Guetta'], ['Animals', 'Martin Garrix'], ["Don't You Worry Child", 'Swedish House Mafia'], ['Wake Me Up', 'Avicii'], ['Clarity', 'Zedd'],
+    ['Lean On', 'Major Lazer & DJ Snake'], ['Turn Down for What', 'DJ Snake & Lil Jon'], ['Bangarang', 'Skrillex'], ['Summer', 'Calvin Harris'], ['Tremor', 'Dimitri Vegas & Like Mike'], ['One More Time', 'Daft Punk']],
+  techno: [['Sandstorm', 'Darude'], ['Born Slippy (Nuxx)', 'Underworld'], ['The Bells', 'Jeff Mills'], ['Energy Flash', 'Joey Beltram'], ['Spastik', 'Plastikman'], ['Your Mind', 'Adam Beyer & Bart Skils'],
+    ['Opus', 'Eric Prydz'], ['Strobe', 'deadmau5'], ["Ghosts 'n' Stuff", 'deadmau5'], ['Children', 'Robert Miles']],
+  house: [['Losing It', 'FISHER'], ['Cola', 'CamelPhat & Elderbrook'], ['Pjanoo', 'Eric Prydz'], ['Finally', 'Kings of Tomorrow'], ['Music Sounds Better with You', 'Stardust'], ['Show Me Love', 'Robin S'],
+    ['Lady (Hear Me Tonight)', 'Modjo'], ['Gecko (Overdrive)', 'Oliver Heldens'], ['One Kiss', 'Calvin Harris & Dua Lipa'], ['Where You Are', 'John Summit'], ['Freed from Desire', 'Gala']],
+  pop: [['Blinding Lights', 'The Weeknd'], ['Levitating', 'Dua Lipa'], ['Uptown Funk', 'Mark Ronson & Bruno Mars'], ["Can't Stop the Feeling!", 'Justin Timberlake'], ['Shake It Off', 'Taylor Swift'],
+    ["Don't Start Now", 'Dua Lipa'], ['Bad Romance', 'Lady Gaga'], ['Toxic', 'Britney Spears'], ['Roar', 'Katy Perry'], ['Physical', 'Dua Lipa'], ["Stronger (What Doesn't Kill You)", 'Kelly Clarkson'],
+    ['Firework', 'Katy Perry'], ['Run the World (Girls)', 'Beyoncé'], ['Flowers', 'Miley Cyrus']],
+  latin: [['Vivir Mi Vida', 'Marc Anthony'], ['La Bicicleta', 'Carlos Vives & Shakira'], ["Hips Don't Lie", 'Shakira'], ['Bailando', 'Enrique Iglesias'], ['La Gozadera', 'Gente de Zona'], ['Waka Waka', 'Shakira'],
+    ['Échame la Culpa', 'Luis Fonsi & Demi Lovato'], ['Suavemente', 'Elvis Crespo'], ['DESPECHÁ', 'ROSALÍA'], ['Mi Gente', 'J Balvin & Willy William'], ['Taki Taki', 'DJ Snake'], ['La Vida Es Un Carnaval', 'Celia Cruz']],
+  phonk: [['Murder In My Mind', 'Kordhell'], ['Close Eyes', 'DVRST'], ['Metamorphosis', 'INTERWORLD'], ['Sahara', 'Hensonn'], ['Neon Blade', 'MoonDeity'], ['Live Another Day', 'Kordhell'],
+    ['Memory Reboot', 'VØJ & Narvent'], ['Phonky Town', 'PlayaPhonk'], ['Lovely Bastards', 'ZWE1HVNDXR'], ['RAVE', 'Dxrk ダーク']],
+  kpop: [['Kill This Love', 'BLACKPINK'], ['DDU-DU DDU-DU', 'BLACKPINK'], ['FIRE', 'BTS'], ['MIC Drop', 'BTS'], ["God's Menu", 'Stray Kids'], ['MANIAC', 'Stray Kids'], ['FANCY', 'TWICE'],
+    ['I AM', 'IVE'], ['Hype Boy', 'NewJeans'], ['ANTIFRAGILE', 'LE SSERAFIM'], ['Pink Venom', 'BLACKPINK'], ['Gangnam Style', 'PSY']],
+  punk: [['Basket Case', 'Green Day'], ['All the Small Things', 'blink-182'], ['American Idiot', 'Green Day'], ['Blitzkrieg Bop', 'Ramones'], ['Fat Lip', 'Sum 41'], ['Misery Business', 'Paramore'],
+    ["The Kids Aren't Alright", 'The Offspring'], ['Self Esteem', 'The Offspring'], ['In Too Deep', 'Sum 41'], ['Holiday', 'Green Day'], ['London Calling', 'The Clash']],
+  dnb: [['Watercolour', 'Pendulum'], ['Tarantula', 'Pendulum'], ['Witchcraft', 'Pendulum'], ['Propane Nightmares', 'Pendulum'], ['Hold Your Colour', 'Pendulum'], ['Waiting All Night', 'Rudimental'],
+    ['Gold Dust', 'DJ Fresh'], ['Louder', 'DJ Fresh'], ['Shake Ur Body', 'Shy FX'], ['Baddadan', 'Chase & Status'], ['Blind Faith', 'Chase & Status']],
+};
+function songOfDay() {
+  const gs = SPF.genres.length ? SPF.genres : Object.keys(SP_SONGS), n = Math.floor(Date.now() / 864e5) + (SPF.songRot || 0);
+  const g = gs[n % gs.length], list = SP_SONGS[g] || SP_SONGS.rock, [t, a] = list[Math.floor(n / gs.length) % list.length];
+  return { g, t, a, name: (SP_GENRES.find(([k]) => k === g) || [, g])[1] };
+}
+window.spSongNext = () => { SPF.songRot = (SPF.songRot || 0) + 1; spoSave(); sfx('tick'); spRefreshView(); };
+const spSearch = (q, tab = '') => `https://open.spotify.com/search/${encodeURIComponent(q)}${tab}`;
+function songCard() {
+  const s = songOfDay();
+  return `<section class="card songday"><div class="row between"><h3>${spLogo} Song of the day</h3><span class="chip on" translate="no">${esc(s.name)}</span></div>
+    <div class="spsong"><span class="spdisc"></span><div class="grow"><b translate="no">${esc(s.t)}</b><span translate="no">${esc(s.a)}</span></div></div>
+    <div class="row spbtns"><a class="btn spbtn" href="${spSearch(`${s.t} ${s.a}`)}" target="_blank" rel="noopener">▶ Play</a>
+    <a class="btn ghost" href="${spSearch(`${s.t} radio`, '/playlists')}" target="_blank" rel="noopener">📻 Song radio</a></div>
+    <button class="btn ghost sm" onclick="spSongNext()">Another song</button></section>`;
+}
+
 function musicCard() {
   const di = nextDayIdx(), pl = SPF.lists[`${dayId()}:${di}`];
   if (!spOn()) return musicFree();
@@ -257,7 +309,7 @@ function musicSettings() {
 }
 
 const _spoHome = home;
-home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', musicCard()); };
+home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', songCard() + musicCard()); };
 const _spoMe = me;
 me = function () { _spoMe(); view.querySelector('#exp')?.insertAdjacentHTML('beforebegin', musicSettings()); };
 Object.assign(routes, { home, me });
@@ -268,6 +320,7 @@ if (typeof i18nAdd === 'function') i18nAdd({
   'Get a playlist for this workout: energetic songs you like, plus a few new ones.': 'Consigue una lista para este entrenamiento: canciones enérgicas que te gustan y algunas nuevas.',
   'Make my workout playlist': 'Crear mi lista para entrenar', 'Play in Spotify': 'Escuchar en Spotify', 'Another playlist': 'Otra lista',
   '{n} songs · {n} min': '{n} canciones · {n} min', '{n} more · {n} new to you': '{n} más · {n} nuevas para ti', '{n} more': '{n} más',
+  'Song of the day': 'Canción del día', Play: 'Escuchar', 'Song radio': 'Radio de la canción', 'Another song': 'Otra canción',
   Music: 'Música', Linked: 'Vinculado', Latin: 'Latino', 'Drum and bass': 'Drum and bass',
   'Genres you like to train to': 'Géneros con los que te gusta entrenar', 'Your playlists': 'Tus listas', 'Paste a Spotify playlist link': 'Pega un enlace de una lista de Spotify',
   Add: 'Añadir', Added: 'Añadida', Remove: 'Quitar', 'Paste a Spotify playlist, album or artist link.': 'Pega un enlace de Spotify a una lista, un álbum o un artista.',

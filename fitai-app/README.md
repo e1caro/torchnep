@@ -67,6 +67,8 @@ Today is six circles that fill the screen: Train in the middle (next workout and
 
 Works for everyone without linking an account: pick the genres you train to and/or paste your Spotify playlist links (Hero > Music, or Today > Train). Each workout suggests a different one: one of your playlists with Spotify's built-in player, or workout playlists of one of your genres opened in Spotify ("Rock gym", "Reggaeton training"...). "Something else" moves to the next suggestion.
 
+Song of the day: a well-known energetic song (about 170, 10–14 per genre) from one of your genres, a different genre each day. "Play" opens the song in Spotify and "Song radio" opens Spotify on its "<song> Radio". Spotify shares song ids only with signed-in apps, so both open Spotify's own search, which puts the song or its radio first. "Another song" picks a different one.
+
 Linking an account (optional) gives playlists made from your own songs: every workout gets its own private playlist of energetic songs you like plus about 30% new ones, long enough for the workout, warming up, peaking in the middle and easing off. Spotify no longer shares a song's energy with apps, so energy is judged from the artists' genres and the song title.
 
 Linking needs a Spotify app Client ID, and Spotify now limits such apps to 5 accounts chosen by the owner (who needs Premium); open access is only for companies with 250k monthly users. Setup: create an app at developer.spotify.com (Web API), add the redirect URI shown in Hero > Music (on GitHub Pages: `https://e1caro.github.io/torchnep/fitcoach/`), add the accounts under User Management, and paste the Client ID in Hero > Music or set `SPOTIFY_CLIENT_ID` in `spotify.js` so users only tap "Link Spotify".
