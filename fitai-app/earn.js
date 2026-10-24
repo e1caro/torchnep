@@ -46,21 +46,114 @@ const SPIN = [[30, 'coins', 20], [25, 'coins', 50], [8, 'coins', 100], [20, 'xp'
 const spinsToday = () => G.spinDay?.d === dayId() ? G.spinDay.n : 0;
 const freeSpins = () => (perk('spin2') ? 2 : 1) - spinsToday();
 const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
+// The wheel has 8 equal slices; the odds come from SPIN, and the wheel then lands on a slice with that prize.
+const WHEEL = [['coins', 20], ['xp', 40], ['coins', 50], ['chest', 'wood'], ['coins', 20], ['xp', 100], ['coins', 100], ['chest', 'silver']];
+const SLICE = 360 / WHEEL.length;
+const wheelLabel = ([k, v]) => k === 'coins' ? `${gi('coin', 'cn')}<b>${v}</b>` : k === 'xp' ? `${gi('sparkles')}<b>${v} XP</b>` : `${gi(CHEST[v][1])}<b>${v === 'silver' ? '★★★' : 'Chest'}</b>`;
+function wheelHtml() {
+  const cols = ['var(--acc)', 'var(--card2)', 'var(--acc2)', 'var(--card2)'];
+  const stops = WHEEL.map((w, i) => `${w[1] === 'silver' ? '#ffd34d' : cols[i % 4]} ${i * SLICE}deg ${(i + 1) * SLICE}deg`).join(',');
+  return `<div class="wheelbox"><div class="wptr"></div><div class="wheel" id="wheel" style="background:conic-gradient(from ${-SLICE / 2}deg,${stops})">
+    ${WHEEL.map((w, i) => `<div class="wl" style="transform:rotate(${i * SLICE}deg)"><span>${wheelLabel(w)}</span></div>`).join('')}
+    <div class="whub">${gi('slot')}</div></div></div>`;
+}
+
+// ---------- spin sounds: drum roll, wheel clicks, cymbal and fanfare (Web Audio, no files) ----------
+let NOISE;
+function audio() {
+  if (!G.sound) return null;
+  try {
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
+    if (!NOISE) { NOISE = AC.createBuffer(1, AC.sampleRate, AC.sampleRate); const d = NOISE.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+    return AC;
+  } catch { return null; }
+}
+function hit(t, { vol = .1, f = 1800, q = .8, type = 'bandpass', dur = .07 } = {}) {
+  const src = AC.createBufferSource(), flt = AC.createBiquadFilter(), g = AC.createGain();
+  src.buffer = NOISE; flt.type = type; flt.frequency.value = f; flt.Q.value = q;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  src.connect(flt); flt.connect(g); g.connect(AC.destination); src.start(t, Math.random() * .5); src.stop(t + dur + .02);
+}
+function tone(t, f, dur, vol = .06, type = 'triangle') {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.value = f; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+  o.connect(g); g.connect(AC.destination); o.start(t); o.stop(t + dur + .02);
+}
+function drumRoll(sec) { // a snare roll that grows louder, ending in a big hit
+  if (!audio()) return;
+  const t0 = AC.currentTime + .02;
+  for (let t = 0; t < sec; t += .045 + Math.random() * .01) hit(t0 + t, { vol: .03 + .11 * (t / sec) ** 2, f: 1700 + Math.random() * 400 });
+  hit(t0 + sec, { vol: .35, f: 120, type: 'lowpass', q: 1, dur: .35 });
+}
+function wheelClick() { if (AC && G.sound) hit(AC.currentTime, { vol: .05, f: 3500, q: 4, dur: .02 }); }
+function prizeSound(big) {
+  if (!audio()) return;
+  const t = AC.currentTime;
+  hit(t, { vol: .25, f: 6000, type: 'highpass', q: .5, dur: big ? 2.2 : 1.4 }); // cymbal crash
+  tone(t, 70, .5, .25, 'sine');
+  [[523, 0], [659, .12], [784, .24], [1047, .36]].forEach(([f, d]) => tone(t + d, f, .35, .07));
+  [523, 659, 784, 1047].forEach(f => tone(t + .5, f, big ? 1.4 : .9, .045));
+  if (big) [1319, 1568, 2093].forEach((f, i) => tone(t + .9 + i * .1, f, .5, .04, 'square'));
+}
+
+let spinning = false;
 window.spin = () => {
-  if (spinsLeft() <= 0) return;
+  if (spinning || spinsLeft() <= 0) return;
   if (freeSpins() > 0) G.spinDay = { d: dayId(), n: spinsToday() + 1 }; else G.extraSpins--;
   let r = Math.random() * 100, pick = SPIN[0];
   for (const s of SPIN) { if (r < s[0]) { pick = s; break; } r -= s[0]; }
   G.spun = dayId(); G.spins++;
   const [, kind, v] = pick;
-  let html;
-  if (kind === 'coins') { G.coins += v; html = `<div class="avbig">${gi('coin', 'cn')}</div><h2>${v} coins</h2>`; }
-  else if (kind === 'xp') { award(v, 0); html = `<div class="avbig">${gi('sparkles', 'hero')}</div><h2>${v} XP</h2>`; }
-  else { G.chests.push(v); html = `<div class="avbig">${gi(CHEST[v][1])}</div><h2>${CHEST[v][0]}</h2>`; }
+  // the prize is saved before the animation, so closing the app mid-spin loses nothing
+  let prize, amount = 0;
+  if (kind === 'coins') { G.coins += v; amount = v; prize = `<div class="avbig">${gi('coin', 'cn')}</div><h2 id="cnt" data-u="coins">0 coins</h2>`; }
+  else if (kind === 'xp') { award(v, 0); amount = v; prize = `<div class="avbig">${gi('sparkles', 'hero')}</div><h2 id="cnt" data-u="XP">0 XP</h2>`; }
+  else { G.chests.push(v); prize = `<div class="avbig">${gi(CHEST[v][1])}</div><h2>${CHEST[v][0]}</h2><div class="mut">Open it on the Rewards screen.</div>`; }
   commit();
-  modal(`<div class="chest">${gi('slot')}</div><div class="mut">Daily spin</div><div class="reveal">${html}<button class="btn" data-close>Nice</button></div>`, () => { checkAch(); flushLevelUp(earn); });
-  setTimeout(() => { sfx('claim'); confetti(); }, 900);
+  const big = kind === 'chest' || v === 100;
+
+  // land on a random slice holding this prize, a bit off-centre so it looks natural
+  const slots = WHEEL.map((w, i) => w[0] === kind && w[1] === v ? i : -1).filter(i => i >= 0);
+  const slot = slots[Math.floor(Math.random() * slots.length)];
+  const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const turns = calm ? 1 : 6, dur = calm ? 1200 : 4600;
+  const target = turns * 360 + (360 - slot * SLICE) + (Math.random() - .5) * SLICE * .6;
+
+  modal(`<div class="mut">Daily spin</div>${wheelHtml()}<div class="spinmsg mut" id="spinmsg">Spinning…</div>
+    <div id="prize" class="prizebox" hidden>${big ? '<div class="rays"></div>' : ''}<div class="reveal2">${prize}</div></div>
+    <div id="spinbtns" hidden><button class="btn" data-close>Nice</button>${spinsLeft() > 0 ? `<button class="btn ghost" onclick="spinAgain()">${gi('slot')} Spin again (${spinsLeft()})</button>` : ''}</div>`,
+    () => { checkAch(); flushLevelUp(earn); });
+  spinning = true;
+  drumRoll(dur / 1000);
+  const wheel = $('#wheel'), ease = x => 1 - Math.pow(1 - x, 4);
+  let t0 = null, lastSlice = 0;
+  const frame = now => {
+    if (!wheel.isConnected) { spinning = false; return; }
+    t0 = t0 ?? now;
+    const x = Math.min(1, (now - t0) / dur), a = target * ease(x);
+    wheel.style.transform = `rotate(${a}deg)`;
+    const sl = Math.floor((a + SLICE / 2) / SLICE);
+    if (sl !== lastSlice) { lastSlice = sl; wheelClick(); navigator.vibrate?.(5); }
+    if (x < 1) requestAnimationFrame(frame); else land();
+  };
+  requestAnimationFrame(frame);
+
+  function land() {
+    spinning = false;
+    $('#wheel').querySelectorAll('.wl')[slot].classList.add('win');
+    $('.wheelbox').classList.add('landed');
+    $('#spinmsg').textContent = big ? 'JACKPOT!' : 'You won!';
+    $('#spinmsg').classList.toggle('jackpot', big);
+    prizeSound(big); navigator.vibrate?.(big ? [80, 50, 80, 50, 200] : [40, 30, 90]);
+    confetti(); if (big) setTimeout(confetti, 500);
+    $('#prize').hidden = false;
+    const c = $('#cnt');
+    if (c) { const s0 = performance.now(), d = calm ? 1 : 900; const up = n => { const k = Math.min(1, (n - s0) / d); const t = `${Math.round(amount * ease(k))} ${c.dataset.u}`; c.textContent = typeof tr === 'function' ? tr(t) : t; if (k < 1) requestAnimationFrame(up); }; requestAnimationFrame(up); }
+    setTimeout(() => { const b = $('#spinbtns'); if (b) b.hidden = false; }, calm ? 0 : 700);
+  }
 };
+window.spinAgain = () => { checkAch(); spin(); };
 
 // ---------- perfect nutrition day (called from meals.js) ----------
 window.checkPerfect = di => {
