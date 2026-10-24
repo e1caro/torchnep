@@ -35,6 +35,9 @@ jobs:
       - name: Build
         run: mkdocs build --strict
 
+      - name: Add the FitCoach app (served at /fitcoach/)
+        run: cp -r fitai-app site/fitcoach
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3

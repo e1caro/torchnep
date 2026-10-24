@@ -3,7 +3,7 @@
 Offline-first workout PWA inspired by Fit.AI: personalised plans, exercise demos, workout logging with rest timer, progress stats and a free/Premium split.
 
 ## Install on a phone
-1. Host the folder over HTTPS (the included GitHub Pages workflow does this: repo Settings → Pages → Source: GitHub Actions).
+1. It is published with the docs site at `/fitcoach/` (repo Settings → Pages → Source: GitHub Actions; see `.github/workflows/docs.yml`).
 2. Open the URL in Chrome (Android) or Safari (iOS) → menu → **Add to Home Screen / Install app**.
 3. Open it once online; the app and any exercise you viewed then work offline.
 
