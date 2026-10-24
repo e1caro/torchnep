@@ -383,37 +383,38 @@ html[data-skin=mythical] :is(.seg a.on,.dpill.on,.chip.on){{background:{MV};colo
 html[data-skin=mythical] .xpbar i{{background:linear-gradient(90deg,{MV},{ME});box-shadow:0 0 10px {ME}88}}
 """)
 
-# ---------------------------------------------------------------- Classical Concert Hall
-CG, IV = '#d4af37', '#efe6d2'
-cl_corner = (f"<path d='M2 38V2h36' fill='none' stroke='{CG}' stroke-width='1.5'/><path d='M6 38V6h32' fill='none' stroke='{CG}' stroke-width='.8'/>"
-             f"<circle cx='6' cy='6' r='2.2' fill='{CG}'/>")
-staff = svg(''.join(f"<path d='M0 {4 + i * 4}H240' stroke='{CG}' stroke-width='.8' stroke-opacity='.7'/>" for i in range(5))
-            + f"<g fill='{CG}'><ellipse cx='70' cy='16' rx='3.6' ry='2.6' transform='rotate(-20 70 16)'/><path d='M73 16V2' stroke='{CG}' stroke-width='1.2'/>"
-              f"<ellipse cx='110' cy='12' rx='3.6' ry='2.6' transform='rotate(-20 110 12)'/><ellipse cx='126' cy='8' rx='3.6' ry='2.6' transform='rotate(-20 126 8)'/>"
-              f"<path d='M113 12V0M129 8V-4M113 0L129 -4' stroke='{CG}' stroke-width='1.4'/><ellipse cx='170' cy='20' rx='3.6' ry='2.6' transform='rotate(-20 170 20)'/><path d='M173 20V6' stroke='{CG}' stroke-width='1.2'/></g>"
-              f"<path d='M20 26C14 18 26 2 22 -2C18 8 26 12 22 20C18 26 10 20 16 14' fill='none' stroke='{CG}' stroke-width='1.8'/>", '0 -4 240 32')
-keys = svg(''.join(f"<rect x='{i * 14}' y='0' width='13' height='60' fill='#efe6d2'/>" for i in range(22))
-           + ''.join(f"<rect x='{i * 14 + 9}' y='0' width='9' height='36' fill='#0e0b08'/>" for i in range(22) if i % 7 not in (2, 6)), '0 0 308 60')
-notes = svg(f"<g fill='{CG}' fill-opacity='.35'><ellipse cx='20' cy='60' rx='6' ry='4.5' transform='rotate(-20 20 60)'/><path d='M25 58V20' stroke='{CG}' stroke-opacity='.35' stroke-width='2'/>"
-            f"<ellipse cx='120' cy='150' rx='6' ry='4.5' transform='rotate(-20 120 150)'/><ellipse cx='146' cy='140' rx='6' ry='4.5' transform='rotate(-20 146 140)'/>"
-            f"<path d='M125 148V112M151 138V102M125 112L151 102' stroke='{CG}' stroke-opacity='.35' stroke-width='2.5'/></g>", '0 0 200 220')
-skin('Classical Concert', f"""
+# ---------------------------------------------------------------- Classical Elegance
+CG, IV = '#d9b871', '#f3ecdc'
+cl_corner = (f"<path d='M2 38V2h36' fill='none' stroke='{CG}' stroke-width='1.4'/><path d='M7 38V7h31' fill='none' stroke='{CG}' stroke-width='.7'/>"
+             f"<path d='M7 7l5 5' stroke='{CG}' stroke-width='.7'/><circle cx='12.5' cy='12.5' r='2' fill='{CG}'/>")
+swag = svg(f"<path d='M20 6C50 26 90 26 120 6C150 26 190 26 220 6' fill='none' stroke='{CG}' stroke-width='1.6'/>"
+           f"<path d='M28 6C54 20 86 20 112 6M128 6C154 20 186 20 212 6' fill='none' stroke='{CG}' stroke-width='.8' stroke-opacity='.7'/>"
+           + ''.join(f"<circle cx='{x}' cy='{y}' r='1.6' fill='{IV}'/>" for x, y in [(45, 16), (70, 20), (95, 16), (145, 16), (170, 20), (195, 16)])
+           + f"<path d='M120 6l-7-5v10zM120 6l7-5v10z' fill='{CG}'/><circle cx='120' cy='6' r='2.4' fill='{IV}'/><circle cx='20' cy='6' r='2.6' fill='{CG}'/><circle cx='220' cy='6' r='2.6' fill='{CG}'/>", '0 0 240 26')
+marble = svg("<g fill='none' stroke='#f3ecdc' stroke-opacity='.05' stroke-width='1.2'><path d='M0 40C40 30 60 70 110 50S170 10 220 30'/><path d='M0 140C50 120 80 160 120 150S180 110 220 130'/>"
+             "<path d='M60 0C70 40 50 80 80 120S90 190 70 220'/><path d='M160 0C150 50 180 90 160 140S150 200 170 220' stroke-opacity='.035'/></g>", '0 0 220 220')
+column = svg("<g fill='#16130f'><rect x='6' y='0' width='48' height='10'/><path d='M2 10h56l-4 8H6z'/><rect x='10' y='18' width='40' height='300'/><path d='M6 318h48l4 8H2z'/><rect x='0' y='326' width='60' height='10'/></g>"
+             + ''.join(f"<rect x='{x}' y='22' width='3' height='292' fill='#1f1a14'/>" for x in (15, 23, 31, 39)), '0 0 60 336')
+glints = svg(f"<g fill='{IV}'><path d='M20 20l1.2 4 4 1.2-4 1.2-1.2 4-1.2-4-4-1.2 4-1.2z'/><path d='M120 90l1 3 3 1-3 1-1 3-1-3-3-1 3-1z' fill-opacity='.7'/>"
+             f"<circle cx='70' cy='150' r='1.2'/><circle cx='160' cy='40' r='1'/></g>", '0 0 200 200')
+skin('Classical Elegance', f"""
 html[data-skin=classical]{{
-  --bg:#120e0a;--glow:#3a2a14;--acc:{CG};--acc2:{IV};--fg:{IV};--mut:#b3a68c;--on:#140f06;--r:0;
-  --card:#1b1510;--card2:#241c14;--line:{CG}40;--line2:{CG}99;
+  --bg:#0e0d0b;--glow:#3a2f1c;--acc:{CG};--acc2:{IV};--fg:{IV};--mut:#b8ad97;--on:#14110a;--r:0;
+  --card:#171512;--card2:#211e19;--line:{CG}40;--line2:{CG}99;
   --disp:'Playfair Display','Cormorant Garamond',serif;--body:'Cormorant Garamond',Georgia,serif;--mono:'Playfair Display',serif;
-  --clip:none;--pshadow:inset 0 0 0 1px #0000,inset 0 0 34px #0008;--rep:no-repeat;
-  --deco:{corners(cl_corner, 30)};--orn:{staff};--orn-h:30px}}
-html[data-skin=classical] body{{font-size:18px;font-weight:600;background:radial-gradient(60% 40% at 50% -5%,#f3d68a55,#0000 70%) no-repeat,
-  linear-gradient(90deg,#4a0d12 0,#6a1520 6%,#0000 16% 84%,#6a1520 94%,#4a0d12) 0 0/100% 100%,
-  {keys} 0 calc(100% - 78px)/308px 46px repeat-x,linear-gradient(#0e0b08,#0e0b08) 0 100%/100% 80px no-repeat,var(--bg);background-attachment:fixed}}
-html[data-skin=classical] body::after{{inset:0;background:{notes} 0 0/200px 220px;animation:petals 40s linear infinite reverse}}
-html[data-skin=classical] h2.sec::before{{content:"♪";transform:none;border:0;width:auto;height:auto;color:{CG};font-size:20px;line-height:1}}
-html[data-skin=classical] .btn{{background:{IV};color:#140f06;box-shadow:inset 0 0 0 1px {CG},inset 0 0 0 3px {IV},inset 0 0 0 4px {CG}88}}
-html[data-skin=classical] .btn.ghost{{background:transparent;color:{CG};box-shadow:inset 0 0 0 1px {CG}99}}
-html[data-skin=classical] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,#f3d68a,{CG});color:#140f06}}
-html[data-skin=classical] :is(.seg a.on,.dpill.on,.chip.on){{background:{CG};color:#140f06;border-color:{CG}}}
-html[data-skin=classical] .xpbar i{{background:linear-gradient(90deg,#a8862a,#f3d68a)}}
+  --clip:none;--pshadow:inset 0 0 0 1px {CG}22,inset 0 0 34px #0008;--rep:no-repeat;
+  --deco:{corners(cl_corner, 30)};--orn:{swag};--orn-h:26px}}
+html[data-skin=classical] body{{font-size:18px;font-weight:600;background:radial-gradient(50% 32% at 50% -4%,#f6dfa055,#0000 70%) no-repeat,
+  {column} -26px 120px/60px auto no-repeat,{column} calc(100% + 26px) 120px/60px auto no-repeat,
+  {marble} 0 0/220px 220px,linear-gradient(180deg,#14120f,#0b0a08);background-attachment:fixed}}
+html[data-skin=classical] body::after{{inset:0;background:{glints} 0 0/200px 200px,{glints} 90px 120px/260px 260px;animation:fireflies 7s ease-in-out infinite alternate;opacity:.7}}
+html[data-skin=classical] h1{{letter-spacing:.1em}}
+html[data-skin=classical] h2.sec::before{{transform:rotate(45deg);border:1px solid {CG};width:8px;height:8px;background:none;box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 4px {CG}}}
+html[data-skin=classical] .btn{{background:linear-gradient(180deg,#f1d99a,{CG} 55%,#a8874a);color:#14110a;letter-spacing:.12em;box-shadow:inset 0 0 0 1px #fff6,inset 0 -2px 0 #0003}}
+html[data-skin=classical] .btn.ghost{{background:transparent;color:{IV};box-shadow:inset 0 0 0 1px {CG}99}}
+html[data-skin=classical] :is(.btn.gold,.btn.chestbtn){{background:{IV};color:#14110a;box-shadow:inset 0 0 0 1px {CG},inset 0 0 0 3px {IV},inset 0 0 0 4px {CG}88}}
+html[data-skin=classical] :is(.seg a.on,.dpill.on,.chip.on){{background:{CG};color:#14110a;border-color:{CG}}}
+html[data-skin=classical] .xpbar i{{background:linear-gradient(90deg,#a8874a,#f1d99a)}}
 """)
 
 # ---------------------------------------------------------------- Baroque Palace
@@ -569,7 +570,7 @@ PREVIEW = """
 .skp[data-sk=outrun]{background:linear-gradient(180deg,#2a0650,#a0187a 70%,#ff6a3d 72%,#12002a 73%);box-shadow:inset 0 0 0 1px #ff3cc7,0 0 12px #ff3cc755}
 .skp[data-sk=arcade]{background:#05030f;box-shadow:inset 0 0 0 3px #00e4ff;image-rendering:pixelated}
 .skp[data-sk=mythical]{background:radial-gradient(circle at 80% 30%,#e9dcff 0 8px,#0000 9px),radial-gradient(circle,#3ddc97 0 1.5px,#0000 2px) 0 0/19px 17px,linear-gradient(#2a1250,#0b0616);box-shadow:inset 0 0 0 2px #b07cff88;border-radius:10px}
-.skp[data-sk=classical]{background:linear-gradient(#0000 70%,#efe6d2 70% 100%),repeating-linear-gradient(90deg,#0000 0 9px,#120e0a 9px 10px) 0 100%/100% 30% no-repeat,linear-gradient(90deg,#6a1520 0 8%,#120e0a 8% 92%,#6a1520 92%);box-shadow:inset 0 0 0 1px #d4af37}
+.skp[data-sk=classical]{background:linear-gradient(90deg,#16130f 0 10%,#0000 10% 90%,#16130f 90%),radial-gradient(60% 50% at 50% 0,#f6dfa044,#0000),#0e0d0b;box-shadow:inset 0 0 0 1px #d9b871,inset 0 0 0 4px #0e0d0b,inset 0 0 0 5px #d9b87166}
 .skp[data-sk=baroque]{background:radial-gradient(circle,#e0b44c22 0 6px,#0000 7px) 0 0/16px 16px,linear-gradient(#330e16,#16060a);box-shadow:inset 0 0 0 2px #e0b44c,inset 0 0 0 5px #250a10,inset 0 0 0 6px #e0b44c66;border-radius:14px}
 .skp[data-sk=artdeco]{background:repeating-conic-gradient(from -90deg at 50% 100%,#e6c36a33 0 6deg,#0000 6deg 12deg),#0a0a0c;box-shadow:inset 0 0 0 1px #e6c36a,inset 0 0 0 4px #0a0a0c,inset 0 0 0 5px #e6c36a66}
 .skp[data-sk=gothic]{background:conic-gradient(from 0deg at 50% 40%,#7aa2ff88,#e0455a88,#e8b04a88,#5ec27a88,#7aa2ff88) 50% 40%/40px 40px no-repeat,linear-gradient(#0a0914,#07060e);box-shadow:inset 0 0 0 1px #c9c3d677}
@@ -692,8 +693,8 @@ RINGS = {
     'mythical': svg(f"<circle {C} r='50' fill='none' stroke='{MV}' stroke-width='2'/><circle {C} r='57' fill='none' stroke='{ME}' stroke-width='1.2' stroke-dasharray='3 4'/>"
                     + each(8, lambda a: rot(a, f"<path d='M60 3l3 4-3 4-3-4z' fill='{MGD}'/>"))
                     + each(8, lambda a: rot(a, f"<path d='M60 46v-5M58 43h4' stroke='{MV}' stroke-width='1.3' transform='translate(0 -40)'/>"), 22.5), '0 0 120 120'),
-    'classical': svg(f"<g fill='none' stroke='{CG}'><circle {C} r='49.5' stroke-width='1.4'/><circle {C} r='53' stroke-width='.7'/><circle {C} r='55' stroke-width='.7'/><circle {C} r='57' stroke-width='.7'/></g>"
-                     + each(4, lambda a: rot(a, f"<ellipse cx='60' cy='4' rx='3.4' ry='2.5' fill='{CG}' transform='rotate(-20 60 4)'/>"), 45), '0 0 120 120'),
+    'classical': svg(f"<circle {C} r='50' fill='none' stroke='{CG}' stroke-width='1.4'/><circle {C} r='57' fill='none' stroke='{CG}' stroke-width='.8'/>"
+                     + each(28, lambda a: rot(a, f"<circle cx='60' cy='6.5' r='2.3' fill='{IV}'/><circle cx='59.3' cy='5.8' r='.8' fill='#fff'/>")), '0 0 120 120'),
     'baroque': svg(f"<circle {C} r='53' fill='none' stroke='{BG_}' stroke-width='6'/><circle {C} r='53' fill='none' stroke='#fff3c4' stroke-opacity='.5' stroke-width='1'/>"
                    + each(12, lambda a: rot(a, f"<circle cx='60' cy='5' r='3.2' fill='{BG_}'/><circle cx='60' cy='5' r='1.2' fill='{VEL}'/>"))
                    + f"<circle {C} r='48' fill='none' stroke='{BG_}' stroke-width='1' stroke-dasharray='1 3'/>", '0 0 120 120'),
@@ -724,7 +725,7 @@ html[data-skin=pirate] :is(.orb,.bxi)::before{--gc:#e0b55a;animation:bsway 3.2s 
 html[data-skin=outrun] :is(.orb,.bxi)::before{animation:bspin 18s linear infinite,bneon 4s linear infinite}
 html[data-skin=arcade] :is(.orb,.bxi)::before{animation:bspin 8s steps(12) infinite}
 html[data-skin=mythical] :is(.orb,.bxi)::before{--gc:#3ddc97;animation:bspin 45s linear infinite reverse,bglow 2.4s ease-in-out infinite}
-html[data-skin=classical] :is(.orb,.bxi)::before{--gc:#f3d68a;animation:bsway 5s ease-in-out infinite alternate,bglow 3.2s ease-in-out infinite}
+html[data-skin=classical] :is(.orb,.bxi)::before{--gc:#f6dfa0;animation:bspin 90s linear infinite,bglow 3.6s ease-in-out infinite}
 html[data-skin=baroque] :is(.orb,.bxi)::before{--gc:#ffcf7a;animation:bspin 80s linear infinite,bflick 2.8s ease-in-out infinite}
 html[data-skin=artdeco] :is(.orb,.bxi)::before{--gc:#e6c36a;animation:bspin 30s steps(36) infinite,bglow 3s ease-in-out infinite}
 html[data-skin=gothic] :is(.orb,.bxi)::before{--gc:#7aa2ff;animation:bspin 70s linear infinite,bflick 3.4s ease-in-out infinite}

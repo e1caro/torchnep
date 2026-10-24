@@ -77,7 +77,7 @@ const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', '
 // whole interfaces: each changes the palette, fonts, frames, buttons and background (fonts load only when in use)
 const SKINS = [['hud', 'Sci-fi HUD', 0, '🛰️'], ['chinese', 'Imperial China', 1000, '🏮'], ['japanese', 'Zen Japan', 1000, '⛩️'], ['fairy', 'Fairy Tale Forest', 1250, '🌳'], ['medieval', 'Medieval Castle', 1250, '🏰'], ['steampunk', 'Steampunk Works', 1500, '⚙️'],
   ['greek', 'Olympus', 1250, '🏛️'], ['egypt', 'Ancient Egypt', 1250, '🏜️'], ['viking', 'Viking Saga', 1400, '🪓'], ['pirate', 'Pirate Seas', 1400, '🏴‍☠️'], ['outrun', 'Outrun 80s', 1600, '🌆'], ['arcade', 'Arcade 8-bit', 1750, '👾'],
-  ['classical', 'Classical Concert', 1250, '🎻'], ['artdeco', 'Art Deco', 1400, '🎷'], ['gothic', 'Gothic Cathedral', 1500, '🕯️'], ['baroque', 'Baroque Palace', 1600, '👑'],
+  ['classical', 'Classical Elegance', 1250, '🥂'], ['artdeco', 'Art Deco', 1400, '🎷'], ['gothic', 'Gothic Cathedral', 1500, '🕯️'], ['baroque', 'Baroque Palace', 1600, '👑'],
   ['mythical', 'Mythical Realm', 1750, '🐉'], ['cosmic', 'Cosmic Voyage', 1750, '🪐']];
 const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japanese: 'Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700',
   fairy: 'IM+Fell+English+SC&family=Lora:wght@400;600;700', medieval: 'MedievalSharp&family=EB+Garamond:wght@400;600;700', steampunk: 'Rye&family=Special+Elite&family=Lora:wght@400;600;700',
@@ -443,7 +443,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 66</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 67</div>`;
 }
 
 function initGame() {
