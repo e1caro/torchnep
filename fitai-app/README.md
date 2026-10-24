@@ -58,9 +58,13 @@ Today is six circles that fill the screen: Train in the middle (next workout and
 - The verdict (Excellent, Good, So-so, Not very healthy, Junk food) gives +20, +12, 0, -10 or -20 XP. It comes with the foods it found, the calories and a tip.
 - At most +60 and -60 XP a day from this. The same description twice in a day gives no XP. Losing XP never takes away a level. Today's list can be undone item by item.
 
-## Session length
+## Session length, cardio and stretching
 
-Sessions last 30 minutes to 2 hours (30, 45, 60, 75, 90 or 120). Every plan includes stretching (1 stretch up to 45 min, 2 up to 75, 3 longer) and cardio unless you turn it off (8, 10, 12, 15, 20 or 25 minutes), at the start (it doubles as the warm-up) or at the end, chosen in the profile or with the Cardio chips on the Plan screen. Each exercise is timed at about 50 s per set plus its rest and 2.5 minutes to set up; warm-up (7 min), cardio and stretching are counted first and strength exercises fill the rest, going round the day's muscles again on long sessions. Short sessions that still run over get shorter cardio, fewer stretches and a set less. Older plans are trimmed to fit once.
+Sessions last 30 minutes to 2 hours (30, 45, 60, 75, 90 or 120). The "Cardio and stretching" card on the Plan screen (and the Training step of the profile) sets:
+- **Cardio:** none, at the start (it doubles as the warm-up) or at the end; its type (any, run or treadmill, bike, rowing, elliptical, stairs, jump rope, walking or sprints, matched to the exercises of that kind); and its minutes (auto: 8 to 25 with the session, or 5 to 45).
+- **Stretching minutes:** auto (3 to 10 with the session) or 3 to 15. Each stretch is two 30-second holds (about 1.7 minutes with the change), picked for the muscles that day works most, then the rest of the day's muscles, without repeats.
+
+Each strength exercise is timed at about 50 s per set plus its rest and 2.5 minutes to set up; warm-up, cardio and stretching are counted first and strength exercises fill the rest, going round the day's muscles again on long sessions. Short sessions that still run over shorten what is on auto, then take a set off. Older plans are trimmed to fit once.
 
 ## Weekly summary and coach
 

@@ -143,15 +143,25 @@ function allowed(e, p, have) {
 function exSecs(it) {
   const m = String(it.reps).match(/^(\d+)\s*min/), s = String(it.reps).match(/^(\d+)\s*s/);
   if (m) return +m[1] * 60 + 60;
-  const work = s ? +s[1] : 50;
-  return it.sets * (work + it.rest) - it.rest + 150;
+  if (s) return it.sets * (+s[1] + it.rest) - it.rest + 30; // holds and stretches move on quickly
+  return it.sets * (50 + it.rest) - it.rest + 150;
 }
 const WARMUP = 7 * 60;
 // cardio: none, at the start (it doubles as the warm-up) or at the end; fat loss defaults to the end
 // every plan includes cardio unless you turn it off; it and the stretching grow with the session
 const cardioPos = p => p.cardio || 'end';
-const cardioMin = p => (p.minutes <= 30 ? 8 : p.minutes <= 45 ? 10 : p.minutes <= 60 ? 12 : p.minutes <= 75 ? 15 : p.minutes <= 90 ? 20 : 25);
-const stretchCount = p => (p.minutes <= 45 ? 1 : p.minutes <= 75 ? 2 : 3);
+// cardio and stretching minutes: your choice, or "auto" to grow with the session
+const cardioAuto = p => (p.minutes <= 30 ? 8 : p.minutes <= 45 ? 10 : p.minutes <= 60 ? 12 : p.minutes <= 75 ? 15 : p.minutes <= 90 ? 20 : 25);
+const cardioMin = p => +p.cardioMin || cardioAuto(p);
+const stretchAuto = p => (p.minutes <= 30 ? 3 : p.minutes <= 45 ? 4 : p.minutes <= 60 ? 5 : p.minutes <= 75 ? 6 : p.minutes <= 90 ? 8 : 10);
+const stretchMin = p => +p.stretchMin || stretchAuto(p);
+const STRETCH = { sets: 2, reps: '30s', rest: 10 }; // two 30-second holds, about 1.7 minutes with the change
+const stretchCount = p => Math.max(1, Math.round(stretchMin(p) * 60 / exSecs(STRETCH)));
+// cardio types, matched against the exercise names
+const CARDIO_TYPES = [['auto', 'Any', null], ['run', 'Run / treadmill', /running|jogging|trail/i], ['bike', 'Bike', /bicycl|bike/i], ['row', 'Rowing', /rowing/i],
+  ['elliptical', 'Elliptical', /elliptical/i], ['stairs', 'Stairs', /stair|step mill/i], ['rope', 'Jump rope', /rope/i], ['walk', 'Walking', /walking/i], ['hiit', 'Sprints', /sprint|rope/i]];
+const CARDIO_MINS = ['auto', 5, 10, 15, 20, 30, 45];
+const STRETCH_MINS = ['auto', 3, 5, 10, 15];
 const SESSIONS = [30, 45, 60, 75, 90, 120];
 const sessionLabel = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60}` : ''}`);
 const planMinutes = d => Math.round(((/min/.test(String(d.items[0]?.reps)) ? 180 : WARMUP) + d.items.reduce((a, it) => a + exSecs(it), 0)) / 60);
@@ -167,7 +177,10 @@ if (S.plan && !S.plan.timed && S.profile) {
 function generatePlan(p) {
   const r = rng(Date.now() & 0xffffff), have = equipSet(p);
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
-  const cardio = EX.filter(e => e.c === 'cardio' && allowed(e, p, new Set([...have, 'machine', 'other'])) && e.e !== 'other');
+  const ctype = (CARDIO_TYPES.find(([k]) => k === p.cardioType) || CARDIO_TYPES[0])[2];
+  let cardio = EX.filter(e => e.c === 'cardio' && (ctype ? ctype.test(e.n) : allowed(e, p, new Set([...have, 'machine', 'other'])) && e.e !== 'other'));
+  if (!cardio.length) cardio = EX.filter(e => e.c === 'cardio' && e.e !== 'other');
+  const stretches = EX.filter(e => e.c === 'stretching' && allowed(e, p, have));
   let [sets, reps, rest] = SCHEME[p.goal];
   if (p.age >= 50) rest += 15;
   if (p.level === 'beginner') sets = Math.min(sets, 3);
@@ -186,8 +199,8 @@ function generatePlan(p) {
     // cardio and a stretch first take their time from the session; strength exercises fill what is left, at least 2
     const tail = [], pos = cardioPos(p), cIt = pos !== 'none' && cardio.length ? { id: shuffle(cardio, r)[0].id, sets: 1, reps: `${cardioMin(p)} min`, rest: 0 } : null;
     if (cIt) tail.push(cIt);
-    shuffle(EX.filter(e => e.c === 'stretching' && allowed(e, p, have) && (!allow || allow.includes(e.m[0]) || e.m[0] === 'abdominals')), r)
-      .slice(0, stretchCount(p)).forEach(st => tail.push({ id: st.id, sets: 1, reps: '30s', rest: 20 }));
+    const nStretch = stretchCount(p);
+    for (let k = 0; k < nStretch; k++) tail.push({ ...STRETCH, id: null }); // placeholders: the stretches are chosen once the day's muscles are known
     let left = p.minutes * 60 - (pos === 'start' && cIt ? 180 : WARMUP) - tail.reduce((a, it) => a + exSecs(it), 0); // cardio first leaves a short warm-up
     const items = [];
     for (const m of slots) {
@@ -197,11 +210,25 @@ function generatePlan(p) {
       items.push(it); left -= exSecs(it);
     }
     if (cIt && pos === 'start') { items.unshift(cIt); tail.shift(); }
-    items.push(...tail);
+    // stretches for the muscles worked today, most worked first, one per muscle before repeating
+    const worked = Object.entries(items.reduce((a, it) => { const m = BY[it.id]?.m[0]; if (m && BY[it.id].c !== 'cardio') a[m] = (a[m] || 0) + it.sets; return a; }, {}))
+      .sort((a, b) => b[1] - a[1]).map(([m]) => m);
+    // then the rest of the day's muscles, so long stretching covers more than the two most worked
+    [...DAYS[kind], 'lower back', 'hamstrings', 'calves'].forEach(m => { if (!worked.includes(m)) worked.push(m); });
+    const usedSt = new Set();
+    tail.filter(t => t.id === null).forEach((t, k) => {
+      const want = worked.length ? worked[k % worked.length] : null;
+      const c = shuffle(stretches.filter(e => !usedSt.has(e.id) && e.m[0] === want), r)[0]
+        || shuffle(stretches.filter(e => !usedSt.has(e.id) && (worked.includes(e.m[0]) || (allow && allow.includes(e.m[0])))), r)[0]
+        || shuffle(stretches.filter(e => !usedSt.has(e.id)), r)[0];
+      if (c) { t.id = c.id; usedSt.add(c.id); }
+    });
+    items.push(...tail.filter(t => t.id));
     // short sessions: if the minimum of exercises runs over, shorten the cardio (5 minutes at least), then drop extra stretches
     const over = () => (pos === 'start' && cIt ? 180 : WARMUP) + items.reduce((a, it) => a + exSecs(it), 0) - p.minutes * 60;
-    if (cIt && over() > 60) cIt.reps = `${Math.max(5, cardioMin(p) - Math.ceil((over() - 60) / 60))} min`;
-    while (over() > 60 && items.filter(it => BY[it.id]?.c === 'stretching').length > 1) items.splice(items.findLastIndex(it => BY[it.id]?.c === 'stretching'), 1);
+    // (only what you left on "auto" is shortened: minutes you picked yourself are kept)
+    if (cIt && !+p.cardioMin && over() > 60) cIt.reps = `${Math.max(5, cardioMin(p) - Math.ceil((over() - 60) / 60))} min`;
+    while (!+p.stretchMin && over() > 60 && items.filter(it => BY[it.id]?.c === 'stretching').length > 1) items.splice(items.findLastIndex(it => BY[it.id]?.c === 'stretching'), 1);
     for (let k = items.length - 1; k >= 0 && over() > 60; k--) if (!/min|s$/.test(String(items[k].reps)) && items[k].sets > 2) { items[k].sets--; k++; } // and one set less, down to 2
     return { name: `Day ${di + 1} · ${KIND_NAME[kind]}`, kind, items };
   });
@@ -269,6 +296,9 @@ function onboarding(edit) {
       <div class="lbl">Days per week</div>${chips('days', [2, 3, 4, 5, 6].map(d => [d, d]), p.days)}
       <div class="lbl">Time per session</div>${chips('minutes', SESSIONS.map(m => [m, sessionLabel(m)]), p.minutes)}
       <div class="lbl">Cardio</div>${chips('cardio', [['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']], cardioPos(p))}
+      <div class="lbl">Cardio type</div>${chips('cardioType', CARDIO_TYPES.map(([k, l]) => [k, l]), p.cardioType || 'auto')}
+      <div class="lbl">Cardio minutes</div>${chips('cardioMin', CARDIO_MINS.map(m => [m, m === 'auto' ? 'Auto' : `${m} min`]), p.cardioMin || 'auto')}
+      <div class="lbl">Stretching minutes</div>${chips('stretchMin', STRETCH_MINS.map(m => [m, m === 'auto' ? 'Auto' : `${m} min`]), p.stretchMin || 'auto')}
       <div class="lbl">Equipment you can use</div>${chips('equipment', Object.entries(EQUIP), p.equipment, true)}`,
     () => `<div class="lbl">Want extra work on something?</div>${chips('focus', Object.entries(FOCUS).map(([k, v]) => [k, v[0]]), p.focus, true)}
       <div class="lbl">Anything that hurts or limits you?</div>${chips('limits', Object.entries(LIMITS).map(([k, v]) => [k, v[0]]), p.limits, true)}
@@ -320,13 +350,24 @@ function planView() {
   if (needProfile()) return;
   const p = S.profile, a = analyze(p);
   view.innerHTML = `<h1>Your plan</h1><div class="mut">${GOALS[p.goal][0]} · ${p.days} days a week · ${cap(p.level)}</div>
-  <div class="lbl">Cardio</div><div class="chips">${[['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']].map(([v, l]) => `<button class="chip ${cardioPos(p) === v ? 'on' : ''}" onclick="setCardio('${v}')">${l}</button>`).join('')}</div>
+  ${cardioCard(p)}
   <details class="card why" open><summary>Why this plan</summary><ul>${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` +
     S.plan.days.map((d, di) => `<section class="card"><div class="row between"><h3>${esc(d.name)}</h3><button class="btn sm" onclick="startWorkout(${di})">Start</button></div>
     ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a>
     <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</section>`).join('') +
     `<button class="btn ghost" onclick="location.hash='#/library'">Browse exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button><button class="btn ghost" onclick="location.hash='#/start'">Change my answers</button>`;
 }
+function cardioCard(p) {
+  const row = (k, opts, cur) => `<div class="chips">${opts.map(([v, l]) => `<button class="chip ${String(cur) === String(v) ? 'on' : ''}" onclick="setPlanOpt('${k}','${v}')">${l}</button>`).join('')}</div>`;
+  const on = cardioPos(p) !== 'none';
+  return `<details class="card cardiocard" ${S.cardioOpen ? 'open' : ''} ontoggle="S.cardioOpen=this.open"><summary>Cardio and stretching <span class="mut">· ${on ? `${cardioMin(p)} min` : 'no cardio'} · ${stretchMin(p)} min</span></summary>
+    <div class="lbl">Cardio</div>${row('cardio', [['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']], cardioPos(p))}
+    ${on ? `<div class="lbl">Type</div>${row('cardioType', CARDIO_TYPES.map(([k, l]) => [k, l]), p.cardioType || 'auto')}
+    <div class="lbl">Cardio minutes</div>${row('cardioMin', CARDIO_MINS.map(m => [m, m === 'auto' ? `Auto (${cardioAuto(p)})` : `${m} min`]), p.cardioMin || 'auto')}` : ''}
+    <div class="lbl">Stretching minutes</div>${row('stretchMin', STRETCH_MINS.map(m => [m, m === 'auto' ? `Auto (${stretchAuto(p)})` : `${m} min`]), p.stretchMin || 'auto')}
+    <div class="mut">Stretches are picked for the muscles each day works.</div></details>`;
+}
+window.setPlanOpt = (k, v) => { S.cardioOpen = true; S.profile[k] = v; save('profile', S.profile); regen(); };
 window.setCardio = v => { S.profile.cardio = v; save('profile', S.profile); toast(v === 'none' ? 'Plan without cardio' : v === 'start' ? 'Cardio at the start of each workout' : 'Cardio at the end of each workout'); regen(); };
 window.regen = () => { S.plan = generatePlan(S.profile); save('plan', S.plan); planView(); };
 window.swapEx = (di, ii) => {
