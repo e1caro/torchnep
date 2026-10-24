@@ -47,6 +47,10 @@ Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open 
 
 Local test: `python3 -m http.server -d fitai-app 8000`.
 
+## Swipe between sections
+
+Swipe left or right to move between the tab bar's sections (Today, Plan, Dungeons, Rewards, Stats, Hero); the page follows the finger and the next section slides in (`swipe.js`). Swipes inside sideways scrollers or text fields, with a Today panel, the weekly summary or a dialog open, during a workout, or from the screen edges are left alone.
+
 ## Today as circles
 
 Today is six circles that fill the screen: Train in the middle (next workout and the dungeon of the day), with Quests (daily quests and the weekly boss), Loot (daily check-in and chests), Meals (meals and fuel), Earn (the bets and the ways to earn themselves, right inside the circle) and the Academy around it. Each circle shows a value and a progress ring, and a "!" when something is ready to claim. Tapping one grows it into a panel with what is inside; ✕, the back button or Esc shrink it back. Every interface draws its own animated rings (turning gears, swaying vines and laurels, a rocking rope, flickering torchlight, neon, pixels...), a soft light runs over panel frames, and every avatar ring moves, built by `tools/build_skins.py` (code in `bubbles.js`).
