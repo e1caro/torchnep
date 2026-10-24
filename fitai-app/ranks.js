@@ -153,7 +153,7 @@ if (typeof i18nAdd === 'function') {
     'No rank yet. Log a set in a workout to earn one.': 'Todavía sin rango. Registra una serie en un entrenamiento para conseguirlo.',
     'Based on your age, height, weight and sex. These are estimates.': 'Según tu edad, altura, peso y sexo. Son estimaciones.',
     'Best: {n} kg × {n}': 'Mejor: {n} kg × {n}', 'Best: {n} reps': 'Mejor: {n} reps', '{n} kg est. max': '{n} kg de máx. estimado', 'e.g. {n} kg × {n}': 'p. ej. {n} kg × {n}', '{n} reps': '{n} reps',
-    Ranks: 'Rangos', 'Overall rank': 'Rango general', '{n} exercises ranked': '{n} ejercicios con rango', 'Rank bonus: {n} XP': 'Bonus de rango: +{n} XP',
+    Ranks: 'Rangos', 'Overall rank': 'Rango general', '{n} exercises ranked': '{n} ejercicios con rango', 'Rank bonus: {n} XP': 'Bonus de rango: {n} XP',
   });
   i18nPat(/^Rank up! (.+) is now (\w+)$/, (a, b) => `¡Subes de rango! ${tr(a)} es ahora ${tr(b)}`);
 }

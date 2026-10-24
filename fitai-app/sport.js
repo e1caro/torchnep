@@ -200,6 +200,7 @@ function seedStats(skip) {
   S.history.forEach(h => { if (!h.sport && h !== skip) { const g = generalGains(h); for (const k in g) SP.pts[k] += g[k]; } });
   SP.seeded = true; spSave();
 }
+const statAfter = (k, extra) => Math.round(30 + 69 * (1 - Math.exp(-((SP.pts[k] || 0) + extra) / 700)));
 const addPts = g => { for (const k in g) SP.pts[k] = (SP.pts[k] || 0) + g[k]; };
 
 // ---------- building a drill ----------
@@ -241,11 +242,12 @@ function sportAfter(h, sp) {
   const role = roleOf(sp.key), d = role.drills[sp.i], K = KINDS[d.kind], done = h.ex.reduce((a, x) => a + x.sets.length, 0), q = Math.max(.3, Math.min(1, done / sp.plan)), rs = roleState(sp.key);
   h.sport = { key: sp.key, i: sp.i }; save('history', S.history);
   const gains = {}; for (const k in K.gains) gains[k] = Math.round(K.gains[k] * q);
+  const before = {}; SATTRS.forEach(k => { before[k] = statVal(k); }); const ovr0 = ovrOf(role);
   addPts(gains); rs.sxp += Math.round(100 * q); rs.drills++;
   ensureDay(); G.today.drills = (G.today.drills || 0) + 1;
   const mult = DRILL_MULT[sp.i], bonus = Math.round(LAST.xp * (mult - 1)), coins = Math.round(bonus / 6);
   award(bonus, coins);
-  LAST.lines.push([`Sport drill ×${mult}`, bonus], [Object.entries(gains).map(([k, v]) => `${ATTR[k][0]} +${v}`).join(' · '), null]);
+  LAST.lines.push([`Sport drill ×${mult}`, bonus], [Object.keys(gains).filter(k => statVal(k) > before[k]).map(k => `${ATTR[k][0]} +${statVal(k) - before[k]}`).join(' · ') || 'Attributes up', null], [`OVR ${ovr0} → ${ovrOf(role)}`, null]);
   LAST.xp += bonus; LAST.coins += coins; LAST.after = G.xp;
   const lv0 = sportLevel(rs.sxp - Math.round(100 * q)), lv1 = sportLevel(rs.sxp);
   if (lv1 > lv0) toast(`Career level ${lv1}`);
@@ -302,15 +304,21 @@ const NOTE = {
   W: { SPD: TT('Your pace decided it.', 'Tu ritmo lo decidió.'), PWR: TT('Your power decided it.', 'Tu potencia lo decidió.'), STA: TT('Your stamina decided it.', 'Tu resistencia lo decidió.'), AGI: TT('Your agility decided it.', 'Tu agilidad lo decidió.'), STR: TT('Your strength decided it.', 'Tu fuerza lo decidió.'), CORE: TT('Your balance decided it.', 'Tu equilibrio lo decidió.') },
   L: { SPD: TT('Lack of pace cost you. Train speed!', 'La falta de ritmo te costó caro. ¡Entrena velocidad!'), PWR: TT('Lack of power cost you. Train power!', 'La falta de potencia te costó caro. ¡Entrena potencia!'), STA: TT('You ran out of stamina. Train it!', 'Te quedaste sin resistencia. ¡Entrénala!'), AGI: TT('Lack of agility cost you. Train it!', 'La falta de agilidad te costó caro. ¡Entrénala!'), STR: TT('Lack of strength cost you. Train it!', 'La falta de fuerza te costó caro. ¡Entrénala!'), CORE: TT('Your balance let you down. Train your core!', 'Tu equilibrio te falló. ¡Entrena el core!') },
 };
+const MATCH_REW = { W: [200, 120, 80], D: [80, 50, 40], L: [40, 20, 30] };
+function winChance(key) {
+  const role = roleOf(key), sport = key.split('/')[0], ovr = ovrOf(role), opp = opponentFor(key, ovr);
+  const diff = (ovr - opp.ovr) / 50, extra = .04 * (Math.max(2, weekDrills(sport)) - 2);
+  const p = Math.max(.08, Math.min(.92, .5 + diff + extra)), draw = ['football', 'futsal', 'rugby', 'running', 'combat'].includes(sport) ? .14 : 0;
+  return { p, draw, pw: Math.max(.04, p - draw / 2), opp, diff, extra };
+}
 window.playMatch = () => {
   const key = SP.cur, role = roleOf(key); if (!role) return;
   const rs = roleState(key), sport = key.split('/')[0];
   if (rs.match?.week === weekId() || weekDrills(sport) < 2) return;
-  const ovr = ovrOf(role), opp = opponentFor(key, ovr), r = rng(hash('m' + weekId() + key));
-  const p = Math.max(.08, Math.min(.92, .5 + (ovr - opp.ovr) / 50 + .04 * (weekDrills(sport) - 2))), draw = ['football', 'futsal', 'rugby', 'running', 'combat'].includes(sport) ? .14 : 0;
-  const roll = r(), pw = Math.max(.04, p - draw / 2), res = roll < pw ? 'W' : roll < pw + draw ? 'D' : 'L';
+  const { draw, pw, opp } = winChance(key), r = rng(hash('m' + weekId() + key));
+  const roll = r(), res = roll < pw ? 'W' : roll < pw + draw ? 'D' : 'L';
   const sc = scoreFor(sport, res, r), ranked = SATTRS.slice().sort((x, y) => role.w[y] * statVal(y) - role.w[x] * statVal(x)), weak = SATTRS.slice().sort((x, y) => statVal(x) / role.w[x] - statVal(y) / role.w[y]);
-  const rew = { W: [200, 120, 80], D: [80, 50, 40], L: [40, 20, 30] }[res];
+  const rew = MATCH_REW[res];
   rs.match = { week: weekId(), res, opp: opp.name, oppOvr: opp.ovr, a: sc.a, b: sc.b, text: sc.text, note: res === 'L' ? NOTE.L[weak[0]] : NOTE.W[ranked[0]], xp: rew[0], coins: rew[1] };
   rs[res.toLowerCase()]++; rs.sxp += rew[2];
   if (res === 'W') G.chests.push('silver');
@@ -334,12 +342,39 @@ function sportPicker(arg) {
     <div class="chips static">${SATTRS.slice().sort((x, y) => r.w[y] - r.w[x]).slice(0, 3).map(k => `<span class="chip">${ATTR[k][0]}</span>`).join('')}</div></section>`).join('')}`;
     return;
   }
-  view.innerHTML = `<h1>Sports Academy</h1><p class="mut">Choose a sport and a position. Train like a pro, build a player card and play a match every week.</p>
+  view.innerHTML = `<h1>Sports Academy</h1><p class="mut">Choose a sport and a position. Train like a pro, build a player card and play a match every week.</p>${academyGuide(true)}
   <div class="two">${Object.entries(SPORTS).map(([id, s]) => `<section class="card tap sp-tile" onclick="location.hash='#/sport/${id}'"><div class="sp-ico">${s.ico}</div><b>${s.name}</b><span class="mut">${Object.keys(s.roles).length} positions</span></section>`).join('')}</div>`;
 }
-window.chooseRole = key => { SP.cur = key; roleState(key); seedStats(); checkMilestones(); spSave(); location.hash = '#/sport'; };
-window.changeSport = () => { SP.cur = null; spSave(); location.hash = '#/sport'; };
+const goSport = h => { if (location.hash === h) route(); else location.hash = h; };
+window.chooseRole = key => { SP.cur = key; roleState(key); seedStats(); checkMilestones(); spSave(); goSport('#/sport'); };
+window.changeSport = () => { SP.cur = null; spSave(); goSport('#/sport'); };
 window.changeRole = () => { location.hash = '#/sport/' + SP.cur.split('/')[0]; };
+
+// ---------- how it works ----------
+const MILE_CHEST = { wood: 'Wooden chest', silver: 'Silver chest', gold: 'Golden chest' };
+function academyGuide(open) {
+  const step = (n, t, d) => `<div class="hw"><span class="hwn">${n}</span><div><b>${t}</b><div class="mut">${d}</div></div></div>`;
+  return `<details class="card howto" ${open ? 'open' : ''}><summary><b>How the Academy works</b></summary>
+  ${step(1, TT('Train your drills', 'Entrena tus ejercicios'), TT('Each position has its own drills. Finish one like a normal workout: you get the usual XP and coins plus a drill bonus, and your attributes go up.', 'Cada posición tiene sus propios ejercicios. Termínalos como un entrenamiento normal: ganas la XP y las monedas de siempre más un bonus, y suben tus atributos.'))}
+  ${step(2, TT('Attributes make your rating', 'Los atributos forman tu valoración'), TT('Your six attributes (speed, power, stamina, agility, strength, core) combine into your overall rating (OVR). Each position values them differently, so a striker needs speed and power, a defender strength.', 'Tus seis atributos (velocidad, potencia, resistencia, agilidad, fuerza y core) forman tu valoración general (OVR). Cada posición los valora distinto: un delantero necesita velocidad y potencia, un defensa fuerza.'))}
+  ${step(3, TT('Career level unlocks drills', 'El nivel de carrera desbloquea ejercicios'), TT('Every drill gives career XP. Your 3rd drill opens at career level 3 and your 4th at level 5. Harder drills give a bigger XP bonus.', 'Cada ejercicio da XP de carrera. El 3.º ejercicio se abre en el nivel de carrera 3 y el 4.º en el nivel 5. Los más difíciles dan más bonus de XP.'))}
+  ${step(4, TT('Play one match a week', 'Juega un partido a la semana'), TT('Do 2 drills in the same week (Monday to Sunday) to unlock the match. Your chance of winning depends on your rating against the opponent, and every extra drill that week helps a bit.', 'Haz 2 ejercicios en la misma semana (de lunes a domingo) para desbloquear el partido. Tu probabilidad de ganar depende de tu valoración frente al rival, y cada ejercicio extra esa semana ayuda un poco.'))}
+  ${step(5, TT('Reach milestones', 'Alcanza hitos'), TT('When your rating reaches 50, 60, 70, 80 and 90 you get coins and a chest. Open chests on the Today screen.', 'Cuando tu valoración llega a 50, 60, 70, 80 y 90 ganas monedas y un cofre. Los cofres se abren en la pantalla Hoy.'))}
+  <div class="mut" style="margin-top:8px">Your normal workouts also raise your attributes a little.</div></details>`;
+}
+
+function matchHelp(open) {
+  const li = t => `<li>${t}</li>`;
+  return `<details class="howmatch" ${open ? 'open' : ''}><summary><b>How matches work</b></summary><ol>
+  ${li(TT('Every Monday you get a new opponent in your sport. Their rating is based on yours and goes up as you win more matches.', 'Cada lunes tienes un rival nuevo en tu deporte. Su valoración depende de la tuya y sube a medida que ganas partidos.'))}
+  ${li(TT('To unlock the match, finish 2 drills of this sport between Monday and Sunday. Drills of any position in this sport count.', 'Para desbloquear el partido, termina 2 ejercicios de este deporte entre el lunes y el domingo. Cuentan los ejercicios de cualquier posición de este deporte.'))}
+  ${li(TT('Press Play match and the game is decided at once. You can play only one match per week.', 'Pulsa Jugar partido y el resultado se decide al momento. Solo puedes jugar un partido por semana.'))}
+  ${li(TT('Your chance to win starts at 50%. Each rating point you have above the opponent adds 2% (each point below takes 2% away), and each drill after the first 2 that week adds 4%. It always stays between 8% and 92%.', 'Tu probabilidad de ganar empieza en el 50%. Cada punto de valoración por encima del rival suma un 2% (cada punto por debajo resta un 2%), y cada ejercicio después de los 2 primeros de esa semana suma un 4%. Siempre se queda entre el 8% y el 92%.'))}
+  ${li(TT('In football, futsal, rugby, running and combat sports, about 1 match in 7 ends in a draw. Basketball, tennis and volleyball have no draws.', 'En fútbol, fútbol sala, rugby, atletismo y deportes de combate, más o menos 1 de cada 7 partidos acaba en empate. En baloncesto, tenis y voleibol no hay empates.'))}
+  ${li(TT('Every result pays: a win gives the most XP and coins plus a silver chest, a draw or a loss gives less. All results also give career XP (80 for a win, 40 for a draw, 30 for a loss).', 'Todos los resultados dan premio: ganar da más XP y monedas y un cofre de plata; empatar o perder da menos. Además, todos dan XP de carrera (80 por ganar, 40 por empatar y 30 por perder).'))}
+  ${li(TT('After the match you see which attribute won it, or which one to train if you lost. To raise your chances, train more drills and raise your rating.', 'Después del partido ves qué atributo te dio la victoria, o cuál entrenar si perdiste. Para tener más opciones, entrena más ejercicios y sube tu valoración.'))}
+  </ol></details>`;
+}
 
 function sportView(arg) {
   if (needProfile()) return;
@@ -348,24 +383,41 @@ function sportView(arg) {
   const key = SP.cur, role = roleOf(key), sport = key.split('/')[0], rs = roleState(key), lv = sportLevel(rs.sxp), a = sportLvXp(lv), b = sportLvXp(lv + 1), ovr = ovrOf(role);
   const wk = weekDrills(sport), m = rs.match?.week === weekId() ? rs.match : null, opp = opponentFor(key, ovr);
   const resTxt = { W: TT('Victory', 'Victoria'), D: TT('Draw', 'Empate'), L: TT('Defeat', 'Derrota') };
-  view.innerHTML = `<h1>Sports Academy</h1>${playerCard(key)}
+  view.innerHTML = `<h1>Sports Academy</h1>${playerCard(key)}${academyGuide(!rs.drills)}
   <section class="card"><div class="row between"><b>Career level ${lv}</b><span class="mut">${rs.sxp - a} / ${b - a} career XP</span></div><div class="xpbar"><i style="width:${(rs.sxp - a) / (b - a) * 100}%"></i></div>
+  ${(nu => nu >= 0 ? `<div class="mut" style="margin-top:6px">Career level ${DRILL_LV[nu]} unlocks</div><b>${role.drills[nu].name}</b>` : '')(DRILL_LV.findIndex(v => v > lv))}
   <div class="row" style="margin-top:10px"><button class="btn sm ghost" onclick="changeRole()">Change position</button><button class="btn sm ghost" onclick="changeSport()">Change sport</button></div></section>
   <h2 class="sec">Match day</h2>
   <section class="card match">${m ? `<div class="row between"><h3>${resTxt[m.res]}</h3><span class="mut">vs ${esc(m.opp)} · OVR ${m.oppOvr}</span></div>
-    <div class="score">${m.text ? esc(m.text) : `${m.a}–${m.b}`}</div><div class="mut">${m.note}</div><div class="mut" style="margin-top:6px">Match reward: +${m.xp} XP · +${m.coins} coins</div>`
-    : `<div class="row between"><h3>${esc(opp.name)}</h3><span class="mut">OVR ${opp.ovr}</span></div><div class="mut">Drills this week: ${Math.min(wk, 2)}/2</div>
-    ${wk >= 2 ? `<button class="btn" onclick="playMatch()" style="margin-top:10px">Play match</button>` : `<div class="mut" style="margin-top:6px">Do 2 drills in a week to play the match.</div>`}`}
-  <div class="chips static" style="margin-top:10px"><span class="chip">W ${rs.w}</span><span class="chip">D ${rs.d}</span><span class="chip">L ${rs.l}</span></div></section>
+    <div class="score">${m.text ? esc(m.text) : `${m.a}–${m.b}`}</div><div class="mut">${m.note}</div><div class="mut" style="margin-top:6px">Match reward: +${m.xp} XP · +${m.coins} coins</div>${m.res === 'W' ? '<div class="mut">Silver chest added. Open it on Today.</div>' : ''}
+    <div class="mut" style="margin-top:6px">Next opponent in ${(8 - new Date().getDay()) % 7 || 7} days (on Monday).</div>`
+    : `<div class="row between"><h3>${esc(opp.name)}</h3><span class="mut">OVR ${opp.ovr}</span></div>
+    <div class="mut">You: OVR ${ovr}</div>
+    ${(c => `<div class="odds"><div class="row between"><span>Starting chance</span><b>50%</b></div>
+    <div class="row between"><span>Your rating against theirs</span><b>${c.diff >= 0 ? '+' : ''}${Math.round(c.diff * 100)}%</b></div>
+    <div class="row between"><span>Extra drills this week</span><b>+${Math.round(c.extra * 100)}%</b></div>
+    ${c.draw ? `<div class="row between"><span>Part that becomes draws</span><b>-${Math.round(c.draw * 50)}%</b></div>` : ''}
+    <div class="row between tot"><span>Chance to win</span><b>${Math.round(c.pw * 100)}%</b></div>
+    ${c.draw ? `<div class="row between"><span>Chance of a draw</span><b>${Math.round(c.draw * 100)}%</b></div>` : ''}</div>`)(winChance(key))}
+    <div class="qbar" style="margin-top:8px"><i style="width:${Math.min(wk, 2) / 2 * 100}%"></i></div><div class="mut">Drills this week: ${Math.min(wk, 2)}/2</div>
+    ${wk >= 2 ? `<button class="btn" onclick="playMatch()" style="margin-top:10px">Play match</button>` : `<div class="mut" style="margin-top:6px">Do 2 drills in a week to play the match.</div>`}
+    <div class="prize"><div class="lbl">Prizes</div>
+    <div class="row between"><span>Win</span><b>+${MATCH_REW.W[0]} XP · ${MATCH_REW.W[1]} coins · Silver chest</b></div>${winChance(key).draw ? `
+    <div class="row between"><span>Draw</span><b>+${MATCH_REW.D[0]} XP · ${MATCH_REW.D[1]} coins</b></div>` : ''}
+    <div class="row between"><span>Loss</span><b>+${MATCH_REW.L[0]} XP · ${MATCH_REW.L[1]} coins</b></div>
+    <div class="mut">Every match also gives career XP. The match resets each Monday.</div></div>`}
+  ${matchHelp(!(rs.w + rs.d + rs.l))}
+  <div class="chips static" style="margin-top:10px"><span class="chip">Won ${rs.w}</span><span class="chip">Drawn ${rs.d}</span><span class="chip">Lost ${rs.l}</span></div></section>
   <h2 class="sec">Drills</h2>
   ${role.drills.map((d, i) => {
     const ok = lv >= DRILL_LV[i], K = KINDS[d.kind], top = Object.entries(K.gains).sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => x[0]);
-    return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${gi(ok ? ({ sprint: 'sprint', power: 'bolt', agility: 'shoe', stamina: 'infinity', lower: 'leg', upper: 'strong', core: 'abs', contact: 'chestplate', throw: 'punch', shoulder: 'shoulder' }[d.kind]) : 'lock')}</div>
-    <div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div><div class="chips static"><span class="chip">${DRILL_MULT[i]}× XP</span>${top.map(k => `<span class="chip">${ATTR[k][0]}</span>`).join('')}</div></div>
-    ${ok ? `<button class="btn sm" onclick="startDrill(${i})">Train</button>` : `<span class="mut cost">${gi('lock')} Career level ${DRILL_LV[i]}</span>`}</section>`;
+    return `<section class="card drill ${ok ? '' : 'locked'}"><div class="row"><div class="dgi">${gi(ok ? ({ sprint: 'sprint', power: 'bolt', agility: 'shoe', stamina: 'infinity', lower: 'leg', upper: 'strong', core: 'abs', contact: 'chestplate', throw: 'punch', shoulder: 'shoulder' }[d.kind]) : 'lock')}</div>
+    <div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div></div></div><div class="lbl" style="margin:10px 0 2px">Rewards</div><div class="rew">${(Object.entries(K.gains).sort((x, y) => y[1] - x[1]).map(([k, v]) => [k, statAfter(k, v) - statVal(k)]).filter(([, d]) => d > 0).map(([k, d]) => `<span style="color:${ATTR[k][1]}">${ATTR[k][0]} +${d}</span>`).join(' · ') || `<span>${ATTR[Object.keys(K.gains)[0]][0]} +1</span>`)}</div>
+    <div class="mut">XP bonus ×${DRILL_MULT[i]} · career XP +100</div>
+    ${ok ? `<button class="btn" style="margin-top:10px" onclick="startDrill(${i})">Train</button>` : `<div class="mut cost" style="margin-top:10px">${gi('lock')} Career level ${DRILL_LV[i]}</div>`}</section>`;
   }).join('')}
   <h2 class="sec">Milestones</h2>
-  <div class="chips static">${MILES.map(([n]) => `<span class="chip ${SP.claimed.includes(n) ? 'on' : ''}">OVR ${n}</span>`).join('')}</div>
+  ${MILES.map(([n, chest, coins]) => `<div class="card row between mile ${SP.claimed.includes(n) ? 'got' : ''}"><div><b>OVR ${n}</b><div class="mut">${MILE_CHEST[chest]} · ${coins} coins</div></div>${SP.claimed.includes(n) ? '<span class="chk">✓</span>' : `<span class="mut">${n - ovr} to go</span>`}</div>`).join('')}
   <p class="mut">Everyday workouts raise your attributes a little too. Reach each rating to open a chest.</p>`;
 }
 
@@ -386,9 +438,15 @@ if (typeof i18nAdd === 'function') {
     'Choose a sport and a position. Train like a pro, build a player card and play a match every week.': 'Elige un deporte y una posición. Entrena como un profesional, crea tu carta de jugador y juega un partido cada semana.',
     '{n} positions': '{n} posiciones', 'Career level {n}': 'Nivel de carrera {n}', '{n} / {n} career XP': '{n} / {n} XP de carrera', 'Change position': 'Cambiar posición', 'Change sport': 'Cambiar deporte',
     'Match day': 'Día de partido', 'Drills this week: {n}/{n}': 'Ejercicios esta semana: {n}/{n}', 'Do {n} drills in a week to play the match.': 'Haz {n} ejercicios en una semana para jugar el partido.', 'Play match': 'Jugar partido',
-    'Match reward: {n} XP': 'Premio del partido: {n} XP', 'W {n}': 'G {n}', 'D {n}': 'E {n}', 'L {n}': 'P {n}', Drills: 'Ejercicios', Milestones: 'Hitos', Train: 'Entrenar',
+    'Match reward: {n} XP': 'Premio del partido: {n} XP', 'Won {n}': 'Ganados {n}', 'Drawn {n}': 'Empatados {n}', 'Lost {n}': 'Perdidos {n}', 'Attributes up': 'Atributos al alza', 'OVR {n} → {n}': 'OVR {n} → {n}', Drills: 'Ejercicios', Milestones: 'Hitos', Train: 'Entrenar',
     'OVR {n}': 'OVR {n}', 'Everyday workouts raise your attributes a little too. Reach each rating to open a chest.': 'Tus entrenamientos normales también suben un poco tus atributos. Alcanza cada valoración para abrir un cofre.',
     'Open Sports Academy': 'Abrir Academia deportiva', 'Not enough exercises match your equipment and limits.': 'No hay suficientes ejercicios para tu material y tus límites.',
+    'How matches work': 'Cómo funcionan los partidos', 'Starting chance': 'Probabilidad inicial', 'Your rating against theirs': 'Tu valoración frente a la suya', 'Extra drills this week': 'Ejercicios extra esta semana', 'Chance of a draw': 'Probabilidad de empate', 'Part that becomes draws': 'Parte que se convierte en empates', 'Chance to win': 'Probabilidad de ganar',
+    'Silver chest added. Open it on Today.': 'Cofre de plata añadido. Ábrelo en Hoy.', 'Next opponent in {n} days (on Monday).': 'Próximo rival en {n} días (el lunes).',
+    'How the Academy works': 'Cómo funciona la Academia', 'Your normal workouts also raise your attributes a little.': 'Tus entrenamientos normales también suben un poco tus atributos.',
+    'Career level {n} unlocks': 'El nivel de carrera {n} desbloquea', 'You: OVR {n}': 'Tú: OVR {n}', 'Chance to win: {n}%': 'Probabilidad de ganar: {n}%', Prizes: 'Premios', Win: 'Victoria', Draw: 'Empate', Loss: 'Derrota',
+    'Every match also gives career XP. The match resets each Monday.': 'Cada partido también da XP de carrera. El partido se renueva cada lunes.', Rewards: 'Recompensas', 'XP bonus ×{n}': 'Bonus de XP ×{n}', 'career XP {n}': 'XP de carrera {n}',
+    '{n} to go': 'faltan {n}', '{n} coins': '{n} monedas',
     'Sport drill ×{n}': 'Ejercicio de deporte ×{n}', 'Finished position {n} of 8': 'Terminaste en el puesto {n} de 8', 'Won by KO': 'Victoria por KO', 'Won on points': 'Victoria por puntos', 'Draw on the cards': 'Empate en las tarjetas',
     'Lost on points': 'Derrota por puntos', 'Stopped in round {n}': 'Detenido en el asalto {n}', 'Career milestone! OVR {n}: {n} coins and a chest': '¡Hito de carrera! OVR {n}: {n} monedas y un cofre',
     'Speed {n}': 'Velocidad {n}', 'Power {n}': 'Potencia {n}', 'Stamina {n}': 'Resistencia {n}', 'Agility {n}': 'Agilidad {n}', 'Strength {n}': 'Fuerza {n}', 'Core {n}': 'Core {n}',
