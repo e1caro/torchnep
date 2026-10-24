@@ -26,42 +26,92 @@ function recipeOk(r, set = M.set) {
 }
 function portion(r, kcal) { return Math.round(clamp(kcal / nutOf(r).kcal, .5, 2.2) * 20) / 20; }
 
-function pickRecipe(kind, kcal, cook, usedDay, usedWeek) {
-  const a = target(), tp = a.protein * 4 / a.kcal, tc = a.carbs * 4 / a.kcal, tf = a.fat * 9 / a.kcal;
+// How much variety the week gets. ing: cost of each new ingredient, rep: cost of repeating a recipe, max: most uses of one recipe per week.
+const VARIETY = {
+  simple: { name: 'Simple', desc: 'Fewest ingredients. Meals repeat, so you can prep once and eat twice.', ing: 2, rep: .3, max: 4 },
+  balanced: { name: 'Balanced', desc: 'A mix of reusing ingredients and trying new meals.', ing: .8, rep: 1.2, max: 3 },
+  varied: { name: 'Varied', desc: 'Most variety, with a longer shopping list.', ing: .15, rep: 3, max: 2 },
+};
+const VAR = () => VARIETY[M.set?.variety] || VARIETY.simple;
+const ingW = k => ING[k][6] === 'Pantry' ? .45 : 1; // staples like oil and rice are cheap to keep at home
+const newCost = (r, have) => r.ing.reduce((t, [k]) => t + (have.has(k) ? 0 : ingW(k)), 0);
+const weekCtx = (days, skip = -1) => {
+  const have = new Set(), count = new Map();
+  days.forEach((d, i) => { if (i !== skip) d.items.forEach(it => { RBY[it.rid].ing.forEach(([k]) => have.add(k)); count.set(it.rid, (count.get(it.rid) || 0) + 1); }); });
+  return { have, count };
+};
+const nutC = new Map();
+const nutFast = r => nutC.get(r.id) || (nutC.set(r.id, nutOf(r)), nutC.get(r.id));
+
+// How well a recipe matches the calorie and macro targets for a slot (higher is better).
+function fitScore(r, kcal, a) {
+  const n = nutFast(r), ratio = kcal / n.kcal;
+  const pd = n.p * 4 / n.kcal - a.protein * 4 / a.kcal;
+  return -(pd < 0 ? -pd * 7 : pd * 6) - Math.abs(n.c * 4 / n.kcal - a.carbs * 4 / a.kcal) * 3
+    - Math.abs(n.f * 9 / n.kcal - a.fat * 9 / a.kcal) * 3 - (ratio < .6 ? .6 - ratio : ratio > 1.8 ? ratio - 1.8 : 0) * 2;
+}
+
+function pickRecipe(kind, kcal, cook, usedDay, ctx, noise = .5, a = target()) {
+  const V = VAR();
   let pool = RECIPES.filter(r => r.meal === kind && recipeOk(r) && !usedDay.has(r.id));
   if (!pool.length) pool = RECIPES.filter(r => r.meal === kind && recipeOk(r)); // every match is already in today's plan: repeat one
   const fast = pool.filter(r => kind === 's' || r.time <= cook);
   pool = fast.length ? fast : pool.sort((x, y) => x.time - y.time).slice(0, 4); // nothing fits the time: take the quickest
   if (!pool.length) return null;
-  const score = r => {
-    const n = nutOf(r), ratio = kcal / n.kcal;
-    return -Math.abs(n.p * 4 / n.kcal - tp) * 4 - Math.abs(n.c * 4 / n.kcal - tc) * 3 - Math.abs(n.f * 9 / n.kcal - tf) * 3 - (ratio < .6 ? .6 - ratio : ratio > 1.8 ? ratio - 1.8 : 0) * 2 - (usedWeek.has(r.id) ? 3 : 0) + Math.random() * .6;
-  };
-  return pool.reduce((best, r) => score(r) > score(best) ? r : best, pool[0]);
+  const fresh = pool.filter(r => (ctx.count.get(r.id) || 0) < V.max);
+  if (fresh.length) pool = fresh;
+  let best = null, bs = -1e9, bf = 0;
+  for (const r of pool) {
+    const f = fitScore(r, kcal, a), sc = f - V.ing * newCost(r, ctx.have) - V.rep * (ctx.count.get(r.id) || 0) + Math.random() * noise;
+    if (sc > bs) { bs = sc; best = r; bf = f; }
+  }
+  return best && { r: best, fit: bf };
 }
 
-function buildDay(di, cook, usedWeek, old) {
-  const a = target(), usedDay = new Set(), items = [];
+// Picks one day's meals and records their ingredients in ctx. Meals already eaten are kept.
+function pickDay(cook, ctx, old, noise) {
+  const a = target(), usedDay = new Set(), items = []; let fit = 0;
   SLOTS[M.set.meals].forEach(([label, kind, share], i) => {
-    if (old?.[i]?.eaten) { items.push(old[i]); usedDay.add(old[i].rid); return; }
-    const r = pickRecipe(kind, a.kcal * share, cook, usedDay, usedWeek);
-    if (!r) return;
-    usedDay.add(r.id); usedWeek.add(r.id);
-    items.push({ slot: label, kind, share, rid: r.id, k: portion(r, a.kcal * share), eaten: false });
+    let it = old?.[i]?.eaten ? old[i] : null;
+    if (!it) {
+      const pk = pickRecipe(kind, a.kcal * share, cook, usedDay, ctx, noise, a);
+      if (!pk) return;
+      fit += pk.fit; it = { slot: label, kind, share, rid: pk.r.id, k: portion(pk.r, a.kcal * share), eaten: false };
+    }
+    usedDay.add(it.rid); ctx.count.set(it.rid, (ctx.count.get(it.rid) || 0) + 1); RBY[it.rid].ing.forEach(([k]) => ctx.have.add(k));
+    items.push(it);
   });
-  const total = items.reduce((s, it) => s + nutOf(RBY[it.rid]).kcal * it.k, 0), f = a.kcal / total;
-  if (Math.abs(f - 1) > .02) items.forEach(it => { if (!it.eaten) it.k = Math.round(clamp(it.k * f, .5, 2.2) * 20) / 20; });
-  return { cook, items };
+  return { cook, items, fit };
 }
 
+// Scales the portions so the day lands on the calorie target.
+function finalizeDay(d) {
+  const a = target(), total = d.items.reduce((s, it) => s + nutFast(RBY[it.rid]).kcal * it.k, 0), f = a.kcal / total;
+  if (Math.abs(f - 1) > .02) d.items.forEach(it => { if (!it.eaten) it.k = Math.round(clamp(it.k * f, .5, 2.2) * 20) / 20; });
+  delete d.fit; return d;
+}
+
+function buildDay(di, cook, old) {
+  const ctx = weekCtx(M.plan.days, di);
+  return finalizeDay(pickDay(cook, ctx, old, .5));
+}
+
+// Tries many weeks and keeps the one with the best nutrition fit and the shortest shopping list.
 function buildWeek() {
-  const used = new Set();
-  M.plan = { week: weekId(), days: M.set.times.map((t, di) => buildDay(di, t, used)) };
+  const V = VAR(); let best = null, bj = -1e9;
+  for (let t = 0; t < 120; t++) {
+    const ctx = { have: new Set(), count: new Map() }, days = M.set.times.map(c => pickDay(c, ctx, null, .8));
+    const j = days.reduce((s, d) => s + d.fit, 0) - V.ing * [...ctx.have].reduce((s, k) => s + ingW(k), 0) - V.rep * [...ctx.count.values()].reduce((s, n) => s + Math.max(0, n - 1), 0);
+    if (j > bj) { bj = j; best = days; }
+  }
+  M.plan = { week: weekId(), v: 2, days: best.map(finalizeDay) };
   M.shop = []; mealSave();
 }
+const weekIngredients = () => new Set(M.plan.days.flatMap(d => d.items.flatMap(it => RBY[it.rid].ing.map(g => g[0])))).size;
+const timesInWeek = rid => M.plan.days.reduce((s, d) => s + d.items.filter(i => i.rid === rid).length, 0);
 function ensureMeals() {
   if (!M.set) return false;
-  if (!M.plan || M.plan.week !== weekId()) buildWeek();
+  if (!M.plan || M.plan.week !== weekId() || M.plan.v !== 2) buildWeek(); // v2: ingredient-aware planner
   return true;
 }
 // Warn when diet and allergy filters leave very few recipes.
@@ -88,13 +138,14 @@ function fmtAmt(k, g, up = false) {
 const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Training</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
 
 function mealSetup() {
-  const st = M.set || { diet: 'any', avoid: [], meals: 4, times: [30, 30, 30, 30, 30, 60, 60] };
-  const draft = { ...st, avoid: [...st.avoid], times: [...st.times] };
+  const st = M.set || { diet: 'any', avoid: [], meals: 4, variety: 'simple', times: [30, 30, 30, 30, 30, 60, 60] };
+  const draft = { ...st, variety: st.variety || 'simple', avoid: [...st.avoid], times: [...st.times] };
   const wd = draft.times[0], we = draft.times[5];
   const ch = (key, opts, sel, multi) => `<div class="chips" data-k="${key}" ${multi ? 'data-multi="1"' : ''}>${opts.map(([v, l]) => `<button type="button" class="chip ${(multi ? sel.includes(v) : String(sel) === String(v)) ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>`;
   view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your plan targets about ${target().kcal} kcal and ${target().protein} g protein a day.</p>
   <div class="lbl">Diet</div>${ch('diet', Object.entries(DIETS), draft.diet)}
   <div class="lbl">Avoid</div>${ch('avoid', Object.entries(AVOID).map(([k, v]) => [k, v[0]]), draft.avoid, true)}
+  <div class="lbl">Variety</div>${ch('variety', Object.entries(VARIETY).map(([k, v]) => [k, v.name]), draft.variety || 'simple')}<div class="mut" id="vdesc">${VARIETY[draft.variety || 'simple'].desc}</div>
   <div class="lbl">Meals per day</div>${ch('meals', [[3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], draft.meals)}
   <div class="lbl">Time to cook on weekdays</div>${ch('wd', Object.entries(COOK), wd)}
   <div class="lbl">Time to cook on weekends</div>${ch('we', Object.entries(COOK), we)}
@@ -105,7 +156,7 @@ function mealSetup() {
     const k = box.dataset.k, v = c.dataset.v;
     if (box.dataset.multi) { const i = draft.avoid.indexOf(v); if (i >= 0) draft.avoid.splice(i, 1); else draft.avoid.push(v); c.classList.toggle('on'); return; }
     box.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === c));
-    if (k === 'diet') draft.diet = v; else if (k === 'meals') draft.meals = +v;
+    if (k === 'diet') draft.diet = v; else if (k === 'variety') { draft.variety = v; $('#vdesc').textContent = VARIETY[v].desc; } else if (k === 'meals') draft.meals = +v;
     else draft.times = draft.times.map((t, i) => (k === 'wd' ? i < 5 : i >= 5) ? +v : t);
   }));
   const note = () => { $('#fnote').innerHTML = filterNotes(draft).map(esc).join('<br>'); };
@@ -125,9 +176,11 @@ function mealsView(arg) {
   <section class="card"><div class="row between"><h3>${Math.round(t.kcal)} kcal planned</h3><span class="mut">target ${a.kcal}</span></div>
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div><div class="mut">${Math.round(t.eat)} kcal eaten so far</div>
   ${bar('Protein', t.p, a.protein, 'pr')}${bar('Carbs', t.c, a.carbs, 'cb')}${bar('Fat', t.f, a.fat, 'ft')}</section>
+  ${(() => { const avgP = M.plan.days.reduce((x, y) => x + dayTotals(y).p, 0) / 7; return avgP < a.protein * .9 ? `<p class="mut">💡 This week averages ${Math.round(avgP)} g protein against a ${a.protein} g target. A longer cooking time, "Balanced" variety or a protein snack closes the gap.</p>` : ''; })()}
+  <div class="mut">🛒 ${weekIngredients()} ingredients this week · ${VAR().name} · <a href="#/meals/setup" style="color:var(--acc2)">change</a></div>
   <div class="lbl">Time to cook this day</div>
   <div class="chips">${Object.entries(COOK).map(([v, l]) => `<button class="chip ${+v === d.cook ? 'on' : ''}" onclick="setCook(${mDay},${v})">${l}</button>`).join('')}</div>
-  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.chef ? ' · ⭐ Chef' : ''}</div><div class="qt">${esc(r.name)}</div>
+  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.chef ? ' · ⭐ Chef' : ''}${timesInWeek(it.rid) > 1 ? ` · ×${timesInWeek(it.rid)} this week` : ''}</div><div class="qt">${esc(r.name)}</div>
   <div class="mut">${Math.round(n.kcal * it.k)} kcal · P ${Math.round(n.p * it.k)} · C ${Math.round(n.c * it.k)} · F ${Math.round(n.f * it.k)}</div></div><span class="chk">${it.eaten ? '✓' : ''}</span></a>`; }).join('')}
   ${filterNotes(M.set).map(n => `<p class="mut">⚠️ ${esc(n)}</p>`).join('')}
   <button class="btn" onclick="location.hash='#/shop'">🛒 Shopping list</button>
@@ -139,8 +192,7 @@ function mealsView(arg) {
 window.mealDay = i => { mDay = i; mealsView(); };
 window.rebuildWeek = () => { buildWeek(); mealsView(); toast('New week planned'); };
 window.setCook = (di, t) => {
-  const used = new Set(M.plan.days.flatMap((x, i) => i === di ? [] : x.items.map(it => it.rid)));
-  M.plan.days[di] = buildDay(di, t, used, M.plan.days[di].items); mealSave(); mealsView();
+  M.plan.days[di] = buildDay(di, t, M.plan.days[di].items); mealSave(); mealsView();
 };
 
 function recipeView() {
@@ -168,10 +220,11 @@ window.toggleEat = (di, ii) => {
 };
 window.swapMeal = (di, ii) => {
   const d = M.plan.days[di], it = d.items[ii], a = target();
-  const usedDay = new Set(d.items.map(x => x.rid)), usedWeek = new Set(M.plan.days.flatMap(x => x.items.map(y => y.rid)));
-  const r = pickRecipe(it.kind, a.kcal * it.share, d.cook, usedDay, usedWeek);
-  if (!r) { toast('No other recipe fits your filters.'); return; }
-  it.rid = r.id; it.k = portion(r, a.kcal * it.share); it.eaten = false; it.xp = 0; mealSave(); recipeView();
+  const usedDay = new Set(d.items.map(x => x.rid)), ctx = weekCtx(M.plan.days, +di);
+  d.items.forEach((x, j) => { if (j !== +ii) RBY[x.rid].ing.forEach(([k]) => ctx.have.add(k)); });
+  const pk = pickRecipe(it.kind, a.kcal * it.share, d.cook, usedDay, ctx, 1.5, a);
+  if (!pk) { toast('No other recipe fits your filters.'); return; }
+  const r = pk.r; it.rid = r.id; it.k = portion(r, a.kcal * it.share); it.eaten = false; it.xp = 0; mealSave(); recipeView();
 };
 
 function shopView() {
