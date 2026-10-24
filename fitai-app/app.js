@@ -148,8 +148,12 @@ function exSecs(it) {
 }
 const WARMUP = 7 * 60;
 // cardio: none, at the start (it doubles as the warm-up) or at the end; fat loss defaults to the end
-const cardioPos = p => p.cardio || (p.goal === 'fat' ? 'end' : 'none');
-const cardioMin = p => (p.minutes <= 30 ? 8 : p.minutes <= 45 ? 10 : 12);
+// every plan includes cardio unless you turn it off; it and the stretching grow with the session
+const cardioPos = p => p.cardio || 'end';
+const cardioMin = p => (p.minutes <= 30 ? 8 : p.minutes <= 45 ? 10 : p.minutes <= 60 ? 12 : p.minutes <= 75 ? 15 : p.minutes <= 90 ? 20 : 25);
+const stretchCount = p => (p.minutes <= 45 ? 1 : p.minutes <= 75 ? 2 : 3);
+const SESSIONS = [30, 45, 60, 75, 90, 120];
+const sessionLabel = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60}` : ''}`);
 const planMinutes = d => Math.round(((/min/.test(String(d.items[0]?.reps)) ? 180 : WARMUP) + d.items.reduce((a, it) => a + exSecs(it), 0)) / 60);
 // plans made before the time budget had too many exercises for the session: drop strength exercises from the end until it fits
 if (S.plan && !S.plan.timed && S.profile) {
@@ -164,7 +168,6 @@ function generatePlan(p) {
   const r = rng(Date.now() & 0xffffff), have = equipSet(p);
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
   const cardio = EX.filter(e => e.c === 'cardio' && allowed(e, p, new Set([...have, 'machine', 'other'])) && e.e !== 'other');
-  const per = p.minutes <= 30 ? 4 : p.minutes <= 45 ? 6 : 8;
   let [sets, reps, rest] = SCHEME[p.goal];
   if (p.age >= 50) rest += 15;
   if (p.level === 'beginner') sets = Math.min(sets, 3);
@@ -177,14 +180,14 @@ function generatePlan(p) {
     used.add(c[0].id); return c[0];
   };
   const days = SPLITS[p.days].map((kind, di) => {
-    const slots = DAYS[kind].slice(0, per), allow = KIND_MUSCLES[kind];
+    const slots = [...DAYS[kind], ...DAYS[kind], ...DAYS[kind]], allow = KIND_MUSCLES[kind]; // long sessions go round the muscles again
     const extra = shuffle(focusMuscles.filter(m => !allow || allow.includes(m)), r).slice(0, 2);
     extra.forEach((m, i) => slots.splice(2 + i, 0, m));
     // cardio and a stretch first take their time from the session; strength exercises fill what is left, at least 2
     const tail = [], pos = cardioPos(p), cIt = pos !== 'none' && cardio.length ? { id: shuffle(cardio, r)[0].id, sets: 1, reps: `${cardioMin(p)} min`, rest: 0 } : null;
     if (cIt) tail.push(cIt);
-    const st = shuffle(EX.filter(e => e.c === 'stretching' && allowed(e, p, have) && (!allow || allow.includes(e.m[0]) || e.m[0] === 'abdominals')), r)[0];
-    if (st) tail.push({ id: st.id, sets: 1, reps: '30s', rest: 20 });
+    shuffle(EX.filter(e => e.c === 'stretching' && allowed(e, p, have) && (!allow || allow.includes(e.m[0]) || e.m[0] === 'abdominals')), r)
+      .slice(0, stretchCount(p)).forEach(st => tail.push({ id: st.id, sets: 1, reps: '30s', rest: 20 }));
     let left = p.minutes * 60 - (pos === 'start' && cIt ? 180 : WARMUP) - tail.reduce((a, it) => a + exSecs(it), 0); // cardio first leaves a short warm-up
     const items = [];
     for (const m of slots) {
@@ -195,6 +198,11 @@ function generatePlan(p) {
     }
     if (cIt && pos === 'start') { items.unshift(cIt); tail.shift(); }
     items.push(...tail);
+    // short sessions: if the minimum of exercises runs over, shorten the cardio (5 minutes at least), then drop extra stretches
+    const over = () => (pos === 'start' && cIt ? 180 : WARMUP) + items.reduce((a, it) => a + exSecs(it), 0) - p.minutes * 60;
+    if (cIt && over() > 60) cIt.reps = `${Math.max(5, cardioMin(p) - Math.ceil((over() - 60) / 60))} min`;
+    while (over() > 60 && items.filter(it => BY[it.id]?.c === 'stretching').length > 1) items.splice(items.findLastIndex(it => BY[it.id]?.c === 'stretching'), 1);
+    for (let k = items.length - 1; k >= 0 && over() > 60; k--) if (!/min|s$/.test(String(items[k].reps)) && items[k].sets > 2) { items[k].sets--; k++; } // and one set less, down to 2
     return { name: `Day ${di + 1} · ${KIND_NAME[kind]}`, kind, items };
   });
   return { created: Date.now(), days, timed: 1 };
@@ -259,7 +267,7 @@ function onboarding(edit) {
       ${num('f-target', 'Target weight (optional)', p.target, 'kg', 'min="30" max="250" step="0.1"')}`,
     () => `<div class="lbl">Experience</div>${chips('level', LEVELS.map(l => [l, cap(l)]), p.level)}
       <div class="lbl">Days per week</div>${chips('days', [2, 3, 4, 5, 6].map(d => [d, d]), p.days)}
-      <div class="lbl">Time per session</div>${chips('minutes', [30, 45, 60].map(m => [m, m + ' min']), p.minutes)}
+      <div class="lbl">Time per session</div>${chips('minutes', SESSIONS.map(m => [m, sessionLabel(m)]), p.minutes)}
       <div class="lbl">Cardio</div>${chips('cardio', [['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']], cardioPos(p))}
       <div class="lbl">Equipment you can use</div>${chips('equipment', Object.entries(EQUIP), p.equipment, true)}`,
     () => `<div class="lbl">Want extra work on something?</div>${chips('focus', Object.entries(FOCUS).map(([k, v]) => [k, v[0]]), p.focus, true)}
