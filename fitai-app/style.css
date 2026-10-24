@@ -210,3 +210,8 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .moreb{display:inline-block;margin:4px 0 0}
 .bst{color:var(--ok)}
 .sw .btn.sm,.sw .eq{margin-top:auto}
+/* exercise ranks */
+.rk{display:inline-flex;align-items:center;padding:3px 12px;border-radius:99px;font:700 15px/1.2 var(--disp);letter-spacing:.06em;text-transform:uppercase;color:#10131a;background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 55%,#fff));box-shadow:0 0 14px color-mix(in srgb,var(--c) 40%,transparent)}
+.rkbar{height:8px;border-radius:99px;background:var(--card2);overflow:hidden;margin:10px 0 6px}.rkbar i{display:block;height:100%;border-radius:99px;min-width:4px}
+.rkline{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}.rkline b{font-size:14px}
+.rkladder{margin-top:10px}.rkladder summary{cursor:pointer;color:var(--acc2)}.rkrow{display:flex;gap:10px;align-items:center;padding:7px 8px;border-radius:12px;margin-top:6px}.rkrow.on{background:var(--card2);outline:1px solid var(--line)}.rkrow .rk{min-width:92px;justify-content:center}

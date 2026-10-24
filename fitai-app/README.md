@@ -20,6 +20,10 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 ## Gym pass
 The Hero tab and the Today screen have an **Open Synergym** button that launches the Synergym member app on Android (default app id `digifit.android.virtuagym.pro.synergym`, editable under "Wrong app opens?"). FitQuest never handles your Synergym login. If your gym's QR is fixed you can also save a screenshot of it and show it full screen; a code that changes each time cannot be saved.
 
+## Exercise ranks
+
+Every exercise with weights or reps gets a rank from Iron through Bronze, Silver, Gold, Platinum and Diamond up to Legend, based on your best set. The Gold standard is a typical intermediate lifter, scaled to your age, height, weight and sex (lean mass is estimated from height and weight). Loaded lifts use an estimated one-rep max; bodyweight moves use reps. Ranks show on the exercise page, during workouts and on the Progress screen, and a rank-up in a workout gives bonus XP. Standards are rough estimates in `ranks.js`.
+
 ## Languages
 
 English and Spanish. The language is picked from the phone on first run and can be switched at any time in the Hero screen (or on the first setup page). The app text is written in English; when Spanish is selected, `i18n.js` translates every piece of text as it reaches the screen, using `es-ui.js` (interface), `es-food.js` (ingredients, recipes, steps) and `data/es-exercises.json` (exercise names and instructions, loaded only in Spanish). Anything without a translation simply stays in English.
