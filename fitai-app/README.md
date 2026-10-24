@@ -55,6 +55,10 @@ Swipe left or right to move between the tab bar's sections (Today, Plan, Dungeon
 
 Today is six circles that fill the screen: Train in the middle (next workout and the dungeon of the day), with Quests (daily quests and the weekly boss), Loot (daily check-in and chests), Meals (meals and fuel), Earn (the bets and the ways to earn themselves, right inside the circle) and the Academy around it. Each circle shows a value and a progress ring, and a "!" when something is ready to claim. Tapping one grows it into a panel with what is inside; ✕, the back button or Esc shrink it back. Every interface draws its own animated rings (turning gears, swaying vines and laurels, a rocking rope, flickering torchlight, neon, pixels...), a soft light runs over panel frames, and every avatar ring moves, built by `tools/build_skins.py` (code in `bubbles.js`).
 
+## Change ingredients
+
+In any recipe of the meal plan, each ingredient's ⋯ button offers up to four replacements (same aisle, allowed by your diet, closest in protein, carbs and fat balance and in calories per gram) or leaving it out, for that meal or ticked for all your meals. A replacement keeps the calories of what it replaces; calories, macros, the day's totals and the shopping list all follow the changes, and ↺ undoes one.
+
 ## Off-plan food judge
 
 "Ate something off the plan?" (in the Meals circle on Today and on the Meals screen): describe it in your own words, in Spanish or English ("una hamburguesa con patatas fritas y una coca-cola", "grilled chicken with salad"), and FitQuest judges it offline (`foodlog.js`).
