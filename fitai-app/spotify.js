@@ -283,6 +283,14 @@ const spSearch = (q, tab = '') => `https://open.spotify.com/search/${encodeURICo
 // otherwise Apple's public music search finds the song and Songlink (song.link) turns it into its Spotify link.
 // Found ids are kept, so each song is looked up once. If anything fails, the button falls back to Spotify's search.
 SPF.ids = SPF.ids || {};
+// ids found ahead of time for the whole song list (data/song_ids.json, made by tools/resolve_song_ids.py)
+let SONG_IDS = {};
+fetch('data/song_ids.json').then(r => r.json()).then(j => {
+  SONG_IDS = j || {};
+  const s = songOfDay(), id = SONG_IDS[`${s.t}|${s.a}`];
+  if (id) document.querySelectorAll('.songday a.spplay').forEach(a => { a.href = spTrackUrl(id); });
+}).catch(() => { /* not made yet, or offline */ });
+const knownId = (t, a) => SPF.ids[`${t}|${a}`] || SONG_IDS[`${t}|${a}`];
 function jsonp(url) {
   return new Promise((ok, no) => {
     const cb = 'fqjp' + Math.random().toString(36).slice(2), sc = document.createElement('script');
@@ -296,7 +304,7 @@ function jsonp(url) {
 const SP_LOOKING = {};
 async function spTrackId(t, a) {
   const key = `${t}|${a}`;
-  if (SPF.ids[key]) return SPF.ids[key];
+  if (knownId(t, a)) return knownId(t, a);
   if (SP_LOOKING[key]) return SP_LOOKING[key];
   return (SP_LOOKING[key] = (async () => {
     const who = a.split(/ & |, | feat\. /)[0];
@@ -320,8 +328,8 @@ async function spTrackId(t, a) {
 const spTrackUrl = id => `https://open.spotify.com/track/${id}`;
 // tapping Play: straight to the song when its id is known, otherwise look it up first (search as the last resort)
 window.spPlaySong = async ev => {
-  const s = songOfDay(), id = SPF.ids[`${s.t}|${s.a}`];
-  if (id) return; // the link already points at the song
+  const s = songOfDay(), id = knownId(s.t, s.a);
+  if (id) { ev.currentTarget.href = spTrackUrl(id); return; } // the link points at the song
   ev.preventDefault();
   const a = ev.currentTarget; a.classList.add('sppulse');
   const found = await spTrackId(s.t, s.a);
@@ -330,7 +338,7 @@ window.spPlaySong = async ev => {
 };
 
 function songCard() {
-  const s = songOfDay(), id = SPF.ids[`${s.t}|${s.a}`];
+  const s = songOfDay(), id = knownId(s.t, s.a);
   // find the song's own link in the background, so the button opens it directly
   if (!id) spTrackId(s.t, s.a).then(found => { if (found) document.querySelectorAll('.songday a.spplay').forEach(a => { a.href = spTrackUrl(found); }); });
   return `<section class="card songday"><div class="row between"><h3>${spLogo} Song of the day</h3><span class="chip on" translate="no">${esc(s.name)}</span></div>
