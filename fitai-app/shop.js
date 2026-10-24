@@ -48,6 +48,9 @@ function preview(i) {
     : `<div class="bnp bn-${i.key}"></div>`;
 }
 // a mini card drawn in that panel style
+// themes recolour the Sci-fi HUD; other interfaces keep their own colours
+const themeNote = () => { const k = G.skin || 'hud'; if (k === 'hud') return ''; const it = ITEMS.find(i => i.type === 'skin' && i.key === k);
+  return `<div class="mut themenote">${it.emo} Themes recolour the Sci-fi HUD interface. ${esc(it.name)} uses its own colours.</div>`; };
 const skinPrev = i => `<div class="skp" data-sk="${i.key}">${i.emo}</div>`;
 const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></div>`;
 function tile(i) {
@@ -70,7 +73,7 @@ function shopView() {
   <h2 class="sec">Rings · ${owned('frame')}/${by('frame').length}</h2><div class="grid3">${by('frame').map(tile).join('')}</div>
   <h2 class="sec">Banners · ${owned('banner')}/${by('banner').length}</h2><div class="grid2">${by('banner').map(tile).join('')}</div>
   <h2 class="sec">Panel styles · ${owned('panel')}/${by('panel').length}</h2><div class="grid2">${by('panel').map(tile).join('')}</div>
-  <h2 class="sec">App themes · ${owned('theme')}/${by('theme').length}</h2><div class="grid2">${by('theme').map(tile).join('')}</div>`;
+  <h2 class="sec">App themes · ${owned('theme')}/${by('theme').length}</h2>${themeNote()}<div class="grid2">${by('theme').map(tile).join('')}</div>`;
 }
 
 // ---------- Badges ----------
@@ -102,7 +105,7 @@ function profileView() {
   <h2 class="sec">Banner</h2><div class="pgrid wide">${mine('banner').map(i => pick(i, `<span class="bnp bn-${i.key}"></span>`)).join('')}</div>${more('banner')}
   <h2 class="sec">Interface</h2><div class="pgrid wide">${mine('skin').map(i => pick(i, skinPrev(i))).join('')}</div>${more('skin')}
   <h2 class="sec">Panel style</h2><div class="pgrid wide">${mine('panel').map(i => pick(i, panelPrev(i.key))).join('')}</div>${more('panel')}
-  <h2 class="sec">Theme</h2><div class="pgrid">${mine('theme').map(i => pick(i, `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>`)).join('')}</div>${more('theme')}
+  <h2 class="sec">Theme</h2>${themeNote()}<div class="pgrid">${mine('theme').map(i => pick(i, `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>`)).join('')}</div>${more('theme')}
   <h2 class="sec">Title</h2><div class="chips"><button class="chip ${G.title ? '' : 'on'}" onclick="equipTitle('')">${TITLES.filter(t => t[0] <= L).at(-1)[1]} · by level</button>
     ${titles.map(x => `<button class="chip ${G.title === x.id ? 'on' : ''}" onclick="equipTitle('${x.id}')">${x.t}</button>`).join('')}</div>
   <div class="mut">More titles come from badges.</div>

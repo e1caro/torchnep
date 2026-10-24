@@ -76,11 +76,11 @@ html[data-theme=toxic]{--bg:#080d07;--card:#101a0e;--card2:#192a15;--line:#27401
 html[data-theme=royal]{--bg:#0c0913;--card:#171024;--card2:#221836;--line:#37285a;--glow:#2a1450;--acc:#a66bff;--acc2:#ffd166}
 html[data-theme=gold]{--bg:#0d0a04;--card:#19140a;--card2:#261e0e;--line:#4a3a14;--glow:#3a2a06;--acc:#ffd34d;--acc2:#fff1a8}
 html[data-theme=retro]{--bg:#0a0620;--card:#150d38;--card2:#1f1450;--line:#3a2a80;--glow:#2a0f5a;--acc:#ff3d7f;--acc2:#ffe14d;--disp:'Press Start 2P','Courier New',monospace}
-html[data-theme=retro] h1{font-size:20px;line-height:1.3}html[data-theme=retro] h2{font-size:14px;line-height:1.3}html[data-theme=retro] h3{font-size:11px;line-height:1.4}
-html[data-theme=retro] .stat b{font-size:14px}html[data-theme=retro] .bignum{font-size:56px}html[data-theme=retro] .lvup{font-size:16px}html[data-theme=retro] .ring b,html[data-theme=retro] .wnum b{font-size:18px}
-html[data-theme=retro] .opt b,html[data-theme=retro] .lbl{font-size:11px}html[data-theme=retro] #rest .t{font-size:56px}
-html[data-theme=retro] .card,html[data-theme=retro] .btn,html[data-theme=retro] .quest,html[data-theme=retro] .stat{border-radius:4px}
-html[data-theme=retro] body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,#0000 0 2px,#0000001f 2px 3px);z-index:20}
+html[data-theme=retro][data-skin=hud] h1{font-size:20px;line-height:1.3}html[data-theme=retro][data-skin=hud] h2{font-size:14px;line-height:1.3}html[data-theme=retro][data-skin=hud] h3{font-size:11px;line-height:1.4}
+html[data-theme=retro][data-skin=hud] .stat b{font-size:14px}html[data-theme=retro][data-skin=hud] .bignum{font-size:56px}html[data-theme=retro][data-skin=hud] .lvup{font-size:16px}html[data-theme=retro][data-skin=hud] .ring b,html[data-theme=retro][data-skin=hud] .wnum b{font-size:18px}
+html[data-theme=retro][data-skin=hud] .opt b,html[data-theme=retro][data-skin=hud] .lbl{font-size:11px}html[data-theme=retro][data-skin=hud] #rest .t{font-size:56px}
+html[data-theme=retro][data-skin=hud] .card,html[data-theme=retro][data-skin=hud] .btn,html[data-theme=retro][data-skin=hud] .quest,html[data-theme=retro][data-skin=hud] .stat{border-radius:4px}
+html[data-theme=retro][data-skin=hud] body::after{content:"";position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,#0000 0 2px,#0000001f 2px 3px);z-index:20}
 
 /* ---- game HUD ---- */
 .hud{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,var(--glow),var(--card) 80%);border:1px solid var(--line);border-radius:20px;padding:12px;margin-bottom:6px}
@@ -136,9 +136,9 @@ html[data-theme=sakura]{--bg:#120a10;--card:#1e1019;--card2:#2c1825;--line:#4a2a
 html[data-theme=ocean]{--bg:#050d14;--card:#0b1a26;--card2:#112a3b;--line:#1b4660;--glow:#06304a;--acc:#2ee6d6;--acc2:#3a8dff}
 html[data-theme=lava]{--bg:#0e0605;--card:#1c0e0a;--card2:#2c1610;--line:#552212;--glow:#4a1405;--acc:#ff4b1f;--acc2:#ffd000}
 html[data-theme=matrix]{--bg:#020a05;--card:#07160c;--card2:#0c2414;--line:#14452a;--glow:#04281a;--acc:#2bff88;--acc2:#b7ffd8;--disp:'Courier New',ui-monospace,monospace;--body:ui-monospace,'Courier New',monospace}
-html[data-theme=matrix] h1,html[data-theme=matrix] h2,html[data-theme=matrix] h3{letter-spacing:0}
+html[data-theme=matrix][data-skin=hud] h1,html[data-theme=matrix][data-skin=hud] h2,html[data-theme=matrix][data-skin=hud] h3{letter-spacing:0}
 html[data-theme=aurora]{--bg:#050a14;--card:#0c1624;--card2:#142238;--line:#243a5c;--glow:#10274a;--acc:#5cffc8;--acc2:#b46bff}
-html[data-theme=aurora] body{background:radial-gradient(90% 40% at 20% -5%,#1b6b5a66,#0000 70%),radial-gradient(90% 40% at 90% 0,#6b3bb066,#0000 70%),var(--bg)}
+html[data-theme=aurora][data-skin=hud] body{background:radial-gradient(90% 40% at 20% -5%,#1b6b5a66,#0000 70%),radial-gradient(90% 40% at 90% 0,#6b3bb066,#0000 70%),var(--bg)}
 
 /* ---- avatar rings ---- */
 .av::after{content:"";position:absolute;inset:-5px;border-radius:50%;pointer-events:none;-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 3px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,#0000 calc(100% - 3px),#000 calc(100% - 2px))}

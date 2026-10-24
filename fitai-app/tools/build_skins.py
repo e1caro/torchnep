@@ -390,6 +390,8 @@ PREVIEW = """
   padding:8px 8px 8px 14px;background:color-mix(in srgb,var(--acc) 12%,var(--bg));border:1px solid var(--acc);border-radius:var(--r,0);box-shadow:0 6px 24px #000a,0 0 18px color-mix(in srgb,var(--acc) 30%,transparent);font-weight:700;font-size:14px;max-width:576px;margin:0 auto}
 #trybar span{font-variant-numeric:tabular-nums}
 body.focus #trybar{bottom:calc(16px + env(safe-area-inset-bottom))}
+/* note under Themes when another interface is on */
+.themenote{margin:-2px 0 8px;padding:8px 10px;border-left:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
 """
 
 OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + PREVIEW)
