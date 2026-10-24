@@ -51,6 +51,11 @@ Local test: `python3 -m http.server -d fitai-app 8000`.
 
 Today is six circles that fill the screen: Train in the middle (next workout and the dungeon of the day), with Quests (daily quests and the weekly boss), Loot (daily check-in and chests), Meals (meals and fuel), Earn (the bets and the ways to earn themselves, right inside the circle) and the Academy around it. Each circle shows a value and a progress ring, and a "!" when something is ready to claim. Tapping one grows it into a panel with what is inside; ✕, the back button or Esc shrink it back. Every interface draws its own animated rings (turning gears, swaying vines and laurels, a rocking rope, flickering torchlight, neon, pixels...), a soft light runs over panel frames, and every avatar ring moves, built by `tools/build_skins.py` (code in `bubbles.js`).
 
+## Weekly summary and coach
+
+- **Weekly summary:** a story of the week, with full-screen slides that advance on their own or with a tap, animated numbers and bars, and comparisons with the week before. It covers workouts, minutes, kilos, sets and reps, the muscles worked, new records, the best workout, the training days and streak, XP, the boss, and a week grade (A+ to C), and you can share it. It opens by itself the first time you use the app in a new week, and from Progress at any time (this week so far, or last week).
+- **Coach:** a line on Today that changes with your day. It mentions bets ending tonight or still open and what they pay, the daily quests left or ready to claim, your training streak and the weekly boss, and ends with a short motivational line. Tap it for the next message.
+
 ## Workout music (Spotify)
 
 Works for everyone without linking an account: pick the genres you train to and/or paste your Spotify playlist links (Hero > Music, or Today > Train). Each workout suggests a different one: one of your playlists with Spotify's built-in player, or workout playlists of one of your genres opened in Spotify ("Rock gym", "Reggaeton training"...). "Something else" moves to the next suggestion.
