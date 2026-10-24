@@ -138,7 +138,7 @@ function refine(days, only) {
 // Scales the portions so the day lands on the calorie target.
 function finalizeDay(d) {
   const a = target(), total = d.items.reduce((s, it) => s + nutFast(RBY[it.rid]).kcal * it.k, 0), f = a.kcal / total;
-  if (Math.abs(f - 1) > .02) d.items.forEach(it => { if (!it.eaten) it.k = Math.round(clamp(it.k * f, PMIN, PMAX) * 20) / 20; });
+  if (Math.abs(f - 1) > .02) d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, PMAX) * 20) / 20; });
   delete d.fit; return d;
 }
 
@@ -285,6 +285,12 @@ window.setCook = (di, t) => {
   M.plan.days[di] = buildDay(di, t, M.plan.days[di].items); mealSave(); mealsView();
 };
 
+// Serving size chosen by appetite: kept by the planner, and used for kcal, macros and the shopping list.
+const HUNGER = [['Not very hungry', .75], ['Normal hunger', 1], ['Hungry', 1.25], ['Very hungry', 1.5]];
+window.setPortion = (di, ii, k) => {
+  const it = M.plan?.days[+di]?.items[+ii]; if (!it) return;
+  it.k = Math.round(clamp(k, .5, 2) * 20) / 20; it.userK = 1; mealSave(); sfx('tick'); recipeView();
+};
 function recipeView() {
   const [, , di, ii] = location.hash.split('/'), d = M.plan?.days[+di], it = d?.items[+ii];
   if (!it) { location.hash = '#/meals'; return; }
@@ -293,8 +299,11 @@ function recipeView() {
   <div class="rhero">${r.ico}</div><div class="mut">${DAYN[+di]} · ${it.slot}</div><h1>${esc(r.name)}</h1>
   <div class="grid4"><div class="stat"><b>${Math.round(n.kcal * it.k)}</b><span>kcal</span></div><div class="stat"><b>${Math.round(n.p * it.k)}g</b><span>protein</span></div>
   <div class="stat"><b>${Math.round(n.c * it.k)}g</b><span>carbs</span></div><div class="stat"><b>${Math.round(n.f * it.k)}g</b><span>fat</span></div></div>
-  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}${r.ai ? `<span class="chip on">${gi('leaf')} Anti-inflammatory</span>` : ''}<span class="chip">1 person · ${it.k < .95 ? 'light serving' : it.k > 1.05 ? 'hearty serving' : 'standard serving'}</span></div>
+  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}${r.ai ? `<span class="chip on">${gi('leaf')} Anti-inflammatory</span>` : ''}<span class="chip">1 person · ${it.k < .95 ? 'light serving' : it.k > 1.3 ? 'large serving' : it.k > 1.05 ? 'hearty serving' : 'standard serving'}</span></div>
   ${r.ai ? `<p class="mut">${gi('leaf')} Rich in ${r.aiGood.slice(0, 4).map(k => ING[k][0].toLowerCase()).join(', ')}. No red meat, refined pasta or added sugar.</p>` : ''}
+  <section class="card hunger"><div class="row between"><h3>How hungry are you?</h3><span class="mut">×${it.k.toFixed(2)}</span></div>
+    <div class="chips">${HUNGER.map(([l, k]) => `<button class="chip ${Math.abs(it.k - k) < .03 ? 'on' : ''}" onclick="setPortion(${di},${ii},${k})">${l}</button>`).join('')}</div>
+    <div class="row"><button class="btn sm ghost" aria-label="Less food" onclick="setPortion(${di},${ii},${it.k - .1})">− Less</button><span class="grow"></span><button class="btn sm ghost" aria-label="More food" onclick="setPortion(${di},${ii},${it.k + .1})">+ More</button></div></section>
   <h2 class="sec">Ingredients</h2><div class="card">${r.ing.map(([k, g]) => `<div class="row between ing"><span>${ING[k][0]}</span><b>${fmtAmt(k, g * it.k)}</b></div>`).join('')}
   <div class="mut">Plus salt, pepper, herbs and spices to taste.</div></div>
   <h2 class="sec">Steps</h2><ol class="how">${r.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
@@ -315,7 +324,7 @@ window.swapMeal = (di, ii) => {
   d.items.forEach((x, j) => { if (j !== +ii) RBY[x.rid].ing.forEach(([k]) => ctx.have.add(k)); });
   const pk = pickRecipe(it.kind, a.kcal * it.share, d.cook, usedDay, ctx, 1.5, a);
   if (!pk) { toast('No other recipe fits your filters.'); return; }
-  const r = pk.r; it.rid = r.id; it.k = portion(r, a.kcal * it.share); it.eaten = false; it.xp = 0; mealSave(); recipeView();
+  const r = pk.r; it.rid = r.id; it.k = it.userK ? it.k : portion(r, a.kcal * it.share); it.eaten = false; it.xp = 0; mealSave(); recipeView();
 };
 
 function shopView() {
