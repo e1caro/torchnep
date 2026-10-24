@@ -1,0 +1,231 @@
+'use strict';
+// Spotify: link your account and get a fresh playlist for each workout, built from energetic songs you like
+// plus a few new ones from the same artists. It runs in the browser with Spotify's PKCE sign-in (no server, no secret).
+// It needs the Client ID of a Spotify app: set SPOTIFY_CLIENT_ID below, or paste one in Hero > Music.
+const SPOTIFY_CLIENT_ID = '';
+const SP_SCOPES = 'user-top-read user-library-read user-read-private playlist-modify-private playlist-modify-public';
+const SPF = Object.assign({ cid: '', tok: '', exp: 0, refresh: '', user: null, used: [], lists: {} }, load('spotify', {}));
+const spoSave = () => save('spotify', SPF);
+const spCid = () => SPF.cid || SPOTIFY_CLIENT_ID;
+const spOn = () => !!(spCid() && SPF.refresh);
+const spRedirect = () => location.origin + location.pathname.replace(/index\.html$/, '');
+const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+let SP_BUSY = false;
+
+// ---------- sign-in ----------
+window.spConnect = async () => {
+  if (!spCid()) { location.hash = '#/me'; toast('Add your Spotify Client ID first.'); return; }
+  const ver = b64url(crypto.getRandomValues(new Uint8Array(48)));
+  const chal = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ver)));
+  const state = b64url(crypto.getRandomValues(new Uint8Array(12)));
+  save('spPkce', { ver, state, back: location.hash || '#/home' });
+  location.href = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    client_id: spCid(), response_type: 'code', redirect_uri: spRedirect(), code_challenge_method: 'S256', code_challenge: chal, state, scope: SP_SCOPES,
+  });
+};
+window.spDisconnect = () => { Object.assign(SPF, { tok: '', exp: 0, refresh: '', user: null, lists: {} }); spoSave(); spRefreshView(); };
+window.spSetCid = () => {
+  const v = (document.querySelector('#spcid')?.value || '').trim();
+  if (!/^[0-9a-f]{32}$/i.test(v)) { toast('That does not look like a Client ID (32 letters and numbers).'); return; }
+  SPF.cid = v; spoSave(); spRefreshView();
+};
+window.spEditCid = () => { SPF.cid = ''; SPF.refresh = ''; SPF.tok = ''; spoSave(); spRefreshView(); };
+
+async function spTokenCall(params) {
+  const r = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: spCid(), ...params }),
+  });
+  if (!r.ok) throw new Error('auth');
+  const j = await r.json();
+  SPF.tok = j.access_token; SPF.exp = Date.now() + j.expires_in * 1000; if (j.refresh_token) SPF.refresh = j.refresh_token;
+  spoSave();
+}
+async function spToken() {
+  if (SPF.tok && Date.now() < SPF.exp - 60000) return SPF.tok;
+  if (!SPF.refresh) throw new Error('auth');
+  try { await spTokenCall({ grant_type: 'refresh_token', refresh_token: SPF.refresh }); } catch (e) { spDisconnect(); throw e; }
+  return SPF.tok;
+}
+async function spApi(path, opt = {}, tries = 2) {
+  const r = await fetch(path.startsWith('http') ? path : 'https://api.spotify.com/v1' + path, { ...opt, headers: { Authorization: 'Bearer ' + await spToken(), 'Content-Type': 'application/json' } });
+  if (r.status === 429 && tries > 0) { await new Promise(ok => setTimeout(ok, 1000 * Math.min(5, +r.headers.get('Retry-After') || 1))); return spApi(path, opt, tries - 1); }
+  if (r.status === 401 && tries > 0) { SPF.exp = 0; return spApi(path, opt, tries - 1); }
+  if (!r.ok) throw new Error('spotify ' + r.status);
+  return r.status === 204 ? null : r.json();
+}
+
+// coming back from Spotify's sign-in page with ?code=...
+(async () => {
+  const q = new URLSearchParams(location.search);
+  if (!q.has('code') && !q.has('error')) return;
+  const pk = load('spPkce', null);
+  localStorage.removeItem('fc.spPkce');
+  history.replaceState(null, '', spRedirect() + (pk?.back || '#/home'));
+  if (q.get('error') || !pk || q.get('state') !== pk.state) { toast('Spotify was not linked.'); route(); return; }
+  try {
+    await spTokenCall({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: spRedirect(), code_verifier: pk.ver });
+    const me = await spApi('/me');
+    SPF.user = { id: me.id, name: me.display_name || me.id, country: me.country || '' }; spoSave();
+    toast('Spotify linked'); sfx('claim');
+  } catch { toast('Spotify was not linked.'); }
+  route();
+})();
+
+// ---------- picking energetic songs ----------
+// Spotify no longer gives apps a song's "energy" number, so the energy of a song is judged from its artists' genres,
+// its title (live, acoustic and slowed versions are calmer) and how much you play it.
+const SP_HOT = [[/hardstyle|hardcore|drum and bass|\bdnb\b|dubstep|metalcore|nu metal|thrash|death metal|phonk|drill|trap|techno|hard rock|punk|big room|gym|workout/, 1],
+  [/metal|edm|electro|house|trance|bass|reggaeton|dembow|hip hop|rap|grime|garage|funk carioca|brazilian funk|dance|rave|eurodance/, .85],
+  [/rock|pop punk|dancehall|afrobeat|latin|moombahton|k-pop|j-pop|cumbia|salsa|bachata|disco|pop/, .6]];
+const SP_CALM = /ambient|acoustic|classical|lo-?fi|sleep|chill|piano|folk|jazz|singer-songwriter|ballad|bolero|soundtrack|meditation|new age|bossa|soft|lullaby|orchestra|choral|instrumental/;
+const genreEnergy = gs => {
+  if (!gs?.length) return .45;
+  let best = 0, calm = 0;
+  gs.forEach(g => { if (SP_CALM.test(g)) calm++; for (const [re, v] of SP_HOT) if (re.test(g)) { best = Math.max(best, v); break; } });
+  return Math.max(0, (best || .35) - (calm / gs.length) * .9);
+};
+const titleEnergy = n => (/\b(acoustic|unplugged|piano|slowed|reverb|lullaby|sleep|live at|live from|orchestral)\b/i.test(n) ? -.6 : /\b(remix|sped up|edit|club mix|extended)\b/i.test(n) ? .1 : 0);
+// a seeded shuffle: the same workout gives the same picks until you ask for a new playlist
+const seeded = seed => () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
+
+async function spBuild(work) {
+  const pages = await Promise.all([
+    spApi('/me/top/tracks?time_range=short_term&limit=50').catch(() => ({ items: [] })),
+    spApi('/me/top/tracks?time_range=medium_term&limit=50').catch(() => ({ items: [] })),
+    spApi('/me/tracks?limit=50').catch(() => ({ items: [] })),
+    spApi('/me/top/artists?time_range=medium_term&limit=20').catch(() => ({ items: [] })),
+  ]);
+  const liked = new Map(), aff = [.35, .25, .15];
+  pages.slice(0, 3).forEach((pg, k) => (pg.items || []).forEach(it => {
+    const t = it.track || it;
+    if (!t?.uri || t.is_local) return;
+    const cur = liked.get(t.uri);
+    liked.set(t.uri, { t, aff: Math.max(cur?.aff || 0, aff[k]) });
+  }));
+  // genres of every artist in play
+  const genres = new Map((pages[3].items || []).map(a => [a.id, a.genres]));
+  const ids = [...new Set([...liked.values()].map(x => x.t.artists?.[0]?.id).filter(id => id && !genres.has(id)))];
+  for (let i = 0; i < ids.length; i += 50) {
+    try { (await spApi('/artists?ids=' + ids.slice(i, i + 50).join(','))).artists.forEach(a => a && genres.set(a.id, a.genres)); } catch { /* genres are optional */ }
+  }
+  const rnd = seeded([...work.key].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7) + (work.round || 0) * 7919);
+  const used = new Set(SPF.used);
+  const score = (t, a) => genreEnergy(genres.get(t.artists?.[0]?.id)) + titleEnergy(t.name) + a + (t.popularity || 0) / 600 + rnd() * .25 - (used.has(t.uri) ? .35 : 0);
+  const mine = [...liked.values()].map(({ t, aff: a }) => ({ t, s: score(t, a), mine: true })).filter(x => x.s > .5).sort((a, b) => b.s - a.s);
+  // new songs: the most played tracks of your most energetic artists that you have not saved
+  const hot = (pages[3].items || []).filter(a => genreEnergy(a.genres) >= .6).sort(() => rnd() - .5).slice(0, 5);
+  const fresh = [];
+  for (const a of hot) {
+    try {
+      (await spApi(`/artists/${a.id}/top-tracks?market=${SPF.user?.country || 'from_token'}`)).tracks
+        .filter(t => !liked.has(t.uri)).slice(0, 4).forEach(t => fresh.push({ t, s: score(t, .1), mine: false }));
+    } catch { /* skip this artist */ }
+  }
+  fresh.sort((a, b) => b.s - a.s);
+  // about 70% songs you like and 30% new ones, until the workout (plus 5 minutes) is covered
+  const goal = (work.minutes + 5) * 60000, out = [], seen = new Set();
+  let ms = 0, mi = 0, fi = 0;
+  while (ms < goal && (mi < mine.length || fi < fresh.length)) {
+    const pickFresh = fi < fresh.length && (mi >= mine.length || out.length % 10 >= 7);
+    const x = pickFresh ? fresh[fi++] : mine[mi++];
+    const name = x.t.name.toLowerCase() + '|' + (x.t.artists?.[0]?.name || '');
+    if (seen.has(name)) continue;
+    seen.add(name); out.push(x); ms += x.t.duration_ms || 200000;
+  }
+  if (out.length < 5) throw new Error('few');
+  // warm up with a couple of slightly calmer songs, peak in the middle, ease off at the end
+  out.sort((a, b) => a.s - b.s);
+  const warm = out.splice(Math.floor(out.length * .25), 2), cool = out.splice(Math.floor(out.length * .35), 1);
+  out.sort((a, b) => b.s - a.s);
+  const peak = [];
+  out.forEach((x, i) => (i % 2 ? peak.push(x) : peak.unshift(x))); // highest in the middle
+  return [...warm, ...peak, ...cool];
+}
+
+window.spMakePlaylist = async (again) => {
+  if (SP_BUSY || !spOn()) return;
+  const di = nextDayIdx(), d = S.plan.days[di], key = `${dayId()}:${di}`, prev = SPF.lists[key];
+  const work = { key, round: again ? (prev?.round || 0) + 1 : 0, minutes: S.profile.minutes };
+  SP_BUSY = true; spRefreshView();
+  try {
+    const picks = await spBuild(work);
+    if (!SPF.user) { const me = await spApi('/me'); SPF.user = { id: me.id, name: me.display_name || me.id, country: me.country || '' }; }
+    const date = new Date().toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day: 'numeric', month: 'short' });
+    const title = `FitQuest · ${tr(d.name.split(' · ')[1] || d.name)} · ${date}`;
+    const pl = await spApi(`/users/${encodeURIComponent(SPF.user.id)}/playlists`, { method: 'POST', body: JSON.stringify({ name: title, public: false, description: tr('Energetic songs you like, picked by FitQuest for your workout.') }) });
+    await spApi(`/playlists/${pl.id}/tracks`, { method: 'POST', body: JSON.stringify({ uris: picks.slice(0, 100).map(x => x.t.uri) }) });
+    SPF.lists = { [key]: { id: pl.id, url: pl.external_urls?.spotify || `https://open.spotify.com/playlist/${pl.id}`, name: title, round: work.round,
+      min: Math.round(picks.reduce((a, x) => a + (x.t.duration_ms || 0), 0) / 60000), fresh: picks.filter(x => !x.mine).length,
+      songs: picks.map(x => [x.t.name, (x.t.artists || []).map(a => a.name).join(', ')]) } };
+    SPF.used = [...picks.map(x => x.t.uri), ...SPF.used].slice(0, 200);
+    spoSave(); sfx('claim');
+  } catch (e) {
+    toast(e.message === 'few' ? 'Not enough energetic songs yet. Like a few more on Spotify and try again.' : e.message === 'auth' ? 'Link Spotify again.' : 'Spotify did not answer. Try again in a moment.');
+  }
+  SP_BUSY = false; spRefreshView();
+};
+
+// ---------- on screen ----------
+function spRefreshView() {
+  const name = (location.hash || '#/home').split('/')[1] || 'home';
+  if (name === 'home') home(); else if (name === 'me') me();
+}
+const spLogo = '<svg class="splogo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1ed760"/><path d="M6 9.2c4-1.2 8.6-.8 12 1.2M6.6 12.4c3.3-1 7-.6 9.8 1M7.2 15.4c2.7-.7 5.4-.4 7.6.8" fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round"/></svg>';
+
+function musicCard() {
+  const di = nextDayIdx(), pl = SPF.lists[`${dayId()}:${di}`];
+  if (!spOn()) {
+    return `<section class="card music"><div class="row between"><h3>${spLogo} Workout music</h3></div>
+      <div class="mut">A new playlist for every workout, with energetic songs you like.</div>
+      <button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button></section>`;
+  }
+  if (SP_BUSY) return `<section class="card music"><h3>${spLogo} Workout music</h3><div class="mut sppulse">Picking energetic songs…</div></section>`;
+  if (!pl) {
+    return `<section class="card music"><h3>${spLogo} Workout music</h3><div class="mut">Get a playlist for this workout: energetic songs you like, plus a few new ones.</div>
+      <button class="btn spbtn" onclick="spMakePlaylist()">${spLogo} Make my workout playlist</button></section>`;
+  }
+  return `<section class="card music"><div class="row between"><h3>${spLogo} Workout music</h3><span class="mut">${pl.songs.length} songs · ${pl.min} min</span></div>
+    <ol class="splist" translate="no">${pl.songs.slice(0, 5).map(([n, a]) => `<li><b>${esc(n)}</b><span>${esc(a)}</span></li>`).join('')}</ol>
+    ${pl.songs.length > 5 ? `<div class="mut">+${pl.songs.length - 5} more${pl.fresh ? ` · ${pl.fresh} new to you` : ''}</div>` : ''}
+    <a class="btn spbtn" href="${esc(pl.url)}" target="_blank" rel="noopener">${spLogo} Play in Spotify</a>
+    <button class="btn ghost sm" onclick="spMakePlaylist(true)">Another playlist</button></section>`;
+}
+
+function musicSettings() {
+  if (!spCid()) {
+    return `<h2 class="sec">Music</h2><section class="card music"><h3>${spLogo} Spotify</h3>
+      <div class="mut">To link Spotify, create a free app at developer.spotify.com (choose Web API), add this redirect URI, and paste the app's Client ID here.</div>
+      <div class="spuri" translate="no">${esc(spRedirect())}</div>
+      <input id="spcid" placeholder="Client ID" autocomplete="off" spellcheck="false" translate="no">
+      <button class="btn" onclick="spSetCid()">Save</button></section>`;
+  }
+  return `<h2 class="sec">Music</h2><section class="card music"><div class="row between"><h3>${spLogo} Spotify</h3>
+    ${spOn() ? `<span class="mut">Linked</span>` : ''}</div>
+    ${spOn() ? `<div class="mut">Linked as <b translate="no">${esc(SPF.user?.name || '')}</b>. Each workout gets its own playlist on Today › Train.</div>
+      <button class="btn ghost" onclick="spDisconnect()">Unlink Spotify</button>`
+      : `<button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button>`}
+    ${SPOTIFY_CLIENT_ID ? '' : '<button class="btn ghost sm" onclick="spEditCid()">Change Client ID</button>'}</section>`;
+}
+
+const _spoHome = home;
+home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', musicCard()); };
+const _spoMe = me;
+me = function () { _spoMe(); view.querySelector('#exp')?.insertAdjacentHTML('beforebegin', musicSettings()); };
+Object.assign(routes, { home, me });
+
+if (typeof i18nAdd === 'function') i18nAdd({
+  'Workout music': 'Música para entrenar', 'A new playlist for every workout, with energetic songs you like.': 'Una lista nueva para cada entrenamiento, con canciones enérgicas que te gustan.',
+  'Link Spotify': 'Vincular Spotify', 'Unlink Spotify': 'Desvincular Spotify', 'Picking energetic songs…': 'Eligiendo canciones con energía…',
+  'Get a playlist for this workout: energetic songs you like, plus a few new ones.': 'Consigue una lista para este entrenamiento: canciones enérgicas que te gustan y algunas nuevas.',
+  'Make my workout playlist': 'Crear mi lista para entrenar', 'Play in Spotify': 'Escuchar en Spotify', 'Another playlist': 'Otra lista',
+  '{n} songs · {n} min': '{n} canciones · {n} min', '{n} more · {n} new to you': '{n} más · {n} nuevas para ti', '{n} more': '{n} más',
+  Music: 'Música', Linked: 'Vinculado', 'Linked as': 'Vinculado como', 'Change Client ID': 'Cambiar Client ID',
+  'Each workout gets its own playlist on Today › Train.': 'Cada entrenamiento tiene su propia lista en Hoy › Entrenar.',
+  'To link Spotify, create a free app at developer.spotify.com (choose Web API), add this redirect URI, and paste the app\'s Client ID here.':
+    'Para vincular Spotify, crea una app gratis en developer.spotify.com (elige Web API), añade esta URI de redirección y pega aquí el Client ID de la app.',
+  'Add your Spotify Client ID first.': 'Primero añade tu Client ID de Spotify.', 'That does not look like a Client ID (32 letters and numbers).': 'Eso no parece un Client ID (32 letras y números).',
+  'Spotify linked': 'Spotify vinculado', 'Spotify was not linked.': 'No se ha vinculado Spotify.', 'Link Spotify again.': 'Vuelve a vincular Spotify.',
+  'Not enough energetic songs yet. Like a few more on Spotify and try again.': 'Aún no hay suficientes canciones con energía. Dale a "me gusta" a algunas más en Spotify y vuelve a probar.',
+  'Spotify did not answer. Try again in a moment.': 'Spotify no responde. Vuelve a probar en un momento.',
+  'Energetic songs you like, picked by FitQuest for your workout.': 'Canciones enérgicas que te gustan, elegidas por FitQuest para tu entrenamiento.',
+});

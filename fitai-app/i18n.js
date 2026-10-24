@@ -48,7 +48,7 @@ const ATTRS = ['placeholder', 'aria-label', 'title', 'alt'];
 function trAttr(el, a) { const v = el.getAttribute(a); if (v) { const t = tr(v); if (t !== v) el.setAttribute(a, t); } }
 function trText(n) {
   const v = n.nodeValue;
-  if (n.__es === v || !/[A-Za-z]{2}/.test(v)) return;
+  if (n.__es === v || !/[A-Za-z]{2}/.test(v) || n.parentElement?.closest('[translate="no"]')) return; // names such as song titles stay as they are
   const t = tr(v);
   n.__es = t;
   if (t !== v) n.nodeValue = t;

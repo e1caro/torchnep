@@ -467,7 +467,7 @@ function compactText() {
 }
 // Cleaner screens: each section (a "sec" heading and what follows it) folds into a dropdown on the busy screens.
 // Buttons that sit between sections (check-in, open chest, more ways to earn) stay visible.
-const FOLD_ROUTES = ['home', 'earn', 'progress', 'rewards'];
+const FOLD_ROUTES = ['earn', 'progress', 'rewards']; // Today uses bubbles instead (bubbles.js)
 const foldState = (() => { try { return JSON.parse(localStorage.getItem('fc.fold')) || {}; } catch { return {}; } })();
 function foldSections() {
   const name = (location.hash || '#/home').split('/')[1] || 'home';

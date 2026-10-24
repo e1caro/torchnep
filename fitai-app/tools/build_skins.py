@@ -394,5 +394,147 @@ body.focus #trybar{bottom:calc(16px + env(safe-area-inset-bottom))}
 .themenote{margin:-2px 0 8px;padding:8px 10px;border-left:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
 """
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + PREVIEW)
+# ---------------------------------------------------------------- themes recolour interfaces
+# With any theme except the default Cyber HUD, an interface's accents (frames, ornaments, buttons, tabs, bars, markers)
+# take the theme's two colours; its scenery keeps its own. Theme colours are read from game.js so they stay in sync.
+import re
+THEMES = re.findall(r"\['(\w+)', '[^']+', \d+, '(#[0-9a-fA-F]{6})', '(#[0-9a-fA-F]{6})'\]", (HERE.parent / 'game.js').read_text())
+T = 'html[data-tint][data-skin]'
+TINT = "\n/* ==========================================================================\n   Themes recolour the interfaces (html[data-tint])\n   ========================================================================== */\n"
+TINT += ''.join(f"html[data-tint][data-theme={k}]{{--acc:{a};--acc2:{b}}}\n" for k, a, b in THEMES if k != 'hud')
+TINT += f"""{T}{{--line:color-mix(in srgb,var(--acc) 40%,transparent);--line2:color-mix(in srgb,var(--acc) 75%,transparent);
+  --card:color-mix(in srgb,var(--acc) 7%,var(--bg));--card2:color-mix(in srgb,var(--acc) 13%,var(--bg));--on:#0b0d12;
+  --pshadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px var(--line),inset 0 0 30px #0006}}
+{T} {P}{{background-image:none}}
+{T} {P}::before{{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--deco);mask:var(--deco);-webkit-mask-repeat:var(--rep,no-repeat);mask-repeat:var(--rep,no-repeat)}}
+html[data-tint][data-skin=arcade] {P}::before{{display:none}}
+/* pirate rope frames keep their own rope colours with any theme */
+html[data-tint][data-skin=pirate] {P}::before{{background:var(--deco);-webkit-mask:none;mask:none}}
+html[data-tint][data-skin=arcade]{{--pshadow:inset 0 0 0 3px var(--acc),inset 0 0 0 6px var(--card),inset 0 0 0 7px var(--line)}}
+{T} h1::after{{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-mask:var(--orn) 0 50%/100% 100% no-repeat;mask:var(--orn) 0 50%/100% 100% no-repeat}}
+{T} .btn,{T} .btn.sm{{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 70%,#fff),var(--acc) 55%,color-mix(in srgb,var(--acc) 75%,#000));color:#0b0d12;box-shadow:inset 0 0 0 1px #fff4,inset 0 -3px 0 #0004}}
+{T} .btn.ghost{{background:var(--card);color:var(--acc);box-shadow:inset 0 0 0 1px var(--line2)}}
+{T} :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,color-mix(in srgb,var(--acc2) 70%,#fff),var(--acc2));color:#0b0d12}}
+{T} :is(.seg a.on,.dpill.on,.chip.on){{background:var(--acc);color:#0b0d12;border-color:var(--acc)}}
+{T} .xpbar i{{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:none}}
+{T} h2.sec::before{{background:var(--acc2);color:var(--acc2);box-shadow:none}}
+html[data-tint]:is([data-skin=egypt],[data-skin=pirate]) h2.sec::before{{width:10px;height:10px;transform:rotate(45deg)}}
+html[data-tint][data-skin=chinese] body::after,html[data-tint][data-skin=japanese] body::after{{filter:none}}
+"""
+
+
+# ---------------------------------------------------------------- Today bubbles
+# Today is a menu of circles (bubbles.js). Every interface dresses its circles with its own ring ornament (--bring),
+# drawn in a 120x120 box around an orb of radius ~47.
+import math
+
+
+def pol(r, a):
+    a = math.radians(a - 90)
+    return 60 + r * math.cos(a), 60 + r * math.sin(a)
+
+
+def each(n, f, start=0):
+    return ''.join(f(start + i * 360 / n) for i in range(n))
+
+
+def rot(a, body):
+    return f"<g transform='rotate({a:.1f} 60 60)'>{body}</g>"
+
+
+def gear(teeth, ro, ri, hole, col):
+    pts = []
+    for i in range(teeth):
+        a = i * 360 / teeth
+        for da, r in ((-7, ri), (-4, ro), (4, ro), (7, ri)):
+            x, y = pol(r, a + da * 16 / teeth)
+            pts.append(f'{x:.1f},{y:.1f}')
+    c = f"M{60 - hole} 60a{hole} {hole} 0 1 0 {2 * hole} 0a{hole} {hole} 0 1 0 -{2 * hole} 0z"
+    return f"<path fill-rule='evenodd' fill='{col}' d='M{' L'.join(pts)}z {c}'/>"
+
+
+def pixel_ring(r1, r2, cell, col):
+    out = []
+    for gx in range(0, 120, cell):
+        for gy in range(0, 120, cell):
+            d = math.hypot(gx + cell / 2 - 60, gy + cell / 2 - 60)
+            if r1 <= d <= r2:
+                out.append(f'M{gx} {gy}h{cell}v{cell}h-{cell}z')
+    return f"<path shape-rendering='crispEdges' fill='{col}' d='{''.join(out)}'/>"
+
+
+C = "cx='60' cy='60'"
+RINGS = {
+    'hud': svg(f"<circle {C} r='50' fill='none' stroke='#fff' stroke-opacity='.5' stroke-width='1'/>"
+               + each(60, lambda a: rot(a, "<path d='M60 2v5' stroke='#fff' stroke-width='1.4'/>"))
+               + each(4, lambda a: rot(a, "<path d='M60 1v11' stroke='#fff' stroke-width='3'/>"))
+               + f"<circle {C} r='55' fill='none' stroke='#fff' stroke-width='3' stroke-dasharray='40 132' stroke-linecap='square'/>", '0 0 120 120'),
+    'chinese': svg(f"<g fill='none' stroke='{GOLD}' stroke-width='2'><circle {C} r='50'/><circle {C} r='56'/></g>"
+                   + each(8, lambda a: rot(a, f"<path d='M60 46l5 7-5 7-5-7z' transform='translate(0 -44)' fill='{RED}' stroke='{GOLD}' stroke-width='1.2'/>"), 22.5)
+                   + each(4, lambda a: rot(a, f"<circle cx='60' cy='4' r='4' fill='{GOLD}'/>")), '0 0 120 120'),
+    'japanese': svg(f"<circle {C} r='53' fill='none' stroke='{VERM}' stroke-width='7' stroke-linecap='round' stroke-dasharray='300 33' transform='rotate(-70 60 60)'/>"
+                    f"<circle {C} r='57.5' fill='none' stroke='{VERM}' stroke-width='2' stroke-linecap='round' stroke-dasharray='90 300' transform='rotate(30 60 60)'/>", '0 0 120 120'),
+    'fairy': svg(f"<circle {C} r='53' fill='none' stroke='#5f9a43' stroke-width='3'/>"
+                 + each(14, lambda a: rot(a, f"<ellipse cx='66' cy='7' rx='6' ry='2.6' transform='rotate(-30 66 7)' fill='{LEAF}'/>"))
+                 + each(5, lambda a: rot(a, "<g transform='translate(60 7)'><circle r='3.4' fill='#ffb7d5'/><circle r='1.5' fill='#ffd86a'/></g>"), 18), '0 0 120 120'),
+    'medieval': svg(f"<circle {C} r='53' fill='none' stroke='#5b5244' stroke-width='10'/>"
+                    f"<circle {C} r='53' fill='none' stroke='#3a332a' stroke-width='10' stroke-dasharray='1.5 18.5'/>"
+                    f"<g fill='none' stroke='{MG}' stroke-width='1.5'><circle {C} r='47.5'/><circle {C} r='58.5'/></g>"
+                    + each(8, lambda a: rot(a, f"<circle cx='60' cy='7' r='2.6' fill='{MG}'/>"), 22.5), '0 0 120 120'),
+    'steampunk': svg(gear(18, 59.5, 52, 47, CU) + f"<circle {C} r='49.5' fill='none' stroke='{BR}' stroke-width='1.5'/>"
+                     + each(6, lambda a: rot(a, f"<circle cx='60' cy='9' r='1.8' fill='{BR}'/>")), '0 0 120 120'),
+    'greek': svg(f"<circle {C} r='49' fill='none' stroke='{OG}' stroke-width='1.5'/>"
+                 + ''.join(rot(a, f"<ellipse cx='60' cy='6' rx='2.6' ry='6' transform='rotate({t} 60 6)' fill='{OG}'/>")
+                           for side in (1, -1) for k in range(9) for a, t in [(side * (24 + k * 16), side * 35)])
+                 + f"<circle cx='60' cy='112' r='3.5' fill='{OG}'/><path d='M53 4l7 5 7-5' fill='none' stroke='{OG}' stroke-width='2'/>", '0 0 120 120'),
+    'egypt': svg(f"<circle {C} r='53' fill='none' stroke='{TQ}' stroke-width='7' stroke-dasharray='6 3'/>"
+                 f"<circle {C} r='53' fill='none' stroke='#2a4fb0' stroke-width='7' stroke-dasharray='3 15' stroke-dashoffset='-6'/>"
+                 f"<g fill='none' stroke='{EG}' stroke-width='2.2'><circle {C} r='48.5'/><circle {C} r='57.5'/></g>"
+                 + each(4, lambda a: rot(a, f"<path d='M60 0l4 6h-8z' fill='{EG}'/>")), '0 0 120 120'),
+    'viking': svg(f"<g fill='none' stroke='{VB}'><circle {C} r='49' stroke-width='1.5'/><circle {C} r='57.5' stroke-width='1.5'/></g>"
+                  + each(16, lambda a: rot(a, f"<path d='M57 5l3 4 3-4M60 9v5' fill='none' stroke='{VB}' stroke-width='1.6' stroke-linecap='round'/>"))
+                  + each(16, lambda a: rot(a, f"<path d='M60 6v6' stroke='{FR}' stroke-opacity='.7' stroke-width='1'/>"), 11.25), '0 0 120 120'),
+    'pirate': svg(f"<circle {C} r='53' fill='none' stroke='#8a6a38' stroke-width='9'/>"
+                  + each(40, lambda a: rot(a, "<path d='M57 3.5l6 6' stroke='#5c4422' stroke-width='2.2' stroke-linecap='round'/><path d='M57.5 6l3 3' stroke='#e0b55a' stroke-opacity='.7' stroke-width='1'/>"))
+                  + each(4, lambda a: rot(a, f"<path d='M60 0l3 6h-6z' fill='{PG}'/>"), 45), '0 0 120 120'),
+    'outrun': svg(f"<circle {C} r='56' fill='none' stroke='{PK}' stroke-width='2.5'/><circle {C} r='50.5' fill='none' stroke='{CY}' stroke-width='1.5' stroke-dasharray='14 6'/>", '0 0 120 120'),
+    'arcade': svg(pixel_ring(49, 58, 4, AC) + pixel_ring(53, 55, 4, AY), '0 0 120 120'),
+}
+BUB = '\n/* ==========================================================================\n   Today bubbles: each interface dresses the circles with its own ring\n   ========================================================================== */\n'
+BUB += ''.join(f"html[data-skin={k}]{{--bring:{v}}}\n" for k, v in RINGS.items())
+BUB += """@keyframes bsway{from{rotate:-7deg}to{rotate:7deg}}
+@keyframes bglow{0%,100%{filter:drop-shadow(0 0 0 var(--gc,var(--acc)))}50%{filter:drop-shadow(0 0 7px var(--gc,var(--acc)))}}
+@keyframes bflick{0%,100%{filter:brightness(1) drop-shadow(0 0 3px var(--gc))}30%{filter:brightness(1.25) drop-shadow(0 0 8px var(--gc))}55%{filter:brightness(.95) drop-shadow(0 0 4px var(--gc))}80%{filter:brightness(1.15) drop-shadow(0 0 7px var(--gc))}}
+@keyframes bneon{0%,100%{opacity:1}92%{opacity:1}94%{opacity:.45}96%{opacity:1}97%{opacity:.6}}
+html[data-skin=hud] :is(.orb,.bxi)::before{background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat;animation:bspin 40s linear infinite,bglow 3s ease-in-out infinite}
+html[data-skin=chinese] :is(.orb,.bxi)::before{--gc:#ffcf5a;animation:bspin 60s linear infinite,bglow 3.5s ease-in-out infinite}
+html[data-skin=japanese] :is(.orb,.bxi)::before{--gc:#ff6a4f;animation:bspin 40s linear infinite,bglow 4s ease-in-out infinite}
+html[data-skin=fairy] :is(.orb,.bxi)::before{--gc:#ffe27a;animation:bsway 4.5s ease-in-out infinite alternate,bglow 2.6s ease-in-out infinite}
+html[data-skin=medieval] :is(.orb,.bxi)::before{--gc:#ff9a3c;animation:bflick 2.4s ease-in-out infinite}
+html[data-skin=steampunk] :is(.orb,.bxi)::before{--gc:#ffb45a;animation:bspin 24s linear infinite,bglow 3s ease-in-out infinite}
+html[data-skin=steampunk] .bub:nth-child(odd) .orb::before{animation-direction:reverse,normal}
+html[data-skin=greek] :is(.orb,.bxi)::before{--gc:#fff0b0;animation:bsway 6s ease-in-out infinite alternate,bglow 3s ease-in-out infinite}
+html[data-skin=egypt] :is(.orb,.bxi)::before{--gc:#ffd86a;animation:bspin 50s linear infinite,bglow 3s ease-in-out infinite}
+html[data-skin=viking] :is(.orb,.bxi)::before{--gc:#8fd3ff;animation:bspin 70s linear infinite reverse,bflick 3s ease-in-out infinite}
+html[data-skin=pirate] :is(.orb,.bxi)::before{--gc:#e0b55a;animation:bsway 3.2s ease-in-out infinite alternate}
+html[data-skin=outrun] :is(.orb,.bxi)::before{animation:bspin 18s linear infinite,bneon 4s linear infinite}
+html[data-skin=arcade] :is(.orb,.bxi)::before{animation:bspin 8s steps(12) infinite}
+html[data-skin] .bub:nth-child(3n) .orb::before{animation-delay:-1.3s}html[data-skin] .bub:nth-child(3n+1) .orb::before{animation-delay:-2.1s}
+"""
+BUB += """html[data-skin=outrun] :is(.orb,.bxi)::before{filter:drop-shadow(0 0 4px #ff3cc7) drop-shadow(0 0 8px #00f0ff88)}
+html[data-skin=outrun] .orb{background:radial-gradient(circle at 50% 120%,#ff6a3d88,#0000 60%),linear-gradient(#2a0650,#12002a)}
+html[data-skin=fairy] .orb{background:radial-gradient(circle at 35% 30%,#2f5a2f,#0b2016)}
+html[data-skin=medieval] .orb{background:radial-gradient(circle at 35% 30%,#4a3f30,#1b160f)}
+html[data-skin=pirate] .orb{background:radial-gradient(circle at 35% 30%,#4a3a24,#1e160d)}
+html[data-skin=arcade] .orb{box-shadow:inset 0 0 0 3px #0d0a24,inset 0 0 0 5px #00e4ff88}
+html[data-skin=arcade] :is(.ov,.bl){font-size:10px}html[data-skin=arcade] .bub.big .on2{font-size:9px}
+html[data-skin=arcade] .bx{clip-path:none!important;opacity:0;transform:scale(.4);transition:opacity .3s steps(4),transform .3s steps(4)}
+html[data-skin=arcade] .bx.open{opacity:1;transform:none}
+"""
+BUB += f"""{T} .orb::before{{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat}}
+html[data-tint][data-skin=pirate] .orb::before{{background:var(--bring) center/100% 100% no-repeat;-webkit-mask:none;mask:none}}
+html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,var(--card2),var(--card))}}
+"""
+
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')
