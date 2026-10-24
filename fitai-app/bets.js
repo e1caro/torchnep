@@ -7,7 +7,8 @@ const BT = (G.bets = Object.assign({ open: [], done: [], won: 0, lost: 0, net: 0
 let slip = [], stake = 25;
 const BET_MIN = 5, BET_MAX = 300, BET_OPEN = 8, LEGS_MAX = 6, BET_COMBO_MAX = 20;
 // Muscle picks pay 1.00 each (you will train something); combining muscles of the same day, week or month multiplies the bet by these odds.
-const MG_X = { day: [1, 1, 1.25, 1.6, 2.1, 2.8, 3.6], week: [1, 1, 1.3, 1.7, 2.3, 3, 4], month: [1, 1, 1.35, 1.8, 2.4, 3.2, 4.2] };
+// over a week or a month you end up training most muscles anyway, so their combos pay much less than today's
+const MG_X = { day: [1, 1, 1.25, 1.6, 2.1, 2.8, 3.6], week: [1, 1, 1.1, 1.2, 1.3, 1.45, 1.6], month: [1, 1, 1.05, 1.1, 1.15, 1.25, 1.35] };
 const isMg = l => l.kind === 'd-mg' || l.kind === 'mg';
 let betTab = 'today', slipRepeat = false;
 
@@ -505,7 +506,7 @@ function betsView() {
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
     <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
     <li>Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
-    <li>Muscle picks pay 1.00 alone, because you will train something. Combine several muscles of the same day, week or month to raise the odds: today 2 muscles ×1.25 up to all 6 ×3.6, a week up to ×4, a month up to ×4.2.</li>
+    <li>Muscle picks pay 1.00 alone, because you will train something. Combine several muscles of the same day, week or month to raise the odds: today 2 muscles ×1.25 up to all 6 ×3.6, a week up to ×1.6, a month up to ×1.35.</li>
     <li>Tick Repeat to renew a bet on its own every day, week or month. Stop it from My bets whenever you like.</li>
     <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back) and training once a week or month never pays. Stakes go from ${BET_MIN} to ${BET_MAX} coins, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
   ${slip.length ? `<section class="card slip"><div class="row between"><h3>${slip.length > 1 ? `Combined bet · ${slip.length} picks` : 'Single bet'}</h3><button class="icon" aria-label="Clear slip" onclick="betClear()">${ic('close', 18)}</button></div>
