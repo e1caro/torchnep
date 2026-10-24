@@ -138,6 +138,25 @@ function allowed(e, p, have) {
   return !p.limits.some(l => LIMITS[l][1].test(e.n) || LIMITS[l][2].includes(e.m[0]));
 }
 
+// How long an exercise really takes: about 50 s per set plus its rest, and 2.5 minutes to set up and move on.
+// Timed items ("8 min" of cardio, "30s" stretches) count their own time.
+function exSecs(it) {
+  const m = String(it.reps).match(/^(\d+)\s*min/), s = String(it.reps).match(/^(\d+)\s*s/);
+  if (m) return +m[1] * 60 + 60;
+  const work = s ? +s[1] : 50;
+  return it.sets * (work + it.rest) - it.rest + 150;
+}
+const WARMUP = 7 * 60;
+const planMinutes = d => Math.round((WARMUP + d.items.reduce((a, it) => a + exSecs(it), 0)) / 60);
+// plans made before the time budget had too many exercises for the session: drop strength exercises from the end until it fits
+if (S.plan && !S.plan.timed && S.profile) {
+  S.plan.days.forEach(d => {
+    const tot = () => WARMUP + d.items.reduce((a, it) => a + exSecs(it), 0);
+    const strength = () => d.items.filter(it => !/min|s$/.test(String(it.reps)));
+    while (tot() > S.profile.minutes * 60 + 120 && strength().length > 2) d.items.splice(d.items.lastIndexOf(strength().pop()), 1);
+  });
+  S.plan.timed = 1; save('plan', S.plan);
+}
 function generatePlan(p) {
   const r = rng(Date.now() & 0xffffff), have = equipSet(p);
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
@@ -158,17 +177,23 @@ function generatePlan(p) {
     const slots = DAYS[kind].slice(0, per), allow = KIND_MUSCLES[kind];
     const extra = shuffle(focusMuscles.filter(m => !allow || allow.includes(m)), r).slice(0, 2);
     extra.forEach((m, i) => slots.splice(2 + i, 0, m));
+    // cardio and a stretch first take their time from the session; strength exercises fill what is left, at least 2
+    const tail = [];
+    if (p.goal === 'fat' && cardio.length) { const c = shuffle(cardio, r)[0]; tail.push({ id: c.id, sets: 1, reps: p.minutes <= 30 ? '8 min' : '12 min', rest: 0 }); }
+    const st = shuffle(EX.filter(e => e.c === 'stretching' && allowed(e, p, have) && (!allow || allow.includes(e.m[0]) || e.m[0] === 'abdominals')), r)[0];
+    if (st) tail.push({ id: st.id, sets: 1, reps: '30s', rest: 20 });
+    let left = p.minutes * 60 - WARMUP - tail.reduce((a, it) => a + exSecs(it), 0);
     const items = [];
     for (const m of slots) {
       const e = pick(m, items); if (!e) continue;
-      items.push({ id: e.id, sets: focusMuscles.includes(m) ? sets + 1 : sets, reps, rest });
+      const it = { id: e.id, sets: focusMuscles.includes(m) ? sets + 1 : sets, reps, rest };
+      if (items.length >= 2 && exSecs(it) > left) break;
+      items.push(it); left -= exSecs(it);
     }
-    if (p.goal === 'fat' && cardio.length) { const c = shuffle(cardio, r)[0]; items.push({ id: c.id, sets: 1, reps: p.minutes <= 30 ? '8 min' : '12 min', rest: 0 }); }
-    const st = shuffle(EX.filter(e => e.c === 'stretching' && allowed(e, p, have) && (!allow || allow.includes(e.m[0]) || e.m[0] === 'abdominals')), r)[0];
-    if (st) items.push({ id: st.id, sets: 1, reps: '30s', rest: 20 });
+    items.push(...tail);
     return { name: `Day ${di + 1} · ${KIND_NAME[kind]}`, kind, items };
   });
-  return { created: Date.now(), days };
+  return { created: Date.now(), days, timed: 1 };
 }
 
 // ---------- history helpers ----------

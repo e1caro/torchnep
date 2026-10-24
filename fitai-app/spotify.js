@@ -284,7 +284,8 @@ function songCard() {
     <div class="spsong"><span class="spdisc"></span><div class="grow"><b translate="no">${esc(s.t)}</b><span translate="no">${esc(s.a)}</span></div></div>
     <div class="row spbtns"><a class="btn spbtn" href="${spSearch(`${s.t} ${s.a}`)}" target="_blank" rel="noopener">▶ Play</a>
     <a class="btn ghost" href="${spSearch(`${s.t} radio`, '/playlists')}" target="_blank" rel="noopener">📻 Song radio</a></div>
-    <button class="btn ghost sm" onclick="spSongNext()">Another song</button></section>`;
+    <button class="btn ghost sm" onclick="spSongNext()">Another song</button>
+    <details class="spprefs"><summary>Change genres</summary><div class="chips">${SP_GENRES.map(([g, n]) => `<button class="chip ${SPF.genres.includes(g) ? 'on' : ''}" onclick="spGenre('${g}')">${n}</button>`).join('')}</div></details></section>`;
 }
 
 function musicCard() {
@@ -318,7 +319,7 @@ function musicSettings() {
 }
 
 const _spoHome = home;
-home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', songCard() + musicCard()); };
+home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', songCard()); }; // just the song of the day
 const _spoMe = me;
 me = function () { _spoMe(); view.querySelector('#exp')?.insertAdjacentHTML('beforebegin', musicSettings()); };
 Object.assign(routes, { home, me });
@@ -329,7 +330,7 @@ if (typeof i18nAdd === 'function') i18nAdd({
   'Get a playlist for this workout: energetic songs you like, plus a few new ones.': 'Consigue una lista para este entrenamiento: canciones enérgicas que te gustan y algunas nuevas.',
   'Make my workout playlist': 'Crear mi lista para entrenar', 'Play in Spotify': 'Escuchar en Spotify', 'Another playlist': 'Otra lista',
   '{n} songs · {n} min': '{n} canciones · {n} min', '{n} more · {n} new to you': '{n} más · {n} nuevas para ti', '{n} more': '{n} más',
-  'Song of the day': 'Canción del día', Play: 'Escuchar', 'Song radio': 'Radio de la canción', 'Another song': 'Otra canción',
+  'Song of the day': 'Canción del día', Play: 'Escuchar', 'Song radio': 'Radio de la canción', 'Another song': 'Otra canción', 'Change genres': 'Cambiar géneros',
   Music: 'Música', Linked: 'Vinculado', Latin: 'Latino', 'Drum and bass': 'Drum and bass',
   'Genres you like to train to': 'Géneros con los que te gusta entrenar', 'Your playlists': 'Tus listas', 'Paste a Spotify playlist link': 'Pega un enlace de una lista de Spotify',
   Add: 'Añadir', Added: 'Añadida', Remove: 'Quitar', 'Paste a Spotify playlist, album or artist link.': 'Pega un enlace de Spotify a una lista, un álbum o un artista.',

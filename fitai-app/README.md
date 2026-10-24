@@ -58,6 +58,9 @@ Today is six circles that fill the screen: Train in the middle (next workout and
 - The verdict (Excellent, Good, So-so, Not very healthy, Junk food) gives +20, +12, 0, -10 or -20 XP. It comes with the foods it found, the calories and a tip.
 - At most +60 and -60 XP a day from this. The same description twice in a day gives no XP. Losing XP never takes away a level. Today's list can be undone item by item.
 
+## Session length
+Workouts fit the time you chose: each exercise is estimated at about 50 s per set plus its rest and 2.5 minutes to set up and move on, with 7 minutes of warm-up, the stretch and any cardio counted first; strength exercises fill the rest (at least 2). For example 45 min for muscle is 4 exercises and a stretch (~40 min). Older plans are trimmed to fit once.
+
 ## Weekly summary and coach
 
 - **Weekly summary:** a story of the week, with full-screen slides that advance on their own or with a tap, animated numbers and bars, and comparisons with the week before. It covers workouts, minutes, kilos, sets and reps, the muscles worked, new records, the best workout, the training days and streak, XP, the boss, and a week grade (C to A+, or a golden S with confetti for an exceptional week: more workouts than the goal plus a new record or more kilos than the week before), and you can share it. It opens by itself the first time you use the app in a new week. Progress shows the week inline (training days, workouts against the goal, minutes, kilos, records and a grade, compared with the same point of last week) with buttons to play this week or last week as a story.
