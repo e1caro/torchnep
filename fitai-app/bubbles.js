@@ -46,7 +46,7 @@ function bubbleHome() {
     train: [prevH(next), next, q('.card.music'), q('section[onclick*="#/dungeons"]')],
     quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest'), prevH(boss), boss],
     loot: [q('button[onclick="checkIn()"]'), q('.chestbtn')],
-    meals: [meals, prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
+    meals: [meals, q('.card.foodlog'), prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
     earn: earnNodes(), academy: [q('.sp-row')],
   };
   // the old shortcut buttons to the Earn and Bets screens: their content now sits inside the Earn circle

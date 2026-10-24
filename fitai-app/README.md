@@ -51,6 +51,13 @@ Local test: `python3 -m http.server -d fitai-app 8000`.
 
 Today is six circles that fill the screen: Train in the middle (next workout and the dungeon of the day), with Quests (daily quests and the weekly boss), Loot (daily check-in and chests), Meals (meals and fuel), Earn (the bets and the ways to earn themselves, right inside the circle) and the Academy around it. Each circle shows a value and a progress ring, and a "!" when something is ready to claim. Tapping one grows it into a panel with what is inside; ✕, the back button or Esc shrink it back. Every interface draws its own animated rings (turning gears, swaying vines and laurels, a rocking rope, flickering torchlight, neon, pixels...), a soft light runs over panel frames, and every avatar ring moves, built by `tools/build_skins.py` (code in `bubbles.js`).
 
+## Off-plan food judge
+
+"Ate something off the plan?" (in the Meals circle on Today and on the Meals screen): describe it in your own words, in Spanish or English ("una hamburguesa con patatas fritas y una coca-cola", "grilled chicken with salad"), and FitQuest judges it offline (`foodlog.js`).
+- It recognises about 130 foods and dishes, each with a health score from -3 to +3 and its calories for a usual portion. Words like fried or battered, grilled, baked or steamed, wholegrain, sugar-free or zero, homemade, a lot or a little, and numbers ("3 galletas") adjust them.
+- The verdict (Excellent, Good, So-so, Not very healthy, Junk food) gives +20, +12, 0, -10 or -20 XP. It comes with the foods it found, the calories and a tip.
+- At most +60 and -60 XP a day from this. The same description twice in a day gives no XP. Losing XP never takes away a level. Today's list can be undone item by item.
+
 ## Weekly summary and coach
 
 - **Weekly summary:** a story of the week, with full-screen slides that advance on their own or with a tap, animated numbers and bars, and comparisons with the week before. It covers workouts, minutes, kilos, sets and reps, the muscles worked, new records, the best workout, the training days and streak, XP, the boss, and a week grade (C to A+, or a golden S with confetti for an exceptional week: more workouts than the goal plus a new record or more kilos than the week before), and you can share it. It opens by itself the first time you use the app in a new week. Progress shows the week inline (training days, workouts against the goal, minutes, kilos, records and a grade, compared with the same point of last week) with buttons to play this week or last week as a story.
