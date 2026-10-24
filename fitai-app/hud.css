@@ -572,3 +572,10 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 .fltip{margin:8px 0;padding-left:10px;border-left:2px solid var(--acc);font-style:italic}
 .flrow{gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}.flrow .grow{font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fldot{width:10px;height:10px;border-radius:50%;flex:none;background:var(--mut)}.fldot.t0,.fldot.t1{background:#4dff9a}.fldot.t3,.fldot.t4{background:#ff6b8a}
+/* the coach folds away once read, and the circles glide back into the space */
+.coach.bye{height:0!important;margin-top:0;padding-top:0;padding-bottom:0;opacity:0;transform:scale(.96);overflow:hidden;
+  transition:height .35s cubic-bezier(.4,0,.2,1),margin .35s,padding .35s,opacity .25s,transform .35s}
+.orbs{transition:height .5s cubic-bezier(.2,.8,.2,1)}
+.orbs .bub{transition:left .55s cubic-bezier(.2,.8,.2,1),top .55s cubic-bezier(.2,.8,.2,1)}
+.orbs .orb{transition:width .55s cubic-bezier(.2,.8,.2,1),height .55s cubic-bezier(.2,.8,.2,1)}
+.cnext{min-width:24px;text-align:right}

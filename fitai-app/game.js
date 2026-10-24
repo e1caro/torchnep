@@ -85,7 +85,7 @@ const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japa
   viking: 'Metamorphous&family=Alegreya:wght@400;600;700', pirate: 'Pirata+One&family=IM+Fell+English&family=Lora:wght@400;600',
   outrun: 'Audiowide&family=Exo+2:wght@400;600;700', arcade: 'Press+Start+2P&family=VT323',
   classical: 'Playfair+Display:wght@600;800&family=Cormorant+Garamond:wght@500;600;700', artdeco: 'Poiret+One&family=Josefin+Sans:wght@400;600;700',
-  gothic: 'UnifrakturMaguntia&family=EB+Garamond:wght@400;600;700', baroque: 'Cormorant+SC:wght@600;700&family=Cormorant+Garamond:wght@500;600;700',
+  gothic: 'Grenze:wght@600;700;800&family=EB+Garamond:wght@400;600;700', baroque: 'Cormorant+SC:wght@600;700&family=Cormorant+Garamond:wght@500;600;700',
   mythical: 'Uncial+Antiqua&family=Alegreya:wght@400;600;700', cosmic: 'Michroma&family=Space+Grotesk:wght@400;600;700' };
 const PANELS = [['chamfer', 'Chamfered', 0], ['classic', 'Classic', 0], ['brackets', 'Brackets', 150], ['octa', 'Octagon', 200], ['notch', 'Notch', 250], ['double', 'Double line', 300], ['circuit', 'Circuit', 400], ['holo', 'Hologram', 500]];
 const ITEMS = [
@@ -443,7 +443,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 68</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 69</div>`;
 }
 
 function initGame() {
