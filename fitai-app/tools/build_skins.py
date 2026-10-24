@@ -422,5 +422,104 @@ html[data-tint]:is([data-skin=egypt],[data-skin=pirate]) h2.sec::before{{width:1
 html[data-tint][data-skin=chinese] body::after,html[data-tint][data-skin=japanese] body::after{{filter:none}}
 """
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + PREVIEW)
+
+# ---------------------------------------------------------------- Today bubbles
+# Today is a menu of circles (bubbles.js). Every interface dresses its circles with its own ring ornament (--bring),
+# drawn in a 120x120 box around an orb of radius ~47.
+import math
+
+
+def pol(r, a):
+    a = math.radians(a - 90)
+    return 60 + r * math.cos(a), 60 + r * math.sin(a)
+
+
+def each(n, f, start=0):
+    return ''.join(f(start + i * 360 / n) for i in range(n))
+
+
+def rot(a, body):
+    return f"<g transform='rotate({a:.1f} 60 60)'>{body}</g>"
+
+
+def gear(teeth, ro, ri, hole, col):
+    pts = []
+    for i in range(teeth):
+        a = i * 360 / teeth
+        for da, r in ((-7, ri), (-4, ro), (4, ro), (7, ri)):
+            x, y = pol(r, a + da * 16 / teeth)
+            pts.append(f'{x:.1f},{y:.1f}')
+    c = f"M{60 - hole} 60a{hole} {hole} 0 1 0 {2 * hole} 0a{hole} {hole} 0 1 0 -{2 * hole} 0z"
+    return f"<path fill-rule='evenodd' fill='{col}' d='M{' L'.join(pts)}z {c}'/>"
+
+
+def pixel_ring(r1, r2, cell, col):
+    out = []
+    for gx in range(0, 120, cell):
+        for gy in range(0, 120, cell):
+            d = math.hypot(gx + cell / 2 - 60, gy + cell / 2 - 60)
+            if r1 <= d <= r2:
+                out.append(f'M{gx} {gy}h{cell}v{cell}h-{cell}z')
+    return f"<path shape-rendering='crispEdges' fill='{col}' d='{''.join(out)}'/>"
+
+
+C = "cx='60' cy='60'"
+RINGS = {
+    'hud': svg(f"<circle {C} r='50' fill='none' stroke='#fff' stroke-opacity='.5' stroke-width='1'/>"
+               + each(60, lambda a: rot(a, "<path d='M60 2v5' stroke='#fff' stroke-width='1.4'/>"))
+               + each(4, lambda a: rot(a, "<path d='M60 1v11' stroke='#fff' stroke-width='3'/>"))
+               + f"<circle {C} r='55' fill='none' stroke='#fff' stroke-width='3' stroke-dasharray='40 132' stroke-linecap='square'/>", '0 0 120 120'),
+    'chinese': svg(f"<g fill='none' stroke='{GOLD}' stroke-width='2'><circle {C} r='50'/><circle {C} r='56'/></g>"
+                   + each(8, lambda a: rot(a, f"<path d='M60 46l5 7-5 7-5-7z' transform='translate(0 -44)' fill='{RED}' stroke='{GOLD}' stroke-width='1.2'/>"), 22.5)
+                   + each(4, lambda a: rot(a, f"<circle cx='60' cy='4' r='4' fill='{GOLD}'/>")), '0 0 120 120'),
+    'japanese': svg(f"<circle {C} r='53' fill='none' stroke='{VERM}' stroke-width='7' stroke-linecap='round' stroke-dasharray='300 33' transform='rotate(-70 60 60)'/>"
+                    f"<circle {C} r='57.5' fill='none' stroke='{VERM}' stroke-width='2' stroke-linecap='round' stroke-dasharray='90 300' transform='rotate(30 60 60)'/>", '0 0 120 120'),
+    'fairy': svg(f"<circle {C} r='53' fill='none' stroke='#5f9a43' stroke-width='3'/>"
+                 + each(14, lambda a: rot(a, f"<ellipse cx='66' cy='7' rx='6' ry='2.6' transform='rotate(-30 66 7)' fill='{LEAF}'/>"))
+                 + each(5, lambda a: rot(a, "<g transform='translate(60 7)'><circle r='3.4' fill='#ffb7d5'/><circle r='1.5' fill='#ffd86a'/></g>"), 18), '0 0 120 120'),
+    'medieval': svg(f"<circle {C} r='53' fill='none' stroke='#5b5244' stroke-width='10'/>"
+                    f"<circle {C} r='53' fill='none' stroke='#3a332a' stroke-width='10' stroke-dasharray='1.5 18.5'/>"
+                    f"<g fill='none' stroke='{MG}' stroke-width='1.5'><circle {C} r='47.5'/><circle {C} r='58.5'/></g>"
+                    + each(8, lambda a: rot(a, f"<circle cx='60' cy='7' r='2.6' fill='{MG}'/>"), 22.5), '0 0 120 120'),
+    'steampunk': svg(gear(18, 59.5, 52, 47, CU) + f"<circle {C} r='49.5' fill='none' stroke='{BR}' stroke-width='1.5'/>"
+                     + each(6, lambda a: rot(a, f"<circle cx='60' cy='9' r='1.8' fill='{BR}'/>")), '0 0 120 120'),
+    'greek': svg(f"<circle {C} r='49' fill='none' stroke='{OG}' stroke-width='1.5'/>"
+                 + ''.join(rot(a, f"<ellipse cx='60' cy='6' rx='2.6' ry='6' transform='rotate({t} 60 6)' fill='{OG}'/>")
+                           for side in (1, -1) for k in range(9) for a, t in [(side * (24 + k * 16), side * 35)])
+                 + f"<circle cx='60' cy='112' r='3.5' fill='{OG}'/><path d='M53 4l7 5 7-5' fill='none' stroke='{OG}' stroke-width='2'/>", '0 0 120 120'),
+    'egypt': svg(f"<circle {C} r='53' fill='none' stroke='{TQ}' stroke-width='7' stroke-dasharray='6 3'/>"
+                 f"<circle {C} r='53' fill='none' stroke='#2a4fb0' stroke-width='7' stroke-dasharray='3 15' stroke-dashoffset='-6'/>"
+                 f"<g fill='none' stroke='{EG}' stroke-width='2.2'><circle {C} r='48.5'/><circle {C} r='57.5'/></g>"
+                 + each(4, lambda a: rot(a, f"<path d='M60 0l4 6h-8z' fill='{EG}'/>")), '0 0 120 120'),
+    'viking': svg(f"<g fill='none' stroke='{VB}'><circle {C} r='49' stroke-width='1.5'/><circle {C} r='57.5' stroke-width='1.5'/></g>"
+                  + each(16, lambda a: rot(a, f"<path d='M57 5l3 4 3-4M60 9v5' fill='none' stroke='{VB}' stroke-width='1.6' stroke-linecap='round'/>"))
+                  + each(16, lambda a: rot(a, f"<path d='M60 6v6' stroke='{FR}' stroke-opacity='.7' stroke-width='1'/>"), 11.25), '0 0 120 120'),
+    'pirate': svg(f"<circle {C} r='53' fill='none' stroke='#8a6a38' stroke-width='9'/>"
+                  + each(40, lambda a: rot(a, "<path d='M57 3.5l6 6' stroke='#5c4422' stroke-width='2.2' stroke-linecap='round'/><path d='M57.5 6l3 3' stroke='#e0b55a' stroke-opacity='.7' stroke-width='1'/>"))
+                  + each(4, lambda a: rot(a, f"<path d='M60 0l3 6h-6z' fill='{PG}'/>"), 45), '0 0 120 120'),
+    'outrun': svg(f"<circle {C} r='56' fill='none' stroke='{PK}' stroke-width='2.5'/><circle {C} r='50.5' fill='none' stroke='{CY}' stroke-width='1.5' stroke-dasharray='14 6'/>", '0 0 120 120'),
+    'arcade': svg(pixel_ring(49, 58, 4, AC) + pixel_ring(53, 55, 4, AY), '0 0 120 120'),
+}
+BUB = '\n/* ==========================================================================\n   Today bubbles: each interface dresses the circles with its own ring\n   ========================================================================== */\n'
+BUB += ''.join(f"html[data-skin={k}]{{--bring:{v}}}\n" for k, v in RINGS.items())
+BUB += """html[data-skin=hud] .orb::before{background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat;animation:bspin 40s linear infinite}
+html[data-skin=steampunk] .orb::before{animation:bspin 30s linear infinite}
+html[data-skin=steampunk] .bub:nth-child(even) .orb::before{animation-direction:reverse}
+html[data-skin=outrun] .orb::before{filter:drop-shadow(0 0 4px #ff3cc7) drop-shadow(0 0 8px #00f0ff88)}
+html[data-skin=outrun] .orb{background:radial-gradient(circle at 50% 120%,#ff6a3d88,#0000 60%),linear-gradient(#2a0650,#12002a)}
+html[data-skin=japanese] .orb::before{animation:bspin 90s linear infinite}
+html[data-skin=fairy] .orb{background:radial-gradient(circle at 35% 30%,#2f5a2f,#0b2016)}
+html[data-skin=medieval] .orb{background:radial-gradient(circle at 35% 30%,#4a3f30,#1b160f)}
+html[data-skin=pirate] .orb{background:radial-gradient(circle at 35% 30%,#4a3a24,#1e160d)}
+html[data-skin=arcade] .orb{box-shadow:inset 0 0 0 3px #0d0a24,inset 0 0 0 5px #00e4ff88}
+html[data-skin=arcade] :is(.ov,.bl){font-size:10px}html[data-skin=arcade] .bub.big .on2{font-size:9px}
+html[data-skin=arcade] .bx{clip-path:none!important;opacity:0;transform:scale(.4);transition:opacity .3s steps(4),transform .3s steps(4)}
+html[data-skin=arcade] .bx.open{opacity:1;transform:none}
+"""
+BUB += f"""{T} .orb::before{{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat}}
+html[data-tint][data-skin=pirate] .orb::before{{background:var(--bring) center/100% 100% no-repeat;-webkit-mask:none;mask:none}}
+html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,var(--card2),var(--card))}}
+"""
+
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')

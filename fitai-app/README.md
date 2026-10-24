@@ -47,6 +47,10 @@ Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open 
 
 Local test: `python3 -m http.server -d fitai-app 8000`.
 
+## Today as circles
+
+Today is a menu of circles: the next workout in the middle, with quests, the weekly boss, check-in, loot, meals, fuel, the dungeon of the day, the Academy, ways to earn and bets around it. Each circle shows a value and a progress ring, and a "!" when something is ready to claim. Tapping one grows it into a panel with what is inside; ✕, the back button or Esc shrink it back. Every interface draws its own rings (gears, laurels, rope, pixels...), built by `tools/build_skins.py` (code in `bubbles.js`).
+
 ## Meal portions
 Every recipe is one serving for one person: mains are capped at about 600 kcal, breakfasts at 500 and snacks at 280. The planner only makes a serving 15% lighter or heartier, and on each recipe you can pick how hungry you are (×0.75 to ×1.5, or −/+ in 10% steps); your choice changes kcal, macros, ingredients and the shopping list, and the planner keeps it. Bigger calorie targets are met with more meals a day, and the plan suggests adding a meal when one serving per meal falls short.
 
