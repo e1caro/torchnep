@@ -1,0 +1,1027 @@
+# Song of the day: energetic songs by genre. One "Title | Artist" per line, under a "## genre" heading.
+## rock
+Thunderstruck | AC/DC
+Back in Black | AC/DC
+Highway to Hell | AC/DC
+You Shook Me All Night Long | AC/DC
+T.N.T. | AC/DC
+Shoot to Thrill | AC/DC
+Eye of the Tiger | Survivor
+We Will Rock You | Queen
+Don't Stop Me Now | Queen
+Another One Bites the Dust | Queen
+Seven Nation Army | The White Stripes
+Welcome to the Jungle | Guns N' Roses
+Paradise City | Guns N' Roses
+Sweet Child O' Mine | Guns N' Roses
+Smells Like Teen Spirit | Nirvana
+In Bloom | Nirvana
+Can't Stop | Red Hot Chili Peppers
+By the Way | Red Hot Chili Peppers
+Give It Away | Red Hot Chili Peppers
+Dani California | Red Hot Chili Peppers
+The Pretender | Foo Fighters
+Everlong | Foo Fighters
+Best of You | Foo Fighters
+All My Life | Foo Fighters
+Learn to Fly | Foo Fighters
+Mr. Brightside | The Killers
+Somebody Told Me | The Killers
+Uprising | Muse
+Knights of Cydonia | Muse
+Hysteria | Muse
+Supermassive Black Hole | Muse
+Livin' on a Prayer | Bon Jovi
+It's My Life | Bon Jovi
+Kickstart My Heart | Mötley Crüe
+Dr. Feelgood | Mötley Crüe
+Rock You Like a Hurricane | Scorpions
+Born to Be Wild | Steppenwolf
+Jump | Van Halen
+Panama | Van Halen
+Crazy Train | Ozzy Osbourne
+Bark at the Moon | Ozzy Osbourne
+Paranoid | Black Sabbath
+Immigrant Song | Led Zeppelin
+Whole Lotta Love | Led Zeppelin
+Rock and Roll | Led Zeppelin
+Black Dog | Led Zeppelin
+Start Me Up | The Rolling Stones
+Jumpin' Jack Flash | The Rolling Stones
+(I Can't Get No) Satisfaction | The Rolling Stones
+Sharp Dressed Man | ZZ Top
+La Grange | ZZ Top
+Run to the Hills | Iron Maiden
+Rebel Yell | Billy Idol
+Pour Some Sugar on Me | Def Leppard
+I Love Rock 'n' Roll | Joan Jett & the Blackhearts
+Bad Reputation | Joan Jett
+Song 2 | Blur
+Are You Gonna Be My Girl | Jet
+Do I Wanna Know? | Arctic Monkeys
+R U Mine? | Arctic Monkeys
+Brianstorm | Arctic Monkeys
+Fluorescent Adolescent | Arctic Monkeys
+Lonely Boy | The Black Keys
+Gold on the Ceiling | The Black Keys
+Howlin' for You | The Black Keys
+Feel Good Inc. | Gorillaz
+Bring Me to Life | Evanescence
+In the End | Linkin Park
+Numb | Linkin Park
+Faint | Linkin Park
+One Step Closer | Linkin Park
+Bleed It Out | Linkin Park
+Given Up | Linkin Park
+Papercut | Linkin Park
+Boulevard of Broken Dreams | Green Day
+Killing in the Name | Rage Against the Machine
+Bulls on Parade | Rage Against the Machine
+Guerrilla Radio | Rage Against the Machine
+Testify | Rage Against the Machine
+Sabotage | Beastie Boys
+Believer | Imagine Dragons
+Thunder | Imagine Dragons
+Radioactive | Imagine Dragons
+Enemy | Imagine Dragons
+Natural | Imagine Dragons
+Whatever It Takes | Imagine Dragons
+Centuries | Fall Out Boy
+My Songs Know What You Did in the Dark (Light Em Up) | Fall Out Boy
+The Phoenix | Fall Out Boy
+Monster | Skillet
+Hero | Skillet
+Animal I Have Become | Three Days Grace
+Riot | Three Days Grace
+I Hate Everything About You | Three Days Grace
+It's Been Awhile | Staind
+How You Remind Me | Nickelback
+Burn It to the Ground | Nickelback
+Remedy | Seether
+Kryptonite | 3 Doors Down
+Headstrong | Trapt
+The Kill (Bury Me) | Thirty Seconds to Mars
+This Is War | Thirty Seconds to Mars
+Sail | AWOLNATION
+Fortunate Son | Creedence Clearwater Revival
+Run Through the Jungle | Creedence Clearwater Revival
+All Along the Watchtower | Jimi Hendrix
+Purple Haze | Jimi Hendrix
+Smoke on the Water | Deep Purple
+Highway Star | Deep Purple
+## metal
+Enter Sandman | Metallica
+Master of Puppets | Metallica
+Battery | Metallica
+For Whom the Bell Tolls | Metallica
+Seek & Destroy | Metallica
+Fuel | Metallica
+One | Metallica
+Wherever I May Roam | Metallica
+Sad but True | Metallica
+Duality | Slipknot
+Psychosocial | Slipknot
+Before I Forget | Slipknot
+Wait and Bleed | Slipknot
+People = Shit | Slipknot
+The Devil in I | Slipknot
+Down with the Sickness | Disturbed
+Indestructible | Disturbed
+Stricken | Disturbed
+Inside the Fire | Disturbed
+Voices | Disturbed
+Chop Suey! | System of a Down
+Toxicity | System of a Down
+B.Y.O.B. | System of a Down
+Aerials | System of a Down
+Sugar | System of a Down
+Walk | Pantera
+Cowboys from Hell | Pantera
+Domination | Pantera
+Mouth for War | Pantera
+Bodies | Drowning Pool
+The Trooper | Iron Maiden
+Aces High | Iron Maiden
+The Number of the Beast | Iron Maiden
+Fear of the Dark | Iron Maiden
+2 Minutes to Midnight | Iron Maiden
+Raining Blood | Slayer
+Angel of Death | Slayer
+South of Heaven | Slayer
+Du hast | Rammstein
+Sonne | Rammstein
+Ich will | Rammstein
+Feuer frei! | Rammstein
+Links 2 3 4 | Rammstein
+Engel | Rammstein
+Freak on a Leash | Korn
+Blind | Korn
+Falling Away from Me | Korn
+Last Resort | Papa Roach
+Chalk Outline | Three Days Grace
+Holy Wars... The Punishment Due | Megadeth
+Symphony of Destruction | Megadeth
+Hangar 18 | Megadeth
+Breaking the Law | Judas Priest
+Painkiller | Judas Priest
+Ace of Spades | Motörhead
+Hammer Smashed Face | Cannibal Corpse
+Laid to Rest | Lamb of God
+Redneck | Lamb of God
+Blackened | Metallica
+Before the Dawn | Avenged Sevenfold
+Bat Country | Avenged Sevenfold
+Nightmare | Avenged Sevenfold
+Hail to the King | Avenged Sevenfold
+Unholy Confessions | Avenged Sevenfold
+The Beautiful People | Marilyn Manson
+Dragula | Rob Zombie
+Thunder Kiss '65 | White Zombie
+Du riechst so gut | Rammstein
+Bleed | Meshuggah
+Stengah | Meshuggah
+Can You Feel My Heart | Bring Me The Horizon
+Throne | Bring Me The Horizon
+Shadow Moses | Bring Me The Horizon
+Kingslayer | Bring Me The Horizon
+DArkSide | Bring Me The Horizon
+Sleepwalking | Bring Me The Horizon
+Silvera | Gojira
+Stranded | Gojira
+The Gift of Guilt | Gojira
+Gasoline | Halestorm
+I Miss the Misery | Halestorm
+Megalomaniac | Incubus
+Riot | Bullet for My Valentine
+Tears Don't Fall | Bullet for My Valentine
+Waking the Demon | Bullet for My Valentine
+My Curse | Killswitch Engage
+The End of Heartache | Killswitch Engage
+Bleed It Dry | Seether
+I Stand Alone | Godsmack
+Awake | Godsmack
+Voodoo | Godsmack
+Let the Bodies Hit the Floor | Drowning Pool
+Click Click Boom | Saliva
+Monster | Skillet
+## reggaeton
+Gasolina | Daddy Yankee
+Con Calma | Daddy Yankee
+Rompe | Daddy Yankee
+Limbo | Daddy Yankee
+Shaky Shaky | Daddy Yankee
+Dura | Daddy Yankee
+Lo Que Pasó, Pasó | Daddy Yankee
+Dákiti | Bad Bunny
+Tití Me Preguntó | Bad Bunny
+Safaera | Bad Bunny
+Callaíta | Bad Bunny
+Yo Perreo Sola | Bad Bunny
+Me Porto Bonito | Bad Bunny
+Moscow Mule | Bad Bunny
+Ignorantes | Bad Bunny
+La Canción | J Balvin & Bad Bunny
+Tusa | KAROL G
+Provenza | KAROL G
+Bichota | KAROL G
+Mamiii | Becky G & KAROL G
+TQG | KAROL G & Shakira
+Hawái | Maluma
+Felices los 4 | Maluma
+Borró Cassette | Maluma
+Pepas | Farruko
+Danza Kuduro | Don Omar
+Dale Don Dale | Don Omar
+Salió el Sol | Don Omar
+Pobre Diabla | Don Omar
+Mayores | Becky G
+Sin Pijama | Becky G & Natti Natasha
+Criminal | Natti Natasha & Ozuna
+Taki Taki | DJ Snake
+Baila Baila Baila | Ozuna
+Se Preparó | Ozuna
+Hey DJ | CNCO
+Reggaetón Lento | CNCO
+Ginza | J Balvin
+Mi Gente | J Balvin & Willy William
+Ay Vamos | J Balvin
+Safari | J Balvin
+Rojo | J Balvin
+Despacito | Luis Fonsi & Daddy Yankee
+Échame la Culpa | Luis Fonsi & Demi Lovato
+Hasta el Amanecer | Nicky Jam
+El Perdón | Nicky Jam & Enrique Iglesias
+X | Nicky Jam & J Balvin
+Travesuras | Nicky Jam
+Ella Me Levantó | Daddy Yankee
+Atrévete-te-te | Calle 13
+Noche de Entierro | Daddy Yankee & Wisin & Yandel
+Rakata | Wisin & Yandel
+Algo Me Gusta de Ti | Wisin & Yandel
+Pam Pam | Wisin & Yandel
+Mayor Que Yo | Daddy Yankee
+Te Boté | Nio García & Casper Mágico
+La Bebé (Remix) | Yng Lvcas & Peso Pluma
+Classy 101 | Feid & Young Miko
+Normal | Feid
+Hey Mor | Ozuna & Feid
+Feliz Cumpleaños Ferxxo | Feid
+Si Antes Te Hubiera Conocido | KAROL G
+Quevedo: Bzrp Music Sessions, Vol. 52 | Bizarrap & Quevedo
+Columbia | Quevedo
+Punto G | Quevedo
+Monotonía | Shakira & Ozuna
+La Jumpa | Arcángel & Bad Bunny
+Gata Only | FloyyMenor & Cris MJ
+Una Noche en Medellín | Cris MJ
+Baby Hello | Rauw Alejandro & Bizarrap
+Todo de Ti | Rauw Alejandro
+Desesperados | Rauw Alejandro & Chencho Corleone
+Party | Bad Bunny & Rauw Alejandro
+Volando (Remix) | Mora, Bad Bunny & Sech
+Otro Trago | Sech
+Relación | Sech
+Aventura | Lunay
+Soltera (Remix) | Lunay, Daddy Yankee & Bad Bunny
+Contra la Pared | Sean Paul & J Balvin
+Hula Hoop | Daddy Yankee
+## hiphop
+Lose Yourself | Eminem
+'Till I Collapse | Eminem
+Not Afraid | Eminem
+Berzerk | Eminem
+Without Me | Eminem
+The Real Slim Shady | Eminem
+Rap God | Eminem
+Venom | Eminem
+Godzilla | Eminem
+Mockingbird | Eminem
+Stronger | Kanye West
+POWER | Kanye West
+Black Skinhead | Kanye West
+Can't Tell Me Nothing | Kanye West
+Gold Digger | Kanye West
+HUMBLE. | Kendrick Lamar
+DNA. | Kendrick Lamar
+m.A.A.d city | Kendrick Lamar
+King Kunta | Kendrick Lamar
+Not Like Us | Kendrick Lamar
+Alright | Kendrick Lamar
+Remember the Name | Fort Minor
+X Gon' Give It to Ya | DMX
+Party Up (Up in Here) | DMX
+Ruff Ryders' Anthem | DMX
+Can't Hold Us | Macklemore & Ryan Lewis
+Thrift Shop | Macklemore & Ryan Lewis
+In Da Club | 50 Cent
+Many Men (Wish Death) | 50 Cent
+P.I.M.P. | 50 Cent
+Hypnotize | The Notorious B.I.G.
+Juicy | The Notorious B.I.G.
+California Love | 2Pac
+Hit 'Em Up | 2Pac
+Ambitionz Az a Ridah | 2Pac
+Still D.R.E. | Dr. Dre
+The Next Episode | Dr. Dre
+Forgot About Dre | Dr. Dre
+Mama Said Knock You Out | LL Cool J
+Jump Around | House of Pain
+Insane in the Brain | Cypress Hill
+C.R.E.A.M. | Wu-Tang Clan
+Protect Ya Neck | Wu-Tang Clan
+Shook Ones, Pt. II | Mobb Deep
+Ms. Jackson | Outkast
+B.O.B. | Outkast
+Hey Ya! | Outkast
+99 Problems | JAY-Z
+Run This Town | JAY-Z
+Empire State of Mind | JAY-Z & Alicia Keys
+Niggas in Paris | JAY-Z & Kanye West
+Started from the Bottom | Drake
+Nonstop | Drake
+God's Plan | Drake
+Jumpman | Drake & Future
+Headlines | Drake
+Lose Control | Missy Elliott
+Get Ur Freak On | Missy Elliott
+Work It | Missy Elliott
+Power Trip | J. Cole
+Middle Child | J. Cole
+No Role Modelz | J. Cole
+Can't Be Touched | Roy Jones Jr.
+Till It's Gone | Yelawolf
+Uptown Anthem | Naughty by Nature
+Hip Hop Hooray | Naughty by Nature
+Gin and Juice | Snoop Dogg
+Drop It Like It's Hot | Snoop Dogg
+Lollipop | Lil Wayne
+A Milli | Lil Wayne
+6 Foot 7 Foot | Lil Wayne
+Black and Yellow | Wiz Khalifa
+Work Hard, Play Hard | Wiz Khalifa
+Moment 4 Life | Nicki Minaj
+Super Bass | Nicki Minaj
+Bodak Yellow | Cardi B
+Money | Cardi B
+WAP | Cardi B
+Savage | Megan Thee Stallion
+Hot Girl Summer | Megan Thee Stallion
+Industry Baby | Lil Nas X & Jack Harlow
+First Class | Jack Harlow
+Gangsta's Paradise | Coolio
+Ante Up | M.O.P.
+Got Your Money | Ol' Dirty Bastard
+Lean Back | Terror Squad
+Right Above It | Lil Wayne & Drake
+All of the Lights | Kanye West
+Monster | Kanye West
+Stan | Eminem
+Love the Way You Lie | Eminem & Rihanna
+## trap
+Mask Off | Future
+March Madness | Future
+Low Life | Future & The Weeknd
+Life Is Good | Future & Drake
+goosebumps | Travis Scott
+SICKO MODE | Travis Scott
+FE!N | Travis Scott
+HIGHEST IN THE ROOM | Travis Scott
+Antidote | Travis Scott
+BUTTERFLY EFFECT | Travis Scott
+STARGAZING | Travis Scott
+Bad and Boujee | Migos
+Versace | Migos
+Walk It Talk It | Migos
+Stir Fry | Migos
+MotorSport | Migos
+rockstar | Post Malone & 21 Savage
+Congratulations | Post Malone
+White Iverson | Post Malone
+Psycho | Post Malone
+XO Tour Llif3 | Lil Uzi Vert
+Just Wanna Rock | Lil Uzi Vert
+Money Longer | Lil Uzi Vert
+Mo Bamba | Sheck Wes
+Panda | Desiigner
+Rich Flex | Drake & 21 Savage
+a lot | 21 Savage
+Bank Account | 21 Savage
+redrum | 21 Savage
+Magnolia | Playboi Carti
+Shoota | Playboi Carti
+Sky | Playboi Carti
+Look at Me! | XXXTENTACION
+Gucci Gang | Lil Pump
+ESSKEETIT | Lil Pump
+Mercy | Kanye West
+Turn Down for What | DJ Snake & Lil Jon
+Trap Queen | Fetty Wap
+Bando | Migos
+No Hook | Lil Pump
+Big Shot | Kendrick Lamar & Travis Scott
+Wake Up | Travis Scott
+Praise the Lord (Da Shine) | A$AP Rocky
+Shabba | A$AP Ferg
+Plain Jane | A$AP Ferg
+Work | A$AP Ferg
+Goldie | A$AP Rocky
+F**kin' Problems | A$AP Rocky
+Black Beatles | Rae Sremmurd
+No Type | Rae Sremmurd
+No Flex Zone | Rae Sremmurd
+Yes Indeed | Lil Baby & Drake
+Drip Too Hard | Lil Baby & Gunna
+Sum 2 Prove | Lil Baby
+The Bigger Picture | Lil Baby
+Wants and Needs | Drake & Lil Baby
+Lemonade | Internet Money
+Rockstar Made | Playboi Carti
+Ric Flair Drip | Offset & Metro Boomin
+Bad Boy | Juice WRLD & Young Thug
+Lucid Dreams | Juice WRLD
+Armed and Dangerous | Juice WRLD
+Hot | Young Thug & Gunna
+Pushin P | Gunna
+## edm
+Levels | Avicii
+Wake Me Up | Avicii
+The Nights | Avicii
+Waiting for Love | Avicii
+Hey Brother | Avicii
+Titanium | David Guetta
+Play Hard | David Guetta
+Bad | David Guetta & Showtek
+Turn Me On | David Guetta
+Animals | Martin Garrix
+Tremor | Martin Garrix & Dimitri Vegas & Like Mike
+Scared to Be Lonely | Martin Garrix & Dua Lipa
+In the Name of Love | Martin Garrix & Bebe Rexha
+High on Life | Martin Garrix
+Don't You Worry Child | Swedish House Mafia
+Greyhound | Swedish House Mafia
+One (Your Name) | Swedish House Mafia
+Save the World | Swedish House Mafia
+Clarity | Zedd
+Stay the Night | Zedd
+The Middle | Zedd
+Lean On | Major Lazer & DJ Snake
+Light It Up | Major Lazer
+Cold Water | Major Lazer
+Bangarang | Skrillex
+Scary Monsters and Nice Sprites | Skrillex
+First of the Year (Equinox) | Skrillex
+Where Are Ü Now | Skrillex & Diplo
+Summer | Calvin Harris
+Feel So Close | Calvin Harris
+Blame | Calvin Harris
+This Is What You Came For | Calvin Harris & Rihanna
+Outside | Calvin Harris
+We Found Love | Rihanna & Calvin Harris
+One More Time | Daft Punk
+Harder, Better, Faster, Stronger | Daft Punk
+Around the World | Daft Punk
+Get Lucky | Daft Punk
+Tsunami | DVBBS & Borgeous
+The Spark | Afrojack
+Take Over Control | Afrojack
+Mammoth | Dimitri Vegas, MOGUAI & Like Mike
+Epic | Sandro Silva & Quintino
+Spaceman | Hardwell
+Apollo | Hardwell
+Ghost | Hardwell
+Language | Porter Robinson
+Shelter | Porter Robinson & Madeon
+Faded | Alan Walker
+Alone | Alan Walker
+Spectre | Alan Walker
+Sing Me to Sleep | Alan Walker
+The Days | Avicii
+Breathe | The Prodigy
+Firestarter | The Prodigy
+Smack My Bitch Up | The Prodigy
+Omen | The Prodigy
+Block Rockin' Beats | The Chemical Brothers
+Galvanize | The Chemical Brothers
+Hey Boy Hey Girl | The Chemical Brothers
+Right Here, Right Now | Fatboy Slim
+The Rockafeller Skank | Fatboy Slim
+Praise You | Fatboy Slim
+Insomnia | Faithless
+Satisfaction | Benny Benassi
+Kernkraft 400 | Zombie Nation
+Better Off Alone | Alice Deejay
+Blue (Da Ba Dee) | Eiffel 65
+Rhythm Is a Dancer | Snap!
+The Power | Snap!
+What Is Love | Haddaway
+Show Me Love | Robyn
+Don't Let Me Down | The Chainsmokers
+Roses | The Chainsmokers
+Turbulence | Steve Aoki & Laidback Luke
+Boneless | Steve Aoki & Chris Lake
+Pursuit of Happiness (Remix) | Kid Cudi & Steve Aoki
+Ghosts 'n' Stuff | deadmau5
+Raise Your Weapon | deadmau5
+I Remember | deadmau5 & Kaskade
+Midnight City | M83
+Red Lights | Tiësto
+The Business | Tiësto
+Adagio for Strings | Tiësto
+Silence | Delerium
+Children | Robert Miles
+Sandstorm | Darude
+Born Slippy (Nuxx) | Underworld
+Get Low | Dillon Francis & DJ Snake
+You & Me (Flume Remix) | Disclosure
+Never Be Like You | Flume
+Gold Skies | Martin Garrix, Sander van Doorn & DVBBS
+## techno
+The Bells | Jeff Mills
+Energy Flash | Joey Beltram
+Spastik | Plastikman
+Your Mind | Adam Beyer & Bart Skils
+Space Date | Adam Beyer
+Opus | Eric Prydz
+Strobe | deadmau5
+Sandstorm | Darude
+Born Slippy (Nuxx) | Underworld
+Children | Robert Miles
+Strings of Life | Rhythim Is Rhythim
+Good Life | Inner City
+Big Fun | Inner City
+Age of Love | Age of Love
+Café Del Mar | Energy 52
+Universal Nation | Push
+Flash | Green Velvet
+La La Land | Green Velvet
+Rej | Âme
+Sky and Sand | Paul & Fritz Kalkbrenner
+Aaron | Paul Kalkbrenner
+Gecko | Oliver Heldens
+I Want You (Forever) | Carl Cox
+Positive Education | Slam
+Rush | Kölsch
+Grey | Kölsch
+Selected | Charlotte de Witte
+Hypnotized | Amelie Lens
+In Silence | Amelie Lens
+Apollo Road | Space 92
+Your Love | Frankie Knuckles
+Phantom | Justice
+Genesis | Justice
+D.A.N.C.E. | Justice
+Atlas | Bicep
+Glue | Bicep
+Apricots | Bicep
+Innerbloom | RÜFÜS DU SOL
+Cola | CamelPhat & Elderbrook
+Panic Room | CamelPhat & Au/Ra
+Singularity | Stephan Bodzin
+Infinity | Infinity Ink
+Acid Rain | Lorn
+Pjanoo | Eric Prydz
+Call on Me | Eric Prydz
+## house
+Losing It | FISHER
+You Little Beauty | FISHER
+Freaks | FISHER
+Cola | CamelPhat & Elderbrook
+Pjanoo | Eric Prydz
+Call on Me | Eric Prydz
+Finally | Kings of Tomorrow
+Music Sounds Better with You | Stardust
+Show Me Love | Robin S
+Lady (Hear Me Tonight) | Modjo
+Gecko (Overdrive) | Oliver Heldens
+One Kiss | Calvin Harris & Dua Lipa
+Where You Are | John Summit
+Human | John Summit
+Freed from Desire | Gala
+Blue Monday | New Order
+Gypsy Woman (She's Homeless) | Crystal Waters
+Ride on Time | Black Box
+Everybody Everybody | Black Box
+Pump Up the Jam | Technotronic
+Rhythm of the Night | Corona
+Free | Ultra Naté
+You Don't Know Me | Armand Van Helden
+Professional Widow (Armand's Star Trunk Funkin' Mix) | Tori Amos
+Sing It Back | Moloko
+Lola's Theme | Shapeshifters
+Put Your Hands Up for Detroit | Fedde Le Grand
+Satisfaction | Benny Benassi
+Turn the Music Louder (Rumble) | KDA
+Baddadan | Chase & Status
+Latch | Disclosure
+White Noise | Disclosure
+F For You | Disclosure
+Desire | Years & Years
+Hey Hey | Dennis Ferrer
+Body Language | Booka Shade
+Feel My Needs | WEISS
+Turn Back Time | Diplo & Sonny Fodera
+Baby Again.. | Fred again..
+Marea (we've lost dancing) | Fred again..
+Turn On the Lights again.. | Fred again.. & Swedish House Mafia
+Rumble | Skrillex & Fred again..
+Jungle | Fred again..
+Where Love Lives | Alison Limerick
+Changes | Faul & Wad
+Prada | cassö, RAYE & D-Block Europe
+Padam Padam | Kylie Minogue
+Miracle | Calvin Harris & Ellie Goulding
+Sweet Nothing | Calvin Harris & Florence Welch
+How Deep Is Your Love | Calvin Harris & Disciples
+Cascade | Peggy Gou
+(It Goes Like) Nanana | Peggy Gou
+Starry Night | Peggy Gou
+Calabria 2007 | Enur
+Blackwater | Octave One
+## pop
+Blinding Lights | The Weeknd
+Save Your Tears | The Weeknd
+Can't Feel My Face | The Weeknd
+Starboy | The Weeknd
+Levitating | Dua Lipa
+Don't Start Now | Dua Lipa
+Physical | Dua Lipa
+Houdini | Dua Lipa
+New Rules | Dua Lipa
+Uptown Funk | Mark Ronson & Bruno Mars
+24K Magic | Bruno Mars
+Locked Out of Heaven | Bruno Mars
+Can't Stop the Feeling! | Justin Timberlake
+SexyBack | Justin Timberlake
+Shake It Off | Taylor Swift
+...Ready for It? | Taylor Swift
+Bad Blood | Taylor Swift
+Look What You Made Me Do | Taylor Swift
+Bad Romance | Lady Gaga
+Poker Face | Lady Gaga
+Just Dance | Lady Gaga
+Applause | Lady Gaga
+Toxic | Britney Spears
+Womanizer | Britney Spears
+Gimme More | Britney Spears
+Roar | Katy Perry
+Firework | Katy Perry
+Dark Horse | Katy Perry
+Part of Me | Katy Perry
+Stronger (What Doesn't Kill You) | Kelly Clarkson
+Since U Been Gone | Kelly Clarkson
+Run the World (Girls) | Beyoncé
+Crazy in Love | Beyoncé
+Single Ladies (Put a Ring on It) | Beyoncé
+Flowers | Miley Cyrus
+Wrecking Ball | Miley Cyrus
+Party in the U.S.A. | Miley Cyrus
+As It Was | Harry Styles
+Watermelon Sugar | Harry Styles
+Believer | Imagine Dragons
+Pump It | The Black Eyed Peas
+I Gotta Feeling | The Black Eyed Peas
+Boom Boom Pow | The Black Eyed Peas
+Hips Don't Lie | Shakira
+Whenever, Wherever | Shakira
+She Wolf | Shakira
+Till the World Ends | Britney Spears
+Diamonds | Rihanna
+Only Girl (In the World) | Rihanna
+Don't Stop the Music | Rihanna
+Umbrella | Rihanna
+Pon de Replay | Rihanna
+Moves Like Jagger | Maroon 5
+Sugar | Maroon 5
+Animals | Maroon 5
+Counting Stars | OneRepublic
+Love Runs Out | OneRepublic
+Shut Up and Dance | WALK THE MOON
+Good as Hell | Lizzo
+Juice | Lizzo
+About Damn Time | Lizzo
+Greedy | Tate McRae
+exes | Tate McRae
+espresso | Sabrina Carpenter
+Please Please Please | Sabrina Carpenter
+good 4 u | Olivia Rodrigo
+brutal | Olivia Rodrigo
+vampire | Olivia Rodrigo
+bad guy | Billie Eilish
+LUNCH | Billie Eilish
+Problem | Ariana Grande
+7 rings | Ariana Grande
+yes, and? | Ariana Grande
+Into You | Ariana Grande
+Stay | The Kid LAROI & Justin Bieber
+Sorry | Justin Bieber
+What Do You Mean? | Justin Bieber
+Hot n Cold | Katy Perry
+Domino | Jessie J
+Price Tag | Jessie J
+Bang Bang | Jessie J, Ariana Grande & Nicki Minaj
+Break Free | Ariana Grande
+Cheap Thrills | Sia
+Chandelier | Sia
+Unstoppable | Sia
+Beggin' | Måneskin
+I Wanna Be Your Slave | Måneskin
+ZITTI E BUONI | Måneskin
+Murder on the Dancefloor | Sophie Ellis-Bextor
+Dancing Queen | ABBA
+Gimme! Gimme! Gimme! (A Man After Midnight) | ABBA
+Wake Me Up Before You Go-Go | Wham!
+Footloose | Kenny Loggins
+Danger Zone | Kenny Loggins
+Holding Out for a Hero | Bonnie Tyler
+I'm Still Standing | Elton John
+Beat It | Michael Jackson
+Billie Jean | Michael Jackson
+Thriller | Michael Jackson
+Bad | Michael Jackson
+Don't Stop 'Til You Get Enough | Michael Jackson
+Physical | Olivia Newton-John
+Push It | Salt-N-Pepa
+Pump Up the Volume | MARRS
+## latin
+Vivir Mi Vida | Marc Anthony
+La Bicicleta | Carlos Vives & Shakira
+Bailando | Enrique Iglesias
+Súbeme la Radio | Enrique Iglesias
+La Gozadera | Gente de Zona & Marc Anthony
+Waka Waka (This Time for Africa) | Shakira
+La Tortura | Shakira & Alejandro Sanz
+Loca | Shakira
+Chantaje | Shakira & Maluma
+Bzrp Music Sessions, Vol. 53 | Bizarrap & Shakira
+Échame la Culpa | Luis Fonsi & Demi Lovato
+Suavemente | Elvis Crespo
+DESPECHÁ | ROSALÍA
+SAOKO | ROSALÍA
+Malamente | ROSALÍA
+Con Altura | ROSALÍA & J Balvin
+Mi Gente | J Balvin & Willy William
+Taki Taki | DJ Snake
+La Vida Es Un Carnaval | Celia Cruz
+La Negra Tiene Tumbao | Celia Cruz
+Quimbara | Celia Cruz
+Pedro Navaja | Rubén Blades
+Oye Cómo Va | Santana
+Smooth | Santana
+Maria Maria | Santana
+Livin' la Vida Loca | Ricky Martin
+La Copa de la Vida | Ricky Martin
+María | Ricky Martin
+Pégate | Ricky Martin
+Vente Pa' Ca | Ricky Martin & Maluma
+Bomba | King Africa
+Macarena | Los del Río
+Asereje | Las Ketchup
+Danza Kuduro | Don Omar & Lucenzo
+Calma (Remix) | Pedro Capó & Farruko
+Corazón | Maluma
+Sobredosis | Romeo Santos
+Propuesta Indecente | Romeo Santos
+Obsesión | Aventura
+Dile al Amor | Aventura
+Darte un Beso | Prince Royce
+Stand by Me | Prince Royce
+Bachata Rosa | Juan Luis Guerra
+La Bilirrubina | Juan Luis Guerra
+Ojalá Que Llueva Café | Juan Luis Guerra
+El Cantante | Héctor Lavoe
+Idilio | Willie Colón
+Te Robaré | Prince Royce & Nicky Jam
+Ella Baila Sola | Eslabon Armado & Peso Pluma
+LADY GAGA | Peso Pluma, Gabito Ballesteros & Junior H
+Qlona | KAROL G & Peso Pluma
+Bebé Que Bien Te Ves | Grupo Frontera & Bad Bunny
+un x100to | Grupo Frontera & Bad Bunny
+La Chona | Los Tucanes de Tijuana
+El Sonidito | Hechizeros Band
+Payaso de Rodeo | Caballo Dorado
+Bonito | Jarabe de Palo
+La Flaca | Jarabe de Palo
+Tu Calorro | Estopa
+La Raja de Tu Falda | Estopa
+Ella | Bebe
+Corazón Partío | Alejandro Sanz
+Bulería | David Bisbal
+Ave María | David Bisbal
+Lamento Boliviano | Enanitos Verdes
+De Música Ligera | Soda Stereo
+Persiana Americana | Soda Stereo
+Matador | Los Fabulosos Cadillacs
+Mal Bicho | Los Fabulosos Cadillacs
+Labios Compartidos | Maná
+Oye Mi Amor | Maná
+Sin Documentos | Los Rodríguez
+Me Gustas Tú | Manu Chao
+Clandestino | Manu Chao
+La Camisa Negra | Juanes
+A Dios le Pido | Juanes
+Fiesta Pagana | Mägo de Oz
+Quédate | Quevedo & Bizarrap
+Mamichula | Trueno & Nicki Nicole
+Tranquila | J Balvin
+## phonk
+Murder In My Mind | Kordhell
+Live Another Day | Kordhell
+Scopin | Kordhell
+Close Eyes | DVRST
+Dream Space | DVRST
+Metamorphosis | INTERWORLD
+RAPTURE | INTERWORLD
+Sahara | Hensonn
+Neon Blade | MoonDeity
+Memory Reboot | VØJ & Narvent
+Phonky Town | PlayaPhonk
+Lovely Bastards | ZWE1HVNDXR
+RAVE | Dxrk ダーク
+SLAUGHTER HOUSE | Phonkha & Zecki
+Tokyo Drift (Teriyaki Boyz) | Teriyaki Boyz
+Override | KSLV Noh
+Why Not | Ghostface Playa
+Avangard | LONOWN
+Sleepwalker | akiaura
+X-Slide | 2KE
+Gigachad Theme (Phonk House Version) | g3ox_em
+Devil Eyes | Hippie Sabotage
+Fainted | Narvent
+## kpop
+Kill This Love | BLACKPINK
+DDU-DU DDU-DU | BLACKPINK
+Pink Venom | BLACKPINK
+How You Like That | BLACKPINK
+Shut Down | BLACKPINK
+BOOMBAYAH | BLACKPINK
+FIRE | BTS
+MIC Drop | BTS
+Not Today | BTS
+IDOL | BTS
+Dynamite | BTS
+Butter | BTS
+ON | BTS
+Run BTS | BTS
+God's Menu | Stray Kids
+MANIAC | Stray Kids
+Back Door | Stray Kids
+S-Class | Stray Kids
+LALALALA | Stray Kids
+CASE 143 | Stray Kids
+FANCY | TWICE
+TT | TWICE
+What is Love? | TWICE
+I AM | IVE
+LOVE DIVE | IVE
+Kitsch | IVE
+Super Shy | NewJeans
+Hype Boy | NewJeans
+OMG | NewJeans
+ANTIFRAGILE | LE SSERAFIM
+UNFORGIVEN | LE SSERAFIM
+EASY | LE SSERAFIM
+FEARLESS | LE SSERAFIM
+Gangnam Style | PSY
+Gentleman | PSY
+LALISA | LISA
+MONEY | LISA
+Next Level | aespa
+Savage | aespa
+Supernova | aespa
+Spicy | aespa
+Love Shot | EXO
+Growl | EXO
+Monster | EXO
+Fantastic Baby | BIGBANG
+BANG BANG BANG | BIGBANG
+Bad Boy | BIGBANG
+Queencard | (G)I-DLE
+TOMBOY | (G)I-DLE
+Nxde | (G)I-DLE
+Super | SEVENTEEN
+HOT | SEVENTEEN
+Wannabe | ITZY
+DALLA DALLA | ITZY
+Sneakers | ITZY
+Kick It | NCT 127
+Cherry Bomb | NCT 127
+Sticker | NCT 127
+Hot Sauce | NCT DREAM
+Psycho | Red Velvet
+Red Flavor | Red Velvet
+Bad Boy | Red Velvet
+The Feels | TWICE
+Cupid | FIFTY FIFTY
+Bubble Gum | NewJeans
+Lion Heart | Girls' Generation
+I Got a Boy | Girls' Generation
+Sorry, Sorry | Super Junior
+ZOOM | JESSI
+NUNU NANA | JESSI
+## punk
+Basket Case | Green Day
+American Idiot | Green Day
+Holiday | Green Day
+Longview | Green Day
+When I Come Around | Green Day
+Welcome to Paradise | Green Day
+All the Small Things | blink-182
+What's My Age Again? | blink-182
+The Rock Show | blink-182
+First Date | blink-182
+Feeling This | blink-182
+Blitzkrieg Bop | Ramones
+I Wanna Be Sedated | Ramones
+Sheena Is a Punk Rocker | Ramones
+Fat Lip | Sum 41
+In Too Deep | Sum 41
+Still Waiting | Sum 41
+Misery Business | Paramore
+Ignorance | Paramore
+That's What You Get | Paramore
+The Kids Aren't Alright | The Offspring
+Self Esteem | The Offspring
+Pretty Fly (for a White Guy) | The Offspring
+Come Out and Play | The Offspring
+You're Gonna Go Far, Kid | The Offspring
+Teenage Dirtbag | Wheatus
+London Calling | The Clash
+Should I Stay or Should I Go | The Clash
+I Fought the Law | The Clash
+Anarchy in the U.K. | Sex Pistols
+God Save the Queen | Sex Pistols
+Holiday in Cambodia | Dead Kennedys
+Ruby Soho | Rancid
+Time Bomb | Rancid
+Linoleum | NOFX
+The Middle | Jimmy Eat World
+Sugar, We're Goin Down | Fall Out Boy
+Dance, Dance | Fall Out Boy
+Helena | My Chemical Romance
+Welcome to the Black Parade | My Chemical Romance
+Na Na Na (Na Na Na Na Na Na Na Na Na) | My Chemical Romance
+I'm Not Okay (I Promise) | My Chemical Romance
+Dirty Little Secret | The All-American Rejects
+Gives You Hell | The All-American Rejects
+Ocean Avenue | Yellowcard
+Cute Without the 'E' (Cut from the Team) | Taking Back Sunday
+Face Down | The Red Jumpsuit Apparatus
+Seventeen Forever | Metro Station
+Bad Reputation | Joan Jett
+Rebel Rebel | David Bowie
+Born to Run | Bruce Springsteen
+Shipping Up to Boston | Dropkick Murphys
+Rose Tattoo | Dropkick Murphys
+Wake Up | Arcade Fire
+## dnb
+Watercolour | Pendulum
+Tarantula | Pendulum
+Witchcraft | Pendulum
+Propane Nightmares | Pendulum
+Hold Your Colour | Pendulum
+Slam | Pendulum
+Blood Sugar | Pendulum
+The Island, Pt. II (Dusk) | Pendulum
+Crush | Pendulum
+Waiting All Night | Rudimental
+Feel the Love | Rudimental
+Not Giving In | Rudimental
+Gold Dust | DJ Fresh
+Louder | DJ Fresh
+Hot Right Now | DJ Fresh & Rita Ora
+Shake Ur Body | Shy FX
+Baddadan | Chase & Status
+Blind Faith | Chase & Status
+End Credits | Chase & Status
+Count On Me | Chase & Status
+No Problem | Chase & Status
+Afterglow | Wilkinson
+Too Close (Wilkinson Remix) | Alex Clare
+Superman | Goldie
+Inner City Life | Goldie
+Brown Paper Bag | Roni Size & Reprazent
+Valley of the Shadows | Origin Unknown
+Tears | London Elektricity
+Offending Public Morality | Dimension
+Desire | Sub Focus
+Turn Back Time | Sub Focus
+Out the Blue | Sub Focus
+Endorphins | Sub Focus
+Original Sin | Andy C
+Heartbeat Loud | Andy C
+Mr Happy | DJ Hazard
+Bricks Don't Roll | DJ Hazard
+Bad Company | Bad Company UK
+The Nine | Bad Company UK
+Afraid of the Dark | Chase & Status
+Ready for Your Love | Gorgon City
+Hide U | Kosheen
+Shiver | Netsky
+Rio | Netsky
+Rocket Ride | Netsky
+Plume | Camo & Krooked
+Climax | Camo & Krooked
+Loving You Is Easy | Sigma
+Nobody to Love | Sigma
+Changing | Sigma
+Glitterball | Sigma

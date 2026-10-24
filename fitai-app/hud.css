@@ -579,3 +579,12 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 .orbs .bub{transition:left .55s cubic-bezier(.2,.8,.2,1),top .55s cubic-bezier(.2,.8,.2,1)}
 .orbs .orb{transition:width .55s cubic-bezier(.2,.8,.2,1),height .55s cubic-bezier(.2,.8,.2,1)}
 .cnext{min-width:24px;text-align:right}
+/* song of the day */
+@keyframes spdisc{to{rotate:360deg}}
+.songday h3{display:flex;align-items:center;gap:8px}
+.spsong{display:flex;align-items:center;gap:14px;margin:12px 0}
+.spdisc{flex:none;width:58px;height:58px;border-radius:50%;background:radial-gradient(circle,var(--acc) 0 6px,#111 7px 9px,#0000 10px),repeating-radial-gradient(circle,#1a1a1a 0 2px,#262626 2px 3px);
+  box-shadow:0 0 0 2px var(--line2),0 0 16px color-mix(in srgb,var(--acc) 35%,transparent);animation:spdisc 4s linear infinite}
+.spsong b{display:block;font:800 19px/1.15 var(--disp)}.spsong span{display:block;color:var(--mut);margin-top:3px}
+.spbtns{gap:8px}.spbtns .btn{flex:1;text-decoration:none;display:flex;align-items:center;justify-content:center}
+@media(prefers-reduced-motion:reduce){.spdisc{animation:none}}

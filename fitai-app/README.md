@@ -58,6 +58,14 @@ Today is six circles that fill the screen: Train in the middle (next workout and
 - The verdict (Excellent, Good, So-so, Not very healthy, Junk food) gives +20, +12, 0, -10 or -20 XP. It comes with the foods it found, the calories and a tip.
 - At most +60 and -60 XP a day from this. The same description twice in a day gives no XP. Losing XP never takes away a level. Today's list can be undone item by item.
 
+## Session length, cardio and stretching
+
+Sessions last 30 minutes to 2 hours (30, 45, 60, 75, 90 or 120). The "Cardio and stretching" card on the Plan screen (and the Training step of the profile) sets:
+- **Cardio:** none, at the start (it doubles as the warm-up) or at the end; its type (any, run or treadmill, bike, rowing, elliptical, stairs, jump rope, walking or sprints, matched to the exercises of that kind); and its minutes (auto: 8 to 25 with the session, or 5 to 45).
+- **Stretching minutes:** auto (3 to 10 with the session) or 3 to 15. Each stretch is two 30-second holds (about 1.7 minutes with the change), picked for the muscles that day works most, then the rest of the day's muscles, without repeats.
+
+Each strength exercise is timed at about 50 s per set plus its rest and 2.5 minutes to set up; warm-up, cardio and stretching are counted first and strength exercises fill the rest, going round the day's muscles again on long sessions. Short sessions that still run over shorten what is on auto, then take a set off. Older plans are trimmed to fit once.
+
 ## Weekly summary and coach
 
 - **Weekly summary:** a story of the week, with full-screen slides that advance on their own or with a tap, animated numbers and bars, and comparisons with the week before. It covers workouts, minutes, kilos, sets and reps, the muscles worked, new records, the best workout, the training days and streak, XP, the boss, and a week grade (C to A+, or a golden S with confetti for an exceptional week: more workouts than the goal plus a new record or more kilos than the week before), and you can share it. It opens by itself the first time you use the app in a new week. Progress shows the week inline (training days, workouts against the goal, minutes, kilos, records and a grade, compared with the same point of last week) with buttons to play this week or last week as a story.
@@ -66,6 +74,8 @@ Today is six circles that fill the screen: Train in the middle (next workout and
 ## Workout music (Spotify)
 
 Works for everyone without linking an account: pick the genres you train to and/or paste your Spotify playlist links (Hero > Music, or Today > Train). Each workout suggests a different one: one of your playlists with Spotify's built-in player, or workout playlists of one of your genres opened in Spotify ("Rock gym", "Reggaeton training"...). "Something else" moves to the next suggestion.
+
+Song of the day: a well-known energetic song (about 1000 in `data/songs.txt`, 23–109 per genre) from one of your genres, a different genre each day. "Play" opens the song in Spotify and "Song radio" opens Spotify on its "<song> Radio". Spotify shares song ids only with signed-in apps, so both open Spotify's own search, which puts the song or its radio first. "Another song" picks a different one.
 
 Linking an account (optional) gives playlists made from your own songs: every workout gets its own private playlist of energetic songs you like plus about 30% new ones, long enough for the workout, warming up, peaking in the middle and easing off. Spotify no longer shares a song's energy with apps, so energy is judged from the artists' genres and the song title.
 
@@ -88,7 +98,7 @@ Cosmetics in Rewards → Shop:
 - **Themes:** 18, including the free default Cyber HUD, plus Hologram, Stealth Ops, Red Alert, Synthwave and Night City.
 - **Rings:** 14, including Segment, Gauge, Reticle, Gear, Hex, Orbit, Radar and Glitch.
 - **Banners:** 14, including Scanlines, Lattice, Circuit board, Radar sweep, Data stream and Hazard.
-- **Interfaces (1000 to 1750 coins):** each is a whole new look, changing the palette, fonts, frames, buttons, bars, background scenery, ambient animation and the Today circle rings (`skins.css`, built by `tools/build_skins.py`). There are 17: Sci-fi HUD (free), Imperial China, Zen Japan, Fairy Tale Forest, Medieval Castle, Steampunk Works, Olympus, Ancient Egypt, Viking Saga, Pirate Seas, Outrun 80s, Arcade 8-bit, Classical Elegance, Art Deco, Gothic Cathedral, Baroque Palace, Mythical Realm and Cosmic Voyage. Skin fonts only download when the skin is in use. You can try one before buying, and chests never drop them.
+- **Interfaces (1000 to 1750 coins):** each is a whole new look, changing the palette, fonts, frames, buttons, bars, background scenery, ambient animation and the Today circle rings (`skins.css`, built by `tools/build_skins.py`). There are 17: Sci-fi HUD (free), Imperial China, Zen Japan, Fairy Tale Forest, Medieval Castle, Steampunk Works, Olympus, Ancient Egypt, Viking Saga, Pirate Seas, Outrun 80s, Arcade 8-bit, Classical Elegance, Art Deco, Gothic Cathedral, Baroque Palace, Mythical Realm and Cosmic Voyage. Each interface also has its own sounds (`sounds.js`, made live with Web Audio): its own instrument and scale for taps, rewards and level-ups, from a koto and a gong to an organ chord, a Viking horn with drums or an 8-bit chiptune. Skin fonts only download when the skin is in use. You can try one before buying, and chests never drop them.
   - Imperial China (2000): red lacquer, gold lattice corners and a hanging lantern
   - Zen Japan (2000): seigaiha waves, Mount Fuji, a red sun and falling cherry petals
   - Fairy Tale Forest (2500): moonlit pine forest, fireflies and vine-and-flower corners
