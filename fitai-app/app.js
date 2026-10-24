@@ -222,7 +222,8 @@ function onboarding(edit) {
       <div class="lbl">Gender</div>${chips('gender', [['male', 'Male'], ['female', 'Female'], ['other', 'Other']], p.gender)}
       <div class="two">${num('f-age', 'Age', p.age, 'yrs', 'min="14" max="90"')}${num('f-height', 'Height', p.height, 'cm', 'min="120" max="230"')}</div>
       ${num('f-weight', 'Weight', p.weight, 'kg', 'min="30" max="250" step="0.1"')}
-      <p class="mut">Used for calories, protein and a safe training load. It never leaves this phone.</p>`,
+      <div class="lbl">Profile picture</div><div class="pgrid">${typeof ITEMS === 'undefined' ? '' : ITEMS.filter(i => i.type === 'avatar' && i.cost === 0).map(i => `<button type="button" class="pick ${G.avatar === i.key ? 'on' : ''}" data-pic="${i.key}" aria-label="${i.name}" title="${i.name}">${gi(i.key, 'hero')}</button>`).join('')}</div>
+      <p class="mut">You can change it any time. Fancier pictures cost coins in the Shop.</p><p class="mut">Your body data is used for calories, protein and a safe training load. It never leaves this phone.</p>`,
     () => `<div class="lbl">Main objective</div><div class="opts" data-k="goal">${Object.entries(GOALS).map(([k, [t, d]]) => `<button type="button" class="opt ${p.goal === k ? 'on' : ''}" data-v="${k}"><b>${t}</b><span>${d}</span></button>`).join('')}</div>
       ${num('f-target', 'Target weight (optional)', p.target, 'kg', 'min="30" max="250" step="0.1"')}`,
     () => `<div class="lbl">Experience</div>${chips('level', LEVELS.map(l => [l, cap(l)]), p.level)}
@@ -252,6 +253,7 @@ function onboarding(edit) {
     if (s === 0) { p.name = g('f-name').trim(); p.age = +g('f-age') || ''; p.height = +g('f-height') || ''; p.weight = +g('f-weight') || ''; }
     if (s === 1) p.target = +g('f-target') || '';
   };
+  view.querySelectorAll('[data-pic]').forEach(b => b.onclick = () => { G.avatar = b.dataset.pic; commit(); view.querySelectorAll('[data-pic]').forEach(x => x.classList.toggle('on', x === b)); });
   $('#bk')?.addEventListener('click', () => { read(); if (s) { wiz.step--; onboarding(); } else { wiz = null; location.hash = '#/me'; } });
   $('#nx').onclick = () => {
     read();

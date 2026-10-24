@@ -62,7 +62,9 @@ const PERKS = [
 const THEMES = [['ember', 'Ember', 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 120, '#00e5ff', '#ff2bd6'], ['sakura', 'Sakura', 140, '#ff7eb6', '#ffd1e8'], ['frost', 'Frostbite', 160, '#7cc6ff', '#e0f4ff'],
   ['toxic', 'Toxic', 200, '#8dff3a', '#e6ff5a'], ['ocean', 'Deep Ocean', 240, '#2ee6d6', '#3a8dff'], ['royal', 'Royal', 300, '#a66bff', '#ffd166'], ['retro', 'Arcade', 400, '#ff3d7f', '#ffe14d'],
   ['lava', 'Lava Flow', 420, '#ff4b1f', '#ffd000'], ['matrix', 'Mainframe', 520, '#2bff88', '#b7ffd8'], ['gold', 'Golden Hour', 700, '#ffd34d', '#fff1a8'], ['aurora', 'Aurora', 800, '#5cffc8', '#b46bff']];
-const AVATARS = [['glove', 'Boxer', 0], ['wolf', 'Wolf', 60], ['lion', 'Lion', 80], ['tiger', 'Tiger', 100], ['bear', 'Bear', 120], ['fox', 'Fox', 120], ['eagle', 'Eagle', 150], ['rooster', 'Rooster', 150],
+const AVATARS = [['glove', 'Boxer', 0], ['sun', 'Sun', 0], ['moon', 'Moon', 0], ['leaf', 'Leaf', 0], ['mountain', 'Mountain', 0], ['anchor', 'Anchor', 0], ['compass', 'Compass', 0], ['feather', 'Feather', 0],
+  ['snowflake', 'Snowflake', 0], ['cactus', 'Cactus', 0], ['pine', 'Pine', 0], ['panda', 'Panda', 0], ['penguin', 'Penguin', 0], ['turtle', 'Turtle', 0], ['duck', 'Duck', 0], ['bee', 'Bee', 0],
+  ['wolf', 'Wolf', 60], ['lion', 'Lion', 80], ['tiger', 'Tiger', 100], ['bear', 'Bear', 120], ['fox', 'Fox', 120], ['eagle', 'Eagle', 150], ['rooster', 'Rooster', 150],
   ['shark', 'Shark', 160], ['gorilla', 'Gorilla', 180], ['horse', 'Stallion', 180], ['bull', 'Bull', 200], ['ram', 'Ram', 200], ['raven', 'Raven', 220], ['owl', 'Owl', 220], ['scorpion', 'Scorpion', 260],
   ['ninja', 'Ninja', 280], ['samurai', 'Samurai', 320], ['viking', 'Viking', 320], ['spartan', 'Spartan', 340], ['minotaur', 'Minotaur', 380], ['robot', 'Robot', 400], ['wyvern', 'Wyvern', 420],
   ['unicorn', 'Unicorn', 450], ['astronaut', 'Astronaut', 480], ['dragon', 'Dragon', 500], ['kraken', 'Kraken', 520], ['alien', 'Alien', 560], ['trex', 'T-Rex', 600], ['rocket', 'Rocket', 700], ['crown', 'Crown', 800]];

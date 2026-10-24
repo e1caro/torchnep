@@ -52,7 +52,7 @@ function tile(i) {
   return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${act}</div>`;
 }
 function shopView() {
-  const by = t => ITEMS.filter(i => i.type === t).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
+  const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
   return `${hud()}${rwSeg('shop')}${chestBtn()}
   <p class="mut">Coins buy looks and boosts. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
