@@ -1,0 +1,27 @@
+/* ==========================================================================
+   Interface skins (Rewards > Shop > Interfaces). Each one replaces the whole look:
+   palette, fonts, background, panel frames, buttons, bars and markers. Plain CSS, no images.
+   Fonts (SIL Open Font License, Google Fonts) are loaded only for the active skin (see applyTheme).
+   ========================================================================== */
+
+/* ---- shared: undo the sci-fi pieces (segmented bars, tick rings, hex badges, cut corners) ---- */
+html[data-skin]:not([data-skin=hud]){--r:6px}
+html[data-skin]:not([data-skin=hud]) :is(.btn,.btn.sm,.chip,.seg,.seg a.on,.dpill,.pick,.icon,.coins,input,select,.qi,.dgi,.mi,.odd,.pill,.xpchip,.rk,.toast,.demo,.thumb,.swc,.xpbar,.pcard[class*=bn-],.pnp){clip-path:none;border-radius:var(--r)}
+html[data-skin]:not([data-skin=hud]) :is(.dot,.lv,.lg,.ck,.hwn){clip-path:none;border-radius:50%}
+html[data-skin]:not([data-skin=hud]) :is(.xpbar,.qbar,.prog,.hp,.rkbar,.steps i){background:var(--card2);box-shadow:inset 0 1px 3px #0008;border-radius:99px}
+html[data-skin]:not([data-skin=hud]) .xpbar i,html[data-skin]:not([data-skin=hud]) :is(.qbar,.prog,.hp,.rkbar) i{border-radius:99px;-webkit-mask:none;mask:none;filter:none;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+html[data-skin]:not([data-skin=hud]) .steps i.on{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:none}
+html[data-skin]:not([data-skin=hud]) .bars div{border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--acc2),var(--acc))}
+html[data-skin]:not([data-skin=hud]) .ring::before{display:none}
+html[data-skin]:not([data-skin=hud]) .fr-none::after{background:none}
+html[data-skin]:not([data-skin=hud]) .ring circle{stroke-linecap:round}
+html[data-skin]:not([data-skin=hud]) :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){border-style:solid;-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-skin]:not([data-skin=hud]) nav#tabs{border-top:1px solid var(--line)}
+html[data-skin]:not([data-skin=hud]) nav#tabs::before{background:linear-gradient(90deg,#0000,var(--acc),#0000) 50% 0/60% 2px no-repeat}
+html[data-skin]:not([data-skin=hud]) :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){border-radius:var(--r)}
+html[data-skin]:not([data-skin=hud]) .btn{letter-spacing:.05em;font-size:14px}
+html[data-skin]:not([data-skin=hud]) .btn.sm{font-size:12px}
+html[data-skin]:not([data-skin=hud]) h1{letter-spacing:.03em}
+html[data-skin]:not([data-skin=hud]) :is(h2,h3,.hn,.lbl,.chip,.seg a,.dpill){letter-spacing:.03em}
+html[data-skin]:not([data-skin=hud]) body::after{content:"";position:fixed;pointer-events:none;z-index:0}
+

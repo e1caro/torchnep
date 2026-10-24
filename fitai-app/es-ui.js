@@ -259,3 +259,4 @@ i18nAdd({
 });
 i18nAdd({ 'More info': 'Más info' });
 i18nAdd({ Preview: 'Vista previa', End: 'Terminar', 'Preview for one minute. Look around the app!': 'Vista previa durante un minuto. ¡Recorre la app!' });
+i18nAdd({ Olympus: 'Olimpo', 'Ancient Egypt': 'Antiguo Egipto', 'Viking Saga': 'Saga vikinga', 'Pirate Seas': 'Mares piratas', 'Outrun 80s': 'Outrun años 80', 'Arcade 8-bit': 'Arcade 8 bits' });

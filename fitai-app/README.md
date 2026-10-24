@@ -63,11 +63,19 @@ Cosmetics in Rewards → Shop:
 - **Rings:** 14, including Segment, Gauge, Reticle, Gear, Hex, Orbit, Radar and Glitch.
 - **Banners:** 14, including Scanlines, Lattice, Circuit board, Radar sweep, Data stream and Hazard.
 - **Interfaces (expensive):** each is a whole new look, changing the palette, fonts, frames, buttons, bars and background (`skins.css`). Skin fonts only download when the skin is in use. You can try one before buying, and chests never drop them.
-  - Imperial China (2000): red lacquer and gold lattice
-  - Zen Japan (2000): indigo seigaiha waves and vermilion torii bars
-  - Fairy Tale Forest (2500): night woods, pine trees, fireflies and leafy frames
-  - Medieval Castle (2500): stone walls, rivets and heraldic red
-  - Steampunk Works (3000): brass, copper and a turning gear
+  - Imperial China (2000): red lacquer, gold lattice corners and a hanging lantern
+  - Zen Japan (2000): seigaiha waves, Mount Fuji, a red sun and falling cherry petals
+  - Fairy Tale Forest (2500): moonlit pine forest, fireflies and vine-and-flower corners
+  - Medieval Castle (2500): stone walls, iron corner plates, a shield emblem and torch light
+  - Steampunk Works (3000): brass plates, a pressure-gauge title line and a turning gear
+  - Olympus (2500): Greek key borders, laurel, the Parthenon under the stars
+  - Ancient Egypt (2500): pyramids, a winged sun, lotus bands and ankh markers
+  - Viking Saga (2800): northern lights, snowy mountains, knotwork and runes
+  - Pirate Seas (2800): rope frames, brass rings, waves and a turning compass rose
+  - Outrun 80s (3200): a striped sunset sun over a neon perspective grid, chrome titles
+  - Arcade 8-bit (3500): pixel corners, Press Start / VT323 type, pixel hearts and CRT scanlines
+
+  Each interface also has a title ornament and its own ambient touches (a swaying lantern, falling cherry petals, twinkling fireflies, torch light). They are built by `tools/build_skins.py` from small hand-written SVGs into `skins.css`; edit the script and run it again to change them. "Try" previews any interface for one minute across the app.
 - **Panel styles:** a new type that changes the shape of every card in the Sci-fi HUD interface. The styles are Chamfered (free), Classic (free), Brackets, Octagon, Notch, Double line, Circuit and Hologram.
 
 ## Exercise media
