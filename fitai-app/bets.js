@@ -216,9 +216,16 @@ function legProb(kind, n, from, to, grp) {
   return .5;
 }
 // Odds: lower than fair, never below 1.00 (a stake back, no profit). Training once in a week or month never pays.
-function oddsFor(kind, n, p) {
-  if ((kind === 'train' && n <= 1) || kind === 'd-mg' || kind === 'mg') return 1;
-  return Math.min(4, Math.max(1, Math.round((1 + (.85 / Math.max(p, .01) - 1) * .45) * 20) / 20));
+// Weeks and months pay much less than a single day. Muscle picks start at 1.00 and only muscles you rarely train get a small bonus.
+const ODDS_SCALE = { day: 1, week: .6, month: .45 }, ODDS_CAP = { day: 4, week: 2.5, month: 2 };
+const MG_CAP = { day: 1.5, week: 1.3, month: 1.2 };
+// how rarely you train a muscle compared with your most trained one (0 = most trained, 1 = never)
+const mgRarity = grp => { const m = form().mg, top = Math.max(...Object.values(m)); return top > 0 ? 1 - m[grp] / top : 0; };
+function oddsFor(kind, n, p, per = 'day', grp) {
+  if (kind === 'train' && n <= 1) return 1;
+  const extra = .85 / Math.max(p, .01) - 1, r20 = x => Math.round(x * 20) / 20;
+  if (kind === 'd-mg' || kind === 'mg') return Math.min(MG_CAP[per], Math.max(1, r20(1 + mgRarity(grp) * (MG_CAP[per] - 1))));
+  return Math.min(ODDS_CAP[per], Math.max(1, r20(1 + extra * .45 * ODDS_SCALE[per])));
 }
 
 // Markets. g: group (one pick per group in a bet). topic: related topics get an odds cut in combined bets.
@@ -319,7 +326,7 @@ function markets() {
     }
   }
   // goals with almost no chance left are not offered
-  return out.filter(m => m.p >= .04).map(m => ({ ...m, o: oddsFor(m.kind, m.n, m.p) }));
+  return out.filter(m => m.p >= .04).map(m => ({ ...m, o: oddsFor(m.kind, m.n, m.p, m.per, m.grp) }));
 }
 
 // did a placed leg come true? (uses the window saved with the bet)
@@ -435,7 +442,7 @@ function renewBet(b, quiet) {
     while (w.to < now) w = nextWindow(b.repeat, w.to); // away for a while: jump to the current period
     const p = legProb(l.kind, l.n, w.from, w.to, l.grp);
     const base = l.kind === 'ovr' ? ovrNow(l.key) : l.kind === 'wlose' || l.kind === 'wgain' ? curWeight() : l.kind === 'badge' ? G.ach.length : l.base;
-    return { ...l, ...w, base, st: undefined, o: oddsFor(l.kind, l.n, p), day: dayId(w.from), t: undefined };
+    return { ...l, ...w, base, st: undefined, o: oddsFor(l.kind, l.n, p, l.per, l.grp), day: dayId(w.from), t: undefined };
   });
   legs.forEach(l => { delete l.st; l.t = legTitle(l); });
   const nb = { id: 'b' + now.toString(36) + Math.random().toString(36).slice(2, 5), t: now, stake: b.stake, odds: slipOdds(legs).total, legs, repeat: b.repeat, round: (b.round || 1) + 1 };
@@ -488,7 +495,7 @@ function betCard(b) {
     <div class="row between mut"><span>Stake ${gi('coin', 'cn')} ${b.stake}</span><span>${b.res === 'won' ? `Won ${gi('coin', 'cn')} ${pay}` : b.res === 'lost' ? 'Lost' : `Pays ${gi('coin', 'cn')} ${pay}`}</span></div>
     ${b.repeat && !b.res ? `<div class="row between rep"><span class="mut">${ic('swap', 16)} Repeats every ${b.repeat}</span><button class="btn sm ghost" onclick="betNoRepeat('${b.id}')">Stop</button></div>` : ''}</section>`;
 }
-const mgHint = t => `<div class="mut">Each muscle pays 1.00 alone. Combine them: 2 muscles ×${t[2]}, 3 ×${t[3]}, 4 ×${t[4]}, 5 ×${t[5]}, all 6 ×${t[6]}.</div>`;
+const mgHint = t => `<div class="mut">Each muscle pays 1.00 alone, a bit more if you rarely train it. Combine them: 2 muscles ×${t[2]}, 3 ×${t[3]}, 4 ×${t[4]}, 5 ×${t[5]}, all 6 ×${t[6]}.</div>`;
 function betsView() {
   if (needProfile()) return;
   ensureDay(); settleBets();
@@ -506,9 +513,9 @@ function betsView() {
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
     <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
     <li>Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
-    <li>Muscle picks pay 1.00 alone, because you will train something. Combine several muscles of the same day, week or month to raise the odds: today 2 muscles ×1.25 up to all 6 ×3.6, a week up to ×1.6, a month up to ×1.35.</li>
+    <li>Muscle picks pay 1.00 alone, because you will train something, and a bit more for muscles you rarely train. Combine several muscles of the same day, week or month to raise the odds: today 2 muscles ×1.25 up to all 6 ×3.6, a week up to ×1.6, a month up to ×1.35.</li>
     <li>Tick Repeat to renew a bet on its own every day, week or month. Stop it from My bets whenever you like.</li>
-    <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back) and training once a week or month never pays. Stakes go from ${BET_MIN} to ${BET_MAX} coins, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
+    <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back), training once a week or month never pays, and weeks and months pay much less than a single day. Stakes go from ${BET_MIN} to ${BET_MAX} coins, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
   ${slip.length ? `<section class="card slip"><div class="row between"><h3>${slip.length > 1 ? `Combined bet · ${slip.length} picks` : 'Single bet'}</h3><button class="icon" aria-label="Clear slip" onclick="betClear()">${ic('close', 18)}</button></div>
     ${slip.map(l => `<div class="row betleg"><span class="grow">${l.t}</span><span class="mut">${l.o.toFixed(2)}</span></div>`).join('')}
     ${so.muscles > 1 ? `<div class="mut">Muscle combo: ${so.muscles} muscles ×${so.mgx.toFixed(2)}</div>` : ''}
@@ -571,7 +578,7 @@ if (typeof i18nAdd === 'function') {
     'Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.': 'Apuesta a hoy, esta semana, la semana que viene, este mes o el mes que viene. La semana que viene admite apuestas hasta el domingo por la noche, y el mes que viene hasta final de este mes. La apuesta se paga en cuanto se cumplen todas sus selecciones y se pierde si a una se le acaba el tiempo.',
     'Next week': 'Semana que viene', 'This month': 'Este mes', 'Next month': 'Mes que viene', 'Ends at midnight.': 'Acaba a medianoche.', 'Nothing to bet on here right now.': 'Ahora mismo no hay nada a lo que apostar aquí.',
     'You can bet on it until Sunday night.': 'Puedes apostar hasta el domingo por la noche.', 'You can bet on it until the end of this month.': 'Puedes apostar hasta final de este mes.',
-    'Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay {n} (you only get your coins back) and training once a week or month never pays. Stakes go from {n} to {n} coins, with up to {n} open bets. Only game coins, never real money.': 'Las cuotas salen de tus últimas cuatro semanas: lo que consigues pocas veces paga más, lo fácil paga {n} (solo recuperas tus monedas) y entrenar una vez a la semana o al mes nunca paga. Se apuesta de {n} a {n} monedas, con hasta {n} apuestas abiertas. Solo monedas del juego, nunca dinero real.',
+    'Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay {n} (you only get your coins back), training once a week or month never pays, and weeks and months pay much less than a single day. Stakes go from {n} to {n} coins, with up to {n} open bets. Only game coins, never real money.': 'Las cuotas salen de tus últimas cuatro semanas: lo que consigues pocas veces paga más, lo fácil paga {n} (solo recuperas tus monedas), entrenar una vez a la semana o al mes nunca paga, y las semanas y los meses pagan mucho menos que un solo día. Se apuesta de {n} a {n} monedas, con hasta {n} apuestas abiertas. Solo monedas del juego, nunca dinero real.',
     'Tick Repeat to renew a bet on its own every day, week or month. Stop it from My bets whenever you like.': 'Marca Repetir para que la apuesta se renueve sola cada día, semana o mes. Puedes pararla en Mis apuestas cuando quieras.',
     'Repeat every day': 'Repetir cada día', 'Repeat every week': 'Repetir cada semana', 'Repeat every month': 'Repetir cada mes',
     'Repeats every day': 'Se repite cada día', 'Repeats every week': 'Se repite cada semana', 'Repeats every month': 'Se repite cada mes', Stop: 'Parar',
@@ -600,8 +607,8 @@ if (typeof i18nAdd === 'function') {
   });
   const GRP_ES = { legs: 'piernas', chest: 'pecho', back: 'espalda', shoulders: 'hombros', arms: 'brazos', core: 'core' };
   i18nAdd({ 'Muscle combo: {n} muscles ×{n}': 'Combo de músculos: {n} músculos ×{n}',
-    'Each muscle pays {n} alone. Combine them: {n} muscles ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, all {n} ×{n}.': 'Cada músculo paga {n} solo. Combínalos: {n} músculos ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, los {n} ×{n}.',
-    'Muscle picks pay {n} alone, because you will train something. Combine several muscles of the same day, week or month to raise the odds: today {n} muscles ×{n} up to all {n} ×{n}, a week up to ×{n}, a month up to ×{n}.': 'Los músculos pagan {n} solos, porque algo vas a entrenar. Combina varios del mismo día, semana o mes para subir la cuota: hoy {n} músculos ×{n} hasta los {n} ×{n}, en una semana hasta ×{n} y en un mes hasta ×{n}.' });
+    'Each muscle pays {n} alone, a bit more if you rarely train it. Combine them: {n} muscles ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, all {n} ×{n}.': 'Cada músculo paga {n} solo, algo más si lo entrenas poco. Combínalos: {n} músculos ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, los {n} ×{n}.',
+    'Muscle picks pay {n} alone, because you will train something, and a bit more for muscles you rarely train. Combine several muscles of the same day, week or month to raise the odds: today {n} muscles ×{n} up to all {n} ×{n}, a week up to ×{n}, a month up to ×{n}.': 'Los músculos pagan {n} solos, porque algo vas a entrenar, y algo más los que entrenas poco. Combina varios del mismo día, semana o mes para subir la cuota: hoy {n} músculos ×{n} hasta los {n} ×{n}, en una semana hasta ×{n} y en un mes hasta ×{n}.' });
   i18nAdd({ Training: 'Entrenamiento', Muscles: 'Músculos', Health: 'Salud', Game: 'Juego',
     'Train 45 minutes or more today': 'Entrenar 45 minutos o más hoy', 'Train 45 minutes or more tomorrow': 'Entrenar 45 minutos o más mañana',
     'Log your weight today': 'Registrar tu peso hoy', 'Log your weight tomorrow': 'Registrar tu peso mañana',
