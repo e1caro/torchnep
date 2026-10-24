@@ -20,6 +20,23 @@ function bubble(id, i, big) {
     <span class="bl">${label}</span></button>`;
 }
 
+// The check-in streak runs in weeks of 7 days; day 7 brings a silver chest. A streak is always at least day 1
+// (older saves could hold 0 for a check-in already made today).
+function streak() {
+  const st = Math.max(1, ciInfo().st), today = G.checkin === dayId(), day = ((st - 1) % 7) + 1;
+  const n = today ? st + 1 : st, k = Math.min(n - 1, 6); // the next check-in still to make
+  return { today, done: today ? day : day - 1, next: { xp: 10 + 2 * k, coins: 15 + 5 * k, chest: n % 7 === 0 } };
+}
+function streakCard() {
+  const s = streak(), el = document.createElement('section');
+  el.className = 'card streak';
+  el.innerHTML = `<div class="row between"><h3>Check-in streak</h3><span class="mut">Day ${s.done} of 7</span></div>
+    <div class="ckdots">${[...Array(7)].map((_, i) => `<i class="${i < s.done ? 'on' : ''}">${i === 6 ? gi('chest-silver', 'hero') : i + 1}</i>`).join('')}</div>
+    ${s.today ? `<div class="row between"><span class="mut">Done for today. Tomorrow</span><b>+${s.next.xp} XP · ${gi('coin', 'cn')} ${s.next.coins}${s.next.chest ? ` · ${gi('chest-silver')}` : ''}</b></div>`
+    : '<div class="mut">Check in today to keep your streak.</div>'}`;
+  return el;
+}
+
 function bubbleHome() {
   const hudEl = view.querySelector(':scope > .hud');
   if (!hudEl) return; // the profile wizard, not Today
@@ -35,11 +52,7 @@ function bubbleHome() {
   // the old shortcut buttons to the Earn and Bets screens: their content now sits inside the Earn circle
   view.querySelectorAll(':scope > button[onclick*="#/earn"], :scope > button[onclick*="#/bets"]').forEach(n => n.remove());
   // the daily check-in and the chests share one bubble; it stays even when both are done
-  if (!groups.loot.some(Boolean)) {
-    const note = document.createElement('div'); note.className = 'card mut';
-    note.textContent = `Checked in today. Come back tomorrow for day ${(G.ciStreak % 7) + 1}.`;
-    groups.loot = [note];
-  }
+  groups.loot.unshift(streakCard());
   Object.keys(groups).forEach(k => { groups[k] = groups[k].filter(Boolean); if (!groups[k].some(n => !n.matches('h2.sec,.sec2'))) delete groups[k]; });
 
   // what each bubble shows: a value, a progress ring (0..1) and a "!" when something is ready to claim
@@ -48,8 +61,7 @@ function bubbleHome() {
   BUB_INFO = {
     train: { p: hits / p.days, v: `${hits}/${p.days}`, name: next?.querySelector('h2')?.textContent },
     quests: { p: qd / qn, v: `${qd}/${qn}`, bad: !!view.querySelector(':scope > .quest.ok:not(.cl)') || !!boss?.querySelector('button') },
-    loot: (c => { const day = ((c.st - 1) % 7) + 1, ci = G.checkin !== dayId();
-      return { p: day / 7, v: G.chests.length ? `×${G.chests.length}` : `${day}/7`, bad: ci || G.chests.length > 0 }; })(ciInfo()),
+    loot: (({ done }) => ({ p: done / 7, v: G.chests.length ? `×${G.chests.length}` : `${done}/7`, bad: G.checkin !== dayId() || G.chests.length > 0 }))(streak()),
     meals: (([a, b]) => (b ? { p: a / b, v: `${a}/${b}` } : { v: g4?.querySelector('b')?.textContent }))(num(meals?.querySelector('.mut'))),
     academy: { v: groups.academy?.[0].querySelector('.pc-mini b')?.textContent ?? null },
     earn: { bad: typeof spinsLeft === 'function' && spinsLeft() > 0, v: typeof BT === 'object' && BT.open.length ? `${BT.open.length}` : null },
@@ -196,5 +208,6 @@ routes.home = home;
 if (typeof i18nAdd === 'function') i18nAdd({
   Train: 'Entrenar', Quests: 'Misiones', Earn: 'Ganar', 'Quests and boss': 'Misiones y jefe', 'Meals and fuel': 'Comidas y combustible', 'Earn and bet': 'Ganar y apostar',
   Academy: 'Academia', Loot: 'Botín', 'Daily loot': 'Botín diario',
-  'Checked in today. Come back tomorrow for day {n}.': 'Ya has hecho el check-in hoy. Vuelve mañana para el día {n}.',
+  'Check-in streak': 'Racha de check-in', 'Day {n} of {n}': 'Día {n} de {n}', 'Check in today to keep your streak.': 'Haz el check-in hoy para mantener la racha.',
+  'Done for today. Tomorrow': 'Hecho por hoy. Mañana',
 });
