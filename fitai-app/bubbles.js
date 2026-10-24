@@ -7,11 +7,11 @@ const BUB = { open: null };
 // id: [icon, bubble label, panel title]
 const BUB_DEF = {
   train: ['lifter', 'Train', 'Next training'], quests: ['scroll', 'Quests', 'Daily quests'], boss: ['golem', 'Boss', 'Weekly boss'],
-  checkin: ['crate', 'Check-in', 'Daily check-in'], chest: ['chest-gold', 'Loot', 'Your chests'], meals: ['cutlery', 'Meals', 'Meals today'],
+  loot: ['treasure', 'Loot', 'Daily loot'], meals: ['cutlery', 'Meals', 'Meals today'],
   fuel: ['flame', 'Fuel', 'Fuel'], dungeon: ['gate', 'Dungeon', 'Dungeon of the day'], academy: ['trophy', 'Academy', 'Sports Academy'],
   earn: ['bolt', 'Earn', 'More ways to earn'], bets: ['ticket', 'Bets', 'Your bets'],
 };
-const BUB_ORDER = ['quests', 'boss', 'checkin', 'chest', 'meals', 'fuel', 'dungeon', 'academy', 'earn', 'bets']; // clockwise from the top
+const BUB_ORDER = ['quests', 'boss', 'loot', 'meals', 'fuel', 'dungeon', 'academy', 'earn', 'bets']; // clockwise from the top
 let BUB_INFO = {};
 
 function bubble(id, i, big) {
@@ -28,10 +28,16 @@ function bubbleHome() {
   const next = q('.card.next'), boss = q('.card.boss'), g4 = q('.grid4'), meals = q('section.card[onclick*="#/meals"],section.card[onclick*="#/recipe"]');
   const groups = {
     train: [prevH(next), next], quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest')], boss: [prevH(boss), boss],
-    checkin: [q('button[onclick="checkIn()"]')], chest: [q('.chestbtn')], meals: [meals],
+    loot: [q('button[onclick="checkIn()"]'), q('.chestbtn')], meals: [meals],
     fuel: [prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
     dungeon: [q('section[onclick*="#/dungeons"]')], academy: [q('.sp-row')], earn: [q('button[onclick*="#/earn"]')], bets: [q('button[onclick*="#/bets"]')],
   };
+  // the daily check-in and the chests share one bubble; it stays even when both are done
+  if (!groups.loot.some(Boolean)) {
+    const note = document.createElement('div'); note.className = 'card mut';
+    note.textContent = `Checked in today. Come back tomorrow for day ${(G.ciStreak % 7) + 1}.`;
+    groups.loot = [note];
+  }
   Object.keys(groups).forEach(k => { groups[k] = groups[k].filter(Boolean); if (!groups[k].some(n => !n.matches('h2.sec,.sec2'))) delete groups[k]; });
 
   // what each bubble shows: a value, a progress ring (0..1) and a "!" when something is ready to claim
@@ -41,8 +47,8 @@ function bubbleHome() {
     train: { p: hits / p.days, v: `${hits}/${p.days}`, name: next?.querySelector('h2')?.textContent },
     quests: { p: qd / qn, v: `${qd}/${qn}`, bad: !!view.querySelector(':scope > .quest.ok:not(.cl)') },
     boss: { ico: BOSSES[hash(weekId()) % BOSSES.length][1], p: 1 - hits / p.days, v: hits >= p.days ? '✓' : `${p.days - hits}`, bad: !!boss?.querySelector('button') },
-    checkin: (c => ({ p: (((c.st - 1) % 7) + 1) / 7, v: `${((c.st - 1) % 7) + 1}/7`, bad: true }))(ciInfo()),
-    chest: { ico: G.chests.length ? CHEST[G.chests[0]][1] : 'chest-gold', v: `×${G.chests.length}`, bad: true },
+    loot: (c => { const day = ((c.st - 1) % 7) + 1, ci = G.checkin !== dayId();
+      return { p: day / 7, v: G.chests.length ? `×${G.chests.length}` : `${day}/7`, bad: ci || G.chests.length > 0 }; })(ciInfo()),
     meals: (([a, b]) => ({ p: b ? a / b : 0, v: b ? `${a}/${b}` : null }))(num(meals?.querySelector('.mut'))),
     fuel: { v: g4?.querySelector('b')?.textContent },
     dungeon: { ico: featuredId() ? DUNGEONS[featuredId()].ico : 'gate', v: '+50%' },
@@ -155,5 +161,6 @@ routes.home = home;
 
 if (typeof i18nAdd === 'function') i18nAdd({
   Train: 'Entrenar', Quests: 'Misiones', Boss: 'Jefe', 'Check-in': 'Check-in', Earn: 'Ganar', Bets: 'Apuestas', Dungeon: 'Mazmorra',
-  Academy: 'Academia', Loot: 'Botín', 'Your bets': 'Tus apuestas', 'Your chests': 'Tus cofres',
+  Academy: 'Academia', Loot: 'Botín', 'Your bets': 'Tus apuestas', 'Daily loot': 'Botín diario',
+  'Checked in today. Come back tomorrow for day {n}.': 'Ya has hecho el check-in hoy. Vuelve mañana para el día {n}.',
 });

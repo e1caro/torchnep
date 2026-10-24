@@ -394,3 +394,21 @@ html[data-tint][data-skin=pirate] .bxi::before{background:var(--bring) center/10
 nav a{flex:1 1 0}
 .big .bl{max-width:200px}
 .bub.big{gap:16px}
+
+/* ===================== frames come alive ===================== */
+/* a soft light runs over every panel's frame ornaments now and then */
+@keyframes sheen{0%,62%{background-position:140% 0}100%{background-position:-40% 0}}
+html :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat):not(.pcard)::after{content:"";position:absolute;inset:-1px;pointer-events:none;
+  background:linear-gradient(105deg,#0000 40%,#ffffffd0 50%,#0000 60%) 140% 0/300% 100% no-repeat;
+  -webkit-mask:var(--deco);mask:var(--deco);-webkit-mask-repeat:var(--rep,no-repeat);mask-repeat:var(--rep,no-repeat);
+  animation:sheen 8s ease-in-out infinite;opacity:.75}
+html :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat):nth-child(3n)::after{animation-delay:-2.7s}
+html :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat):nth-child(3n+1)::after{animation-delay:-5.3s}
+html[data-skin=arcade] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::after{display:none}
+/* the avatar rings that stood still now move too */
+@keyframes rglow{0%,100%{filter:drop-shadow(0 0 4px var(--acc))}50%{filter:drop-shadow(0 0 12px var(--acc))}}
+.fr-none::after{animation:spin 30s linear infinite}
+.fr-ticks::after{animation:spin 20s linear infinite}
+.fr-diamond::after{animation:spin 6s linear infinite}
+.fr-hexagon{animation:rglow 2.6s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){html :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::after,.fr-none::after,.fr-ticks::after,.fr-diamond::after,.fr-hexagon{animation:none}}

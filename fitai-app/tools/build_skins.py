@@ -502,12 +502,27 @@ RINGS = {
 }
 BUB = '\n/* ==========================================================================\n   Today bubbles: each interface dresses the circles with its own ring\n   ========================================================================== */\n'
 BUB += ''.join(f"html[data-skin={k}]{{--bring:{v}}}\n" for k, v in RINGS.items())
-BUB += """html[data-skin=hud] .orb::before{background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat;animation:bspin 40s linear infinite}
-html[data-skin=steampunk] .orb::before{animation:bspin 30s linear infinite}
-html[data-skin=steampunk] .bub:nth-child(even) .orb::before{animation-direction:reverse}
-html[data-skin=outrun] .orb::before{filter:drop-shadow(0 0 4px #ff3cc7) drop-shadow(0 0 8px #00f0ff88)}
+BUB += """@keyframes bsway{from{rotate:-7deg}to{rotate:7deg}}
+@keyframes bglow{0%,100%{filter:drop-shadow(0 0 0 var(--gc,var(--acc)))}50%{filter:drop-shadow(0 0 7px var(--gc,var(--acc)))}}
+@keyframes bflick{0%,100%{filter:brightness(1) drop-shadow(0 0 3px var(--gc))}30%{filter:brightness(1.25) drop-shadow(0 0 8px var(--gc))}55%{filter:brightness(.95) drop-shadow(0 0 4px var(--gc))}80%{filter:brightness(1.15) drop-shadow(0 0 7px var(--gc))}}
+@keyframes bneon{0%,100%{opacity:1}92%{opacity:1}94%{opacity:.45}96%{opacity:1}97%{opacity:.6}}
+html[data-skin=hud] :is(.orb,.bxi)::before{background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat;animation:bspin 40s linear infinite,bglow 3s ease-in-out infinite}
+html[data-skin=chinese] :is(.orb,.bxi)::before{--gc:#ffcf5a;animation:bspin 60s linear infinite,bglow 3.5s ease-in-out infinite}
+html[data-skin=japanese] :is(.orb,.bxi)::before{--gc:#ff6a4f;animation:bspin 40s linear infinite,bglow 4s ease-in-out infinite}
+html[data-skin=fairy] :is(.orb,.bxi)::before{--gc:#ffe27a;animation:bsway 4.5s ease-in-out infinite alternate,bglow 2.6s ease-in-out infinite}
+html[data-skin=medieval] :is(.orb,.bxi)::before{--gc:#ff9a3c;animation:bflick 2.4s ease-in-out infinite}
+html[data-skin=steampunk] :is(.orb,.bxi)::before{--gc:#ffb45a;animation:bspin 24s linear infinite,bglow 3s ease-in-out infinite}
+html[data-skin=steampunk] .bub:nth-child(odd) .orb::before{animation-direction:reverse,normal}
+html[data-skin=greek] :is(.orb,.bxi)::before{--gc:#fff0b0;animation:bsway 6s ease-in-out infinite alternate,bglow 3s ease-in-out infinite}
+html[data-skin=egypt] :is(.orb,.bxi)::before{--gc:#ffd86a;animation:bspin 50s linear infinite,bglow 3s ease-in-out infinite}
+html[data-skin=viking] :is(.orb,.bxi)::before{--gc:#8fd3ff;animation:bspin 70s linear infinite reverse,bflick 3s ease-in-out infinite}
+html[data-skin=pirate] :is(.orb,.bxi)::before{--gc:#e0b55a;animation:bsway 3.2s ease-in-out infinite alternate}
+html[data-skin=outrun] :is(.orb,.bxi)::before{animation:bspin 18s linear infinite,bneon 4s linear infinite}
+html[data-skin=arcade] :is(.orb,.bxi)::before{animation:bspin 8s steps(12) infinite}
+html[data-skin] .bub:nth-child(3n) .orb::before{animation-delay:-1.3s}html[data-skin] .bub:nth-child(3n+1) .orb::before{animation-delay:-2.1s}
+"""
+BUB += """html[data-skin=outrun] :is(.orb,.bxi)::before{filter:drop-shadow(0 0 4px #ff3cc7) drop-shadow(0 0 8px #00f0ff88)}
 html[data-skin=outrun] .orb{background:radial-gradient(circle at 50% 120%,#ff6a3d88,#0000 60%),linear-gradient(#2a0650,#12002a)}
-html[data-skin=japanese] .orb::before{animation:bspin 90s linear infinite}
 html[data-skin=fairy] .orb{background:radial-gradient(circle at 35% 30%,#2f5a2f,#0b2016)}
 html[data-skin=medieval] .orb{background:radial-gradient(circle at 35% 30%,#4a3f30,#1b160f)}
 html[data-skin=pirate] .orb{background:radial-gradient(circle at 35% 30%,#4a3a24,#1e160d)}
