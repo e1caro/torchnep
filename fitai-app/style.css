@@ -162,3 +162,14 @@ html[data-theme=aurora] body{background:radial-gradient(90% 40% at 20% -5%,#1b6b
 label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-radius:6px}
 .qrfs{position:fixed;inset:0;z-index:60;background:#fff;color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px}
 .qrfs img{max-width:100%;max-height:68vh;object-fit:contain}.qrfs .mut{color:#555}.qrfs .btn{width:min(320px,100%)}
+
+/* ---- meals ---- */
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:0 0 10px}.seg a{flex:1;text-align:center;padding:9px;border-radius:10px;color:var(--mut);font-weight:700}.seg a.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#12080a}
+.days{display:flex;gap:6px;margin:8px 0}.dpill{flex:1;min-width:0;background:var(--card);border:1px solid var(--line);color:var(--mut);border-radius:12px;padding:8px 0;font:700 13px var(--body);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.dpill i{font-style:normal;color:var(--ok);height:14px;line-height:14px;font-size:12px}.dpill.td{border-color:var(--acc2)}.dpill.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#12080a;border-color:transparent}.dpill.on i{color:#12080a}
+.meal{display:flex;align-items:center;gap:12px;padding:12px;margin:8px 0}.meal.done{opacity:.6}.mi{font-size:30px;width:52px;height:52px;border-radius:14px;background:var(--card2);display:grid;place-items:center;flex:none}
+.mbar{display:grid;grid-template-columns:62px 1fr 78px;gap:8px;align-items:center;margin-top:8px;font-size:13px}.mbar .qbar{margin:0}.mbar b{text-align:right;font-variant-numeric:tabular-nums}
+.qbar.kc i{background:linear-gradient(90deg,var(--acc),var(--acc2))}.qbar.pr i{background:linear-gradient(90deg,#ff5c8a,#ff9fb8)}.qbar.cb i{background:linear-gradient(90deg,#4cc3ff,#a5e1ff)}.qbar.ft i{background:linear-gradient(90deg,#ffc53d,#ffe28a)}
+.rhero{font-size:90px;line-height:1;text-align:center;margin:6px 0;filter:drop-shadow(0 6px 14px #000a)}
+.ing{padding:7px 0;border-bottom:1px solid var(--line)}.ing:last-of-type{border:0}
+.shop{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.shop:last-child{border:0}.shop input{width:22px;height:22px;accent-color:var(--acc);flex:none}.shop input:checked~*{opacity:.45;text-decoration:line-through}
