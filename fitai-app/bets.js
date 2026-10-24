@@ -509,11 +509,12 @@ function betCard(b) {
     ${b.repeat && !b.res ? `<div class="row between rep"><span class="mut">${ic('swap', 16)} Repeats every ${b.repeat}</span><button class="btn sm ghost" onclick="betNoRepeat('${b.id}')">Stop</button></div>` : ''}</section>`;
 }
 const mgHint = t => `<div class="mut">Each muscle pays 1.00 alone, a bit more if you rarely train it. Combine them: 2 muscles ×${t[2]}, 3 ×${t[3]}, 4 ×${t[4]}, 5 ×${t[5]}, all 6 ×${t[6]}.</div>`;
-// a market's number: with picks in the slip, the total odds you would get by adding it (its own odds shown small)
+// a market's number: with picks in the slip, the total odds you would get by adding it
 function oddCell(m, picked) {
-  if (!slip.length || picked) return `<span class="odd">${(picked ? slipOdds(slip).total : m.o).toFixed(2)}${picked && slip.length > 1 ? `<small>×${m.o.toFixed(2)}</small>` : ''}</span>`;
-  const r = slipWith(m); if (r.full) return `<span class="odd">${m.o.toFixed(2)}</span>`;
-  return `<span class="odd tot">${slipOdds(r.legs).total.toFixed(2)}<small>×${m.o.toFixed(2)}</small></span>`;
+  if (!slip.length) return `<span class="odd">${m.o.toFixed(2)}</span>`;
+  if (picked) return `<span class="odd">${slipOdds(slip).total.toFixed(2)}</span>`;
+  const r = slipWith(m);
+  return `<span class="odd ${r.full ? '' : 'tot'}">${(r.full ? m.o : slipOdds(r.legs).total).toFixed(2)}</span>`;
 }
 function betsView() {
   if (needProfile()) return;
@@ -528,7 +529,7 @@ function betsView() {
   const note = betTab === 'today' ? 'Ends at midnight.' : per.live ? `Ends ${fmt(per.to)}.` : `From ${fmt(per.from)} to ${fmt(per.to)}. ${betTab === 'nweek' ? 'You can bet on it until Sunday night.' : 'You can bet on it until the end of this month.'}`;
   view.innerHTML = `${hud()}<button class="btn sm ghost back" onclick="location.hash='#/earn'">${ic('back', 18)} Back</button><h1>Bets</h1>
   <details class="card howto"><summary>How bets work</summary><ol>
-    <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the big number is the total odds your bet would have with that goal added, and its own odds are shown small.</li>
+    <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the number is the total odds your bet would have with that goal added.</li>
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
     <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
     <li>Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
@@ -591,7 +592,7 @@ if (typeof i18nAdd === 'function') {
     Bets: 'Apuestas', 'Bet on yourself': 'Apuesta por ti', 'Open bets': 'Abrir apuestas', '{n} open': '{n} abiertas',
     'Stake coins on your own goals: train today, clear dungeons, hit your water goal. Combine picks to multiply the odds.': 'Apuesta monedas a tus propios objetivos: entrenar hoy, superar mazmorras, llegar a tu meta de agua. Combina selecciones para multiplicar la cuota.',
     'How bets work': 'Cómo funcionan las apuestas',
-    "Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the big number is the total odds your bet would have with that goal added, and its own odds are shown small.": 'Toca un objetivo para añadirlo a tu boleto. El número de la derecha es su cuota: lo que te devuelve cada moneda apostada si se cumple. Cuando ya tienes selecciones, el número grande es la cuota total que tendría tu apuesta al añadirlo, y su propia cuota sale en pequeño.',
+    "Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the number is the total odds your bet would have with that goal added.": 'Toca un objetivo para añadirlo a tu boleto. El número de la derecha es su cuota: lo que te devuelve cada moneda apostada si se cumple. Cuando ya tienes selecciones, el número es la cuota total que tendría tu apuesta al añadirlo.',
     'One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.': 'Una selección es una apuesta simple. De dos a cinco selecciones forman una combinada: las cuotas se multiplican y paga mucho más, pero se tienen que cumplir todas.',
     'Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.': 'Las selecciones de entrenamiento están relacionadas, así que en una combinada cada selección de entrenamiento extra baja la cuota total un 15%. Solo una selección por tipo de objetivo, y no dos que se ganarían con el mismo entrenamiento.',
     'Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.': 'Apuesta a hoy, esta semana, la semana que viene, este mes o el mes que viene. La semana que viene admite apuestas hasta el domingo por la noche, y el mes que viene hasta final de este mes. La apuesta se paga en cuanto se cumplen todas sus selecciones y se pierde si a una se le acaba el tiempo.',
