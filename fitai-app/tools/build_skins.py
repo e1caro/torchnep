@@ -493,7 +493,7 @@ skin('Gothic Cathedral', f"""
 html[data-skin=gothic]{{
   --bg:#07060e;--glow:#1a1530;--acc:{GB};--acc2:{GR};--fg:#ece8f4;--mut:#a39fb6;--on:#07060e;--r:0;
   --card:#0f0d1a;--card2:#171425;--line:{GS}33;--line2:{GS}88;
-  --disp:'UnifrakturMaguntia','EB Garamond',serif;--body:'EB Garamond',Georgia,serif;--mono:'EB Garamond',serif;
+  --disp:'Grenze','EB Garamond',serif;--body:'EB Garamond',Georgia,serif;--mono:'EB Garamond',serif;
   --clip:none;--pshadow:inset 0 0 0 1px {GS}22,inset 0 0 34px #000a;--rep:no-repeat;
   --deco:{corners(go_corner, 34, 'tl tr')},linear-gradient({GS},{GS}) 0 100%/100% 1px;--orn:{go_orn};--orn-h:28px}}
 html[data-skin=gothic] body{{font-size:18px;background:radial-gradient(50% 30% at 50% 14%,#7aa2ff22,#0000 70%) no-repeat,

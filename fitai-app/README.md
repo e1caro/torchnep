@@ -61,7 +61,7 @@ Today is six circles that fill the screen: Train in the middle (next workout and
 ## Weekly summary and coach
 
 - **Weekly summary:** a story of the week, with full-screen slides that advance on their own or with a tap, animated numbers and bars, and comparisons with the week before. It covers workouts, minutes, kilos, sets and reps, the muscles worked, new records, the best workout, the training days and streak, XP, the boss, and a week grade (C to A+, or a golden S with confetti for an exceptional week: more workouts than the goal plus a new record or more kilos than the week before), and you can share it. It opens by itself the first time you use the app in a new week. Progress shows the week inline (training days, workouts against the goal, minutes, kilos, records and a grade, compared with the same point of last week) with buttons to play this week or last week as a story.
-- **Coach:** a line on Today that changes with your day. It mentions bets ending tonight or still open and what they pay, the daily quests left or ready to claim, your training streak and the weekly boss, and ends with a short motivational line. Tap it for the next message.
+- **Coach:** a line on Today that changes with your day. It mentions bets ending tonight or still open and what they pay, the daily quests left or ready to claim, your training streak and the weekly boss, and ends with a short motivational line. Tap it for the next message; after the last one (✕) a tap folds it away and the circles glide back into the space. It greets you again the next time the app opens.
 
 ## Workout music (Spotify)
 

@@ -112,7 +112,7 @@ window.shareRecap = async e => {
 addEventListener('keydown', e => { if (!RC) return; if (e.key === 'Escape') closeRecap(); if (e.key === 'ArrowRight') recapGo(1); if (e.key === 'ArrowLeft') recapGo(-1); });
 
 // ---------- the coach line on Today ----------
-let COACH_I = 0;
+let COACH_I = 0, COACH_DONE = false; // the coach greets you each time the app opens, until you have read it all
 const B = t => `<b>${esc(t)}</b>`;
 const S_ = t => `<span>${t}</span>`;
 function coachLines() {
@@ -148,13 +148,23 @@ function coachLines() {
   return out;
 }
 function coachCard() {
-  const ls = coachLines(), i = COACH_I % ls.length;
-  return `<section class="coach" onclick="coachNext()"><span class="cav">${gi(G.avatar, 'hero')}</span><div class="ctext">${ls[i].h}</div>${ls.length > 1 ? `<span class="cnext">${i + 1}/${ls.length} ›</span>` : ''}</section>`;
+  const ls = coachLines(), i = Math.min(COACH_I, ls.length - 1), last = i === ls.length - 1;
+  return `<section class="coach" onclick="coachNext()"><span class="cav">${gi(G.avatar, 'hero')}</span><div class="ctext">${ls[i].h}</div><span class="cnext">${ls.length > 1 ? `${i + 1}/${ls.length} ` : ''}${last ? '✕' : '›'}</span></section>`;
 }
 window.coachNext = () => {
-  COACH_I++;
   const c = view.querySelector(':scope > .coach');
   if (!c) return;
+  if (COACH_I >= coachLines().length - 1) { // read it all: fold it away and let the circles take the space back
+    COACH_DONE = true; sfx('tick');
+    c.style.height = c.offsetHeight + 'px'; c.getBoundingClientRect();
+    c.classList.add('bye');
+    let done = false;
+    const end = () => { if (done) return; done = true; c.remove(); if (typeof layoutOrbs === 'function') layoutOrbs(); };
+    c.addEventListener('transitionend', e => { if (e.propertyName === 'height') end(); });
+    setTimeout(end, 500);
+    return;
+  }
+  COACH_I++;
   c.outerHTML = coachCard();
   view.querySelector(':scope > .coach')?.classList.add('swap');
   sfx('tick');
@@ -166,7 +176,7 @@ home = function () {
   _rcHome();
   const hud = view.querySelector(':scope > .hud');
   if (!hud) return;
-  hud.insertAdjacentHTML('afterend', coachCard());
+  if (!COACH_DONE) hud.insertAdjacentHTML('afterend', coachCard());
   if (typeof layoutOrbs === 'function') layoutOrbs(); // the circles share the screen with the coach line
   // the first visit of a new week shows last week's summary
   if (G.recapSeen !== weekId() && weekStats(weekStart() - WEEK).n && !document.querySelector('#modal:not([hidden])')) {
