@@ -231,3 +231,6 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .hw{display:flex;gap:12px;align-items:flex-start;margin:12px 0}.hwn{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#12080a;font-weight:700}
 .prize{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.prize .row{margin:4px 0}.rew{font-weight:600;font-size:14px}.mile{margin:8px 0}.mile.got{border-color:var(--ok)}
 .drill .row{align-items:flex-start}
+.odds{margin-top:8px;padding:8px 10px;background:var(--card2);border-radius:12px;font-size:14px}.odds .row{margin:2px 0}
+.howmatch{margin-top:12px}.howmatch summary{cursor:pointer;color:var(--acc2)}.howmatch ol{margin:8px 0 0;padding-left:20px;font-size:14px;color:var(--mut)}.howmatch li{margin:6px 0}
+.odds .tot{border-top:1px solid var(--line);padding-top:4px;margin-top:4px;color:var(--fg)}
