@@ -300,3 +300,13 @@ nav a.on{opacity:1;color:var(--acc);background:color-mix(in srgb,var(--acc) 15%,
 nav a.on::after{left:30%;right:30%;bottom:auto;top:0}
 html[data-skin]:not([data-skin=hud]) nav a.on{clip-path:none;border-radius:var(--r,6px)}
 @media(max-width:360px){nav a span{font-size:9px}}
+
+/* ---- readability on every interface and theme ----
+   Page text gets a shadow in the background colour, and a soft veil sits behind the content column,
+   so decorated backgrounds (sunsets, grids, forests...) never fight with the words. */
+main::before{content:"";position:absolute;z-index:-1;pointer-events:none;inset:0 calc(-1 * max(16px,env(safe-area-inset-left)));
+  background:linear-gradient(90deg,color-mix(in srgb,var(--bg) 30%,transparent),color-mix(in srgb,var(--bg) 55%,transparent) 12% 88%,color-mix(in srgb,var(--bg) 30%,transparent))}
+main{text-shadow:0 1px 2px color-mix(in srgb,var(--bg) 85%,#000),0 0 6px color-mix(in srgb,var(--bg) 80%,#000),0 0 14px color-mix(in srgb,var(--bg) 70%,transparent)}
+/* light or filled backgrounds already read well: no shadow there */
+main :is(.btn:not(.ghost),.chip.on,.seg a.on,.dpill.on,.mkt.on .odd,.lv,.rk,.xpchip,.dot,.hwn,.lg,.ck,.qrfs,.demo,.thumb,.pc-mini,.pcard[class*=pc-],input,select,.bignum,.wl span){text-shadow:none}
+.rl.now .dot,.rl.past .dot{text-shadow:none}
