@@ -59,7 +59,7 @@ Today is six circles that fill the screen: Train in the middle (next workout and
 - At most +60 and -60 XP a day from this. The same description twice in a day gives no XP. Losing XP never takes away a level. Today's list can be undone item by item.
 
 ## Session length
-Workouts fit the time you chose: each exercise is estimated at about 50 s per set plus its rest and 2.5 minutes to set up and move on, with 7 minutes of warm-up, the stretch and any cardio counted first; strength exercises fill the rest (at least 2). For example 45 min for muscle is 4 exercises and a stretch (~40 min). Older plans are trimmed to fit once.
+Workouts fit the time you chose: each exercise is estimated at about 50 s per set plus its rest and 2.5 minutes to set up and move on, with 7 minutes of warm-up, the stretch and any cardio counted first; strength exercises fill the rest (at least 2). For example 45 min for muscle is 4 exercises and a stretch (~40 min). Cardio can go at the start (it doubles as the warm-up, so only 3 minutes of warm-up are kept) or at the end, or be left out: 8, 10 or 12 minutes for 30, 45 or 60-minute sessions, chosen in the profile or with the Cardio chips on the Plan screen. Fat loss starts with cardio at the end. Older plans are trimmed to fit once.
 
 ## Weekly summary and coach
 

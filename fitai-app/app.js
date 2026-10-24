@@ -147,7 +147,10 @@ function exSecs(it) {
   return it.sets * (work + it.rest) - it.rest + 150;
 }
 const WARMUP = 7 * 60;
-const planMinutes = d => Math.round((WARMUP + d.items.reduce((a, it) => a + exSecs(it), 0)) / 60);
+// cardio: none, at the start (it doubles as the warm-up) or at the end; fat loss defaults to the end
+const cardioPos = p => p.cardio || (p.goal === 'fat' ? 'end' : 'none');
+const cardioMin = p => (p.minutes <= 30 ? 8 : p.minutes <= 45 ? 10 : 12);
+const planMinutes = d => Math.round(((/min/.test(String(d.items[0]?.reps)) ? 180 : WARMUP) + d.items.reduce((a, it) => a + exSecs(it), 0)) / 60);
 // plans made before the time budget had too many exercises for the session: drop strength exercises from the end until it fits
 if (S.plan && !S.plan.timed && S.profile) {
   S.plan.days.forEach(d => {
@@ -178,11 +181,11 @@ function generatePlan(p) {
     const extra = shuffle(focusMuscles.filter(m => !allow || allow.includes(m)), r).slice(0, 2);
     extra.forEach((m, i) => slots.splice(2 + i, 0, m));
     // cardio and a stretch first take their time from the session; strength exercises fill what is left, at least 2
-    const tail = [];
-    if (p.goal === 'fat' && cardio.length) { const c = shuffle(cardio, r)[0]; tail.push({ id: c.id, sets: 1, reps: p.minutes <= 30 ? '8 min' : '12 min', rest: 0 }); }
+    const tail = [], pos = cardioPos(p), cIt = pos !== 'none' && cardio.length ? { id: shuffle(cardio, r)[0].id, sets: 1, reps: `${cardioMin(p)} min`, rest: 0 } : null;
+    if (cIt) tail.push(cIt);
     const st = shuffle(EX.filter(e => e.c === 'stretching' && allowed(e, p, have) && (!allow || allow.includes(e.m[0]) || e.m[0] === 'abdominals')), r)[0];
     if (st) tail.push({ id: st.id, sets: 1, reps: '30s', rest: 20 });
-    let left = p.minutes * 60 - WARMUP - tail.reduce((a, it) => a + exSecs(it), 0);
+    let left = p.minutes * 60 - (pos === 'start' && cIt ? 180 : WARMUP) - tail.reduce((a, it) => a + exSecs(it), 0); // cardio first leaves a short warm-up
     const items = [];
     for (const m of slots) {
       const e = pick(m, items); if (!e) continue;
@@ -190,6 +193,7 @@ function generatePlan(p) {
       if (items.length >= 2 && exSecs(it) > left) break;
       items.push(it); left -= exSecs(it);
     }
+    if (cIt && pos === 'start') { items.unshift(cIt); tail.shift(); }
     items.push(...tail);
     return { name: `Day ${di + 1} · ${KIND_NAME[kind]}`, kind, items };
   });
@@ -256,6 +260,7 @@ function onboarding(edit) {
     () => `<div class="lbl">Experience</div>${chips('level', LEVELS.map(l => [l, cap(l)]), p.level)}
       <div class="lbl">Days per week</div>${chips('days', [2, 3, 4, 5, 6].map(d => [d, d]), p.days)}
       <div class="lbl">Time per session</div>${chips('minutes', [30, 45, 60].map(m => [m, m + ' min']), p.minutes)}
+      <div class="lbl">Cardio</div>${chips('cardio', [['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']], cardioPos(p))}
       <div class="lbl">Equipment you can use</div>${chips('equipment', Object.entries(EQUIP), p.equipment, true)}`,
     () => `<div class="lbl">Want extra work on something?</div>${chips('focus', Object.entries(FOCUS).map(([k, v]) => [k, v[0]]), p.focus, true)}
       <div class="lbl">Anything that hurts or limits you?</div>${chips('limits', Object.entries(LIMITS).map(([k, v]) => [k, v[0]]), p.limits, true)}
@@ -307,12 +312,14 @@ function planView() {
   if (needProfile()) return;
   const p = S.profile, a = analyze(p);
   view.innerHTML = `<h1>Your plan</h1><div class="mut">${GOALS[p.goal][0]} · ${p.days} days a week · ${cap(p.level)}</div>
+  <div class="lbl">Cardio</div><div class="chips">${[['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']].map(([v, l]) => `<button class="chip ${cardioPos(p) === v ? 'on' : ''}" onclick="setCardio('${v}')">${l}</button>`).join('')}</div>
   <details class="card why" open><summary>Why this plan</summary><ul>${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` +
     S.plan.days.map((d, di) => `<section class="card"><div class="row between"><h3>${esc(d.name)}</h3><button class="btn sm" onclick="startWorkout(${di})">Start</button></div>
     ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a>
     <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</section>`).join('') +
     `<button class="btn ghost" onclick="location.hash='#/library'">Browse exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button><button class="btn ghost" onclick="location.hash='#/start'">Change my answers</button>`;
 }
+window.setCardio = v => { S.profile.cardio = v; save('profile', S.profile); toast(v === 'none' ? 'Plan without cardio' : v === 'start' ? 'Cardio at the start of each workout' : 'Cardio at the end of each workout'); regen(); };
 window.regen = () => { S.plan = generatePlan(S.profile); save('plan', S.plan); planView(); };
 window.swapEx = (di, ii) => {
   const it = S.plan.days[di].items[ii], cur = BY[it.id], have = equipSet(S.profile);

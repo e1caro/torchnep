@@ -264,3 +264,4 @@ i18nAdd({ '1 person': '1 persona', 'light serving': 'ración ligera', 'hearty se
   'One serving per meal falls short of your target.': 'Una ración por comida se queda corta para tu objetivo.', 'Choose {n} meals a day': 'Elige {n} comidas al día', 'to eat enough.': 'para comer suficiente.' });
 i18nAdd({ 'How hungry are you?': '¿Cuánta hambre tienes?', 'Not very hungry': 'Poca hambre', 'Normal hunger': 'Normal', Hungry: 'Con hambre', 'Very hungry': 'Mucha hambre',
   '− Less': '− Menos', '+ More': '+ Más', 'Less food': 'Menos comida', 'More food': 'Más comida', 'large serving': 'ración grande' });
+i18nAdd({ 'No cardio': 'Sin cardio', 'At the start': 'Al principio', 'At the end': 'Al final', 'Plan without cardio': 'Plan sin cardio', 'Cardio at the start of each workout': 'Cardio al principio de cada entrenamiento', 'Cardio at the end of each workout': 'Cardio al final de cada entrenamiento' });
