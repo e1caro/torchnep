@@ -180,7 +180,7 @@ i18nAdd({
 
 // ---------- earn ----------
 i18nAdd({
-  'Ways to earn': 'Formas de ganar', 'Daily spin': 'Ruleta diaria', '{n} spins ready': '{n} giros disponibles', '{n} spin ready': '{n} giro disponible', 'Come back tomorrow': 'Vuelve mañana', 'Spin now': 'Girar ya', 'Spun today': 'Ya has girado hoy',
+  'Ways to earn': 'Formas de ganar', 'Spinning…': 'Girando…', 'You won!': '¡Has ganado!', 'JACKPOT!': '¡PREMIO GORDO!', Chest: 'Cofre', 'Spin again ({n})': 'Girar otra vez ({n})', 'Open it on the Rewards screen.': 'Ábrelo en la pantalla de Recompensas.', 'Daily spin': 'Ruleta diaria', '{n} spins ready': '{n} giros disponibles', '{n} spin ready': '{n} giro disponible', 'Come back tomorrow': 'Vuelve mañana', 'Spin now': 'Girar ya', 'Spun today': 'Ya has girado hoy',
   'Two free spins a day: coins, XP or even a chest. More spins are sold in the Shop.': 'Dos giros gratis al día: monedas, XP o incluso un cofre. En la Tienda se venden más giros.',
   'One free spin a day: coins, XP or even a chest. More spins are sold in the Shop.': 'Un giro gratis al día: monedas, XP o incluso un cofre. En la Tienda se venden más giros.',
   'Water': 'Agua', '{n}/{n} glasses': '{n}/{n} vasos', '{n} XP per glass ({n} ml), {n} XP when you hit your goal.': '{n} XP por vaso ({n} ml), {n} XP al alcanzar tu objetivo.', 'Add a glass': 'Añadir un vaso',

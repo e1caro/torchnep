@@ -14,7 +14,7 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 - **Anti-inflammatory style:** choose "Anti-inflammatory" under Eating style in the meal setup and the whole week is built from meals based on fatty fish, leafy greens, vegetables, berries, nuts, beans and olive oil, with no red meat, refined pasta or added sugar (about 90 recipes qualify, including 19 written for it). It combines with your diet, allergies, cuisine and cooking time. General nutrition guidance, not medical advice.
 - **Cuisines:** pick one or more of Spanish, Italian, Chinese, Japanese, Mexican, Indian, Greek, Thai and Middle Eastern (about 150 recipes in total). Lunches and dinners come from your cuisines; if your diet or allergies leave too few, other cuisines fill in and the app says so.
 - **Few ingredients:** the planner builds the whole week around the ingredients it already needs. A Variety setting (Simple, Balanced, Varied) trades shopping-list size for variety; Simple weeks use about 14 to 20 ingredients instead of about 50; a refinement step swaps meals one at a time to shorten the list, and chef recipes you have unlocked get fixed spots in the week and repeat meals so you can prep once and eat twice.
-- **More ways to earn:** water and sleep logging, a daily spin, weekly quests, a check-in streak, perfect-nutrition-day bonus and more, listed on the Ways to earn screen.
+- **More ways to earn:** water and sleep logging, a daily spin (a real prize wheel with a drum roll, cymbal and fanfare made with Web Audio, and a jackpot slice), weekly quests, a check-in streak, perfect-nutrition-day bonus and more, listed on the Ways to earn screen.
 - **Progress:** body-weight chart against your target, volume per workout, personal records, history.
 
 ## Gym pass
@@ -27,6 +27,9 @@ Build your own workouts by hand on the Plan screen: name a routine, add exercise
 ## Sports Academy
 
 Pick a sport (football, futsal, basketball, tennis, rugby, volleyball, running, combat sports) and a position (for example striker or goalkeeper in football). Each position has four drills built from your equipment, unlocking with career level. Drills raise six attributes (speed, power, stamina, agility, strength, core) and give normal XP plus a drill bonus. Your overall rating (OVR) weights the attributes by position and shows on a player card that changes from bronze to icon. Reach OVR milestones to open chests, and once a week, after two drills, play a match against an opponent whose result depends on your rating and your preparation. Everyday workouts also raise the attributes a little. Content and balance are in `sport.js`.
+
+## Bets
+On Ways to earn → **Bets** you stake coins on your own goals: train today, clear a dungeon, log 20 sets, hit your water goal, claim every daily quest, train 2–3 more times or 90+ minutes this week, set a new record. One pick is a single bet. Two to five picks make a combined bet, and their odds multiply. Odds come from your last four weeks (a goal you rarely reach pays more), training picks in the same combined bet cut the odds by 15% each, and two picks that one workout would win together cannot be combined. Bets settle on their own as soon as every pick comes true, or when one runs out of time (midnight for today, Sunday night for the week). Stakes are 5 to 300 coins, up to 5 open bets. Game coins only. Code in `bets.js`.
 
 ## Exercise ranks
 
