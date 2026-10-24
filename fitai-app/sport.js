@@ -342,7 +342,7 @@ function sportPicker(arg) {
     <div class="chips static">${SATTRS.slice().sort((x, y) => r.w[y] - r.w[x]).slice(0, 3).map(k => `<span class="chip">${ATTR[k][0]}</span>`).join('')}</div></section>`).join('')}`;
     return;
   }
-  view.innerHTML = `<h1>Sports Academy</h1><p class="mut">Choose a sport and a position. Train like a pro, build a player card and play a match every week.</p>${academyGuide(true)}
+  view.innerHTML = `<h1>Sports Academy</h1><p class="mut">Choose a sport and a position. Train like a pro, build a player card and play a match every week.</p>${academyGuide(false)}
   <div class="two">${Object.entries(SPORTS).map(([id, s]) => `<section class="card tap sp-tile" onclick="location.hash='#/sport/${id}'"><div class="sp-ico">${s.ico}</div><b>${s.name}</b><span class="mut">${Object.keys(s.roles).length} positions</span></section>`).join('')}</div>`;
 }
 const goSport = h => { if (location.hash === h) route(); else location.hash = h; };
@@ -383,7 +383,7 @@ function sportView(arg) {
   const key = SP.cur, role = roleOf(key), sport = key.split('/')[0], rs = roleState(key), lv = sportLevel(rs.sxp), a = sportLvXp(lv), b = sportLvXp(lv + 1), ovr = ovrOf(role);
   const wk = weekDrills(sport), m = rs.match?.week === weekId() ? rs.match : null, opp = opponentFor(key, ovr);
   const resTxt = { W: TT('Victory', 'Victoria'), D: TT('Draw', 'Empate'), L: TT('Defeat', 'Derrota') };
-  view.innerHTML = `<h1>Sports Academy</h1>${playerCard(key)}${academyGuide(!rs.drills)}
+  view.innerHTML = `<h1>Sports Academy</h1>${playerCard(key)}${academyGuide(false)}
   <section class="card"><div class="row between"><b>Career level ${lv}</b><span class="mut">${rs.sxp - a} / ${b - a} career XP</span></div><div class="xpbar"><i style="width:${(rs.sxp - a) / (b - a) * 100}%"></i></div>
   ${(nu => nu >= 0 ? `<div class="mut" style="margin-top:6px">Career level ${DRILL_LV[nu]} unlocks</div><b>${role.drills[nu].name}</b>` : '')(DRILL_LV.findIndex(v => v > lv))}
   <div class="row" style="margin-top:10px"><button class="btn sm ghost" onclick="changeRole()">Change position</button><button class="btn sm ghost" onclick="changeSport()">Change sport</button></div></section>
