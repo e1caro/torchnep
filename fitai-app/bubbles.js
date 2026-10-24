@@ -30,8 +30,10 @@ function bubbleHome() {
     quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest'), prevH(boss), boss],
     loot: [q('button[onclick="checkIn()"]'), q('.chestbtn')],
     meals: [meals, prevH(g4), g4, g4?.nextElementSibling?.matches('.mut') ? g4.nextElementSibling : null],
-    earn: [q('button[onclick*="#/earn"]'), q('button[onclick*="#/bets"]')], academy: [q('.sp-row')],
+    earn: earnNodes(), academy: [q('.sp-row')],
   };
+  // the old shortcut buttons to the Earn and Bets screens: their content now sits inside the Earn circle
+  view.querySelectorAll(':scope > button[onclick*="#/earn"], :scope > button[onclick*="#/bets"]').forEach(n => n.remove());
   // the daily check-in and the chests share one bubble; it stays even when both are done
   if (!groups.loot.some(Boolean)) {
     const note = document.createElement('div'); note.className = 'card mut';
@@ -58,7 +60,7 @@ function bubbleHome() {
   Object.entries(groups).forEach(([id, nodes]) => {
     const box = document.createElement('div'); box.dataset.b = id;
     // the panel title replaces the first heading; later ones stay as section titles inside the panel
-    nodes.forEach((n, i) => (n.matches('h2.sec,.sec2') && i === 0 ? n.remove() : box.append(n)));
+    nodes.forEach((n, i) => (n.matches('h2.sec,.sec2') && i === 0 && !n.matches('.keep') ? n.remove() : box.append(n)));
     store.append(box);
   });
   const rest = BUB_ORDER.filter(id => groups[id]);
@@ -136,7 +138,7 @@ window.openBub = (id, instant) => {
   bx.getBoundingClientRect();
   BUB.open = id;
   document.body.classList.add('bubopen');
-  if (instant) { bx.classList.add('open'); return; }
+  if (instant) { bx.classList.add('open'); bx.scrollTop = BUB.st || 0; return; } // redrawn after a tap inside: stay where you were
   bx.classList.remove('now');
   view.querySelector(`.bub[data-b="${id}"]`)?.classList.add('tap');
   sfx('tick');
@@ -167,7 +169,28 @@ addEventListener('hashchange', () => { if (!/^#\/home|^#?$/.test(location.hash))
 addEventListener('keydown', e => { if (e.key === 'Escape' && view.querySelector('.bx')) closeBub(); });
 
 const _bubHome = home;
-home = function () { _bubHome(); bubbleHome(); };
+home = function () { BUB.st = view.querySelector('.bx')?.scrollTop || 0; _bubHome(); bubbleHome(); };
+
+// The Earn circle shows the Bets and Ways to earn screens themselves. Their buttons redraw their own screen;
+// while that screen lives inside the open circle on Today, they redraw Today instead, so the circle stays open.
+const onTodayIn = id => /^#\/home|^#?$/.test(location.hash) && BUB.open === id;
+const _bubEarn = earn, _bubBets = typeof betsView === 'function' ? betsView : null;
+earn = function () { if (onTodayIn('earn')) home(); else _bubEarn(); };
+if (_bubBets) betsView = function () { if (onTodayIn('earn')) home(); else _bubBets(); };
+// draw another screen and take its content, leaving Today as it was
+function screenNodes(draw) {
+  const keep = document.createDocumentFragment();
+  keep.append(...view.childNodes);
+  let out = [];
+  try { draw(); out = [...view.children]; } catch { /* leave the circle without it */ } finally { view.replaceChildren(keep); }
+  return out.filter(n => !n.matches('.hud, h1, .back'));
+}
+function earnNodes() {
+  const head = t => Object.assign(document.createElement('h2'), { className: 'sec keep', textContent: t });
+  const bets = _bubBets ? screenNodes(_bubBets) : [];
+  const ways = screenNodes(_bubEarn).filter(n => !n.querySelector?.('button[onclick*="#/bets"]')); // its "Open bets" card
+  return [...(bets.length ? [head('Bets'), ...bets] : []), head('Ways to earn'), ...ways];
+}
 routes.home = home;
 
 if (typeof i18nAdd === 'function') i18nAdd({
