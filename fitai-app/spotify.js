@@ -278,12 +278,64 @@ function songOfDay() {
 }
 window.spSongNext = () => { SPF.songRot = (SPF.songRot || 0) + 1; spoSave(); sfx('tick'); spRefreshView(); };
 const spSearch = (q, tab = '') => `https://open.spotify.com/search/${encodeURIComponent(q)}${tab}`;
+// ---------- the song itself on Spotify ----------
+// To open the song (not a search) its Spotify id is needed. With a linked account Spotify's own search gives it;
+// otherwise Apple's public music search finds the song and Songlink (song.link) turns it into its Spotify link.
+// Found ids are kept, so each song is looked up once. If anything fails, the button falls back to Spotify's search.
+SPF.ids = SPF.ids || {};
+function jsonp(url) {
+  return new Promise((ok, no) => {
+    const cb = 'fqjp' + Math.random().toString(36).slice(2), sc = document.createElement('script');
+    const done = () => { delete window[cb]; sc.remove(); clearTimeout(t); };
+    const t = setTimeout(() => { done(); no(new Error('timeout')); }, 8000);
+    window[cb] = d => { done(); ok(d); };
+    sc.onerror = () => { done(); no(new Error('network')); };
+    sc.src = `${url}&callback=${cb}`; document.head.append(sc);
+  });
+}
+const SP_LOOKING = {};
+async function spTrackId(t, a) {
+  const key = `${t}|${a}`;
+  if (SPF.ids[key]) return SPF.ids[key];
+  if (SP_LOOKING[key]) return SP_LOOKING[key];
+  return (SP_LOOKING[key] = (async () => {
+    const who = a.split(/ & |, | feat\. /)[0];
+    let id = null;
+    if (spOn()) { // linked account: Spotify's own search
+      try { id = (await spApi(`/search?type=track&limit=1&q=${encodeURIComponent(`track:${t} artist:${who}`)}`)).tracks.items[0]?.id; } catch { /* try the other way */ }
+    }
+    if (!id) {
+      const it = await jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(`${t} ${who}`)}&entity=song&limit=1`);
+      const url = it.results?.[0]?.trackViewUrl;
+      if (url) {
+        const sl = await (await fetch(`https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(url)}&songIfSingle=true`)).json();
+        id = (sl.linksByPlatform?.spotify?.url || '').match(/track\/([A-Za-z0-9]{22})/)?.[1] || null;
+      }
+    }
+    if (id) { SPF.ids[key] = id; spoSave(); }
+    delete SP_LOOKING[key];
+    return id;
+  })().catch(() => { delete SP_LOOKING[key]; return null; }));
+}
+const spTrackUrl = id => `https://open.spotify.com/track/${id}`;
+// tapping Play: straight to the song when its id is known, otherwise look it up first (search as the last resort)
+window.spPlaySong = async ev => {
+  const s = songOfDay(), id = SPF.ids[`${s.t}|${s.a}`];
+  if (id) return; // the link already points at the song
+  ev.preventDefault();
+  const a = ev.currentTarget; a.classList.add('sppulse');
+  const found = await spTrackId(s.t, s.a);
+  a.classList.remove('sppulse');
+  location.href = found ? spTrackUrl(found) : spSearch(`${s.t} ${s.a}`);
+};
+
 function songCard() {
-  const s = songOfDay();
+  const s = songOfDay(), id = SPF.ids[`${s.t}|${s.a}`];
+  // find the song's own link in the background, so the button opens it directly
+  if (!id) spTrackId(s.t, s.a).then(found => { if (found) document.querySelectorAll('.songday a.spplay').forEach(a => { a.href = spTrackUrl(found); }); });
   return `<section class="card songday"><div class="row between"><h3>${spLogo} Song of the day</h3><span class="chip on" translate="no">${esc(s.name)}</span></div>
     <div class="spsong"><span class="spdisc"></span><div class="grow"><b translate="no">${esc(s.t)}</b><span translate="no">${esc(s.a)}</span></div></div>
-    <div class="row spbtns"><a class="btn spbtn" href="${spSearch(`${s.t} ${s.a}`)}" target="_blank" rel="noopener">▶ Play</a>
-    <a class="btn ghost" href="${spSearch(`${s.t} radio`, '/playlists')}" target="_blank" rel="noopener">📻 Song radio</a></div>
+    <a class="btn spbtn spplay" href="${id ? spTrackUrl(id) : spSearch(`${s.t} ${s.a}`)}" target="_blank" rel="noopener" onclick="spPlaySong(event)">▶ Play in Spotify</a>
     <button class="btn ghost sm" onclick="spSongNext()">Another song</button>
     <details class="spprefs"><summary>Change genres</summary><div class="chips">${SP_GENRES.map(([g, n]) => `<button class="chip ${SPF.genres.includes(g) ? 'on' : ''}" onclick="spGenre('${g}')">${n}</button>`).join('')}</div></details></section>`;
 }
