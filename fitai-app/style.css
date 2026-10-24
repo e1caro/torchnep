@@ -235,3 +235,5 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .howmatch{margin-top:12px}.howmatch summary{cursor:pointer;color:var(--acc2)}.howmatch ol{margin:8px 0 0;padding-left:20px;font-size:14px;color:var(--mut)}.howmatch li{margin:6px 0}
 .odds .tot{border-top:1px solid var(--line);padding-top:4px;margin-top:4px;color:var(--fg)}
 .ioshint ol{margin:8px 0;padding-left:20px}.ioshint li{margin:4px 0}
+.rt-item{padding:12px}.rt-grid{display:grid;grid-template-columns:1fr 1fr 1.3fr;gap:8px;margin-top:10px}.rt-grid label{display:flex;flex-direction:column;gap:4px}.rt-grid input,.rt-grid select{padding:10px}
+.rt-tools{margin-top:8px}.icon:disabled{opacity:.3}
