@@ -68,6 +68,7 @@ const ICONS = {
   back: 'M15 5l-7 7 7 7', close: 'M6 6l12 12M18 6 6 18', check: 'M5 12.5l4.5 4.5L19 7.5',
   flame: 'M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 .3 1.2 1 2 2 2-.5-3 .5-6 1-8z',
   swap: 'M7 7h11l-3-3M17 17H6l3 3', plus: 'M12 5v14M5 12h14',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6',
   dungeon: 'M4 20V8l3 2V5l3 2 2-3 2 3 3-2v5l3-2v12zM10 20v-5h4v5',
   gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C11 3.5 7 3.5 7 6.5M12 7c1-3.5 5-3.5 5-.5',
 };
@@ -295,9 +296,11 @@ window.swapEx = (di, ii) => {
 };
 
 let libF = { q: '', m: '', e: '' };
+const fold = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+const exKey = e => fold(typeof tr === 'function' && tr(e.n) !== e.n ? e.n + ' ' + tr(e.n) : e.n); // search in English and in the app language
 function library() {
   const muscles = [...new Set(EX.flatMap(e => e.m))].sort();
-  const list = EX.filter(e => (!libF.q || e.n.toLowerCase().includes(libF.q)) && (!libF.m || e.m.includes(libF.m)) && (!libF.e || e.e === libF.e));
+  const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!libF.m || e.m.includes(libF.m)) && (!libF.e || e.e === libF.e));
   view.innerHTML = `<h1>Exercises</h1>
   <input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">
   <div class="two" style="margin:8px 0"><select id="fm"><option value="">All muscles</option>${muscles.map(m => `<option ${m === libF.m ? 'selected' : ''}>${m}</option>`).join('')}</select>
@@ -440,7 +443,7 @@ function route() {
   timers.forEach(clearInterval); timers = [];
   const [, name = 'home', arg] = (location.hash || '#/home').split('/');
   if (name !== 'start') wiz = null;
-  const tab = { profile: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', sport: 'home', earn: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
+  const tab = { profile: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', routine: 'plan', sport: 'home', earn: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
   document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
   (routes[name] || home)(arg);

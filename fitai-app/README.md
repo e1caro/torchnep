@@ -20,6 +20,10 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 ## Gym pass
 The Hero tab and the Today screen have an **Open Synergym** button that launches the Synergym member app on Android (default app id `digifit.android.virtuagym.pro.synergym`, editable under "Wrong app opens?"). FitQuest never handles your Synergym login. If your gym's QR is fixed you can also save a screenshot of it and show it full screen; a code that changes each time cannot be saved.
 
+## My routines
+
+Build your own workouts by hand on the Plan screen: name a routine, add exercises from the library (search works in English and Spanish), set sets, reps (a number or a time like 30s) and rest, and reorder or remove them. Any exercise page has "Add to a routine". Routines start like any workout and give the same XP, quests and ranks. Code in `routines.js`.
+
 ## Sports Academy
 
 Pick a sport (football, futsal, basketball, tennis, rugby, volleyball, running, combat sports) and a position (for example striker or goalkeeper in football). Each position has four drills built from your equipment, unlocking with career level. Drills raise six attributes (speed, power, stamina, agility, strength, core) and give normal XP plus a drill bonus. Your overall rating (OVR) weights the attributes by position and shows on a player card that changes from bronze to icon. Reach OVR milestones to open chests, and once a week, after two drills, play a match against an opponent whose result depends on your rating and your preparation. Everyday workouts also raise the attributes a little. Content and balance are in `sport.js`.
