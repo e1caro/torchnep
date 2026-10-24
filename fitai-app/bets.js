@@ -5,7 +5,7 @@
 
 const BT = (G.bets = Object.assign({ open: [], done: [], won: 0, lost: 0, net: 0, best: 0 }, G.bets || {}));
 let slip = [], stake = 25;
-const BET_MIN = 5, BET_MAX = 300, BET_OPEN = 8, LEGS_MAX = 5;
+const BET_MIN = 5, BET_MAX = 300, BET_OPEN = 8, LEGS_MAX = 5, BET_COMBO_MAX = 20;
 let betTab = 'today', slipRepeat = false;
 
 // ---------- time windows ----------
@@ -214,7 +214,7 @@ function legProb(kind, n, from, to, grp) {
 // Odds: lower than fair, never below 1.00 (a stake back, no profit). Training once in a week or month never pays.
 function oddsFor(kind, n, p) {
   if (kind === 'train' && n <= 1) return 1;
-  return Math.min(8, Math.max(1, Math.round((1 + (.9 / Math.max(p, .01) - 1) * .7) * 20) / 20));
+  return Math.min(4, Math.max(1, Math.round((1 + (.85 / Math.max(p, .01) - 1) * .45) * 20) / 20));
 }
 
 // Markets. g: group (one pick per group in a bet). topic: related topics get an odds cut in combined bets.
@@ -381,7 +381,7 @@ function slipOdds(legs) {
   const raw = legs.reduce((a, l) => a * l.o, 1);
   const byTopic = {}; legs.filter(l => l.o > 1).forEach(l => { byTopic[l.topic] = (byTopic[l.topic] || 0) + 1; }); // 1.00 picks add nothing, so they cost nothing
   const related = Object.values(byTopic).reduce((a, n) => a + Math.max(0, n - 1), 0);
-  return { raw, related, total: Math.max(1, Math.round(raw * .85 ** related * 100) / 100) };
+  return { raw, related, total: Math.min(BET_COMBO_MAX, Math.max(1, Math.round(raw * .85 ** related * 100) / 100)) };
 }
 
 // ---------- settle open bets ----------
