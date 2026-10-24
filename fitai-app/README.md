@@ -1,4 +1,4 @@
-# FitCoach
+# FitQuest
 
 Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; all data stays on the device.
 

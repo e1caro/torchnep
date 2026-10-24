@@ -1,5 +1,5 @@
 'use strict';
-// FitCoach — offline-first workout PWA. No backend, no accounts; everything lives in localStorage.
+// FitQuest — offline-first workout PWA. No backend, no accounts; everything lives in localStorage.
 
 const IMG_BASE = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/';
 const LEVELS = ['beginner', 'intermediate', 'expert'];
@@ -415,10 +415,10 @@ function me() {
   <div class="row between"><span class="mut">Equipment</span><b>${p.equipment.map(k => EQUIP[k]).join(', ')}</b></div></section>
   <button class="btn" onclick="location.hash='#/start/edit'">Edit profile and rebuild plan</button>
   <button class="btn ghost" id="exp">Export my data</button><button class="btn ghost" id="rst">Reset everything</button>
-  <p class="mut">FitCoach is free, with no ads and no payments. Coins and XP are just for fun. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain).</p>`;
+  <p class="mut">FitQuest is free, with no ads and no payments. Coins and XP are just for fun. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain).</p>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
-    const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitcoach-data.json'; a2.click();
+    const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
   };
   $('#rst').onclick = () => {
     const b = $('#rest'); b.hidden = false;

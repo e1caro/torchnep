@@ -1,5 +1,5 @@
 'use strict';
-// Game layer on top of FitCoach: XP and levels, daily quests, weekly boss, coins,
+// Game layer on top of FitQuest: XP and levels, daily quests, weekly boss, coins,
 // unlockable themes / avatars / special workouts ("dungeons") and badges.
 // Runs after app.js and shares its globals (S, EX, BY, esc, $, save, load, ...).
 
