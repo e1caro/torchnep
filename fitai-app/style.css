@@ -227,3 +227,7 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .pc-mini{width:54px;height:64px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#12100a;flex:none;font-family:var(--disp)}.pc-mini b{font-size:28px;line-height:1}.pc-mini i{font-style:normal;font-size:12px;font-weight:700}
 .sp-row{margin:8px 0}.sp-ico{font-size:30px;line-height:1.1}.sp-tile{text-align:center;margin:0;display:flex;flex-direction:column;gap:4px}.sp-tile .sp-ico{font-size:44px}.tap{cursor:pointer}
 .match .score{font:700 44px/1 var(--disp);margin:8px 0}
+.howto summary{cursor:pointer;list-style:none}.howto summary::after{content:" ▾";color:var(--acc2)}.howto[open] summary{margin-bottom:6px}
+.hw{display:flex;gap:12px;align-items:flex-start;margin:12px 0}.hwn{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#12080a;font-weight:700}
+.prize{margin-top:12px;padding-top:10px;border-top:1px solid var(--line)}.prize .row{margin:4px 0}.rew{font-weight:600;font-size:14px}.mile{margin:8px 0}.mile.got{border-color:var(--ok)}
+.drill .row{align-items:flex-start}
