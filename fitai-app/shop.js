@@ -27,7 +27,7 @@ function levelsView() {
   const next = ITEMS.filter(i => !i.shop && i.lv > L).sort((a, b) => a.lv - b.lv)[0], perks = ITEMS.filter(i => i.type === 'perk' && has(i));
   return `${hud()}${rwSeg('levels')}${chestBtn()}
   <p class="mut">Levels unlock new <b>meals</b>, <b>workouts</b> and <b>perks</b>. Coins are spent in the Shop on looks and boosts.</p>
-  ${next ? `<section class="card row"><div class="dgi">${ICO(next)}</div><div class="grow"><div class="mut">Next unlock · level ${next.lv}</div><h3>${esc(next.name)}</h3><div class="mut">${KIND[next.type]} · ${(totalXp(next.lv) - G.xp).toLocaleString()} XP to go</div></div></section>` : ''}
+  ${next ? `<section class="card row"><div class="dgi">${ICO(next)}</div><div class="grow"><div class="mut">Next unlock · level ${next.lv}</div><h3>${esc(next.name)}</h3><div class="mut">${KIND[next.type]} · ${(totalXp(next.lv) - G.xp).toLocaleString(dateLocale())} XP to go</div></div></section>` : ''}
   ${perks.length ? `<h2 class="sec">Active perks</h2><div class="card">${perks.map(p => `<div class="row" style="padding:7px 0"><span style="font-size:26px">${gi(p.ico, 'hero')}</span><div><b>${esc(p.name)}</b><div class="mut">${esc(p.desc)}</div></div></div>`).join('')}</div>` : ''}
   <h2 class="sec">Reward road</h2><div class="road">${Array.from({ length: max }, (_, k) => k + 1).map(n => {
     const its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1);
@@ -52,7 +52,7 @@ function tile(i) {
   return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${act}</div>`;
 }
 function shopView() {
-  const by = t => ITEMS.filter(i => i.type === t).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
+  const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
   return `${hud()}${rwSeg('shop')}${chestBtn()}
   <p class="mut">Coins buy looks and boosts. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
