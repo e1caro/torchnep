@@ -38,27 +38,31 @@ function levelsView() {
 }
 
 // ---------- Shop ----------
-function equipped(i) { return i.type === 'theme' ? G.theme === i.key : i.type === 'avatar' ? G.avatar === i.key : i.type === 'frame' ? G.frame === i.key : i.type === 'panel' ? (G.panel || 'chamfer') === i.key : G.banner === i.key; }
+function equipped(i) { return i.type === 'theme' ? G.theme === i.key : i.type === 'avatar' ? G.avatar === i.key : i.type === 'frame' ? G.frame === i.key : i.type === 'panel' ? (G.panel || 'chamfer') === i.key : i.type === 'skin' ? (G.skin || 'hud') === i.key : G.banner === i.key; }
 function preview(i) {
   return i.type === 'theme' ? `<div class="swc" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></div>`
     : i.type === 'avatar' ? `<div class="pv">${gi(i.key, 'hero')}</div>`
     : i.type === 'frame' ? `<div class="av fr-${i.key}" style="--p:.6;width:54px;height:54px"><span>${gi(G.avatar, 'hero')}</span></div>`
     : i.type === 'panel' ? panelPrev(i.key)
+    : i.type === 'skin' ? skinPrev(i)
     : `<div class="bnp bn-${i.key}"></div>`;
 }
 // a mini card drawn in that panel style
+const skinPrev = i => `<div class="skp" data-sk="${i.key}">${i.emo}</div>`;
 const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></div>`;
 function tile(i) {
   const own = has(i);
   const act = own ? (equipped(i) ? '<b class="eq">Equipped</b>' : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>`)
     : `<button class="btn sm ${G.coins >= i.cost ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${i.cost}</button>`;
-  return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${act}</div>`;
+  const tryb = i.type === 'skin' && !own ? `<button class="btn sm ghost" onclick="trySkin('${i.key}')">Try</button>` : '';
+  return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${tryb}${act}</div>`;
 }
 function shopView() {
   const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
   return `${hud()}${rwSeg('shop')}${chestBtn()}
   <p class="mut">Coins buy looks and boosts. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
+  <h2 class="sec">Interfaces · ${owned('skin')}/${by('skin').length}</h2><p class="mut">A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.</p><div class="grid2">${by('skin').map(tile).join('')}</div>
   <h2 class="sec">Boosts and chests</h2>
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
     <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
@@ -96,6 +100,7 @@ function profileView() {
   <h2 class="sec">Profile picture</h2><div class="pgrid">${mine('avatar').map(i => pick(i, gi(i.key, 'hero'))).join('')}</div>${more('avatar')}
   <h2 class="sec">Ring</h2><div class="pgrid">${mine('frame').map(i => pick(i, `<div class="av fr-${i.key}" style="--p:.6;width:40px;height:40px"><span>${gi(G.avatar, 'hero')}</span></div>`)).join('')}</div>${more('frame')}
   <h2 class="sec">Banner</h2><div class="pgrid wide">${mine('banner').map(i => pick(i, `<span class="bnp bn-${i.key}"></span>`)).join('')}</div>${more('banner')}
+  <h2 class="sec">Interface</h2><div class="pgrid wide">${mine('skin').map(i => pick(i, skinPrev(i))).join('')}</div>${more('skin')}
   <h2 class="sec">Panel style</h2><div class="pgrid wide">${mine('panel').map(i => pick(i, panelPrev(i.key))).join('')}</div>${more('panel')}
   <h2 class="sec">Theme</h2><div class="pgrid">${mine('theme').map(i => pick(i, `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>`)).join('')}</div>${more('theme')}
   <h2 class="sec">Title</h2><div class="chips"><button class="chip ${G.title ? '' : 'on'}" onclick="equipTitle('')">${TITLES.filter(t => t[0] <= L).at(-1)[1]} · by level</button>
@@ -107,6 +112,9 @@ function profileView() {
   <button class="btn" onclick="location.hash='#/start/edit'">Edit body data and training plan</button>
   <p class="mut">${GI_CREDIT}</p>`;
 }
+// preview an interface until you leave the shop
+window.trySkin = k => { setSkin(k); toast('Previewing. Leave the Shop to go back.'); scrollTo(0, 0); };
+window.addEventListener('hashchange', () => { if (!location.hash.startsWith('#/rewards/shop')) setSkin(G.skin || 'hud'); });
 window.equipTitle = id => { G.title = id; commit(); route(); };
 
 Object.assign(routes, { rewards, profile: profileView });

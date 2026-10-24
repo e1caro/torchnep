@@ -251,3 +251,10 @@ i18nAdd({
   'Double line panels': 'Paneles de doble línea', 'Circuit panels': 'Paneles de circuito', 'Hologram panels': 'Paneles holográficos',
   'Panel styles · {n}/{n}': 'Estilos de panel · {n}/{n}', 'Panel style': 'Estilo de panel', 'New panel style': 'Nuevo estilo de panel',
 });
+i18nAdd({
+  'Interfaces · {n}/{n}': 'Interfaces · {n}/{n}', Interface: 'Interfaz', Try: 'Probar', 'New interface': 'Nueva interfaz',
+  'A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.': 'Un aspecto totalmente nuevo para la app: marcos, letras, colores y fondo. Toca Probar para verlo.',
+  'Previewing. Leave the Shop to go back.': 'Vista previa. Sal de la Tienda para volver.',
+  'Sci-fi HUD': 'HUD de ciencia ficción', 'Imperial China': 'China imperial', 'Zen Japan': 'Japón zen', 'Fairy Tale Forest': 'Bosque de cuento', 'Medieval Castle': 'Castillo medieval', 'Steampunk Works': 'Taller steampunk',
+});
+i18nAdd({ 'More info': 'Más info' });

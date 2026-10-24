@@ -13,7 +13,7 @@ const TITLES = [[1, 'Rookie'], [3, 'Iron Will'], [5, 'Challenger'], [8, 'Warrior
 
 // ---------- state ----------
 const G = Object.assign({
-  xp: 0, coins: 0, owned: [], theme: 'hud', panel: 'chamfer', avatar: 'glove', banner: 'plain', boostUntil: 0, extraSpins: 0, ver: 0, ach: [], bosses: 0, questsDone: 0,
+  xp: 0, coins: 0, owned: [], theme: 'hud', panel: 'chamfer', skin: 'hud', avatar: 'glove', banner: 'plain', boostUntil: 0, extraSpins: 0, ver: 0, ach: [], bosses: 0, questsDone: 0,
   sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '', ciStreak: 0, spun: '', spins: 0, waterGoalDays: 0, perfectDays: 0, sleepGood: 0, wk: null,
 }, load('game', {}));
 let LAST = null; // result of the latest workout, shown on the victory screen
@@ -74,6 +74,10 @@ const FRAMES = [['none', 'Plain ring', 0], ['flame', 'Flame ring', 120], ['elect
 const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', 'Speed lines', 100], ['dots', 'Dotted', 100], ['waves', 'Ripples', 120], ['peaks', 'Peaks', 150], ['glow', 'Glow', 250], ['heat', 'Heat', 300],
   ['scan', 'Scanlines', 90], ['hexgrid', 'Lattice', 140], ['circuit', 'Circuit board', 180], ['radar', 'Radar sweep', 220], ['data', 'Data stream', 260], ['hazard', 'Hazard', 280]];
 // panel styles: the shape of every card in the app
+// whole interfaces: each changes the palette, fonts, frames, buttons and background (fonts load only when in use)
+const SKINS = [['hud', 'Sci-fi HUD', 0, '🛰️'], ['chinese', 'Imperial China', 2000, '🏮'], ['japanese', 'Zen Japan', 2000, '⛩️'], ['fairy', 'Fairy Tale Forest', 2500, '🌳'], ['medieval', 'Medieval Castle', 2500, '🏰'], ['steampunk', 'Steampunk Works', 3000, '⚙️']];
+const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japanese: 'Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700',
+  fairy: 'IM+Fell+English+SC&family=Lora:wght@400;600;700', medieval: 'MedievalSharp&family=EB+Garamond:wght@400;600;700', steampunk: 'Rye&family=Special+Elite&family=Lora:wght@400;600;700' };
 const PANELS = [['chamfer', 'Chamfered', 0], ['classic', 'Classic', 0], ['brackets', 'Brackets', 150], ['octa', 'Octagon', 200], ['notch', 'Notch', 250], ['double', 'Double line', 300], ['circuit', 'Circuit', 400], ['holo', 'Hologram', 500]];
 const ITEMS = [
   ...THEMES.map(([k, name, cost, a, b]) => ({ id: 't-' + k, type: 'theme', key: k, name, cost, sw: [a, b], shop: true })),
@@ -81,6 +85,7 @@ const ITEMS = [
   ...FRAMES.map(([k, name, cost]) => ({ id: 'f-' + k, type: 'frame', key: k, name, cost, shop: true })),
   ...BANNERS.map(([k, name, cost]) => ({ id: 'b-' + k, type: 'banner', key: k, name: name + ' banner', cost, shop: true })),
   ...PANELS.map(([k, name, cost]) => ({ id: 'pn-' + k, type: 'panel', key: k, name: name + ' panels', cost, shop: true })),
+  ...SKINS.map(([k, name, cost, emo]) => ({ id: 'sk-' + k, type: 'skin', key: k, name, cost, emo, shop: true })),
   ...RECIPES.filter(r => r.chef).map(r => ({ id: 'r-' + r.id, type: 'recipe', name: r.name, lv: r.chef[0], rid: r.id })),
   ...Object.entries(DUNGEONS).map(([id, d]) => ({ id, type: 'dungeon', name: d.name, lv: d.lv })),
   ...PERKS.map(([k, lv, name, desc, ico]) => ({ id: 'p-' + k, type: 'perk', key: k, name, lv, desc, ico })),
@@ -92,8 +97,8 @@ const perk = k => has(item('p-' + k));
 const xpPerk = () => perk('xp3') ? .15 : perk('xp2') ? .10 : perk('xp1') ? .05 : 0;
 const coinPerk = () => perk('coin2') ? .20 : perk('coin1') ? .10 : 0;
 const boostOn = () => Date.now() < (G.boostUntil || 0);
-const KIND = { theme: 'Theme', avatar: 'Profile picture', frame: 'Ring', banner: 'Banner', panel: 'Panel style', dungeon: 'Workout', recipe: 'Meal', perk: 'Perk' };
-const ICO = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : i.type === 'panel' ? gi('frame', 'hero') : gi('palette', 'hero');
+const KIND = { theme: 'Theme', avatar: 'Profile picture', frame: 'Ring', banner: 'Banner', panel: 'Panel style', skin: 'Interface', dungeon: 'Workout', recipe: 'Meal', perk: 'Perk' };
+const ICO = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : i.type === 'panel' ? gi('frame', 'hero') : i.type === 'skin' ? `<span class="emo">${i.emo}</span>` : gi('palette', 'hero');
 
 // ---------- daily quests ----------
 const QT = [
@@ -308,7 +313,7 @@ window.buy = id => {
 };
 window.equip = id => {
   const i = item(id); if (!has(i)) return;
-  if (i.type === 'theme') G.theme = i.key; else if (i.type === 'frame') G.frame = i.key; else if (i.type === 'banner') G.banner = i.key; else if (i.type === 'avatar') G.avatar = i.key; else if (i.type === 'panel') G.panel = i.key; else return;
+  if (i.type === 'theme') G.theme = i.key; else if (i.type === 'frame') G.frame = i.key; else if (i.type === 'banner') G.banner = i.key; else if (i.type === 'avatar') G.avatar = i.key; else if (i.type === 'panel') G.panel = i.key; else if (i.type === 'skin') G.skin = i.key; else return;
   commit(); applyTheme(); route();
 };
 window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(); };
@@ -317,7 +322,7 @@ const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
 window.openChest = () => {
   if (!G.chests.length) return;
   const tier = G.chests.shift(), [name, ico, cut, cr, xr] = CHEST[tier], roll = Math.random() * 100;
-  const cos = ITEMS.filter(i => i.shop && !has(i)), dg = []; // chests drop looks only; workouts and meals come from levels
+  const cos = ITEMS.filter(i => i.shop && !has(i) && i.type !== 'skin'), dg = []; // chests drop looks only; workouts and meals come from levels
   let html;
   if (roll < cut[0] || (roll >= cut[1] && roll < cut[2] && !cos.length) || (roll >= cut[2] && !dg.length && !cos.length)) {
     const c = rand(cr); G.coins += c; html = `<div class="avbig">${gi('coin', 'cn')}</div><h2>${c} coins</h2>`;
@@ -333,9 +338,16 @@ window.openChest = () => {
 };
 window.toggleSound = () => { G.sound = !G.sound; commit(); if (G.sound) sfx('tick'); route(); };
 
+// show an interface (also used by the shop's Try button) and load its fonts
+function setSkin(k) {
+  document.documentElement.dataset.skin = k;
+  let l = document.getElementById('skinfont');
+  if (SKIN_FONTS[k]) { if (!l) { l = document.createElement('link'); l.id = 'skinfont'; l.rel = 'stylesheet'; document.head.appendChild(l); } l.href = `https://fonts.googleapis.com/css2?family=${SKIN_FONTS[k]}&display=swap`; }
+}
 function applyTheme() {
   document.documentElement.dataset.theme = G.theme;
   document.documentElement.dataset.panel = G.panel || 'chamfer';
+  setSkin(G.skin || 'hud');
   const m = document.querySelector('meta[name=theme-color]');
   if (m) m.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#0b0d12';
 }
@@ -420,7 +432,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 38</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 39</div>`;
 }
 
 function initGame() {
