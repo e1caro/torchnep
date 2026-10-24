@@ -43,6 +43,10 @@ nav a.on{color:var(--acc)}nav a.on svg{filter:drop-shadow(0 0 8px var(--acc))}
 .demo img,.demo video,.demo iframe{width:100%;height:100%;object-fit:contain;border:0}
 .demo small{position:absolute;bottom:8px;right:10px;background:#000b;color:#fff;border-radius:8px;padding:2px 8px;font-size:11px}
 .thumb{width:60px;height:60px;border-radius:12px;background:#fff;object-fit:cover;flex:none}
+.nophoto{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:linear-gradient(135deg,var(--acc),var(--acc2));color:#fff}
+.thumb.nophoto{font-size:34px}
+.demo.nophoto .gi{font-size:96px}
+.demo.nophoto span{font-size:14px;font-weight:600}
 .item{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}.item:first-of-type{border-top:0}
 .li{padding:10px 12px;margin:8px 0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}

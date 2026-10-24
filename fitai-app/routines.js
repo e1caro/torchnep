@@ -38,7 +38,7 @@ function routineView(id) {
   <div class="mut">Reps can be a number like 10 or a time like 30s.</div>
   <h2 class="sec">Add exercises</h2>
   <input class="search" id="rt-q" placeholder="Search ${EX.length} exercises" value="${esc(rtQ.q)}">
-  <select id="rt-m" style="margin:8px 0"><option value="">All muscles</option>${[...new Set(EX.flatMap(e => e.m))].sort().map(m => `<option ${m === rtQ.m ? 'selected' : ''}>${m}</option>`).join('')}</select>
+  <select id="rt-m" style="margin:8px 0"><option value="">All muscles</option>${optList([...new Set(EX.flatMap(e => e.m))], rtQ.m)}</select>
   <div id="rt-res"></div>
   <button class="btn ghost" style="margin-top:16px" onclick="rtDelete('${r.id}')">${rtDel === r.id ? 'Tap again to delete' : 'Delete routine'}</button>`;
   $('#rt-name').onchange = ev => { r.name = ev.target.value.trim() || r.name; rtSave(); };
