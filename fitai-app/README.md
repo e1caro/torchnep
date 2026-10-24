@@ -6,7 +6,8 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 - **Plans:** full body, upper/lower or push/pull/legs, with extra sets for the muscles you want to bring up and low-impact choices for older users or higher BMI.
 - **Workouts:** exercise demo loop, weight and reps per set (pre-filled from last time), rest timer.
 - **Game layer:** XP and levels (every set, workout, record and quest earns XP), daily quests, a weekly boss that takes damage from each workout, coins, a daily check-in, badges and sound effects.
-- **Rewards:** levelling up unlocks new **dungeons** (special workouts such as Tabata Blitz, Core Inferno, Push-Up Pyramid, Leg Day Dungeon, Boss Rush and Titan Trial, built from your own equipment and limits), app **themes** (Neon City, Frostbite, Arcade and more) and hero avatars. Anything can also be unlocked early with coins.
+- **Rewards:** levelling up unlocks 21 **dungeons** (special workouts from Tabata Blitz at level 2 to the Olympian Gauntlet at level 28, built from your own equipment and limits, with a bonus-XP "dungeon of the day"), 12 app **themes**, 16 hero avatars, 6 animated avatar rings and titles earned from badges. Anything can also be unlocked early with coins.
+- **Loot chests:** wooden, silver and golden chests drop from dungeons, the weekly boss, the daily bonus and every 5th level, and can contain coins, XP, cosmetics or an early dungeon unlock.
 - **Progress:** body-weight chart against your target, volume per workout, personal records, history.
 
 ## Install on a phone

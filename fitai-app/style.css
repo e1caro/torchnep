@@ -126,3 +126,29 @@ html[data-theme=retro] body::after{content:"";position:fixed;inset:0;pointer-eve
 @keyframes pop{from{transform:scale(.6);opacity:0}}@keyframes drop{from{transform:translateY(-20px);opacity:0}}
 @keyframes rise{to{transform:translate(-50%,-90px);opacity:0}}
 @keyframes fall{to{transform:translate(var(--dx),105vh) rotate(var(--rt))}}
+
+/* ---- more themes ---- */
+html[data-theme=sakura]{--bg:#120a10;--card:#1e1019;--card2:#2c1825;--line:#4a2a3e;--glow:#3a1530;--acc:#ff7eb6;--acc2:#ffd1e8}
+html[data-theme=ocean]{--bg:#050d14;--card:#0b1a26;--card2:#112a3b;--line:#1b4660;--glow:#06304a;--acc:#2ee6d6;--acc2:#3a8dff}
+html[data-theme=lava]{--bg:#0e0605;--card:#1c0e0a;--card2:#2c1610;--line:#552212;--glow:#4a1405;--acc:#ff4b1f;--acc2:#ffd000}
+html[data-theme=matrix]{--bg:#020a05;--card:#07160c;--card2:#0c2414;--line:#14452a;--glow:#04281a;--acc:#2bff88;--acc2:#b7ffd8;--disp:'Courier New',ui-monospace,monospace;--body:ui-monospace,'Courier New',monospace}
+html[data-theme=matrix] h1,html[data-theme=matrix] h2,html[data-theme=matrix] h3{letter-spacing:0}
+html[data-theme=aurora]{--bg:#050a14;--card:#0c1624;--card2:#142238;--line:#243a5c;--glow:#10274a;--acc:#5cffc8;--acc2:#b46bff}
+html[data-theme=aurora] body{background:radial-gradient(90% 40% at 20% -5%,#1b6b5a66,#0000 70%),radial-gradient(90% 40% at 90% 0,#6b3bb066,#0000 70%),var(--bg)}
+
+/* ---- avatar rings ---- */
+.av::after{content:"";position:absolute;inset:-5px;border-radius:50%;pointer-events:none;-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 3px),#000 calc(100% - 2px));mask:radial-gradient(farthest-side,#0000 calc(100% - 3px),#000 calc(100% - 2px))}
+.fr-flame::after{background:conic-gradient(#ff3b1f,#ffb000,#ff3b1f,#ffb000,#ff3b1f);animation:spin 3s linear infinite}.fr-flame{box-shadow:0 0 16px #ff6a1f77}
+.fr-electric::after{background:conic-gradient(#00e5ff,#fff,#00e5ff,#7a5cff,#00e5ff);animation:spin 1.6s linear infinite}.fr-electric{box-shadow:0 0 16px #00e5ff77}
+.fr-diamond::after{background:conic-gradient(#e6f7ff,#8fd3ff,#fff,#8fd3ff,#e6f7ff)}.fr-diamond{box-shadow:0 0 16px #9fdcff88}
+.fr-rainbow::after{background:conic-gradient(#ff3b5c,#ffb000,#3ddc97,#00b3ff,#a66bff,#ff3b5c);animation:spin 4s linear infinite}
+.fr-galaxy::after{background:conic-gradient(#2b1a6b,#b46bff,#00e5ff,#2b1a6b,#ff2bd6,#2b1a6b);animation:spin 5s linear infinite}.fr-galaxy{box-shadow:0 0 18px #b46bff88}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ---- chests ---- */
+.btn.chestbtn{background:linear-gradient(135deg,#ffd34d,#ff9f1c);animation:glow 1.6s ease-in-out infinite alternate}
+@keyframes glow{to{box-shadow:0 0 22px #ffb83a99}}
+.chest{font-size:84px;line-height:1.1;animation:shake .9s ease-in-out}
+.reveal{animation:pop .5s .9s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes shake{0%,100%{transform:rotate(0)}15%{transform:rotate(-14deg)}30%{transform:rotate(12deg)}45%{transform:rotate(-10deg)}60%{transform:rotate(8deg)}80%{transform:rotate(-4deg)}}
+@media(prefers-reduced-motion:reduce){.av::after{animation:none!important}.reveal{animation:none}}

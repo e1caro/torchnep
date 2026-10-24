@@ -1,4 +1,4 @@
-const V = 'fitcoach-v3';
+const V = 'fitcoach-v4';
 const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'game.js', 'manifest.webmanifest', 'data/exercises.json', 'data/videos.json', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {
