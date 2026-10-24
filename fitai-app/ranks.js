@@ -30,7 +30,7 @@ function rkInfo(e) {
   if (e.id in rkInfoCache) return rkInfoCache[e.id];
   const n = e.n.toLowerCase();
   let r = null;
-  if (e.c === 'stretching' || e.c === 'cardio' || e.f === 'static' || e.e === 'foam roll') r = null;
+  if (e.c === 'stretching' || e.c === 'plyometrics' || e.c === 'cardio' || e.f === 'static' || e.e === 'foam roll') r = null;
   else {
     const bw = RK_BW.find(([re]) => re.test(n)), body = e.e === 'body only' || e.e === 'none' || !e.e;
     if (bw && (body || /pull.?up|chin.?up|dip|inverted/.test(n))) r = { kind: 'bw', gold: bw[1], low: RK_LOWER.has(e.m[0]) };
@@ -153,7 +153,7 @@ if (typeof i18nAdd === 'function') {
     'No rank yet. Log a set in a workout to earn one.': 'Todavía sin rango. Registra una serie en un entrenamiento para conseguirlo.',
     'Based on your age, height, weight and sex. These are estimates.': 'Según tu edad, altura, peso y sexo. Son estimaciones.',
     'Best: {n} kg × {n}': 'Mejor: {n} kg × {n}', 'Best: {n} reps': 'Mejor: {n} reps', '{n} kg est. max': '{n} kg de máx. estimado', 'e.g. {n} kg × {n}': 'p. ej. {n} kg × {n}', '{n} reps': '{n} reps',
-    Ranks: 'Rangos', 'Overall rank': 'Rango general', '{n} exercises ranked': '{n} ejercicios con rango', 'Rank bonus: +{n} XP': 'Bonus de rango: +{n} XP',
+    Ranks: 'Rangos', 'Overall rank': 'Rango general', '{n} exercises ranked': '{n} ejercicios con rango', 'Rank bonus: {n} XP': 'Bonus de rango: +{n} XP',
   });
   i18nPat(/^Rank up! (.+) is now (\w+)$/, (a, b) => `¡Subes de rango! ${tr(a)} es ahora ${tr(b)}`);
 }
