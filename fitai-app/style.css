@@ -234,3 +234,4 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .odds{margin-top:8px;padding:8px 10px;background:var(--card2);border-radius:12px;font-size:14px}.odds .row{margin:2px 0}
 .howmatch{margin-top:12px}.howmatch summary{cursor:pointer;color:var(--acc2)}.howmatch ol{margin:8px 0 0;padding-left:20px;font-size:14px;color:var(--mut)}.howmatch li{margin:6px 0}
 .odds .tot{border-top:1px solid var(--line);padding-top:4px;margin-top:4px;color:var(--fg)}
+.ioshint ol{margin:8px 0;padding-left:20px}.ioshint li{margin:4px 0}

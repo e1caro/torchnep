@@ -37,7 +37,7 @@ Icons by Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed and Carl Olse
 
 ## Install on a phone
 It is published with the docs site at `/fitcoach/` (repo Settings → Pages → Source: GitHub Actions; see `.github/workflows/docs.yml`).
-Open the URL in Chrome (Android) or Safari (iOS) → menu → **Install app / Add to Home Screen**. Open it once online; viewed exercises then work offline.
+Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open it in **Safari** → Share → **Add to Home Screen** (the app shows these steps on the Today screen until it is installed or the hint is closed). Open it once online; viewed exercises then work offline. On iPhone the Synergym button opens the Synergym page in the App Store, which has an Open button when the app is installed (iOS does not let web apps launch other apps directly).
 
 Local test: `python3 -m http.server -d fitai-app 8000`.
 

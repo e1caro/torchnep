@@ -5,12 +5,15 @@
 const GYM = Object.assign({ pkg: 'digifit.android.virtuagym.pro.synergym', qr: null }, load('gym', {}));
 const gymSave = () => save('gym', GYM);
 const isAndroid = /android/i.test(navigator.userAgent);
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const SYNERGYM_IOS = 'https://apps.apple.com/es/app/synergym/id6746641387'; // official Synergym app (SYNERGYM HOLDING SL)
 const validPkg = p => /^[a-z][\w]*(\.[\w]+)+$/i.test(p);
 let wake = null;
 
 const gymLink = () => `intent://#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=${GYM.pkg};S.browser_fallback_url=${encodeURIComponent('https://play.google.com/store/apps/details?id=' + GYM.pkg)};end`;
 
 window.openGym = () => {
+  if (isIOS) { location.href = SYNERGYM_IOS; return; } // iPhone: App Store page, which shows "Open" when the app is installed
   if (!isAndroid) { toast('Open the Synergym app from your home screen.'); return; }
   location.href = gymLink(); // Chrome launches the app, or opens its Play Store page if it is not installed
 };
@@ -51,8 +54,9 @@ function gymCard() {
   ${GYM.qr ? `<div class="row"><button class="btn ghost" onclick="showQr()">Show saved QR</button><button class="btn ghost" onclick="removeQr()">Remove</button></div>` : ''}
   <label class="btn ghost" for="qrfile">${GYM.qr ? 'Replace' : 'Save'} a QR screenshot</label><input id="qrfile" type="file" accept="image/*" hidden onchange="pickQr(this.files[0])">
   <p class="mut">A saved picture only works if your gym's QR never changes. If Synergym makes a new code each time, use the button above.</p>
-  <details><summary class="mut">Wrong app opens? App id</summary><div class="row" style="margin-top:8px"><input id="pkg" value="${esc(GYM.pkg)}" autocapitalize="off" spellcheck="false"><button class="btn sm" onclick="setPkg($('#pkg').value)">Save</button></div>
-  <p class="mut">Android package of the Synergym app (Play Store link ends in <code>id=…</code>).</p></details></section>`;
+  ${isIOS ? '<p class="mut">On iPhone this opens the Synergym page in the App Store. Tap Open there to go to the app.</p>' : ''}
+  ${isIOS ? '' : `<details><summary class="mut">Wrong app opens? App id</summary><div class="row" style="margin-top:8px"><input id="pkg" value="${esc(GYM.pkg)}" autocapitalize="off" spellcheck="false"><button class="btn sm" onclick="setPkg($('#pkg').value)">Save</button></div>
+  <p class="mut">Android package of the Synergym app (Play Store link ends in <code>id=…</code>).</p></details>`}</section>`;
 }
 
 // Add the gym pass to the Today and Hero screens without touching their code.
