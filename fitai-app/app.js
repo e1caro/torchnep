@@ -81,6 +81,7 @@ function demo(e, label = true) {
   const v = VID[e.id];
   if (v && /^[\w-]{11}$/.test(v)) return `<div class="demo"><iframe src="https://www.youtube-nocookie.com/embed/${v}?loop=1&playlist=${v}&rel=0" allowfullscreen></iframe></div>`;
   if (v) return `<div class="demo"><video src="${esc(v)}" autoplay loop muted playsinline controls></video></div>`;
+  if (e.x) return `<div class="demo nophoto">${typeof gi === 'function' ? gi('shoulder') : ''}<span>Follow the steps below</span></div>`;
   const a = IMG_BASE + e.id + '/0.jpg', b = IMG_BASE + e.id + '/' + (e.im > 1 ? 1 : 0) + '.jpg';
   return `<div class="demo"><img data-a="${a}" data-b="${b}" src="${a}" alt="${esc(e.n)}" loading="lazy">${label ? '<small>demo loop</small>' : ''}</div>`;
 }
@@ -91,7 +92,7 @@ function startLoops() {
     timers.push(setInterval(() => { f ^= 1; img.src = f ? img.dataset.b : img.dataset.a; }, 900));
   });
 }
-const thumb = e => `<img class="thumb" loading="lazy" src="${IMG_BASE}${e.id}/0.jpg" alt="">`;
+const thumb = e => e.x ? `<span class="thumb nophoto">${typeof gi === 'function' ? gi('shoulder') : ''}</span>` : `<img class="thumb" loading="lazy" src="${IMG_BASE}${e.id}/0.jpg" alt="">`;
 
 // ---------- coach: body numbers and nutrition targets ----------
 function analyze(p) {
