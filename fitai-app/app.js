@@ -299,19 +299,23 @@ window.swapEx = (di, ii) => {
 let libF = { q: '', m: '', e: '' };
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const exKey = e => fold(typeof tr === 'function' && tr(e.n) !== e.n ? e.n + ' ' + tr(e.n) : e.n); // search in English and in the app language
+// Filter options keep the English value; only the label gets translated, so filtering works in any language.
+const optList = (vals, cur) => vals.map(v => [v, typeof tr === 'function' ? tr(v) : v]).sort((a, b) => a[1].localeCompare(b[1]))
+  .map(([v, t]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(t)}</option>`).join('');
+let libN = 60;
 function library() {
   const muscles = [...new Set(EX.flatMap(e => e.m))].sort();
   const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!libF.m || e.m.includes(libF.m)) && (!libF.e || e.e === libF.e));
   view.innerHTML = `<h1>Exercises</h1>
   <input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">
-  <div class="two" style="margin:8px 0"><select id="fm"><option value="">All muscles</option>${muscles.map(m => `<option ${m === libF.m ? 'selected' : ''}>${m}</option>`).join('')}</select>
-  <select id="fe"><option value="">All equipment</option>${[...new Set(EX.map(e => e.e))].sort().map(m => `<option ${m === libF.e ? 'selected' : ''}>${m}</option>`).join('')}</select></div>
+  <div class="two" style="margin:8px 0"><select id="fm"><option value="">All muscles</option>${optList(muscles, libF.m)}</select>
+  <select id="fe"><option value="">All equipment</option>${optList([...new Set(EX.map(e => e.e))], libF.e)}</select></div>
   <div class="mut">${list.length} results</div>
-  ${list.slice(0, 60).map(e => `<a class="card row li" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${e.m[0]} · ${e.e} · ${e.l}</div></div></a>`).join('')}
-  ${list.length > 60 ? '<div class="mut">Showing the first 60. Refine your search.</div>' : ''}`;
-  $('#q').oninput = ev => { libF.q = ev.target.value.toLowerCase(); const pos = ev.target.selectionStart; library(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); };
-  $('#fm').onchange = ev => { libF.m = ev.target.value; library(); };
-  $('#fe').onchange = ev => { libF.e = ev.target.value; library(); };
+  ${list.slice(0, libN).map(e => `<a class="card row li" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${e.m[0]} · ${e.e} · ${e.l}</div></div></a>`).join('')}
+  ${list.length > libN ? `<button class="btn ghost" onclick="libN += 60; library()">Show more (${list.length - libN})</button>` : ''}`;
+  $('#q').oninput = ev => { libF.q = ev.target.value.toLowerCase(); libN = 60; const pos = ev.target.selectionStart; library(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); };
+  $('#fm').onchange = ev => { libF.m = ev.target.value; libN = 60; library(); };
+  $('#fe').onchange = ev => { libF.e = ev.target.value; libN = 60; library(); };
 }
 
 function exerciseView(id) {
