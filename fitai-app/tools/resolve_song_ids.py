@@ -6,7 +6,12 @@ so each song is found in Apple's public music search (or Deezer's), and Songlink
 the Spotify one. Run by .github/workflows/song-ids.yml; songs already in the file are skipped, so it can be re-run.
 Songlink allows about 10 requests a minute without a key, so a full run takes a couple of hours.
 """
-import json, re, sys, time, urllib.parse, urllib.request
+import json
+import re
+import sys
+import time
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent.parent
