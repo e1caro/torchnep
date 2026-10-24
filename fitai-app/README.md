@@ -5,6 +5,8 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 - **Profile and coach:** age, gender, height, weight, target weight, goal, experience, equipment, days, session length, focus muscles and limitations (knees, lower back, shoulders, wrists). An on-device coach turns that into BMI, calorie and macro targets and a split with exercises chosen for you. It is an algorithm, not a cloud AI model, so it works offline and sends nothing anywhere.
 - **Plans:** full body, upper/lower or push/pull/legs, with extra sets for the muscles you want to bring up and low-impact choices for older users or higher BMI.
 - **Workouts:** exercise demo loop, weight and reps per set (pre-filled from last time), rest timer.
+- **Game layer:** XP and levels (every set, workout, record and quest earns XP), daily quests, a weekly boss that takes damage from each workout, coins, a daily check-in, badges and sound effects.
+- **Rewards:** levelling up unlocks new **dungeons** (special workouts such as Tabata Blitz, Core Inferno, Push-Up Pyramid, Leg Day Dungeon, Boss Rush and Titan Trial, built from your own equipment and limits), app **themes** (Neon City, Frostbite, Arcade and more) and hero avatars. Anything can also be unlocked early with coins.
 - **Progress:** body-weight chart against your target, volume per workout, personal records, history.
 
 ## Install on a phone

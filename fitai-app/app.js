@@ -68,6 +68,8 @@ const ICONS = {
   back: 'M15 5l-7 7 7 7', close: 'M6 6l12 12M18 6 6 18', check: 'M5 12.5l4.5 4.5L19 7.5',
   flame: 'M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 .3 1.2 1 2 2 2-.5-3 .5-6 1-8z',
   swap: 'M7 7h11l-3-3M17 17H6l3 3', plus: 'M12 5v14M5 12h14',
+  dungeon: 'M4 20V8l3 2V5l3 2 2-3 2 3 3-2v5l3-2v12zM10 20v-5h4v5',
+  gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C11 3.5 7 3.5 7 6.5M12 7c1-3.5 5-3.5 5-.5',
 };
 const ic = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
 document.querySelectorAll('#tabs a').forEach(a => { a.insertAdjacentHTML('afterbegin', ic(a.dataset.i)); });
@@ -178,7 +180,7 @@ function streak() {
 }
 const volume = h => h.ex.reduce((a, x) => a + x.sets.reduce((b, s) => b + (+s.w || 0) * (+s.r || 0), 0), 0);
 const weekCount = () => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return S.history.filter(h => h.t >= d).length; };
-const nextDayIdx = () => S.plan ? S.history.filter(h => h.t > S.plan.created).length % S.plan.days.length : 0;
+const nextDayIdx = () => S.plan ? S.history.filter(h => h.t > S.plan.created && !h.dungeon).length % S.plan.days.length : 0;
 const curWeight = () => S.weights.length ? S.weights.at(-1).w : S.profile.weight;
 
 function ring(pct, big, small, size = 120) {
@@ -268,27 +270,6 @@ function onboarding(edit) {
 // ---------- views ----------
 function needProfile() { if (!S.profile || !S.plan) { location.hash = '#/start'; return true; } }
 
-function home() {
-  if (needProfile()) return;
-  const p = S.profile, a = analyze({ ...p, weight: curWeight() }), di = nextDayIdx(), d = S.plan.days[di], first = BY[d.items[0].id];
-  const hr = new Date().getHours();
-  view.innerHTML = `<header class="top"><div><div class="mut">${hr < 12 ? 'Good morning' : hr < 19 ? 'Good afternoon' : 'Good evening'}</div><h1>${esc(p.name || 'Athlete')}</h1></div>
-    <div class="pill">${ic('flame', 18)}<b>${streak()}</b></div></header>
-  <section class="card hero">
-    ${ring(weekCount() / p.days, `${weekCount()}/${p.days}`, 'this week')}
-    <div><div class="mut">Weekly goal</div><h3>${weekCount() >= p.days ? 'Goal reached. Nice work.' : `${p.days - weekCount()} more to go`}</h3><div class="mut">${S.history.length} workouts all time</div></div>
-  </section>
-  <section class="card next"><div class="mut">Up next · ${d.items.length} exercises · ~${p.minutes} min</div><h2>${esc(d.name.split(' · ')[1])}</h2>
-    ${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
-  <h2 class="sec">Your targets</h2>
-  <div class="grid4"><div class="stat"><b>${a.kcal}</b><span>kcal / day</span></div><div class="stat"><b>${a.protein}g</b><span>protein</span></div>
-  <div class="stat"><b>${a.carbs}g</b><span>carbs</span></div><div class="stat"><b>${a.fat}g</b><span>fat</span></div></div>
-  <div class="mut" style="margin-top:8px">Aim for ${a.water} L of water. Calories are an estimate; adjust after 2 weeks based on the scale.</div>
-  <section class="card"><div class="row between"><h3>Body weight</h3><button class="btn sm ghost" onclick="location.hash='#/progress'">Log</button></div>
-  <div class="wnum"><b>${curWeight()}</b> kg ${p.target ? `<span class="mut">→ target ${p.target} kg</span>` : ''}</div></section>`;
-  startLoops();
-}
-
 function planView() {
   if (needProfile()) return;
   const p = S.profile, a = analyze(p);
@@ -297,7 +278,7 @@ function planView() {
     S.plan.days.map((d, di) => `<section class="card"><div class="row between"><h3>${esc(d.name)}</h3><button class="btn sm" onclick="startWorkout(${di})">Start</button></div>
     ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a>
     <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</section>`).join('') +
-    `<button class="btn ghost" onclick="regen()">Shuffle exercises</button><button class="btn ghost" onclick="location.hash='#/start'">Change my answers</button>`;
+    `<button class="btn ghost" onclick="location.hash='#/library'">Browse exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button><button class="btn ghost" onclick="location.hash='#/start'">Change my answers</button>`;
 }
 window.regen = () => { S.plan = generatePlan(S.profile); save('plan', S.plan); planView(); };
 window.swapEx = (di, ii) => {
@@ -325,6 +306,7 @@ function library() {
 
 function exerciseView(id) {
   const e = BY[id]; if (!e) { location.hash = '#/library'; return; }
+  gameGuide(id);
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button><h1>${esc(e.n)}</h1>${demo(e)}
   <div class="chips static">${[...e.m, ...e.s].map(m => `<span class="chip">${m}</span>`).join('')}<span class="chip">${e.e}</span><span class="chip">${e.l}</span></div>
   <h2 class="sec">How to</h2><ol class="how">${e.i.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`;
@@ -332,19 +314,20 @@ function exerciseView(id) {
 }
 
 // ---------- workout ----------
-window.startWorkout = di => {
-  const d = S.plan.days[di];
-  session = { di, t0: Date.now(), cur: 0, name: d.name, ex: d.items.map(it => ({ id: it.id, reps: it.reps, rest: it.rest, sets: Array.from({ length: it.sets }, () => ({ w: '', r: '', done: false })) })) };
+function startSession(name, items, extra = {}) {
+  session = { t0: Date.now(), cur: 0, name, ...extra, ex: items.map(it => ({ id: it.id, reps: it.reps, rest: it.rest, sets: Array.from({ length: it.sets }, () => ({ w: '', r: '', done: false })) })) };
   const last = {}; S.history.forEach(h => h.ex.forEach(x => { last[x.id] = x.sets.find(s => s.w) || last[x.id]; }));
   session.ex.forEach(x => { const l = last[x.id]; if (l) { x.last = l; x.sets.forEach(s => { s.w = l.w; }); } });
   location.hash = '#/workout';
-};
+}
+window.startWorkout = di => { const d = S.plan.days[di]; startSession(d.name, d.items, { di }); };
 
 function workoutView() {
   if (!session) { location.hash = '#/home'; return; }
   const x = session.ex[session.cur], e = BY[x.id], n = session.ex.length, timed = isNaN(parseInt(x.reps)) || /min|s$/.test(x.reps);
   view.innerHTML = `<div class="row between"><button class="icon" aria-label="Quit" onclick="quitWorkout()">${ic('close', 20)}</button>
-  <div class="mut">${esc(session.name)}</div><div class="mut">${session.cur + 1}/${n}</div></div>
+  <div class="mut">${esc(session.name)}</div><div class="xpchip">+${session.ex.reduce((a, q) => a + q.sets.filter(t => t.done).length, 0) * 10} XP</div></div>
+  <div class="mut" style="text-align:right">Exercise ${session.cur + 1} of ${n}</div>
   <div class="prog"><i style="width:${(session.cur + 1) / n * 100}%"></i></div>
   <h1>${esc(e.n)}</h1>${demo(e)}
   <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
@@ -373,6 +356,7 @@ window.doneSet = i => {
   s.done = !s.done;
   if (s.done && !s.r) s.r = String(parseInt(x.reps) || '');
   workoutView();
+  if (s.done) { sfx('tick'); floatXp('+10 XP'); }
   if (s.done && x.rest) rest(x.rest);
 };
 function rest(sec) {
@@ -387,8 +371,12 @@ function rest(sec) {
 }
 window.finish = () => {
   const ex = session.ex.map(x => ({ id: x.id, sets: x.sets.filter(s => s.done).map(s => ({ w: +s.w || 0, r: +s.r || 0 })) })).filter(x => x.sets.length);
-  if (ex.length) { S.history.push({ t: Date.now(), name: session.name, dur: Math.max(1, Math.round((Date.now() - session.t0) / 60000)), ex }); save('history', S.history); }
-  session = null; location.hash = '#/progress';
+  if (ex.length) {
+    const h = { t: Date.now(), name: session.name, dur: Math.max(1, Math.round((Date.now() - session.t0) / 60000)), ex };
+    if (session.dungeon) h.dungeon = session.dungeon;
+    S.history.push(h); save('history', S.history); gameWorkout(h);
+  }
+  session = null; location.hash = ex.length ? '#/victory' : '#/home';
 };
 
 // ---------- progress ----------
@@ -411,7 +399,7 @@ function progress() {
     const w = +$('#nw').value; if (!(w >= 30 && w <= 250)) return;
     const t = S.weights.at(-1);
     if (t && dayKey(t.t) === dayKey(Date.now())) t.w = w; else S.weights.push({ t: Date.now(), w });
-    save('weights', S.weights); progress();
+    save('weights', S.weights); gameWeigh(); progress();
   };
 }
 
@@ -419,7 +407,7 @@ function progress() {
 function me() {
   if (needProfile()) return;
   const p = S.profile, a = analyze({ ...p, weight: curWeight() });
-  view.innerHTML = `<h1>${esc(p.name || 'Profile')}</h1>
+  view.innerHTML = `${heroCard()}<h2 class="sec">Body</h2>
   <div class="grid3"><div class="stat"><b>${p.age}</b><span>years</span></div><div class="stat"><b>${p.height}</b><span>cm</span></div><div class="stat"><b>${curWeight()}</b><span>kg</span></div></div>
   <section class="card"><div class="row between"><span class="mut">BMI</span><b>${a.bmi.toFixed(1)} · ${a.bmiLabel}</b></div>
   <div class="row between"><span class="mut">Goal</span><b>${GOALS[p.goal][0]}</b></div>
@@ -427,7 +415,7 @@ function me() {
   <div class="row between"><span class="mut">Equipment</span><b>${p.equipment.map(k => EQUIP[k]).join(', ')}</b></div></section>
   <button class="btn" onclick="location.hash='#/start/edit'">Edit profile and rebuild plan</button>
   <button class="btn ghost" id="exp">Export my data</button><button class="btn ghost" id="rst">Reset everything</button>
-  <p class="mut">FitCoach is free. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain).</p>`;
+  <p class="mut">FitCoach is free, with no ads and no payments. Coins and XP are just for fun. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain).</p>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitcoach-data.json'; a2.click();
@@ -441,14 +429,14 @@ function me() {
 }
 
 // ---------- router ----------
-const routes = { home, plan: planView, library, progress, me, workout: workoutView, exercise: exerciseView, start: a => onboarding(a === 'edit') };
+const routes = { plan: planView, library, progress, me, workout: workoutView, exercise: exerciseView, start: a => onboarding(a === 'edit') };
 function route() {
   timers.forEach(clearInterval); timers = [];
   const [, name = 'home', arg] = (location.hash || '#/home').split('/');
   if (name !== 'start') wiz = null;
-  const tab = { exercise: 'library', workout: 'home', start: 'me' }[name] || name;
+  const tab = { exercise: 'plan', library: 'plan', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
-  document.body.classList.toggle('focus', name === 'workout' || name === 'start');
+  document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
   (routes[name] || home)(arg);
   if (name !== 'exercise') window.scrollTo(0, 0);
 }
@@ -461,5 +449,6 @@ window.addEventListener('hashchange', route);
     VID = await (await fetch('data/videos.json')).json().catch(() => ({}));
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }
   EX.forEach(e => { BY[e.id] = e; });
+  initGame();
   route();
 })();

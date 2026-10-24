@@ -1,5 +1,5 @@
-const V = 'fitcoach-v2';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest', 'data/exercises.json', 'data/videos.json', 'icons/icon-192.png', 'icons/icon-512.png'];
+const V = 'fitcoach-v3';
+const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'game.js', 'manifest.webmanifest', 'data/exercises.json', 'data/videos.json', 'icons/icon-192.png', 'icons/icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
