@@ -38,13 +38,16 @@ function levelsView() {
 }
 
 // ---------- Shop ----------
-function equipped(i) { return i.type === 'theme' ? G.theme === i.key : i.type === 'avatar' ? G.avatar === i.key : i.type === 'frame' ? G.frame === i.key : G.banner === i.key; }
+function equipped(i) { return i.type === 'theme' ? G.theme === i.key : i.type === 'avatar' ? G.avatar === i.key : i.type === 'frame' ? G.frame === i.key : i.type === 'panel' ? (G.panel || 'chamfer') === i.key : G.banner === i.key; }
 function preview(i) {
   return i.type === 'theme' ? `<div class="swc" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></div>`
     : i.type === 'avatar' ? `<div class="pv">${gi(i.key, 'hero')}</div>`
     : i.type === 'frame' ? `<div class="av fr-${i.key}" style="--p:.6;width:54px;height:54px"><span>${gi(G.avatar, 'hero')}</span></div>`
+    : i.type === 'panel' ? panelPrev(i.key)
     : `<div class="bnp bn-${i.key}"></div>`;
 }
+// a mini card drawn in that panel style
+const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></div>`;
 function tile(i) {
   const own = has(i);
   const act = own ? (equipped(i) ? '<b class="eq">Equipped</b>' : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>`)
@@ -62,6 +65,7 @@ function shopView() {
   <h2 class="sec">Profile pictures · ${owned('avatar')}/${by('avatar').length}</h2><div class="grid3">${by('avatar').map(tile).join('')}</div>
   <h2 class="sec">Rings · ${owned('frame')}/${by('frame').length}</h2><div class="grid3">${by('frame').map(tile).join('')}</div>
   <h2 class="sec">Banners · ${owned('banner')}/${by('banner').length}</h2><div class="grid2">${by('banner').map(tile).join('')}</div>
+  <h2 class="sec">Panel styles · ${owned('panel')}/${by('panel').length}</h2><div class="grid2">${by('panel').map(tile).join('')}</div>
   <h2 class="sec">App themes · ${owned('theme')}/${by('theme').length}</h2><div class="grid2">${by('theme').map(tile).join('')}</div>`;
 }
 
@@ -92,6 +96,7 @@ function profileView() {
   <h2 class="sec">Profile picture</h2><div class="pgrid">${mine('avatar').map(i => pick(i, gi(i.key, 'hero'))).join('')}</div>${more('avatar')}
   <h2 class="sec">Ring</h2><div class="pgrid">${mine('frame').map(i => pick(i, `<div class="av fr-${i.key}" style="--p:.6;width:40px;height:40px"><span>${gi(G.avatar, 'hero')}</span></div>`)).join('')}</div>${more('frame')}
   <h2 class="sec">Banner</h2><div class="pgrid wide">${mine('banner').map(i => pick(i, `<span class="bnp bn-${i.key}"></span>`)).join('')}</div>${more('banner')}
+  <h2 class="sec">Panel style</h2><div class="pgrid wide">${mine('panel').map(i => pick(i, panelPrev(i.key))).join('')}</div>${more('panel')}
   <h2 class="sec">Theme</h2><div class="pgrid">${mine('theme').map(i => pick(i, `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>`)).join('')}</div>${more('theme')}
   <h2 class="sec">Title</h2><div class="chips"><button class="chip ${G.title ? '' : 'on'}" onclick="equipTitle('')">${TITLES.filter(t => t[0] <= L).at(-1)[1]} · by level</button>
     ${titles.map(x => `<button class="chip ${G.title === x.id ? 'on' : ''}" onclick="equipTitle('${x.id}')">${x.t}</button>`).join('')}</div>

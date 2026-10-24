@@ -413,7 +413,7 @@ function sportView(arg) {
   ${role.drills.map((d, i) => {
     const ok = lv >= DRILL_LV[i], K = KINDS[d.kind], top = Object.entries(K.gains).sort((x, y) => y[1] - x[1]).slice(0, 2).map(x => x[0]);
     return `<section class="card drill ${ok ? '' : 'locked'}"><div class="row"><div class="dgi">${gi(ok ? ({ sprint: 'sprint', power: 'bolt', agility: 'shoe', stamina: 'infinity', lower: 'leg', upper: 'strong', core: 'abs', contact: 'chestplate', throw: 'punch', shoulder: 'shoulder' }[d.kind]) : 'lock')}</div>
-    <div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div></div></div><div class="lbl" style="margin:10px 0 2px">Rewards</div><div class="rew">${(Object.entries(K.gains).sort((x, y) => y[1] - x[1]).map(([k, v]) => [k, statAfter(k, v) - statVal(k)]).filter(([, d]) => d > 0).map(([k, d]) => `<span style="color:${ATTR[k][1]}">${ATTR[k][0]} +${d}</span>`).join(' · ') || `<span>${ATTR[Object.keys(K.gains)[0]][0]} +1</span>`)}</div>
+    <div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div></div></div><div class="lbl" style="margin:10px 0 2px">Drill rewards</div><div class="rew">${(Object.entries(K.gains).sort((x, y) => y[1] - x[1]).map(([k, v]) => [k, statAfter(k, v) - statVal(k)]).filter(([, d]) => d > 0).map(([k, d]) => `<span style="color:${ATTR[k][1]}">${ATTR[k][0]} +${d}</span>`).join(' · ') || `<span>${ATTR[Object.keys(K.gains)[0]][0]} +1</span>`)}</div>
     <div class="mut">XP bonus ×${DRILL_MULT[i]} · career XP +100</div>
     ${ok ? `<button class="btn" style="margin-top:10px" onclick="startDrill(${i})">Train</button>` : `<div class="mut cost" style="margin-top:10px">${gi('lock')} Career level ${DRILL_LV[i]}</div>`}</section>`;
   }).join('')}
@@ -446,7 +446,7 @@ if (typeof i18nAdd === 'function') {
     'Silver chest added. Open it on Today.': 'Cofre de plata añadido. Ábrelo en Hoy.', 'Next opponent in {n} days (on Monday).': 'Próximo rival en {n} días (el lunes).',
     'How the Academy works': 'Cómo funciona la Academia', 'Your normal workouts also raise your attributes a little.': 'Tus entrenamientos normales también suben un poco tus atributos.',
     'Career level {n} unlocks': 'El nivel de carrera {n} desbloquea', 'You: OVR {n}': 'Tú: OVR {n}', 'Chance to win: {n}%': 'Probabilidad de ganar: {n}%', Prizes: 'Premios', Win: 'Victoria', Draw: 'Empate', Loss: 'Derrota',
-    'Every match also gives career XP. The match resets each Monday.': 'Cada partido también da XP de carrera. El partido se renueva cada lunes.', Rewards: 'Recompensas', 'XP bonus ×{n}': 'Bonus de XP ×{n}', 'career XP {n}': 'XP de carrera {n}',
+    'Every match also gives career XP. The match resets each Monday.': 'Cada partido también da XP de carrera. El partido se renueva cada lunes.', 'Drill rewards': 'Recompensas', 'XP bonus ×{n}': 'Bonus de XP ×{n}', 'career XP {n}': 'XP de carrera {n}',
     '{n} to go': 'faltan {n}', '{n} coins': '{n} monedas',
     'Sport drill ×{n}': 'Ejercicio de deporte ×{n}', 'Finished position {n} of 8': 'Terminaste en el puesto {n} de 8', 'Won by KO': 'Victoria por KO', 'Won on points': 'Victoria por puntos', 'Draw on the cards': 'Empate en las tarjetas',
     'Lost on points': 'Derrota por puntos', 'Stopped in round {n}': 'Detenido en el asalto {n}', 'Career milestone! OVR {n}: {n} coins and a chest': '¡Hito de carrera! OVR {n}: {n} monedas y un cofre',

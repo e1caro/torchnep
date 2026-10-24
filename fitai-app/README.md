@@ -48,6 +48,20 @@ Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open 
 
 Local test: `python3 -m http.server -d fitai-app 8000`.
 
+## HUD look and cosmetics
+The interface is a sci-fi heads-up display (`hud.css`, layered over `style.css`):
+- a dark grid background, glowing lines, panels with cut corners and corner brackets
+- segmented progress bars, tick-ring gauges, angled buttons and a HUD bottom dock
+- type in Orbitron, Exo 2 and Share Tech Mono (SIL Open Font License)
+
+It is plain CSS inspired by open sci-fi UI projects such as [Arwes](https://github.com/arwes/arwes) (MIT) and augmented-ui; no images or libraries are added. Every theme recolours the same HUD.
+
+Cosmetics in Rewards → Shop:
+- **Themes:** 18, including the free default Cyber HUD, plus Hologram, Stealth Ops, Red Alert, Synthwave and Night City.
+- **Rings:** 14, including Segment, Gauge, Reticle, Gear, Hex, Orbit, Radar and Glitch.
+- **Banners:** 14, including Scanlines, Lattice, Circuit board, Radar sweep, Data stream and Hazard.
+- **Panel styles:** a new type that changes the shape of every card. The styles are Chamfered (free), Classic (free), Brackets, Octagon, Notch, Double line, Circuit and Hologram.
+
 ## Exercise media
 876 exercises with instructions and start/end pose photos come from the public-domain [free-exercise-db](https://github.com/yuhonas/free-exercise-db). The "video" is a looping animation of the two photos. 41 extra shoulder exercises (ids starting with `x_`, flag `x: 1`: lateral raise variations, pike push-ups, landmine and Z presses, rear delt and rotator cuff work, band drills) were written for this app; they have no photos, so they show a shoulder icon and their step-by-step instructions (in English and Spanish).
 To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char YouTube id>"` to `data/videos.json`. Only use videos you have the rights to.

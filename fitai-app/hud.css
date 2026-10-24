@@ -1,0 +1,282 @@
+/* ==========================================================================
+   FitQuest HUD skin: a sci-fi heads-up display look laid over style.css.
+   Thin glowing lines, cut corners, corner brackets, segmented bars and gauge rings.
+   Inspired by open sci-fi UI work such as Arwes (MIT) and augmented-ui; everything here is plain CSS,
+   no images. Fonts: Orbitron, Exo 2 and Share Tech Mono (SIL Open Font License, Google Fonts).
+   Colours come from the theme (--acc lines, --acc2 highlights), so every theme gets the same HUD.
+   ========================================================================== */
+:root{
+  --bg:#03080f;--glow:#062a3a;--acc:#22e4ff;--acc2:#ffb020;--fg:#e4fbff;--mut:#7fa3b5;
+  --disp:'Orbitron','Exo 2',system-ui,sans-serif;--body:'Exo 2',system-ui,-apple-system,sans-serif;--mono:'Share Tech Mono',ui-monospace,monospace;
+  --cut:12px;--b:14px;
+}
+html[data-theme=hud]{--bg:#03080f;--glow:#062a3a;--acc:#22e4ff;--acc2:#ffb020}
+html[data-theme=hologram]{--bg:#020a10;--glow:#0a3a4a;--acc:#7df9ff;--acc2:#e8fdff}
+html[data-theme=stealth]{--bg:#06090c;--glow:#18222c;--acc:#9fb3c8;--acc2:#3ddc97}
+html[data-theme=redalert]{--bg:#0c0405;--glow:#3a0a0e;--acc:#ff2b3d;--acc2:#ffb020}
+html[data-theme=synthwave]{--bg:#0a0414;--glow:#2c0a3a;--acc:#ff3cc7;--acc2:#7b5cff}
+html[data-theme=nightcity]{--bg:#07070a;--glow:#2a2a06;--acc:#fcee0a;--acc2:#00f0ff}
+/* every theme: panels and lines tinted from its own accent */
+html[data-theme],:root{
+  --card:color-mix(in srgb,var(--acc) 6%,var(--bg));--card2:color-mix(in srgb,var(--acc) 12%,var(--bg));
+  --line:color-mix(in srgb,var(--acc) 30%,transparent);--line2:color-mix(in srgb,var(--acc) 55%,transparent);
+  --fg:color-mix(in srgb,var(--acc) 8%,#eefcff);
+}
+
+/* ---- backdrop: dark grid, glow from the top, faint scanlines ---- */
+body{font-family:var(--body);letter-spacing:.01em;
+  background:
+    radial-gradient(120% 45% at 50% -8%,color-mix(in srgb,var(--glow) 90%,transparent),#0000 70%) no-repeat,
+    linear-gradient(color-mix(in srgb,var(--acc) 6%,transparent) 1px,#0000 1px) 0 0/26px 26px,
+    linear-gradient(90deg,color-mix(in srgb,var(--acc) 6%,transparent) 1px,#0000 1px) 0 0/26px 26px,
+    var(--bg);background-attachment:fixed}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:0;background:radial-gradient(130% 90% at 50% 40%,#0000 55%,#000a 100%)}
+main{position:relative;z-index:1}
+
+/* ---- type ---- */
+h1{font:800 28px/1.1 var(--disp);letter-spacing:.08em;text-shadow:0 0 18px color-mix(in srgb,var(--acc) 45%,transparent)}
+h2{font:700 20px/1.15 var(--disp);letter-spacing:.07em}
+h2.sec{display:flex;align-items:center;gap:10px;font-size:14px;letter-spacing:.16em;color:var(--acc);margin:26px 0 10px}
+h2.sec::before{content:"";flex:none;width:8px;height:8px;border:2px solid var(--acc2);transform:rotate(45deg)}
+h2.sec::after{content:"";flex:1;height:1px;min-width:20px;background:linear-gradient(90deg,var(--line2),#0000)}
+h3{font:700 15px/1.2 var(--disp);letter-spacing:.07em}
+.lbl,.why summary,details summary,.opt b{font-family:var(--disp);font-size:13px;letter-spacing:.12em}
+.opt b{font-size:16px}
+.mut{color:var(--mut)}
+.hn{font:700 17px/1.1 var(--disp);letter-spacing:.08em}
+.stat b,.ring b,.wnum b,.coins b,.xpt,.odd,.pill,.dot,.lv,.bignum,#rest .t,.score,.pc-ovr b,.pcs b{font-family:var(--mono);letter-spacing:.02em}
+.stat b{font-size:30px;color:var(--fg);text-shadow:0 0 12px color-mix(in srgb,var(--acc) 50%,transparent)}
+.bignum{font-size:100px}
+
+/* ==========================================================================
+   Panels. One shape for every card, chosen in Rewards > Shop > Panel styles (html[data-panel]).
+   The shape is a clip-path; the bright corner pieces are a ::before overlay made of gradients.
+   ========================================================================== */
+html{
+  --clip:polygon(0 0,calc(100% - var(--cut)) 0,100% var(--cut),100% 100%,var(--cut) 100%,0 calc(100% - var(--cut)));
+  --dg:#0000 calc(50% - 1px),var(--line2) calc(50% - 1px) calc(50% + 1px),#0000 calc(50% + 1px);
+  --deco:
+    linear-gradient(var(--acc),var(--acc)) 0 0/var(--b) 2px,linear-gradient(var(--acc),var(--acc)) 0 0/2px var(--b),
+    linear-gradient(var(--acc),var(--acc)) 100% 100%/var(--b) 2px,linear-gradient(var(--acc),var(--acc)) 100% 100%/2px var(--b),
+    linear-gradient(to top right,var(--dg)) 100% 0/var(--cut) var(--cut),linear-gradient(to top right,var(--dg)) 0 100%/var(--cut) var(--cut);
+  --pshadow:0 0 0 #0000;
+}
+html :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){position:relative;border-radius:0;border:1px solid var(--line);background-color:var(--card);clip-path:var(--clip);box-shadow:var(--pshadow)}
+html :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::before{content:"";position:absolute;inset:-1px;pointer-events:none;background:var(--deco);background-repeat:no-repeat}
+html .card.hero,html .next{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 12%,var(--bg)),var(--card) 70%)}
+html .quest.ok,html .mkt.on,html .opt.on,html .slip{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset,0 0 22px color-mix(in srgb,var(--acc) 22%,transparent) inset}
+
+html[data-panel=brackets]{--clip:none;--b:18px;
+  --deco:linear-gradient(var(--acc),var(--acc)) 0 0/var(--b) 2px,linear-gradient(var(--acc),var(--acc)) 0 0/2px var(--b),
+    linear-gradient(var(--acc),var(--acc)) 100% 0/var(--b) 2px,linear-gradient(var(--acc),var(--acc)) 100% 0/2px var(--b),
+    linear-gradient(var(--acc),var(--acc)) 0 100%/var(--b) 2px,linear-gradient(var(--acc),var(--acc)) 0 100%/2px var(--b),
+    linear-gradient(var(--acc),var(--acc)) 100% 100%/var(--b) 2px,linear-gradient(var(--acc),var(--acc)) 100% 100%/2px var(--b)}
+html[data-panel=brackets] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){border-color:color-mix(in srgb,var(--acc) 14%,transparent)}
+html[data-panel=octa]{--cut:10px;
+  --clip:polygon(var(--cut) 0,calc(100% - var(--cut)) 0,100% var(--cut),100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,var(--cut) 100%,0 calc(100% - var(--cut)),0 var(--cut));
+  --deco:linear-gradient(to top right,var(--dg)) 100% 0/var(--cut) var(--cut),linear-gradient(to top right,var(--dg)) 0 100%/var(--cut) var(--cut),
+    linear-gradient(to top left,var(--dg)) 0 0/var(--cut) var(--cut),linear-gradient(to top left,var(--dg)) 100% 100%/var(--cut) var(--cut),
+    linear-gradient(var(--acc),var(--acc)) 50% 0/40px 2px,linear-gradient(var(--acc),var(--acc)) 50% 100%/40px 2px}
+html[data-panel=notch]{--cut:7px;
+  --clip:polygon(var(--cut) 0,calc(100% - var(--cut)) 0,100% var(--cut),100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,var(--cut) 100%,0 calc(100% - var(--cut)),0 var(--cut));
+  --deco:linear-gradient(var(--acc),var(--acc)) 50% 0/38% 3px,linear-gradient(var(--acc2),var(--acc2)) 50% 100%/18% 2px,
+    linear-gradient(var(--acc),var(--acc)) 0 50%/2px 30%,linear-gradient(var(--acc),var(--acc)) 100% 50%/2px 30%,
+    linear-gradient(to top right,var(--dg)) 100% 0/var(--cut) var(--cut),linear-gradient(to top right,var(--dg)) 0 100%/var(--cut) var(--cut),
+    linear-gradient(to top left,var(--dg)) 0 0/var(--cut) var(--cut),linear-gradient(to top left,var(--dg)) 100% 100%/var(--cut) var(--cut)}
+html[data-panel=double]{--cut:14px;
+  --clip:polygon(var(--cut) 0,100% 0,100% calc(100% - var(--cut)),calc(100% - var(--cut)) 100%,0 100%,0 var(--cut));
+  --deco:linear-gradient(to top left,var(--dg)) 0 0/var(--cut) var(--cut),linear-gradient(to top left,var(--dg)) 100% 100%/var(--cut) var(--cut),
+    linear-gradient(var(--acc2),var(--acc2)) calc(100% - 10px) 0/24px 3px,linear-gradient(var(--acc2),var(--acc2)) 10px 100%/24px 3px;
+  --pshadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px color-mix(in srgb,var(--acc) 40%,transparent)}
+html[data-panel=circuit]{--cut:18px;
+  --clip:polygon(var(--cut) 0,100% 0,100% 100%,0 100%,0 var(--cut));
+  --deco:linear-gradient(to top left,var(--dg)) 0 0/var(--cut) var(--cut),
+    repeating-linear-gradient(to bottom,var(--acc) 0 2px,#0000 2px 7px) 0 60%/3px 46%,repeating-linear-gradient(to bottom,var(--acc) 0 2px,#0000 2px 7px) 100% 40%/3px 46%,
+    linear-gradient(var(--acc2),var(--acc2)) 100% 0/30px 2px,radial-gradient(circle,var(--acc2) 0 3px,#0000 3.5px) calc(100% - 34px) 0/8px 8px}
+html[data-panel=circuit] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){border-style:dashed}
+html[data-panel=holo]{--clip:none;
+  --deco:repeating-linear-gradient(0deg,color-mix(in srgb,var(--acc) 7%,transparent) 0 1px,#0000 1px 4px) 0 0/100% 100%,
+    linear-gradient(90deg,#0000,var(--acc),#0000) 50% 0/100% 1px,linear-gradient(90deg,#0000,var(--acc2),#0000) 50% 100%/60% 1px;
+  --pshadow:0 0 18px color-mix(in srgb,var(--acc) 18%,transparent),inset 0 0 26px color-mix(in srgb,var(--acc) 10%,transparent)}
+html[data-panel=holo] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){background-color:color-mix(in srgb,var(--card) 70%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html[data-panel=classic]{--clip:none;--deco:none}
+html[data-panel=classic] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){border-radius:16px}
+
+/* panel style previews in the shop */
+.pnp{width:100%;height:54px;position:relative;border:1px solid var(--line);background:var(--card);display:flex;flex-direction:column;gap:6px;justify-content:center;padding:0 12px}
+.pnp i{position:absolute;inset:-1px;pointer-events:none;background-repeat:no-repeat}.pnp b{display:block;height:4px;width:60%;background:var(--line2)}.pnp b+b{width:38%;background:var(--line)}
+.pick .pnp{height:100%}
+.pnp[data-pn=chamfer]{clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px))}
+.pnp[data-pn=chamfer] i{background:linear-gradient(var(--acc),var(--acc)) 0 0/12px 2px,linear-gradient(var(--acc),var(--acc)) 0 0/2px 12px,linear-gradient(var(--acc),var(--acc)) 100% 100%/12px 2px,linear-gradient(var(--acc),var(--acc)) 100% 100%/2px 12px;background-repeat:no-repeat}
+.pnp[data-pn=brackets]{border-color:color-mix(in srgb,var(--acc) 14%,transparent)}
+.pnp[data-pn=brackets] i{background:linear-gradient(var(--acc),var(--acc)) 0 0/12px 2px,linear-gradient(var(--acc),var(--acc)) 0 0/2px 12px,linear-gradient(var(--acc),var(--acc)) 100% 0/12px 2px,linear-gradient(var(--acc),var(--acc)) 100% 0/2px 12px,linear-gradient(var(--acc),var(--acc)) 0 100%/12px 2px,linear-gradient(var(--acc),var(--acc)) 0 100%/2px 12px,linear-gradient(var(--acc),var(--acc)) 100% 100%/12px 2px,linear-gradient(var(--acc),var(--acc)) 100% 100%/2px 12px;background-repeat:no-repeat}
+.pnp[data-pn=octa]{clip-path:polygon(9px 0,calc(100% - 9px) 0,100% 9px,100% calc(100% - 9px),calc(100% - 9px) 100%,9px 100%,0 calc(100% - 9px),0 9px)}
+.pnp[data-pn=octa] i{background:linear-gradient(var(--acc),var(--acc)) 50% 0/30px 2px,linear-gradient(var(--acc),var(--acc)) 50% 100%/30px 2px;background-repeat:no-repeat}
+.pnp[data-pn=notch]{clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px)}
+.pnp[data-pn=notch] i{background:linear-gradient(var(--acc),var(--acc)) 50% 0/40% 3px,linear-gradient(var(--acc2),var(--acc2)) 50% 100%/20% 2px,linear-gradient(var(--acc),var(--acc)) 0 50%/2px 40%,linear-gradient(var(--acc),var(--acc)) 100% 50%/2px 40%;background-repeat:no-repeat}
+.pnp[data-pn=double]{clip-path:polygon(12px 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,0 100%,0 12px);box-shadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px var(--line2)}
+.pnp[data-pn=double] i{background:linear-gradient(var(--acc2),var(--acc2)) calc(100% - 6px) 0/20px 3px,linear-gradient(var(--acc2),var(--acc2)) 6px 100%/20px 3px;background-repeat:no-repeat}
+.pnp[data-pn=circuit]{border-style:dashed;clip-path:polygon(14px 0,100% 0,100% 100%,0 100%,0 14px)}
+.pnp[data-pn=circuit] i{background:repeating-linear-gradient(to bottom,var(--acc) 0 2px,#0000 2px 6px) 0 60%/3px 50%,repeating-linear-gradient(to bottom,var(--acc) 0 2px,#0000 2px 6px) 100% 40%/3px 50%,linear-gradient(var(--acc2),var(--acc2)) 100% 0/22px 2px;background-repeat:no-repeat}
+.pnp[data-pn=holo]{box-shadow:0 0 14px color-mix(in srgb,var(--acc) 30%,transparent),inset 0 0 18px color-mix(in srgb,var(--acc) 14%,transparent)}
+.pnp[data-pn=holo] i{background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--acc) 14%,transparent) 0 1px,#0000 1px 4px),linear-gradient(90deg,#0000,var(--acc),#0000) 50% 0/100% 1px no-repeat}
+.pnp[data-pn=classic]{border-radius:12px}
+
+/* ---- buttons: cut corners, display font ---- */
+.btn{border:0;border-radius:0;clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px);
+  font:700 13px var(--disp);letter-spacing:.12em;text-transform:uppercase;padding:15px 18px;color:#021016;
+  background:linear-gradient(90deg,var(--acc),color-mix(in srgb,var(--acc) 55%,var(--acc2)));box-shadow:inset 0 -3px 0 #0004,inset 0 0 0 1px #fff3}
+.btn:active{filter:brightness(1.25)}
+.btn.ghost{background:color-mix(in srgb,var(--acc) 7%,var(--bg));color:var(--acc);border:0;box-shadow:inset 0 0 0 1px var(--line2)}
+.btn.gold{background:linear-gradient(90deg,var(--acc2),color-mix(in srgb,var(--acc2) 60%,#fff))}
+.btn.sm{border-radius:0;font-size:11px;padding:9px 13px;clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+.btn.chestbtn{background:linear-gradient(90deg,var(--acc2),#ffe08a);color:#1a0f00}
+.icon{border-radius:0;background:var(--card2);border:1px solid var(--line);color:var(--acc);clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px)}
+
+/* ---- inputs ---- */
+input,select{border-radius:0;background:color-mix(in srgb,var(--acc) 5%,var(--bg));border:1px solid var(--line);font-family:var(--body);
+  clip-path:polygon(0 0,calc(100% - 8px) 0,100% 8px,100% 100%,0 100%)}
+input:focus,select:focus{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset,0 0 14px color-mix(in srgb,var(--acc) 30%,transparent)}
+.shop input,.rep input,input[type=checkbox]{clip-path:none}
+
+/* ---- chips and segmented tabs ---- */
+.chip{border-radius:0;font:600 13px var(--disp);letter-spacing:.06em;text-transform:uppercase;background:color-mix(in srgb,var(--acc) 5%,var(--bg));border:1px solid var(--line);
+  clip-path:polygon(7px 0,100% 0,100% calc(100% - 7px),calc(100% - 7px) 100%,0 100%,0 7px);padding:9px 14px}
+.chip.on{background:color-mix(in srgb,var(--acc) 20%,var(--bg));border-color:var(--acc);color:var(--fg);box-shadow:inset 0 -2px 0 var(--acc2)}
+.chips.static .chip{font-size:11px}
+.seg{border-radius:0;background:var(--card);border:1px solid var(--line);clip-path:polygon(10px 0,100% 0,100% calc(100% - 10px),calc(100% - 10px) 100%,0 100%,0 10px)}
+.seg a{border-radius:0;font:700 12px var(--disp);letter-spacing:.1em;text-transform:uppercase}
+.seg a.on{background:var(--acc);color:#021016;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.dpill{border-radius:0;font-family:var(--disp);font-size:11px;letter-spacing:.06em;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+.dpill.on{background:var(--acc);color:#021016}
+.pick{border-radius:0;border:1px solid var(--line);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.pick.on{border-color:var(--acc);box-shadow:inset 0 0 0 1px var(--acc),inset 0 0 16px color-mix(in srgb,var(--acc) 35%,transparent)}
+
+/* ---- bottom dock ---- */
+nav#tabs{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 70%,transparent),var(--bg));border-top:0;padding-top:10px}
+nav#tabs::before{content:"";position:absolute;left:0;right:0;top:0;height:10px;pointer-events:none;
+  background:linear-gradient(var(--line2),var(--line2)) 0 9px/calc(50% - 70px) 1px no-repeat,linear-gradient(var(--line2),var(--line2)) 100% 9px/calc(50% - 70px) 1px no-repeat,
+    linear-gradient(to top right,#0000 calc(50% - 1px),var(--line2) calc(50% - 1px) calc(50% + 1px),#0000 calc(50% + 1px)) calc(50% - 61px) 0/10px 10px no-repeat,
+    linear-gradient(to top left,#0000 calc(50% - 1px),var(--line2) calc(50% - 1px) calc(50% + 1px),#0000 calc(50% + 1px)) calc(50% + 61px) 0/10px 10px no-repeat,
+    linear-gradient(var(--acc),var(--acc)) 50% 0/112px 2px no-repeat}
+nav a{font:600 10px var(--body);letter-spacing:0;text-transform:none;border-radius:0;position:relative}
+nav a span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+nav a.on{color:var(--acc)}
+nav a.on::after{content:"";position:absolute;left:28%;right:28%;bottom:2px;height:2px;background:var(--acc);box-shadow:0 0 10px var(--acc)}
+
+/* ---- top HUD bar (avatar, XP, coins) ---- */
+.hud{padding:12px 14px}
+.coins{border-radius:0;background:color-mix(in srgb,var(--acc2) 10%,var(--bg));border:1px solid color-mix(in srgb,var(--acc2) 45%,transparent);color:var(--acc2);clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px)}
+.lv{border-radius:0;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border:0;min-width:32px;height:26px;font-size:14px;color:#021016;background:var(--acc2)}
+
+/* avatar: thin progress ring and a tick ring around it */
+.av{background:conic-gradient(var(--acc) calc(var(--p) * 360deg),color-mix(in srgb,var(--acc) 14%,var(--bg)) 0)}
+.av::before{inset:3px;background:radial-gradient(circle at 50% 40%,color-mix(in srgb,var(--acc) 16%,var(--bg)),var(--bg) 70%)}
+.fr-none::after{background:repeating-conic-gradient(var(--line2) 0 3deg,#0000 3deg 12deg)}
+
+/* ---- bars: segmented, like HUD loaders ---- */
+.xpbar,.qbar,.prog,.hp,.rkbar,.steps i{border-radius:0;background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--acc) 12%,transparent) 0 6px,#0000 6px 8px);box-shadow:inset 0 0 0 1px var(--line)}
+.xpbar{height:12px;clip-path:polygon(0 0,calc(100% - 6px) 0,100% 50%,calc(100% - 6px) 100%,0 100%)}
+.xpbar i{border-radius:0;background:repeating-linear-gradient(90deg,var(--acc) 0 6px,#0000 6px 8px);box-shadow:none;filter:drop-shadow(0 0 4px var(--acc))}
+.qbar i,.prog i,.hp i,.rkbar i{border-radius:0;-webkit-mask:repeating-linear-gradient(90deg,#000 0 6px,#0000 6px 8px);mask:repeating-linear-gradient(90deg,#000 0 6px,#0000 6px 8px)}
+.qbar i{background:var(--acc)}.qbar.kc i{background:var(--acc)}
+.hp i{background:linear-gradient(90deg,#ff3b5c,var(--acc2))}
+.steps i{height:6px}.steps i.on{background:var(--acc);box-shadow:0 0 8px var(--acc)}
+
+/* ---- round gauges: tick ring around the progress ring ---- */
+.ring::before{content:"";position:absolute;inset:-7px;border-radius:50%;pointer-events:none;
+  background:repeating-conic-gradient(var(--line2) 0 1.5deg,#0000 1.5deg 7.5deg);
+  -webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3px))}
+.ring circle{stroke-linecap:butt}.rb{stroke:color-mix(in srgb,var(--acc) 14%,var(--bg))}.rf{filter:drop-shadow(0 0 5px var(--acc))}
+
+/* ---- icon tiles ---- */
+.qi,.dgi,.mi{border-radius:0;background:color-mix(in srgb,var(--acc) 10%,var(--bg));box-shadow:inset 0 0 0 1px var(--line);clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.dot{border-radius:0;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border:0;width:40px}
+.rl::before{left:19px;width:2px;background:repeating-linear-gradient(to bottom,var(--line2) 0 4px,#0000 4px 8px)}
+.rl.now .dot{background:var(--acc);color:#021016;box-shadow:none}
+.rk{border-radius:0;clip-path:polygon(8px 0,100% 0,calc(100% - 8px) 100%,0 100%);font-family:var(--disp);font-size:12px;padding:4px 14px}
+.pill,.xpchip{border-radius:0;clip-path:polygon(6px 0,100% 0,calc(100% - 6px) 100%,0 100%)}
+.odd{border-radius:0;clip-path:polygon(6px 0,100% 0,100% calc(100% - 6px),calc(100% - 6px) 100%,0 100%,0 6px);font-size:16px}
+.lg{border-radius:0;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.ck{border-radius:0;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border:0;background:color-mix(in srgb,var(--acc) 14%,var(--bg))}.ck.on{background:var(--ok)}
+.hwn{border-radius:0;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);color:#021016}
+
+/* ---- modal, toasts, rest timer ---- */
+#modal{background:color-mix(in srgb,var(--bg) 88%,transparent);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.mbox{border-width:1px;animation:pop .35s cubic-bezier(.2,1.4,.4,1)}
+html .mbox{box-shadow:0 0 0 1px var(--acc) inset,0 0 40px color-mix(in srgb,var(--acc) 25%,transparent) inset}
+.toast{border-radius:0;font-family:var(--body);background:color-mix(in srgb,var(--acc) 10%,var(--bg));border:1px solid var(--line2);border-left:3px solid var(--acc);clip-path:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%)}
+#rest{background:color-mix(in srgb,var(--bg) 95%,transparent)}
+#rest .t{color:var(--acc);text-shadow:0 0 24px var(--acc)}
+.unl{border-radius:0}
+.lvup{font-family:var(--disp);letter-spacing:.3em}
+
+/* ---- misc pieces ---- */
+.demo,.thumb{border-radius:0;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.odds,.pc-stats{border-radius:0}
+.swc{border-radius:0;clip-path:polygon(8px 0,100% 0,100% calc(100% - 8px),calc(100% - 8px) 100%,0 100%,0 8px)}
+.bnp{border-radius:0}
+.boot img{border-radius:0;clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)}
+.boot .bt{font-size:26px;letter-spacing:.3em;color:var(--acc);text-shadow:0 0 18px var(--acc)}
+.wheel{border:3px solid var(--acc);box-shadow:0 0 0 6px color-mix(in srgb,var(--acc) 18%,transparent),0 0 30px color-mix(in srgb,var(--acc) 40%,transparent),inset 0 0 30px #000a}
+.wptr{border-top-color:var(--acc2);filter:drop-shadow(0 0 6px var(--acc2))}
+.whub{background:radial-gradient(circle,var(--bg) 40%,var(--acc) 42% 48%,var(--bg) 50%);color:var(--acc)}
+.hp{height:12px}
+.boss .be .gi{background:linear-gradient(180deg,#ff5c6c,var(--acc2))}
+
+/* ==========================================================================
+   Avatar rings (Rewards > Shop > Rings). HUD-style ones drawn with repeating conic gradients.
+   ========================================================================== */
+.fr-segments::after{background:repeating-conic-gradient(var(--acc) 0 22deg,#0000 22deg 30deg);animation:spin 9s linear infinite}
+.fr-ticks::after{inset:-8px;background:repeating-conic-gradient(var(--acc) 0 2deg,#0000 2deg 6deg);
+  -webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px))}
+.fr-reticle::after{inset:-10px;background:repeating-conic-gradient(from -6deg,var(--acc2) 0 12deg,#0000 12deg 90deg);
+  -webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 7px),#000 calc(100% - 6px));mask:radial-gradient(farthest-side,#0000 calc(100% - 7px),#000 calc(100% - 6px));animation:spin 12s linear infinite}
+.fr-reticle{box-shadow:0 0 0 1px var(--line2)}
+.fr-gear::after{inset:-7px;background:repeating-conic-gradient(var(--acc) 0 7deg,#0000 7deg 15deg);
+  -webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 6px),#000 calc(100% - 5px));mask:radial-gradient(farthest-side,#0000 calc(100% - 6px),#000 calc(100% - 5px));animation:spin 14s linear infinite reverse}
+.fr-hexagon,.fr-hexagon::before{clip-path:polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0 50%);border-radius:0}
+.fr-hexagon::before{inset:4px}
+.fr-hexagon{filter:drop-shadow(0 0 6px var(--acc))}
+.fr-orbit::after{inset:-9px;background:conic-gradient(var(--acc2) 0 50deg,#0000 50deg 180deg,var(--acc) 180deg 230deg,#0000 230deg);animation:spin 3s linear infinite}
+.fr-orbit{box-shadow:0 0 14px color-mix(in srgb,var(--acc) 40%,transparent)}
+.fr-radar::after{inset:3px;z-index:0;-webkit-mask:none;mask:none;background:conic-gradient(from 0deg,color-mix(in srgb,var(--acc) 55%,transparent),#0000 70deg);animation:spin 2.4s linear infinite}
+.fr-radar span{z-index:1}
+.fr-radar{box-shadow:0 0 0 1px var(--acc),0 0 16px color-mix(in srgb,var(--acc) 40%,transparent)}
+.fr-glitch::after{background:conic-gradient(#ff2b5c,#00f0ff,#fcee0a,#ff2b5c);animation:spin 1.2s steps(6) infinite}
+.fr-glitch{animation:glitch 2.6s steps(1) infinite}
+@keyframes glitch{0%,86%,100%{transform:none;filter:none}88%{transform:translate(2px,-1px);filter:hue-rotate(90deg)}92%{transform:translate(-2px,1px);filter:hue-rotate(-90deg)}96%{transform:translate(1px,0)}}
+@media(prefers-reduced-motion:reduce){.fr-glitch{animation:none}}
+
+/* ==========================================================================
+   Banners (Rewards > Shop > Banners)
+   ========================================================================== */
+.bn-plain{background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 12%,var(--bg)),var(--card) 75%)}
+.bn-scan{background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--acc) 10%,transparent) 0 1px,#0000 1px 4px),linear-gradient(135deg,color-mix(in srgb,var(--acc) 14%,var(--bg)),var(--card))}
+.bn-hexgrid{background:
+  repeating-linear-gradient(60deg,#0000 0 13px,color-mix(in srgb,var(--acc) 24%,transparent) 13px 14px),
+  repeating-linear-gradient(-60deg,#0000 0 13px,color-mix(in srgb,var(--acc) 24%,transparent) 13px 14px),
+  repeating-linear-gradient(0deg,#0000 0 13px,color-mix(in srgb,var(--acc) 16%,transparent) 13px 14px),
+  linear-gradient(135deg,color-mix(in srgb,var(--acc) 10%,var(--bg)),var(--card))}
+.bn-circuit{background:
+  linear-gradient(90deg,#0000 30%,color-mix(in srgb,var(--acc) 35%,transparent) 30% 31%,#0000 31%) 0 0/60px 40px,
+  linear-gradient(0deg,#0000 48%,color-mix(in srgb,var(--acc) 28%,transparent) 48% 51%,#0000 51%) 0 0/60px 40px,
+  radial-gradient(circle,var(--acc2) 0 2px,#0000 2.5px) 15px 18px/60px 40px,
+  linear-gradient(135deg,color-mix(in srgb,var(--acc) 10%,var(--bg)),var(--card))}
+.bn-radar{background:repeating-radial-gradient(circle at 88% 50%,#0000 0 18px,color-mix(in srgb,var(--acc) 30%,transparent) 19px 20px),
+  conic-gradient(from 200deg at 88% 50%,color-mix(in srgb,var(--acc) 30%,transparent),#0000 60deg),linear-gradient(135deg,var(--card),var(--bg))}
+.bn-data{background:repeating-linear-gradient(90deg,color-mix(in srgb,var(--acc) 22%,transparent) 0 2px,#0000 2px 9px,color-mix(in srgb,var(--acc2) 18%,transparent) 9px 10px,#0000 10px 17px),
+  linear-gradient(0deg,var(--card) 10%,#0000 70%),linear-gradient(135deg,color-mix(in srgb,var(--acc) 10%,var(--bg)),var(--card))}
+.bn-hazard{background:linear-gradient(var(--card),var(--card)) 0 8px/100% calc(100% - 16px) no-repeat,repeating-linear-gradient(135deg,var(--acc2) 0 10px,#111 10px 20px)}
+
+/* coins on gold buttons */
+.btn.gold .gi.cn,.btn.chestbtn .gi.cn{color:#3a2500}
+/* profile card (banner background): HUD panel, readable name */
+.pcard[class*=bn-]{color:var(--fg);border-radius:0;border:1px solid var(--line);box-shadow:inset 0 0 30px color-mix(in srgb,var(--acc) 12%,transparent);
+  clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px))}
+.pcard[class*=bn-]::after{background:linear-gradient(var(--acc),var(--acc)) 0 0/22px 2px no-repeat,linear-gradient(var(--acc),var(--acc)) 0 0/2px 22px no-repeat,
+  linear-gradient(var(--acc),var(--acc)) 100% 100%/22px 2px no-repeat,linear-gradient(var(--acc),var(--acc)) 100% 100%/2px 22px no-repeat}
+.pcard[class*=bn-] .hn{text-shadow:0 0 14px color-mix(in srgb,var(--acc) 60%,transparent)}
+/* volume bars: segmented columns */
+.bars div{border-radius:0;background:repeating-linear-gradient(0deg,#0000 0 5px,var(--card) 5px 7px),linear-gradient(180deg,var(--acc2),var(--acc))}
+@media(max-width:360px){nav a{font-size:9px}}
