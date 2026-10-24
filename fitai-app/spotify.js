@@ -262,10 +262,19 @@ const SP_SONGS = {
   dnb: [['Watercolour', 'Pendulum'], ['Tarantula', 'Pendulum'], ['Witchcraft', 'Pendulum'], ['Propane Nightmares', 'Pendulum'], ['Hold Your Colour', 'Pendulum'], ['Waiting All Night', 'Rudimental'],
     ['Gold Dust', 'DJ Fresh'], ['Louder', 'DJ Fresh'], ['Shake Ur Body', 'Shy FX'], ['Baddadan', 'Chase & Status'], ['Blind Faith', 'Chase & Status']],
 };
+// the full list (about 1000 songs) lives in data/songs.txt; the short list above covers the first moments offline
+fetch('data/songs.txt').then(r => r.text()).then(txt => {
+  const all = {}; let g = null;
+  txt.split('\n').forEach(l => { l = l.trim(); if (l.startsWith('## ')) g = l.slice(3); else if (g && l && !l.startsWith('#') && l.includes('|')) (all[g] = all[g] || []).push(l.split('|').map(x => x.trim())); });
+  if (Object.keys(all).length) Object.assign(SP_SONGS, all);
+}).catch(() => { /* offline on first run: the short list */ });
 function songOfDay() {
-  const gs = SPF.genres.length ? SPF.genres : Object.keys(SP_SONGS), n = Math.floor(Date.now() / 864e5) + (SPF.songRot || 0);
-  const g = gs[n % gs.length], list = SP_SONGS[g] || SP_SONGS.rock, [t, a] = list[Math.floor(n / gs.length) % list.length];
-  return { g, t, a, name: (SP_GENRES.find(([k]) => k === g) || [, g])[1] };
+  const gs = SPF.genres.length ? SPF.genres : Object.keys(SP_SONGS), n = Math.floor(Date.now() / 864e5) + (SPF.songRot || 0), key = `${dayId()}:${SPF.songRot || 0}:${gs.join()}`;
+  if (SPF.sod?.key === key) return SPF.sod; // the same song all day, until you ask for another
+  const g = gs[n % gs.length], list = SP_SONGS[g] || SP_SONGS.rock, k = Math.floor(n / gs.length);
+  const [t, a] = list[(k * 2654435761 >>> 0) % list.length]; // a scrambled walk through the list, so neighbours differ
+  SPF.sod = { key, g, t, a, name: (SP_GENRES.find(([x]) => x === g) || [, g])[1] }; spoSave();
+  return SPF.sod;
 }
 window.spSongNext = () => { SPF.songRot = (SPF.songRot || 0) + 1; spoSave(); sfx('tick'); spRefreshView(); };
 const spSearch = (q, tab = '') => `https://open.spotify.com/search/${encodeURIComponent(q)}${tab}`;
