@@ -36,7 +36,8 @@ function form() {
   const perWeek = known ? Math.max(.5, recent.length / 4) : Math.max(1, (S.profile?.days || 3) * .6);
   const dgPerWeek = known ? Math.max(.25, recent.filter(h => h.dungeon).length / 4) : .4;
   const mins = S.history.length ? S.history.reduce((a, h) => a + (h.dur || 0), 0) / S.history.length : 45;
-  return { perWeek, dgPerWeek, mins: Math.max(15, mins) };
+  const sets = S.history.length ? S.history.reduce((a, h) => a + h.ex.reduce((x, e) => x + e.sets.length, 0), 0) / S.history.length : 12;
+  return { perWeek, dgPerWeek, mins: Math.max(15, mins), sets: Math.max(4, sets), xpw: Math.max(150, sets * 10 + 100) * 1.15 };
 }
 // chance of at least k events when lambda are expected
 const atLeast = (k, lam) => { if (k <= 0) return 1; let p = 0, t = Math.exp(-lam); for (let i = 0; i < k; i++) { p += t; t *= lam / (i + 1); } return Math.max(0, 1 - p); };
@@ -48,6 +49,7 @@ const inWin = (h, a, b) => h.t >= a && h.t <= b;
 const trainsIn = (a, b) => S.history.filter(h => inWin(h, a, b)).length;
 const dgIn = (a, b) => S.history.filter(h => inWin(h, a, b) && h.dungeon).length;
 const minsIn = (a, b) => S.history.filter(h => inWin(h, a, b)).reduce((s, h) => s + (h.dur || 0), 0);
+const daysIn = (a, b) => new Set(S.history.filter(h => inWin(h, a, b)).map(h => new Date(h.t).toDateString())).size;
 const setsIn = (a, b) => S.history.filter(h => inWin(h, a, b)).reduce((s, h) => s + h.ex.reduce((x, e) => x + e.sets.length, 0), 0);
 function prIn(a, b) { // a workout in the window lifted more on some exercise than any earlier workout
   const best = {};
@@ -67,16 +69,29 @@ const waterIn = (a, b) => { const n = BT.water.filter(t => t >= a && t <= b).len
 const dungeonsOpen = () => Object.values(DUNGEONS).some(d => d.lv <= lvl());
 const questsAllDone = () => { ensureDay(); return G.quests.claimed.length >= G.quests.list.length; };
 const waterToday = () => { ensureDay(); return !!G.today.waterGoal; };
+// XP at the start of each day the app was opened (to count XP earned in a window)
+BT.xpLog = BT.xpLog || {};
+const logXp = () => { const k = dayStart(); if (BT.xpLog[k] === undefined) { BT.xpLog[k] = G.xp; for (const t in BT.xpLog) if (+t < Date.now() - 70 * DAY) delete BT.xpLog[t]; commit(); } };
+const xpIn = a => { const ks = Object.keys(BT.xpLog).map(Number).filter(t => t >= a).sort((x, y) => x - y); return ks.length ? G.xp - BT.xpLog[ks[0]] : 0; };
+const prToday = () => prIn(dayStart(), dayEnd());
+const mealsOn = () => typeof M !== 'undefined' && !!M.set && !!M.plan;
+const sportKey = () => typeof SP !== 'undefined' && SP.cur && typeof roleOf === 'function' && roleOf(SP.cur) ? SP.cur : null;
+const sportName = key => { const r = roleOf(key); return r ? r.name : ''; };
 
 // ---------- titles, windows and chances (shared by the market list and by repeating bets) ----------
 const DAY_T = { 'd-train': ['Train today', 'Train tomorrow'], 'd-dg': ['Clear a dungeon today', 'Clear a dungeon tomorrow'], 'd-sets': ['Log 20 sets today', 'Log 20 sets tomorrow'],
-  'd-water': ['Hit your water goal today', 'Hit your water goal tomorrow'], 'd-quests': ['Claim all daily quests today', 'Claim all daily quests tomorrow'] };
-const DAY_ICO = { 'd-train': 'lifter', 'd-dg': 'gate', 'd-sets': 'swords', 'd-water': 'water', 'd-quests': 'scroll' };
-const KIND_ICO = { train: 'flame', dg: 'minotaur', min: 'stopwatch', pr: 'trophy', water: 'water' };
+  'd-water': ['Hit your water goal today', 'Hit your water goal tomorrow'], 'd-quests': ['Claim all daily quests today', 'Claim all daily quests tomorrow'],
+  'd-feat': ['Clear the dungeon of the day', 'Clear the dungeon of the day tomorrow'], 'd-pr': ['Set a new record today', 'Set a new record tomorrow'],
+  'd-sleep': ['Log 7 hours of sleep or more today', 'Log 7 hours of sleep or more tomorrow'], 'd-meals': ['Eat 3 planned meals today', 'Eat 3 planned meals tomorrow'],
+  'd-xp': ['Earn 300 XP today', 'Earn 300 XP tomorrow'] };
+const DAY_ICO = { 'd-train': 'lifter', 'd-dg': 'gate', 'd-sets': 'swords', 'd-water': 'water', 'd-quests': 'scroll', 'd-feat': 'temple', 'd-pr': 'trophy', 'd-sleep': 'sleep', 'd-meals': 'cutlery', 'd-xp': 'sparkles' };
+const KIND_ICO = { train: 'flame', dg: 'minotaur', min: 'stopwatch', pr: 'trophy', water: 'water', sets: 'swords', xp: 'sparkles', boss: 'golem', match: 'medal', nolose: 'shield', streak: 'bolt', lvl: 'upgrade', meals: 'cutlery', days: 'calendar' };
 const label = (kind, n, suf) => ({
   train: n === 1 ? `Train once ${suf}` : `Train ${n} times ${suf}`,
   dg: n === 1 ? `Clear a dungeon ${suf}` : `Clear ${n} dungeons ${suf}`,
   min: `Train ${n} minutes ${suf}`, pr: `Set a new record ${suf}`, water: n === 1 ? `Hit your water goal once ${suf}` : `Hit your water goal on ${n} days ${suf}`,
+  sets: `Log ${n} sets ${suf}`, xp: `Earn ${n} XP ${suf}`, boss: `Defeat the weekly boss ${suf}`, match: `Win your Academy match ${suf}`, nolose: `Don't lose your Academy match ${suf}`,
+  streak: `Reach a ${n}-day training streak ${suf}`, lvl: `Reach level ${n} ${suf}`, meals: `Eat ${n} planned meals ${suf}`, days: `Train on ${n} different days ${suf}`,
 })[kind];
 // the day/week/month window holding the moment right after `t` (weeks start on Monday, months on the 1st)
 function nextWindow(per, t) {
@@ -89,7 +104,7 @@ function nextWindow(per, t) {
 function legTitle(l) {
   if (!l.per) return l.t;
   const live = l.from <= Date.now();
-  if (l.per === 'day') return DAY_T[l.kind][live ? 0 : 1];
+  if (l.per === 'day') return l.kind === 'd-feat' ? l.t : DAY_T[l.kind][live ? 0 : 1];
   return label(l.kind, l.n, (live ? 'this ' : 'next ') + l.per);
 }
 // chance that a goal comes true in a window (counts what is already done if the window has started)
@@ -107,6 +122,19 @@ function legProb(kind, n, from, to) {
     case 'min': return atLeast(Math.ceil((n - (live ? minsIn(from, to) : 0)) / f.mins), lam);
     case 'pr': return Math.min(.85, .2 + .08 * lam);
     case 'water': return binomAtLeast(n - (live ? waterIn(from, to) : 0), days - (live && waterToday() ? 1 : 0), .55);
+    case 'd-feat': return Math.min(.5, Math.max(.05, f.dgPerWeek / 7));
+    case 'd-pr': return Math.min(.6, Math.max(.06, f.perWeek / 7 * .45));
+    case 'd-sleep': return .5;
+    case 'd-meals': return .45;
+    case 'd-xp': return Math.min(.8, Math.max(.1, f.perWeek / 7 * (f.xpw >= 260 ? 1 : .6)));
+    case 'sets': return atLeast(Math.ceil((n - (live ? setsIn(from, to) : 0)) / f.sets), lam);
+    case 'days': return binomAtLeast(n - (live ? daysIn(from, to) : 0), days - (live && trainsIn(dayStart(), dayEnd()) ? 1 : 0), Math.min(.9, f.perWeek / 7));
+    case 'xp': return atLeast(Math.ceil((n - (live ? xpIn(from) : 0)) / f.xpw), lam);
+    case 'boss': return atLeast((S.profile?.days || 3) - (live ? trainsIn(from, to) : 0), lam);
+    case 'lvl': return atLeast(Math.ceil((totalXp(n) - G.xp) / f.xpw), lam);
+    case 'streak': { const need = Math.max(0, n - (live ? streak() : 0)), q = Math.min(.9, f.perWeek / 7 + .1); return need > days ? 0 : Math.min(.95, q ** need * Math.min(1, days / need)); }
+    case 'meals': return atLeast(n - (live ? mealsEaten() : 0), days * 2.2);
+    case 'match': case 'nolose': { const k = sportKey(); if (!k) return 0; const w = winChance(k); return kind === 'match' ? w.pw : Math.min(.95, w.pw + w.draw); }
   }
   return .5;
 }
@@ -126,6 +154,13 @@ function markets() {
   if (setsIn(ds, de) < 20) day('d-sets', 'today', 'train', { need: 20, prog: setsIn(ds, de) });
   if (!waterToday()) day('d-water', 'water', 'water');
   if (!questsAllDone()) day('d-quests', 'quests', 'quests');
+  const feat = featuredId();
+  if (feat && DUNGEONS[feat].lv <= lvl() && !S.history.some(h => inWin(h, ds, de) && h.dungeon === feat)) day('d-feat', 'today', 'train', { feat, t: `Clear ${DUNGEONS[feat].name} (dungeon of the day)` });
+  if (S.history.length && !prToday()) day('d-pr', 'record', 'train');
+  ensureDay();
+  if (!G.today.sleepDone) day('d-sleep', 'sleep', 'sleep');
+  if (mealsOn() && (G.today.meals || 0) < 3) day('d-meals', 'meals', 'meals', { need: 3, prog: G.today.meals || 0 });
+  if (xpIn(ds) < 300) day('d-xp', 'xp', 'train', { need: 300, prog: xpIn(ds) });
   for (const P of periods()) {
     const per = P.k.endsWith('week') ? 'week' : 'month';
     const start = P.live ? Date.now() : P.from, days = Math.max(1, Math.ceil((P.to - start) / DAY)), lam = f.perWeek * days / 7, lamDg = f.dgPerWeek * days / 7;
@@ -142,6 +177,28 @@ function markets() {
     if (S.history.length && !(P.live && prIn(P.from, P.to))) mk('pr', 0, 0, { t: label('pr', 0, P.suf), need: 0 });
     const wd = P.live ? waterIn(P.from, P.to) : 0, avail = days - (P.live && waterToday() ? 1 : 0);
     for (const n of uniq([.45, .65, .85].map(k => wd + Math.max(1, Math.round(avail * k)))).filter(n => n - wd <= avail)) mk('water', n, wd);
+    // sets, active days, XP
+    const sw = P.live ? setsIn(P.from, P.to) : 0, es = lam * f.sets, r5 = x => Math.max(5, Math.round(x / 5) * 5);
+    for (const n of uniq([.8, 1.25].map(k => sw + r5(es * k)))) mk('sets', n, sw, { one: P.live && n - sw <= f.sets });
+    const aw = P.live ? daysIn(P.from, P.to) : 0;
+    for (const n of uniq([Math.round(lam * .8), Math.round(lam) + 1].map(r => aw + Math.max(1, r))).filter(n => n - aw <= days && n > 1).slice(-1)) mk('days', n, aw);
+    const xw = P.live ? xpIn(P.from) : 0, ex = lam * f.xpw, r50 = x => Math.max(100, Math.round(x / 50) * 50);
+    for (const n of uniq([.8, 1.3].map(k => xw + r50(ex * k)))) mk('xp', n, xw, { one: P.live && n - xw <= f.xpw });
+    // the weekly boss falls when you train as many days as your plan asks
+    if (per === 'week' && S.profile?.days && !(P.live && tw >= S.profile.days)) mk('boss', S.profile.days, tw, { g: P.k + 'train', t: label('boss', 0, P.suf), one: P.live && S.profile.days - tw === 1 });
+    // level, streak
+    if (per === 'month') mk('lvl', lvl() + 1, 0, { need: 0, one: P.live && totalXp(lvl() + 1) - G.xp <= f.xpw });
+    const st = P.live ? streak() : 0;
+    for (const n of uniq([st + 2, Math.max(3, st + 4)]).filter(n => n >= 3)) mk('streak', n, st, { need: 0 });
+    // planned meals (this week's meal plan only)
+    if (P.k === 'week' && mealsOn() && M.plan.week === weekId()) { const me = mealsEaten(); for (const n of uniq([15, 21].filter(n => n > me))) mk('meals', n, me); }
+    // Academy match (one a week, played from the Sports Academy)
+    const sk = sportKey();
+    if (sk && per === 'week' && !(P.live && SP.roles[sk]?.match?.week === weekId())) {
+      const extra = { key: sk, need: 0, topic: 'sport', g: P.k + 'match' };
+      mk('match', 0, 0, extra);
+      if (winChance(sk).draw) mk('nolose', 0, 0, extra);
+    }
   }
   // goals with almost no chance left are not offered
   return out.filter(m => m.p >= .04).map(m => ({ ...m, o: oddsFor(m.kind, m.n, m.p) }));
@@ -160,6 +217,26 @@ function legDone(l) {
   if (k === 'min' || id.startsWith('w-min')) return minsIn(a, b) >= l.need;
   if (k === 'pr' || id === 'w-pr') return prIn(a, b);
   if (k === 'water' || id.startsWith('w-water')) return waterIn(a, b) >= l.need;
+  if (Date.now() < a) return false; // the rest only count once the window has started
+  if (id === 'd-feat') return S.history.some(h => inWin(h, a, b) && h.dungeon && h.dungeon === l.feat);
+  if (id === 'd-pr') return prIn(a, b);
+  if (id === 'd-sleep') return G.today?.day === l.day && G.today.sleep >= 7;
+  if (id === 'd-meals') return G.today?.day === l.day && (G.today.meals || 0) >= 3;
+  if (id === 'd-xp') return xpIn(a) >= 300;
+  if (k === 'sets') return setsIn(a, b) >= l.need;
+  if (k === 'days') return daysIn(a, b) >= l.need;
+  if (k === 'xp') return xpIn(a) >= l.need;
+  if (k === 'boss') return trainsIn(a, b) >= l.need;
+  if (k === 'lvl') return lvl() >= l.need;
+  if (k === 'streak') return streak() >= l.need;
+  if (k === 'meals') return weekId() === weekId(a) && mealsEaten() >= l.need;
+  if (k === 'match' || k === 'nolose') { const m = SP.roles?.[l.key]?.match; return m?.week === weekId(a) && (m.res === 'W' || (k === 'nolose' && m.res === 'D')); }
+  return false;
+}
+// a pick that can no longer come true before its deadline
+function legFailed(l) {
+  if (l.id === 'd-sleep') return G.today?.day === l.day && G.today.sleepDone && G.today.sleep < 7;
+  if (l.kind === 'match' || l.kind === 'nolose') { const m = SP.roles?.[l.key]?.match; return m?.week === weekId(l.from) && !(m.res === 'W' || (l.kind === 'nolose' && m.res === 'D')); }
   return false;
 }
 
@@ -180,7 +257,7 @@ function settleBets(quiet) {
   for (const b of [...BT.open]) {
     for (const l of b.legs) {
       if (l.st) continue;
-      if (legDone(l)) { l.st = 'won'; changed = true; } else if (now > l.to) { l.st = 'lost'; changed = true; }
+      if (legDone(l)) { l.st = 'won'; changed = true; } else if (now > l.to || legFailed(l)) { l.st = 'lost'; changed = true; }
     }
     const lost = b.legs.some(l => l.st === 'lost'), won = b.legs.every(l => l.st === 'won');
     if (!lost && !won) continue;
@@ -205,7 +282,8 @@ function settleBets(quiet) {
 
 // ---------- repeating bets ----------
 // A bet can repeat when all its picks share one period type (day, week or month).
-const repeatPer = legs => legs.length && legs.every(l => l.per && l.per === legs[0].per) ? legs[0].per : null;
+const NO_REPEAT = ['d-feat', 'lvl'];
+const repeatPer = legs => legs.length && legs.every(l => l.per && l.per === legs[0].per && !NO_REPEAT.includes(l.kind)) ? legs[0].per : null;
 // Place the same bet again for the next period (same goals and stake, odds worked out again).
 function renewBet(b, quiet) {
   if (G.coins < b.stake) { if (!quiet) toast('Not enough coins to repeat your bet. It stopped repeating.'); return; }
@@ -250,7 +328,7 @@ window.placeBet = () => {
   const live = markets(), legs = slip.map(s => live.find(m => m.id === s.id)).filter(Boolean);
   if (legs.length !== slip.length) { toast('Some picks are no longer available.'); slip = legs; betsView(); return; }
   const now = Date.now(), so = slipOdds(legs);
-  const bet = { id: 'b' + now.toString(36), t: now, stake, odds: so.total, legs: legs.map(m => ({ id: m.id, kind: m.kind, n: m.n, per: m.per, t: m.t, ico: m.ico, o: m.o, need: m.need, topic: m.topic, from: m.from, to: m.to, day: dayId(m.from) })) };
+  const bet = { id: 'b' + now.toString(36), t: now, stake, odds: so.total, legs: legs.map(m => ({ id: m.id, kind: m.kind, n: m.n, per: m.per, feat: m.feat, key: m.key, t: m.t, ico: m.ico, o: m.o, need: m.need, topic: m.topic, from: m.from, to: m.to, day: dayId(m.from) })) };
   if (slipRepeat && repeatPer(legs)) bet.repeat = repeatPer(legs);
   G.coins -= stake; BT.open.push(bet); BT.placed = (BT.placed || 0) + 1; commit();
   slip = []; slipRepeat = false; sfx('claim'); toast(legs.length > 1 ? 'Combined bet placed' : 'Bet placed');
@@ -309,9 +387,10 @@ const _betWorkout = gameWorkout;
 gameWorkout = function (h) { _betWorkout(h); settleBets(); };
 const _betWater = window.addWater;
 window.addWater = d => { _betWater(d); logWater(); settleBets(); };
+for (const fn of ['logSleep', 'toggleEat', 'playMatch', 'claimQuestBonus']) { const f0 = window[fn]; if (f0) window[fn] = (...a) => { const r = f0(...a); settleBets(); return r; }; }
 const _betQuest = window.claimQuest;
 window.claimQuest = id => { _betQuest(id); settleBets(); };
-window.addEventListener('hashchange', () => settleBets());
+window.addEventListener('hashchange', () => { logXp(); settleBets(); });
 setInterval(() => settleBets(), 60000); // catches goals that run out of time while the app stays open
 
 const _betEarn = earn;
@@ -334,7 +413,7 @@ ACH.push(
   { id: 'bet3', n: 'Combo King', d: 'Win a combined bet with 3 or more picks', i: 'dice', xp: 300, ok: () => (BT.combo3 || 0) >= 1 },
 );
 Object.assign(routes, { bets: betsView, earn, home });
-settleBets(true);
+logXp(); settleBets(true);
 
 if (typeof i18nAdd === 'function') {
   i18nAdd({
@@ -347,7 +426,7 @@ if (typeof i18nAdd === 'function') {
     'Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.': 'Apuesta a hoy, esta semana, la semana que viene, este mes o el mes que viene. La semana que viene admite apuestas hasta el domingo por la noche, y el mes que viene hasta final de este mes. La apuesta se paga en cuanto se cumplen todas sus selecciones y se pierde si a una se le acaba el tiempo.',
     'Next week': 'Semana que viene', 'This month': 'Este mes', 'Next month': 'Mes que viene', 'Ends at midnight.': 'Acaba a medianoche.', 'Nothing to bet on here right now.': 'Ahora mismo no hay nada a lo que apostar aquí.',
     'You can bet on it until Sunday night.': 'Puedes apostar hasta el domingo por la noche.', 'You can bet on it until the end of this month.': 'Puedes apostar hasta final de este mes.',
-    'Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back) and training once a week or month never pays. Stakes go from {n} to {n} coins, with up to {n} open bets. Only game coins, never real money.': 'Las cuotas salen de tus últimas cuatro semanas: lo que consigues pocas veces paga más, lo fácil paga 1.00 (solo recuperas tus monedas) y entrenar una vez a la semana o al mes nunca paga. Se apuesta de {n} a {n} monedas, con hasta {n} apuestas abiertas. Solo monedas del juego, nunca dinero real.',
+    'Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay {n} (you only get your coins back) and training once a week or month never pays. Stakes go from {n} to {n} coins, with up to {n} open bets. Only game coins, never real money.': 'Las cuotas salen de tus últimas cuatro semanas: lo que consigues pocas veces paga más, lo fácil paga {n} (solo recuperas tus monedas) y entrenar una vez a la semana o al mes nunca paga. Se apuesta de {n} a {n} monedas, con hasta {n} apuestas abiertas. Solo monedas del juego, nunca dinero real.',
     'Tick Repeat to renew a bet on its own every day, week or month. Stop it from My bets whenever you like.': 'Marca Repetir para que la apuesta se renueve sola cada día, semana o mes. Puedes pararla en Mis apuestas cuando quieras.',
     'Repeat every day': 'Repetir cada día', 'Repeat every week': 'Repetir cada semana', 'Repeat every month': 'Repetir cada mes',
     'Repeats every day': 'Se repite cada día', 'Repeats every week': 'Se repite cada semana', 'Repeats every month': 'Se repite cada mes', Stop: 'Parar',
@@ -378,8 +457,16 @@ if (typeof i18nAdd === 'function') {
   for (const [en, es] of Object.entries(SUF)) i18nAdd({
     [`Train once ${en}`]: `Entrenar una vez ${es}`, [`Train {n} times ${en}`]: `Entrenar {n} veces ${es}`, [`Clear a dungeon ${en}`]: `Superar una mazmorra ${es}`,
     [`Clear {n} dungeons ${en}`]: `Superar {n} mazmorras ${es}`, [`Train {n} minutes ${en}`]: `Entrenar {n} minutos ${es}`, [`Set a new record ${en}`]: `Batir un récord ${es}`,
-    [`Hit your water goal on {n} days ${en}`]: `Llegar a tu meta de agua {n} días ${es}`, [`Hit your water goal once ${en}`]: `Llegar a tu meta de agua un día ${es}`,
+    [`Hit your water goal on {n} days ${en}`]: `Llegar a tu meta de agua {n} días ${es}`,
+    [`Log {n} sets ${en}`]: `Hacer {n} series ${es}`, [`Earn {n} XP ${en}`]: `Ganar {n} XP ${es}`, [`Defeat the weekly boss ${en}`]: `Derrotar al jefe semanal ${es}`,
+    [`Win your Academy match ${en}`]: `Ganar tu partido de la Academia ${es}`, [`Don't lose your Academy match ${en}`]: `No perder tu partido de la Academia ${es}`,
+    [`Reach a {n}-day training streak ${en}`]: `Llegar a una racha de {n} días entrenando ${es}`, [`Reach level {n} ${en}`]: `Llegar al nivel {n} ${es}`,
+    [`Eat {n} planned meals ${en}`]: `Comer {n} comidas del plan ${es}`, [`Train on {n} different days ${en}`]: `Entrenar {n} días distintos ${es}`, [`Hit your water goal once ${en}`]: `Llegar a tu meta de agua un día ${es}`,
   });
+  i18nAdd({ 'Set a new record today': 'Batir un récord hoy', 'Set a new record tomorrow': 'Batir un récord mañana', 'Log 7 hours of sleep or more today': 'Registrar 7 horas de sueño o más hoy',
+    'Log 7 hours of sleep or more tomorrow': 'Registrar 7 horas de sueño o más mañana', 'Eat 3 planned meals today': 'Comer 3 comidas del plan hoy', 'Eat 3 planned meals tomorrow': 'Comer 3 comidas del plan mañana',
+    'Earn 300 XP today': 'Ganar 300 XP hoy', 'Earn 300 XP tomorrow': 'Ganar 300 XP mañana' });
+  i18nPat(/^Clear (.+) \(dungeon of the day\)$/, a => `Superar ${tr(a)} (mazmorra del día)`);
   i18nPat(/^Ends (.+)\.$/, a => `Acaba el ${a}.`);
   i18nPat(/^From (.+) to (.+?)\. (.+)$/, (a, b, c) => `Del ${a} al ${b}. ${tr(c)}`);
 }

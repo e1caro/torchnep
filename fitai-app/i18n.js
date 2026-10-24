@@ -17,18 +17,24 @@ const i18nPat = (re, fn) => I18N.pats.push([re, fn]);              // pattern ->
 // Translates one string. Tries: exact match, the same with numbers factored out, patterns, then each " · " part on its own.
 function tr(s, depth = 0) {
   if (LANG === 'en' || !s || depth > 4) return s;
-  const m = s.match(/^(\s*)([\s\S]*?)(\s*)$/), core = m[2];
-  if (!/[A-Za-z]{2}/.test(core)) return s;
-  const hit = trCore(core, depth);
-  return hit === core ? s : m[1] + hit + m[3];
+  if (!/[A-Za-z]{2}/.test(s)) return s;
+  // try the text as it is, then without a " · " left at either end (it belongs to the next piece of text)
+  for (const re of [/^(\s*)([\s\S]*?)(\s*)$/, /^([\s·]*)([\s\S]*?)([\s·]*)$/]) {
+    const m = s.match(re), core = m[2], hit = trCore(core, depth);
+    if (hit !== core) return m[1] + singular(hit) + m[3];
+  }
+  return s;
 }
+// "1 ejercicios" -> "1 ejercicio"
+const SING = { ejercicios: 'ejercicio', series: 'serie', veces: 'vez', días: 'día', minutos: 'minuto', monedas: 'moneda', selecciones: 'selección', apuestas: 'apuesta', horas: 'hora', semanas: 'semana', vasos: 'vaso', recetas: 'receta', comidas: 'comida', insignias: 'insignia', mazmorras: 'mazmorra', entrenamientos: 'entrenamiento', récords: 'récord', cofres: 'cofre', tiradas: 'tirada' };
+const singular = t => t.replace(/(^|[^\d.,])1 (\p{L}+)/gu, (x, a, w) => SING[w] ? `${a}1 ${SING[w]}` : x);
 function trCore(c, depth) {
   const W = I18N.words;
   if (W[c] !== undefined) return W[c];
   const nums = [], key = c.replace(/[+−-]?\d+(?:[.,]\d+)?/g, x => (nums.push(x), '{n}'));
   if (nums.length && W[key] !== undefined) { let i = 0; return W[key].replace(/\{n\}/g, () => nums[i++] ?? ''); }
   for (const [re, fn] of I18N.pats) { const mm = c.match(re); if (mm) return fn(...mm.slice(1)); }
-  const pm = c.match(/^([^\p{L}\p{N}"']+)(\p{L}[\s\S]*)$/u);   // leading emoji or symbol: translate the text after it
+  const pm = c.match(/^([^\p{L}\p{N}"']+)([\p{L}\p{N}][\s\S]*)$/u);   // leading emoji or symbol: translate the text after it
   if (pm) { const rest = trCore(pm[2], depth + 1); if (rest !== pm[2]) return pm[1] + rest; }
   for (const sep of [' · ', ' + ', ', ', ' and ', ': ']) {
     if (c.includes(sep)) { const parts = c.split(sep), out = parts.map(p => tr(p, depth + 1)); if (out.some((p, i) => p !== parts[i])) return out.join(sep === ' and ' ? ' y ' : sep); }
