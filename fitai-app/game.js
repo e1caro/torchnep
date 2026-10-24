@@ -432,7 +432,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 39</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 40</div>`;
 }
 
 function initGame() {
@@ -440,7 +440,8 @@ function initGame() {
     G.xp = S.history.reduce((a, h) => a + 100 + h.ex.reduce((b, x) => b + x.sets.length * 10, 0), 0);
   }
   migrateGame();
-  if (!G.hudLook) { G.hudLook = 1; if (G.theme === 'ember') G.theme = 'hud'; G.panel = G.panel || 'chamfer'; } // the HUD redesign: move the old default look to the new one once
+  // the HUD redesign: everyone starts once on the Cyber HUD look (bought themes stay owned and can be equipped again)
+  if (!G.hudLook2) { G.hudLook2 = 1; G.theme = 'hud'; G.skin = 'hud'; G.panel = 'chamfer'; }
   ensureDay(); applyTheme(); commit();
 }
 // Version 3 split rewards: levels give workouts, meals and perks; coins buy looks. Keep everything players already had.
