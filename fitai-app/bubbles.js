@@ -11,7 +11,7 @@ const BUB_DEF = {
   fuel: ['flame', 'Fuel', 'Fuel'], dungeon: ['gate', 'Dungeon', 'Dungeon of the day'], academy: ['trophy', 'Academy', 'Sports Academy'],
   earn: ['bolt', 'Earn', 'More ways to earn'], bets: ['ticket', 'Bets', 'Your bets'],
 };
-const BUB_ORDER = ['checkin', 'chest', 'meals', 'fuel', 'dungeon', 'academy', 'earn', 'bets'];
+const BUB_ORDER = ['quests', 'boss', 'checkin', 'chest', 'meals', 'fuel', 'dungeon', 'academy', 'earn', 'bets']; // clockwise from the top
 let BUB_INFO = {};
 
 function bubble(id, i, big) {
@@ -61,12 +61,36 @@ function bubbleHome() {
   const rest = BUB_ORDER.filter(id => groups[id]);
   const orbs = document.createElement('div');
   orbs.className = 'orbs';
-  orbs.innerHTML = `<div class="orbtop">${groups.quests ? bubble('quests', 1) : '<i></i>'}${groups.train ? bubble('train', 0, true) : ''}${groups.boss ? bubble('boss', 2) : '<i></i>'}</div>
-    <div class="orbgrid">${rest.map((id, i) => bubble(id, i + 3)).join('')}</div>`;
+  orbs.innerHTML = `<svg class="orbit" aria-hidden="true"><ellipse/><ellipse/></svg>${groups.train ? bubble('train', 0, true) : ''}${rest.map((id, i) => bubble(id, i + 1)).join('')}`;
   (view.querySelector(':scope > .sp-row') || hudEl).after(orbs);
   view.append(store);
+  layoutOrbs();
   if (BUB.open && groups[BUB.open]) openBub(BUB.open, true); else BUB.open = null;
 }
+
+// Training sits in the middle of the free screen space and the other circles orbit it on an ellipse.
+function layoutOrbs() {
+  const orbs = view.querySelector('.orbs');
+  if (!orbs) return;
+  const navH = document.querySelector('nav#tabs')?.offsetHeight || 80, top = orbs.getBoundingClientRect().top + scrollY;
+  const W = orbs.clientWidth, H = Math.max(470, innerHeight - top - navH - 6);
+  const big = orbs.querySelector('.bub.big'), sats = [...orbs.querySelectorAll('.bub:not(.big)')], n = sats.length, LBL = 24;
+  orbs.style.height = `${H}px`;
+  const E = 1.12; // ring ornaments reach a bit past each circle; neighbours' ornaments may touch, circles may not
+  let d = 90, rx, ry, per = 0, pts = [];
+  for (let k = 0; k < 3; k++) { // circle size and orbit depend on each other: settle them in a few passes
+    rx = W / 2 - d * E / 2 - 2; ry = H / 2 - d * E / 2 - LBL / 2 - 2;
+    pts = []; per = 0; // walk the ellipse so the circles sit at equal distances along it, not at equal angles
+    for (let j = 0, px = 0, py = -ry; j <= 720; j++) { const t = -Math.PI / 2 + j * Math.PI / 360, x = rx * Math.cos(t), y = ry * Math.sin(t); per += Math.hypot(x - px, y - py); pts.push([per, x, y]); px = x; py = y; }
+    d = Math.round(Math.max(60, Math.min(104, W * .23, (per / Math.max(n, 1) - LBL * .5) / E)));
+  }
+  const cx = W / 2, cy = H / 2 - LBL / 2;
+  const put = (el, x, y, size) => { el.style.setProperty('--d', `${size}px`); el.style.left = `${x}px`; el.style.top = `${y - size / 2}px`; };
+  if (big) put(big, cx, cy, Math.round(Math.max(110, Math.min(220, 2 * (rx - d * E / 2 - 6) / E, 2 * (ry - d * E / 2 - 40) / E))));
+  sats.forEach((el, i) => { const L = i * per / n, [, x, y] = pts.find(q => q[0] >= L) || pts[0]; put(el, cx + x, cy + y, d); });
+  orbs.querySelectorAll('.orbit ellipse').forEach((e, i) => { e.setAttribute('cx', cx); e.setAttribute('cy', cy); e.setAttribute('rx', rx + i * 8); e.setAttribute('ry', ry + i * 8); });
+}
+addEventListener('resize', () => { if (view.querySelector('.orbs')) layoutOrbs(); });
 
 // grow the bubble into a panel: a circle that expands from where the bubble sits
 const bubCenter = (bx, id) => {
