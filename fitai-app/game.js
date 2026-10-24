@@ -328,18 +328,50 @@ window.equip = id => {
 window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(); };
 const CHEST = { wood: ['Wooden chest', 'crate', [80, 95, 100, 100], [20, 60], [50, 120]], silver: ['Silver chest', 'chest-silver', [50, 70, 100, 100], [60, 150], [100, 250]], gold: ['Golden chest', 'chest-gold', [30, 50, 90, 100], [150, 400], [300, 600]] };
 const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
+// Any shop item can come out of a chest, interfaces included. The pricier the item, the rarer it is, and how much rarer
+// depends on the chest: wooden chests mostly give cheap looks, golden ones give expensive ones a fair chance.
+const CHEST_STEEP = { wood: 2.2, silver: 1.5, gold: .9 };
+const chestWeight = (i, tier) => Math.pow(1 + i.cost / 200, -CHEST_STEEP[tier]);
+const chestPool = () => ITEMS.filter(i => i.shop && i.cost > 0 && !has(i));
+function pickChestItem(tier) {
+  const pool = chestPool(), w = pool.map(i => chestWeight(i, tier)), tot = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * tot;
+  for (let k = 0; k < pool.length; k++) { r -= w[k]; if (r <= 0) return pool[k]; }
+  return pool[pool.length - 1];
+}
+// the odds of a chest, for "What can come out?": coins, XP, any item, and items by type
+function chestOdds(tier) {
+  const cut = CHEST[tier][2], pool = chestPool(), w = pool.map(i => chestWeight(i, tier)), tot = w.reduce((a, b) => a + b, 0) || 1, item = pool.length ? (100 - cut[1]) : 0;
+  const byType = {}; pool.forEach((i, k) => { byType[i.type] = (byType[i.type] || 0) + w[k] / tot * item; });
+  return { coins: pool.length ? cut[0] : 100 - (cut[1] - cut[0]), xp: cut[1] - cut[0], item, byType, best: pool.reduce((b, i, k) => (!b || i.cost > b.i.cost ? { i, p: w[k] / tot * item } : b), null) };
+}
+// "What can come out?": the real odds of each chest, worked out from what you don't own yet
+const pct = x => x >= 10 ? Math.round(x) + '%' : x >= 1 ? x.toFixed(1) + '%' : x >= .01 ? x.toFixed(2) + '%' : '<0.01%';
+window.chestOddsView = () => {
+  const kinds = ['skin', 'theme', 'frame', 'banner', 'avatar', 'panel'];
+  modal(`<h2>What can come out?</h2><div class="mut">Any look from the shop can drop, interfaces included. The pricier it is, the rarer, and better chests give better odds. You never get something you already own.</div>
+  ${['wood', 'silver', 'gold'].map(t => { const o = chestOdds(t), [name, ico, , cr, xr] = CHEST[t];
+    return `<div class="card oddc"><div class="row"><span class="oddi">${gi(ico)}</span><b class="grow">${name}</b></div>
+    <div class="oddr"><span>${gi('coin', 'cn')} ${cr[0]}–${cr[1]} coins</span><b>${pct(o.coins)}</b></div>
+    <div class="oddr"><span>${gi('sparkles')} ${xr[0]}–${xr[1]} XP</span><b>${pct(o.xp)}</b></div>
+    <div class="oddr"><span>${gi('crown')} A shop item</span><b>${pct(o.item)}</b></div>
+    ${kinds.filter(k => o.byType[k]).map(k => `<div class="oddr sub"><span>${KIND[k]}</span><b>${pct(o.byType[k])}</b></div>`).join('')}
+    ${o.best ? `<div class="mut"><span>Rarest:</span> <b translate="no">${esc(o.best.i.name)}</b> · <span>${o.best.i.cost} coins</span> · ${pct(o.best.p)}</div>` : ''}</div>`; }).join('')}
+  <button class="btn" data-close>Got it</button>`);
+};
 window.openChest = () => {
   if (!G.chests.length) return;
   const tier = G.chests.shift(), [name, ico, cut, cr, xr] = CHEST[tier], roll = Math.random() * 100;
-  const cos = ITEMS.filter(i => i.shop && !has(i) && i.type !== 'skin'), dg = []; // chests drop looks only; workouts and meals come from levels
+  const cos = chestPool(), dg = []; // chests drop looks (interfaces too); workouts and meals come from levels
   let html;
   if (roll < cut[0] || (roll >= cut[1] && roll < cut[2] && !cos.length) || (roll >= cut[2] && !dg.length && !cos.length)) {
     const c = rand(cr); G.coins += c; html = `<div class="avbig">${gi('coin', 'cn')}</div><h2>${c} coins</h2>`;
   } else if (roll < cut[1]) {
     const x = rand(xr); award(x); html = `<div class="avbig">${gi('sparkles', 'hero')}</div><h2>${x} XP</h2>`;
   } else {
-    const pool = roll < cut[2] || !dg.length ? cos : dg, i = pool[Math.floor(Math.random() * pool.length)];
-    G.owned.push(i.id); html = `<div class="avbig">${ICO(i)}</div><div class="lvup">New ${KIND[i.type].toLowerCase()}</div><h2>${esc(i.name)}</h2>`;
+    const i = pickChestItem(tier);
+    G.owned.push(i.id); html = `<div class="avbig">${i.type === 'skin' ? `<i class="emo">${i.emo}</i>` : ICO(i)}</div><div class="lvup">${i.cost >= 1000 ? 'Jackpot! ' : ''}New ${KIND[i.type].toLowerCase()}</div><h2>${esc(i.name)}</h2><div class="mut">Worth ${i.cost} coins</div>`;
+    if (i.cost >= 1000) setTimeout(() => confetti(), 1500);
   }
   G.chestsOpened++; commit();
   modal(`<div class="chest">${gi(ico)}</div><div class="mut">${name}</div><div class="reveal">${html}<button class="btn" data-close>Nice</button></div>`, () => { checkAch(); flushLevelUp(route); });
@@ -395,6 +427,7 @@ function home() {
   ${done >= G.quests.list.length ? '<button class="btn sm" onclick="claimQuestBonus()">Open</button>' : ''}</div>`}
   ${G.checkin === dayId() ? '' : (c => `<button class="btn gold" onclick="checkIn()">Daily check-in · day ${c.st} · +${c.xp} XP · ${gi('coin', 'cn')} ${c.coins}${c.chest ? ' · chest' : ''}</button>`)(ciInfo())}
   ${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${gi(CHEST[G.chests[0]][1])} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : ''}
+  <button class="btn ghost sm chestodds" onclick="chestOddsView()">What can come out?</button>
   <h2 class="sec">Weekly boss</h2>
   <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${gi(be, 'hero')}</div><div class="grow"><h3>${bn}</h3>
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
@@ -443,7 +476,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 81</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 82</div>`;
 }
 
 function initGame() {

@@ -5,6 +5,8 @@ Each skin is a whole look (palette, fonts, background, panel frames, buttons, ba
 and ambient animation). Ornaments are small hand-written SVGs embedded as data URIs, so the app
 ships no image files for them. Run:  python3 tools/build_skins.py
 """
+import math
+import re
 from pathlib import Path
 from urllib.parse import quote
 
@@ -108,7 +110,7 @@ trees = svg(''.join(f"<path d='M{x} {120-h}l{w} {h*0.45}h-{w*0.55}l{w*0.9} {h*0.
                     for x, h, w in [(20, 70, 16), (60, 100, 22), (105, 60, 14), (140, 92, 20), (185, 75, 17), (225, 110, 24), (270, 66, 15)])
             + "<rect y='118' width='300' height='4' fill='#0a2414'/>", '0 0 300 122')
 fireflies = svg("<g fill='#ffd86a'><circle cx='20' cy='30' r='1.6'/><circle cx='120' cy='80' r='1.3'/><circle cx='70' cy='150' r='1.8'/><circle cx='160' cy='190' r='1.2'/><circle cx='40' cy='210' r='1.5'/></g>", '0 0 180 230')
-fairy_orn = svg(f"<path d='M2 12C60 2 180 22 238 10' stroke='#6cbf55' stroke-width='2' fill='none'/>"
+fairy_orn = svg("<path d='M2 12C60 2 180 22 238 10' stroke='#6cbf55' stroke-width='2' fill='none'/>"
                 + ''.join(f"<path d='M{x} {y}c-6-1-9 2-9 6 5 0 8-2 9-6z' fill='{LEAF}'/>" for x, y in [(40, 7), (90, 11), (150, 13), (200, 10)])
                 + "<circle cx='120' cy='12' r='4' fill='#ffd1e8'/><circle cx='120' cy='12' r='1.6' fill='#ffd86a'/>", '0 0 240 24')
 skin('Fairy Tale Forest', f"""
@@ -588,7 +590,6 @@ body.focus #trybar{bottom:calc(16px + env(safe-area-inset-bottom))}
 # ---------------------------------------------------------------- themes recolour interfaces
 # With any theme except the default Cyber HUD, an interface's accents (frames, ornaments, buttons, tabs, bars, markers)
 # take the theme's two colours; its scenery keeps its own. Theme colours are read from game.js so they stay in sync.
-import re
 THEMES = re.findall(r"\['(\w+)', '[^']+', \d+, '(#[0-9a-fA-F]{6})', '(#[0-9a-fA-F]{6})'\]", (HERE.parent / 'game.js').read_text())
 T = 'html[data-tint][data-skin]'
 TINT = "\n/* ==========================================================================\n   Themes recolour the interfaces (html[data-tint])\n   ========================================================================== */\n"
@@ -617,7 +618,6 @@ html[data-tint][data-skin=chinese] body::after,html[data-tint][data-skin=japanes
 # ---------------------------------------------------------------- Today bubbles
 # Today is a menu of circles (bubbles.js). Every interface dresses its circles with its own ring ornament (--bring),
 # drawn in a 120x120 box around an orb of radius ~47.
-import math
 
 
 def pol(r, a):
