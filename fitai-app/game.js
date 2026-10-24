@@ -119,6 +119,7 @@ function sfx(kind) {
     if (navigator.vibrate) navigator.vibrate(kind === 'level' ? [60, 40, 120] : 25);
     if (!G.sound) return;
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    if (AC.state === 'suspended') AC.resume();
     const seq = { tick: [[660, .06]], claim: [[523, .08], [784, .14]], level: [[523, .1], [659, .1], [784, .1], [1047, .3]] }[kind];
     let t = AC.currentTime;
     seq.forEach(([f, d]) => {
@@ -412,7 +413,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 21</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 22</div>`;
 }
 
 function initGame() {
