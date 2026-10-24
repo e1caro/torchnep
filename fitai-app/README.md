@@ -47,9 +47,21 @@ Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open 
 
 Local test: `python3 -m http.server -d fitai-app 8000`.
 
+## Swipe between sections
+
+Swipe left or right to move between the tab bar's sections (Today, Plan, Dungeons, Rewards, Stats, Hero); the page follows the finger and the next section slides in (`swipe.js`). Swipes inside sideways scrollers or text fields, with a Today panel, the weekly summary or a dialog open, during a workout, or from the screen edges are left alone.
+
 ## Today as circles
 
 Today is six circles that fill the screen: Train in the middle (next workout and the dungeon of the day), with Quests (daily quests and the weekly boss), Loot (daily check-in and chests), Meals (meals and fuel), Earn (the bets and the ways to earn themselves, right inside the circle) and the Academy around it. Each circle shows a value and a progress ring, and a "!" when something is ready to claim. Tapping one grows it into a panel with what is inside; ✕, the back button or Esc shrink it back. Every interface draws its own animated rings (turning gears, swaying vines and laurels, a rocking rope, flickering torchlight, neon, pixels...), a soft light runs over panel frames, and every avatar ring moves, built by `tools/build_skins.py` (code in `bubbles.js`).
+
+## Meals that fuel the training
+
+Daily calories come from your body (Mifflin-St Jeor BMR × 1.3 for daily life) plus what your workouts really burn, spread over the week: each session's minutes of warm-up, strength, cardio (by type) and stretching times their MET values. The meal plan always lands within about ±3% of that target: when one serving per meal falls short, training snacks are added (protein-rich ones when protein is short, up to 3, or 4 with three meals), and only then do servings grow, up to ×1.35; when even the smallest servings are too much, a snack is left out. Changing the training plan, your goal or your weight refits today and the days ahead.
+
+## Change ingredients
+
+In any recipe of the meal plan, each ingredient's ⋯ button offers up to four replacements (same aisle, allowed by your diet, closest in protein, carbs and fat balance and in calories per gram) or leaving it out, for that meal or ticked for all your meals. A replacement keeps the calories of what it replaces; calories, macros, the day's totals and the shopping list all follow the changes, and ↺ undoes one.
 
 ## Off-plan food judge
 

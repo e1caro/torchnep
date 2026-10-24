@@ -5,6 +5,13 @@
 const M = Object.assign({ set: null, plan: null, shop: [] }, load('meal', {}));
 const mealSave = () => save('meal', M);
 const RBY = Object.fromEntries(RECIPES.map(r => [r.id, r]));
+// Ingredients you changed: in one meal (it.sw) or in all your meals (M.swap). A key maps to another ingredient, or to
+// null to leave it out. A replacement keeps the calories of what it replaces (between half and double the grams).
+M.swap = M.swap || {};
+const swapGrams = (k, to, g) => Math.max(5, Math.round(clamp(g * ING[k][1] / Math.max(10, ING[to][1]), g * .5, g * 2) / 5) * 5);
+const swapOf = (it, k) => (it.sw && k in it.sw ? it.sw[k] : k in M.swap ? M.swap[k] : k);
+const itIng = it => RBY[it.rid].ing.flatMap(([k, g]) => { const to = swapOf(it, k); return to === null ? [] : to === k ? [[k, g]] : [[to, swapGrams(k, to, g)]]; });
+const nutIt = it => nutOf({ ing: itIng(it) });
 const DAYN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const todayIdx = () => (new Date().getDay() + 6) % 7;
 const STYLE_DESC = { none: 'Meals are chosen for your calories, macros and cooking time.', ai: 'Built around fatty fish, leafy greens, vegetables, berries, nuts, beans and olive oil. Leaves out red meat, refined pasta and added sugar. General guidance, not medical advice.' };
@@ -137,15 +144,43 @@ function refine(days, only) {
 
 // Scales the portions so the day lands on the calorie target.
 function finalizeDay(d) {
-  const a = target(), total = d.items.reduce((s, it) => s + nutFast(RBY[it.rid]).kcal * it.k, 0), f = a.kcal / total;
+  const a = target(), total = d.items.reduce((s, it) => s + nutIt(it).kcal * it.k, 0), f = a.kcal / total;
   if (Math.abs(f - 1) > .02) d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, PMAX) * 20) / 20; });
   delete d.fit; return d;
+}
+
+// Makes sure a day's meals cover the energy and protein the training needs: when one serving per meal falls short,
+// training snacks are added (protein-rich ones when protein is short), and only then do servings grow, up to ×1.35.
+const PFUEL = 1.35;
+const dayK = d => d.items.reduce((s, it) => s + nutIt(it).kcal * it.k, 0), dayP = d => d.items.reduce((s, it) => s + nutIt(it).p * it.k, 0);
+function fuelDay(d) {
+  const a = target();
+  d.items = d.items.filter(it => !it.fuel || it.eaten); // training snacks are planned again
+  finalizeDay(d);
+  const used = new Set(d.items.map(x => x.rid));
+  for (let n = 0; n < (M.set.meals <= 3 ? 4 : 3) && dayK(d) < a.kcal * .95; n++) {
+    const miss = a.kcal - dayK(d), protShort = dayP(d) < a.protein * .9, { pool } = candidates('s', 99, used);
+    if (!pool.length) break;
+    const score = r => { const nu = nutFast(r); return fitScore(r, Math.min(miss, nu.kcal * PMAX), a) + (protShort ? nu.p * 4 / nu.kcal * 6 : 0) - (used.has(r.id) ? 3 : 0); };
+    const r = pool.reduce((x, y) => score(y) > score(x) ? y : x), k = portion(r, Math.min(miss, nutFast(r).kcal * PMAX));
+    d.items.push({ slot: 'Training snack', kind: 's', share: nutFast(r).kcal * k / a.kcal, rid: r.id, k, eaten: false, fuel: true });
+    used.add(r.id);
+  }
+  // too much even at the smallest servings (small targets with many meals): leave out a snack, biggest first
+  for (let guard = 0; guard < 2 && dayK(d) > a.kcal * 1.05; guard++) {
+    const sn = d.items.map((it, i) => [it, i]).filter(([it]) => it.kind === 's' && !it.eaten).sort((x, y) => nutIt(y[0]).kcal * y[0].k - nutIt(x[0]).kcal * x[0].k)[0];
+    if (!sn || d.items.length <= 3) break;
+    d.items.splice(sn[1], 1); finalizeDay(d);
+  }
+  const tot = dayK(d);
+  if (tot < a.kcal * .97) { const f = a.kcal / tot; d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, PFUEL) * 20) / 20; }); }
+  return d;
 }
 
 function buildDay(di, cook, old) {
   const ctx = weekCtx(M.plan.days, di), day = pickDay(cook, ctx, old, .5);
   refine(M.plan.days.map((x, i) => i === di ? day : x), day); // only this day's meals may change; the rest of the week is the reference
-  return finalizeDay(day);
+  return fuelDay(day);
 }
 
 // Tries many weeks and keeps the one with the best nutrition fit and the shortest shopping list.
@@ -179,7 +214,7 @@ function buildWeek() {
   }
   // polish the best few random weeks by swapping single meals, then keep the best result
   const best = trials.sort((x, y) => y.j - x.j).slice(0, 4).map(t => refine(t.days)).reduce((x, y) => weekScore(y) > weekScore(x) ? y : x);
-  M.plan = { week: weekId(), v: 3, days: addChefPicks(best).map(finalizeDay) };
+  M.plan = { week: weekId(), v: 3, days: addChefPicks(best).map(fuelDay), kcal: target().kcal, prot: target().protein };
   M.shop = []; mealSave();
 }
 const weekIngredients = () => new Set(M.plan.days.flatMap(d => d.items.flatMap(it => RBY[it.rid].ing.map(g => g[0])))).size;
@@ -190,6 +225,12 @@ function ensureMeals() {
     M.plan.days.forEach(d => { d.items.forEach(it => { it.k = Math.round(clamp(it.k, PMIN, PMAX) * 20) / 20; }); finalizeDay(d); }); M.plan.v = 3; mealSave();
   }
   if (!M.plan || M.plan.week !== weekId() || M.plan.v !== 3) buildWeek(); // v3: one serving per person
+  // the training plan or your weight changed what you need: fit today and the days ahead again
+  const a = target();
+  if (M.plan.kcal !== a.kcal || M.plan.prot !== a.protein) {
+    M.plan.days.forEach((d, i) => { if (i >= todayIdx()) fuelDay(d); });
+    M.plan.kcal = a.kcal; M.plan.prot = a.protein; mealSave();
+  }
   return true;
 }
 // Warn when diet and allergy filters leave very few recipes.
@@ -205,7 +246,7 @@ function filterNotes(set) {
   if (set.meals > 3 && !nAny('s')) out.push('No snack matches your filters, so snacks are skipped.');
   return out;
 }
-const dayTotals = d => d.items.reduce((a, it) => { const n = nutOf(RBY[it.rid]); a.kcal += n.kcal * it.k; a.p += n.p * it.k; a.c += n.c * it.k; a.f += n.f * it.k; if (it.eaten) a.eat += n.kcal * it.k; return a; }, { kcal: 0, p: 0, c: 0, f: 0, eat: 0 });
+const dayTotals = d => d.items.reduce((a, it) => { const n = nutIt(it); a.kcal += n.kcal * it.k; a.p += n.p * it.k; a.c += n.c * it.k; a.f += n.f * it.k; if (it.eaten) a.eat += n.kcal * it.k; return a; }, { kcal: 0, p: 0, c: 0, f: 0, eat: 0 });
 
 // ---------- amounts ----------
 function fmtAmt(k, g, up = false) {
@@ -270,7 +311,7 @@ function mealsView(arg) {
   <div class="lbl">Time to cook this day</div>
   ${d.items.some(it => it.kind !== 's' && RBY[it.rid].time > d.cook) ? '<p class="mut">⚠️ Your diet and cuisine choices leave no faster option for some meals, so they take a little longer than this.</p>' : ''}
   <div class="chips">${Object.entries(COOK).map(([v, l]) => `<button class="chip ${+v === d.cook ? 'on' : ''}" onclick="setCook(${mDay},${v})">${l}</button>`).join('')}</div>
-  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.cu ? ' · ' + CUISINE_ICO[r.cu[0]] + ' ' + CUISINES[r.cu[0]] : ''}${r.chef ? ' · ⭐ Chef' : ''}${r.ai ? ' · ' + gi('leaf') : ''}${timesInWeek(it.rid) > 1 ? ` · ×${timesInWeek(it.rid)} this week` : ''}</div><div class="qt">${esc(r.name)}</div>
+  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutIt(it); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.cu ? ' · ' + CUISINE_ICO[r.cu[0]] + ' ' + CUISINES[r.cu[0]] : ''}${r.chef ? ' · ⭐ Chef' : ''}${r.ai ? ' · ' + gi('leaf') : ''}${timesInWeek(it.rid) > 1 ? ` · ×${timesInWeek(it.rid)} this week` : ''}</div><div class="qt">${esc(r.name)}</div>
   <div class="mut">${Math.round(n.kcal * it.k)} kcal · P ${Math.round(n.p * it.k)} · C ${Math.round(n.c * it.k)} · F ${Math.round(n.f * it.k)}</div></div><span class="chk">${it.eaten ? '✓' : ''}</span></a>`; }).join('')}
   ${filterNotes(M.set).map(n => `<p class="mut">⚠️ ${esc(n)}</p>`).join('')}
   <button class="btn" onclick="location.hash='#/shop'">${gi('pack')} Shopping list</button>
@@ -294,7 +335,7 @@ window.setPortion = (di, ii, k) => {
 function recipeView() {
   const [, , di, ii] = location.hash.split('/'), d = M.plan?.days[+di], it = d?.items[+ii];
   if (!it) { location.hash = '#/meals'; return; }
-  const r = RBY[it.rid], n = nutOf(r);
+  const r = RBY[it.rid], n = nutIt(it);
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
   <div class="rhero">${r.ico}</div><div class="mut">${DAYN[+di]} · ${it.slot}</div><h1>${esc(r.name)}</h1>
   <div class="grid4"><div class="stat"><b>${Math.round(n.kcal * it.k)}</b><span>kcal</span></div><div class="stat"><b>${Math.round(n.p * it.k)}g</b><span>protein</span></div>
@@ -304,12 +345,51 @@ function recipeView() {
   <section class="card hunger"><div class="row between"><h3>How hungry are you?</h3><span class="mut">×${it.k.toFixed(2)}</span></div>
     <div class="chips">${HUNGER.map(([l, k]) => `<button class="chip ${Math.abs(it.k - k) < .03 ? 'on' : ''}" onclick="setPortion(${di},${ii},${k})">${l}</button>`).join('')}</div>
     <div class="row"><button class="btn sm ghost" aria-label="Less food" onclick="setPortion(${di},${ii},${it.k - .1})">− Less</button><span class="grow"></span><button class="btn sm ghost" aria-label="More food" onclick="setPortion(${di},${ii},${it.k + .1})">+ More</button></div></section>
-  <h2 class="sec">Ingredients</h2><div class="card">${r.ing.map(([k, g]) => `<div class="row between ing"><span>${ING[k][0]}</span><b>${fmtAmt(k, g * it.k)}</b></div>`).join('')}
+  <h2 class="sec">Ingredients</h2><div class="card">${r.ing.map(([k, g]) => ingRow(+di, +ii, it, k, g)).join('')}
   <div class="mut">Plus salt, pepper, herbs and spices to taste.</div></div>
   <h2 class="sec">Steps</h2><ol class="how">${r.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
   <button class="btn ${it.eaten ? 'ghost' : 'gold'}" onclick="toggleEat(${di},${ii})">${it.eaten ? 'Undo: not eaten' : 'I ate this · +15 XP'}</button>
   <button class="btn ghost" onclick="swapMeal(${di},${ii})">${ic('swap', 18)} Swap for another recipe</button>`;
 }
+// ---------- leave out or replace an ingredient ----------
+let ING_OPEN = '', ING_ALL = false;
+// replacements: same aisle, allowed by your diet, closest in protein / carbs / fat balance and in calories per gram
+function subsFor(k) {
+  const set = M.set || { diet: 'any', avoid: [] }, ban = DIET_BAN[set.diet] + set.avoid.map(a => AVOID[a][1]).join('');
+  const prof = x => { const i = ING[x], e = Math.max(1, i[2] * 4 + i[3] * 4 + i[4] * 9); return [i[2] * 4 / e, i[3] * 4 / e, i[4] * 9 / e, Math.log(Math.max(5, i[1]))]; };
+  const a = prof(k);
+  return Object.keys(ING).filter(x => x !== k && ING[x][6] === ING[k][6] && ![...ING[x][5]].some(f => ban.includes(f)) && M.swap[x] !== null)
+    .map(x => { const b = prof(x); return [x, Math.abs(a[0] - b[0]) * 2 + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]) + Math.abs(a[3] - b[3]) * .4]; })
+    .sort((x, y) => x[1] - y[1]).slice(0, 4).map(([x]) => x);
+}
+function ingRow(di, ii, it, k, g) {
+  const to = swapOf(it, k), id = `${di}:${ii}:${k}`, open = ING_OPEN === id, everywhere = !(it.sw && k in it.sw) && k in M.swap;
+  const shown = to === null ? '' : to === k ? `<span>${ING[k][0]}</span><b>${fmtAmt(k, g * it.k)}</b>`
+    : `<span>${ING[to][0]}</span><b>${fmtAmt(to, swapGrams(k, to, g) * it.k)}</b>`;
+  return `<div class="ingwrap ${to === null ? 'gone' : to !== k ? 'swapped' : ''}"><div class="row between ing">
+    ${to === null ? `<span class="ingout">${ING[k][0]}</span><i class="mut">Left out</i>` : shown}
+    ${to !== k ? `<button class="icon" aria-label="Undo" onclick="ingUndo(${di},${ii},'${k}')">↺</button>` : `<button class="icon ingbtn" aria-label="Change" onclick="ingMenu('${id}')">⋯</button>`}</div>
+    ${to !== k && to !== null ? `<div class="mut ingnote">Instead of <span>${ING[k][0]}</span>${everywhere ? ' · <span>in all your meals</span>' : ''}</div>` : ''}
+    ${to === null && everywhere ? '<div class="mut ingnote">In all your meals</div>' : ''}
+    ${open ? `<div class="ingmenu"><div class="lbl">Replace with</div>
+      <div class="chips">${subsFor(k).map(x => `<button class="chip" onclick="ingSet(${di},${ii},'${k}','${x}')">${ING[x][0]}</button>`).join('') || '<span class="mut">No similar ingredient for your diet</span>'}</div>
+      <button class="btn sm ghost" onclick="ingSet(${di},${ii},'${k}','')">✕ Leave it out</button>
+      <label class="row ingall"><input type="checkbox" ${ING_ALL ? 'checked' : ''} onchange="ING_ALL=this.checked"><span>In all my meals, not just this one</span></label></div>` : ''}</div>`;
+}
+window.ingMenu = id => { ING_OPEN = ING_OPEN === id ? '' : id; ING_ALL = false; recipeView(); };
+window.ingSet = (di, ii, k, to) => {
+  const it = M.plan.days[di].items[ii], v = to || null;
+  if (ING_ALL) { M.swap[k] = v; M.plan.days.forEach(d => d.items.forEach(x => { if (x.sw) delete x.sw[k]; })); }
+  else it.sw = { ...(it.sw || {}), [k]: v };
+  ING_OPEN = ''; mealSave(); sfx('tick');
+  toast(v ? `${tr(ING[k][0])} → ${tr(ING[v][0])}` : tr('Ingredient left out'));
+  recipeView();
+};
+window.ingUndo = (di, ii, k) => {
+  const it = M.plan.days[di].items[ii];
+  if (it.sw && k in it.sw) delete it.sw[k]; else delete M.swap[k];
+  mealSave(); recipeView();
+};
 window.toggleEat = (di, ii) => {
   const it = M.plan.days[di].items[ii]; it.eaten = !it.eaten;
   if (it.eaten && !it.xp && +di === todayIdx()) {
@@ -330,7 +410,7 @@ window.swapMeal = (di, ii) => {
 function groceryView() {
   if (!ensureMeals()) { location.hash = '#/meals'; return; }
   const tot = {};
-  M.plan.days.forEach(d => d.items.forEach(it => RBY[it.rid].ing.forEach(([k, g]) => { tot[k] = (tot[k] || 0) + g * it.k; })));
+  M.plan.days.forEach(d => d.items.forEach(it => itIng(it).forEach(([k, g]) => { tot[k] = (tot[k] || 0) + g * it.k; })));
   const aisles = {};
   Object.entries(tot).forEach(([k, g]) => (aisles[ING[k][6]] = aisles[ING[k][6]] || []).push([k, g]));
   const key = k => M.plan.week + ':' + k;
@@ -345,6 +425,7 @@ function groceryView() {
 }
 
 function mealsCard() {
+  if (M.set) ensureMeals();
   if (!M.set || !M.plan || M.plan.week !== weekId()) return `<section class="card tap row" onclick="location.hash='#/meals'"><div class="dgi">${gi('cutlery')}</div><div class="grow"><h3>Meal plan</h3><div class="mut">Set your diet and cooking time to get a week of recipes that hit your calories.</div></div></section>`;
   const d = M.plan.days[todayIdx()], t = dayTotals(d), nxt = d.items.findIndex(x => !x.eaten), a = target();
   return `<section class="card tap" onclick="location.hash='#/${nxt < 0 ? 'meals' : 'recipe/' + todayIdx() + '/' + nxt}'"><div class="row between"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>

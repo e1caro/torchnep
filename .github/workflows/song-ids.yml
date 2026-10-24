@@ -1,0 +1,40 @@
+name: song-ids
+
+# Looks up the Spotify id of every FitQuest "song of the day" (fitai-app/data/songs.txt) and commits
+# fitai-app/data/song_ids.json, so the app can open each song straight in Spotify.
+# Runs when the song list or the resolver changes, or by hand. Already known songs are skipped.
+
+on:
+  push:
+    paths:
+      - fitai-app/data/songs.txt
+      - fitai-app/tools/resolve_song_ids.py
+      - .github/workflows/song-ids.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: song-ids-${{ github.ref }}
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Find Spotify ids
+        run: python3 fitai-app/tools/resolve_song_ids.py
+      - name: Commit the ids
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add fitai-app/data/song_ids.json || exit 0
+          git diff --cached --quiet && exit 0
+          git commit -m "FitQuest: Spotify ids for the songs of the day"
+          git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}"
