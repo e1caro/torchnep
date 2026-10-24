@@ -254,3 +254,6 @@ i18nAdd({
 i18nAdd({ 'More info': 'Más info' });
 i18nAdd({ Preview: 'Vista previa', End: 'Terminar', 'Preview for one minute. Look around the app!': 'Vista previa durante un minuto. ¡Recorre la app!' });
 i18nAdd({ Olympus: 'Olimpo', 'Ancient Egypt': 'Antiguo Egipto', 'Viking Saga': 'Saga vikinga', 'Pirate Seas': 'Mares piratas', 'Outrun 80s': 'Outrun años 80', 'Arcade 8-bit': 'Arcade 8 bits' });
+i18nAdd({ 'Themes recolour the Sci-fi HUD interface.': 'Los temas cambian los colores de la interfaz HUD de ciencia ficción.', 'uses its own colours.': 'usa sus propios colores.',
+  'Theme saved. You will see it with the Sci-fi HUD interface.': 'Tema guardado. Lo verás con la interfaz HUD de ciencia ficción.' });
+i18nPat(/^(.+) Themes recolour the Sci-fi HUD interface\. (.+) uses its own colours\.$/, (e, n) => `${e} Los temas cambian los colores de la interfaz HUD de ciencia ficción. ${tr(n)} usa sus propios colores.`);

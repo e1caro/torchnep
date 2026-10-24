@@ -319,6 +319,7 @@ window.equip = id => {
   const i = item(id); if (!has(i)) return;
   if (i.type === 'theme') G.theme = i.key; else if (i.type === 'frame') G.frame = i.key; else if (i.type === 'banner') G.banner = i.key; else if (i.type === 'avatar') G.avatar = i.key; else if (i.type === 'panel') G.panel = i.key; else if (i.type === 'skin') G.skin = i.key; else return;
   commit(); applyTheme(); route();
+  if (i.type === 'theme' && (G.skin || 'hud') !== 'hud') toast('Theme saved. You will see it with the Sci-fi HUD interface.');
 };
 window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(); };
 const CHEST = { wood: ['Wooden chest', 'crate', [80, 95, 100, 100], [20, 60], [50, 120]], silver: ['Silver chest', 'chest-silver', [50, 70, 100, 100], [60, 150], [100, 250]], gold: ['Golden chest', 'chest-gold', [30, 50, 90, 100], [150, 400], [300, 600]] };
@@ -436,7 +437,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 43</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 44</div>`;
 }
 
 function initGame() {
