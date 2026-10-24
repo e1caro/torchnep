@@ -7,6 +7,7 @@ const mealSave = () => save('meal', M);
 const RBY = Object.fromEntries(RECIPES.map(r => [r.id, r]));
 const DAYN = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const todayIdx = () => (new Date().getDay() + 6) % 7;
+const STYLE_DESC = { none: 'Meals are chosen for your calories, macros and cooking time.', ai: 'Built around fatty fish, leafy greens, vegetables, berries, nuts, beans and olive oil. Leaves out red meat, refined pasta and added sugar. General guidance, not medical advice.' };
 const DIETS = { any: 'Eat everything', pescatarian: 'Pescatarian', vegetarian: 'Vegetarian', vegan: 'Vegan' };
 const AVOID = { gluten: ['Gluten', 'G'], dairy: ['Dairy', 'D'], nuts: ['Nuts', 'N'], eggs: ['Eggs', 'E'], fish: ['Fish & shellfish', 'F'], soy: ['Soy', 'S'] };
 const DIET_BAN = { any: '', pescatarian: 'M', vegetarian: 'MF', vegan: 'MFEDH' };
@@ -23,6 +24,7 @@ const target = () => analyze({ ...S.profile, weight: curWeight() });
 function recipeOk(r, set = M.set, ignoreCuisine = false) {
   const fl = flagsOf(r), ban = DIET_BAN[set.diet] + set.avoid.map(a => AVOID[a][1]).join(''), cu = set.cuisines || [];
   // with cuisines chosen, lunches and dinners must belong to one of them; breakfasts and snacks may also be neutral
+  if (set.style === 'ai' && !r.ai) return false; // anti-inflammatory style
   if (cu.length && !ignoreCuisine) { const hit = r.cu?.some(c => cu.includes(c)); if (r.meal === 'm' ? !hit : (r.cu && !hit)) return false; }
   return ![...fl].some(f => ban.includes(f)) && (!r.chef || has(item('r-' + r.id)));
 }
@@ -207,13 +209,15 @@ function fmtAmt(k, g, up = false) {
 const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Training</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
 
 function mealSetup() {
-  const st = M.set || { diet: 'any', avoid: [], meals: 4, variety: 'simple', cuisines: [], times: [30, 30, 30, 30, 30, 60, 60] };
-  const draft = { ...st, variety: st.variety || 'simple', avoid: [...st.avoid], cuisines: [...(st.cuisines || [])], times: [...st.times] };
+  const st = M.set || { diet: 'any', avoid: [], meals: 4, variety: 'simple', style: 'none', cuisines: [], times: [30, 30, 30, 30, 30, 60, 60] };
+  const draft = { ...st, style: st.style || 'none', variety: st.variety || 'simple', avoid: [...st.avoid], cuisines: [...(st.cuisines || [])], times: [...st.times] };
   const wd = draft.times[0], we = draft.times[5];
   const ch = (key, opts, sel, multi) => `<div class="chips" data-k="${key}" ${multi ? 'data-multi="1"' : ''}>${opts.map(([v, l]) => `<button type="button" class="chip ${(multi ? sel.includes(v) : String(sel) === String(v)) ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>`;
   view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your plan targets about ${target().kcal} kcal and ${target().protein} g protein a day.</p>
   <div class="lbl">Diet</div>${ch('diet', Object.entries(DIETS), draft.diet)}
   <div class="lbl">Avoid</div>${ch('avoid', Object.entries(AVOID).map(([k, v]) => [k, v[0]]), draft.avoid, true)}
+  <div class="lbl">Eating style</div>${ch('style', [['none', 'No preference'], ['ai', 'Anti-inflammatory']], draft.style)}
+  <div class="mut" id="sdesc">${STYLE_DESC[draft.style]}</div>
   <div class="lbl">Cuisine</div>${ch('cuisines', Object.entries(CUISINES).map(([k, v]) => [k, `${CUISINE_ICO[k]} ${v}`]), draft.cuisines, true)}
   <div class="mut">Optional. Leave empty for a mix. One cuisine gives the shortest shopping list; pick two or three for more choice.</div>
   <div class="lbl">Variety</div>${ch('variety', Object.entries(VARIETY).map(([k, v]) => [k, v.name]), draft.variety || 'simple')}<div class="mut" id="vdesc">${VARIETY[draft.variety || 'simple'].desc}</div>
@@ -227,7 +231,7 @@ function mealSetup() {
     const k = box.dataset.k, v = c.dataset.v;
     if (box.dataset.multi) { const arr = draft[k], i = arr.indexOf(v); if (i >= 0) arr.splice(i, 1); else arr.push(v); c.classList.toggle('on'); return; }
     box.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === c));
-    if (k === 'diet') draft.diet = v; else if (k === 'variety') { draft.variety = v; $('#vdesc').textContent = VARIETY[v].desc; } else if (k === 'meals') draft.meals = +v;
+    if (k === 'diet') draft.diet = v; else if (k === 'style') { draft.style = v; $('#sdesc').textContent = STYLE_DESC[v]; } else if (k === 'variety') { draft.variety = v; $('#vdesc').textContent = VARIETY[v].desc; } else if (k === 'meals') draft.meals = +v;
     else draft.times = draft.times.map((t, i) => (k === 'wd' ? i < 5 : i >= 5) ? +v : t);
   }));
   const note = () => { $('#fnote').innerHTML = filterNotes(draft).map(esc).join('<br>'); };
@@ -251,11 +255,11 @@ function mealsView(arg) {
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div><div class="mut">${Math.round(t.eat)} kcal eaten so far</div>
   ${bar('Protein', t.p, a.protein, 'pr')}${bar('Carbs', t.c, a.carbs, 'cb')}${bar('Fat', t.f, a.fat, 'ft')}</section>
   ${(() => { const avgP = M.plan.days.reduce((x, y) => x + dayTotals(y).p, 0) / 7; return avgP < a.protein * .9 ? `<p class="mut">💡 This week averages ${Math.round(avgP)} g protein against a ${a.protein} g target. A longer cooking time, "Balanced" variety or a protein snack closes the gap.</p>` : ''; })()}
-  <div class="mut">🛒 ${weekIngredients()} ingredients this week · ${VAR().name}${(M.set.cuisines || []).length ? ' · ' + M.set.cuisines.map(c => CUISINES[c]).join(' + ') : ''} · <a href="#/meals/setup" style="color:var(--acc2)">change</a></div>
+  <div class="mut">🛒 ${weekIngredients()} ingredients this week · ${VAR().name}${M.set.style === 'ai' ? ' · Anti-inflammatory' : ''}${(M.set.cuisines || []).length ? ' · ' + M.set.cuisines.map(c => CUISINES[c]).join(' + ') : ''} · <a href="#/meals/setup" style="color:var(--acc2)">change</a></div>
   <div class="lbl">Time to cook this day</div>
   ${d.items.some(it => it.kind !== 's' && RBY[it.rid].time > d.cook) ? '<p class="mut">⚠️ Your diet and cuisine choices leave no faster option for some meals, so they take a little longer than this.</p>' : ''}
   <div class="chips">${Object.entries(COOK).map(([v, l]) => `<button class="chip ${+v === d.cook ? 'on' : ''}" onclick="setCook(${mDay},${v})">${l}</button>`).join('')}</div>
-  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.cu ? ' · ' + CUISINE_ICO[r.cu[0]] + ' ' + CUISINES[r.cu[0]] : ''}${r.chef ? ' · ⭐ Chef' : ''}${timesInWeek(it.rid) > 1 ? ` · ×${timesInWeek(it.rid)} this week` : ''}</div><div class="qt">${esc(r.name)}</div>
+  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.cu ? ' · ' + CUISINE_ICO[r.cu[0]] + ' ' + CUISINES[r.cu[0]] : ''}${r.chef ? ' · ⭐ Chef' : ''}${r.ai ? ' · ' + gi('leaf') : ''}${timesInWeek(it.rid) > 1 ? ` · ×${timesInWeek(it.rid)} this week` : ''}</div><div class="qt">${esc(r.name)}</div>
   <div class="mut">${Math.round(n.kcal * it.k)} kcal · P ${Math.round(n.p * it.k)} · C ${Math.round(n.c * it.k)} · F ${Math.round(n.f * it.k)}</div></div><span class="chk">${it.eaten ? '✓' : ''}</span></a>`; }).join('')}
   ${filterNotes(M.set).map(n => `<p class="mut">⚠️ ${esc(n)}</p>`).join('')}
   <button class="btn" onclick="location.hash='#/shop'">${gi('pack')} Shopping list</button>
@@ -278,7 +282,8 @@ function recipeView() {
   <div class="rhero">${r.ico}</div><div class="mut">${DAYN[+di]} · ${it.slot}</div><h1>${esc(r.name)}</h1>
   <div class="grid4"><div class="stat"><b>${Math.round(n.kcal * it.k)}</b><span>kcal</span></div><div class="stat"><b>${Math.round(n.p * it.k)}g</b><span>protein</span></div>
   <div class="stat"><b>${Math.round(n.c * it.k)}g</b><span>carbs</span></div><div class="stat"><b>${Math.round(n.f * it.k)}g</b><span>fat</span></div></div>
-  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}<span class="chip">${it.k}× portion</span></div>
+  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}${r.ai ? `<span class="chip on">${gi('leaf')} Anti-inflammatory</span>` : ''}<span class="chip">${it.k}× portion</span></div>
+  ${r.ai ? `<p class="mut">${gi('leaf')} Rich in ${r.aiGood.slice(0, 4).map(k => ING[k][0].toLowerCase()).join(', ')}. No red meat, refined pasta or added sugar.</p>` : ''}
   <h2 class="sec">Ingredients</h2><div class="card">${r.ing.map(([k, g]) => `<div class="row between ing"><span>${ING[k][0]}</span><b>${fmtAmt(k, g * it.k)}</b></div>`).join('')}
   <div class="mut">Plus salt, pepper, herbs and spices to taste.</div></div>
   <h2 class="sec">Steps</h2><ol class="how">${r.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
