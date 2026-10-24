@@ -228,7 +228,7 @@ function legProb(kind, n, from, to, grp) {
 }
 // Odds: lower than fair, never below 1.00 (a stake back, no profit). Training once in a week or month never pays.
 // Weeks and months pay much less than a single day. Muscle picks start at 1.00 and only muscles you rarely train get a small bonus.
-const ODDS_SCALE = { day: 1, week: .6, month: .45 }, ODDS_CAP = { day: 4, week: 2.5, month: 2 };
+const ODDS_SCALE = { day: 1, week: .6, month: .45 }, ODDS_CAP = { day: 3, week: 2, month: 1.6 };
 const MG_CAP = { day: 2, week: 1.5, month: 1.3 };
 // how rarely you train a muscle compared with your most trained one (0 = most trained, 1 = never)
 const mgRarity = grp => { const m = form().mg, top = Math.max(...Object.values(m)); return top > 0 ? 1 - m[grp] / top : 0; };
@@ -236,7 +236,7 @@ function oddsFor(kind, n, p, per = 'day', grp) {
   if (kind === 'train' && n <= 1) return 1;
   const extra = .85 / Math.max(p, .01) - 1, r20 = x => Math.round(x * 20) / 20;
   if (kind === 'd-mg' || kind === 'mg') return Math.min(MG_CAP[per], Math.max(1, r20(1 + mgRarity(grp) * (MG_CAP[per] - 1))));
-  return Math.min(ODDS_CAP[per], Math.max(1, r20(1 + extra * .45 * ODDS_SCALE[per])));
+  return Math.min(ODDS_CAP[per], Math.max(1, r20(1 + extra * .3 * ODDS_SCALE[per])));
 }
 
 // Markets. g: group (one pick per group in a bet). topic: related topics get an odds cut in combined bets.
@@ -464,21 +464,23 @@ window.betNoRepeat = id => { const b = BT.open.find(x => x.id === id); if (b) { 
 window.betRepeat = () => { slipRepeat = !slipRepeat; betsView(); };
 
 // ---------- actions ----------
+// the slip you would have after tapping `m` (removes it if already there, swaps clashing picks)
+function slipWith(m) {
+  if (slip.some(l => l.id === m.id)) return { legs: slip.filter(l => l.id !== m.id), clash: false, full: false };
+  // two training goals that a single workout could finish (today's goals, or weekly ones one workout away) would pay twice for one workout
+  const solo = x => x.g === 'today' || x.one || x.kind === 'd-mg';
+  const clashes = l => solo(m) && solo(l) && l.g !== m.g && !(isMg(l) && isMg(m));
+  let legs = slip.filter(l => !clashes(l)); const clash = legs.length < slip.length;
+  legs = legs.filter(l => l.g !== m.g); // one pick per group: swap it
+  if (legs.length >= LEGS_MAX) return { legs: slip, clash: false, full: true };
+  return { legs: [...legs, m], clash, full: false };
+}
 window.betPick = id => {
   const m = markets().find(x => x.id === id); if (!m) return;
-  const i = slip.findIndex(l => l.id === id);
-  if (i >= 0) slip.splice(i, 1);
-  else {
-    // two training goals that a single workout could finish (today's goals, or weekly ones one workout away) would pay twice for one workout
-    const solo = x => x.g === 'today' || x.one || x.kind === 'd-mg';
-    const clashes = l => solo(m) && solo(l) && l.g !== m.g && !(isMg(l) && isMg(m));
-    if (slip.some(clashes)) { slip = slip.filter(l => !clashes(l)); toast('One workout would win both picks, so they cannot be combined.'); }
-    const same = slip.findIndex(l => l.g === m.g);
-    if (same >= 0) slip.splice(same, 1); // one pick per group: swap it
-    if (slip.length >= LEGS_MAX) { toast(`Up to ${LEGS_MAX} picks per bet.`); return; }
-    slip.push(m);
-  }
-  sfx('tick'); betsView();
+  const r = slipWith(m);
+  if (r.full) { toast(`Up to ${LEGS_MAX} picks per bet.`); return; }
+  if (r.clash) toast('One workout would win both picks, so they cannot be combined.');
+  slip = r.legs; sfx('tick'); betsView();
 };
 window.betStake = v => { stake = Math.round(Math.min(BET_MAX, Math.max(BET_MIN, +v || BET_MIN))); betsView(); };
 window.betClear = () => { slip = []; betsView(); };
@@ -507,6 +509,12 @@ function betCard(b) {
     ${b.repeat && !b.res ? `<div class="row between rep"><span class="mut">${ic('swap', 16)} Repeats every ${b.repeat}</span><button class="btn sm ghost" onclick="betNoRepeat('${b.id}')">Stop</button></div>` : ''}</section>`;
 }
 const mgHint = t => `<div class="mut">Each muscle pays 1.00 alone, a bit more if you rarely train it. Combine them: 2 muscles ×${t[2]}, 3 ×${t[3]}, 4 ×${t[4]}, 5 ×${t[5]}, all 6 ×${t[6]}.</div>`;
+// a market's number: with picks in the slip, the total odds you would get by adding it (its own odds shown small)
+function oddCell(m, picked) {
+  if (!slip.length || picked) return `<span class="odd">${(picked ? slipOdds(slip).total : m.o).toFixed(2)}${picked && slip.length > 1 ? `<small>×${m.o.toFixed(2)}</small>` : ''}</span>`;
+  const r = slipWith(m); if (r.full) return `<span class="odd">${m.o.toFixed(2)}</span>`;
+  return `<span class="odd tot">${slipOdds(r.legs).total.toFixed(2)}<small>×${m.o.toFixed(2)}</small></span>`;
+}
 function betsView() {
   if (needProfile()) return;
   ensureDay(); settleBets();
@@ -514,13 +522,13 @@ function betsView() {
   slip = slip.filter(l => ms.some(m => m.id === l.id));
   const so = slipOdds(slip), maxStake = Math.min(BET_MAX, G.coins);
   stake = Math.max(BET_MIN, Math.min(stake, Math.max(BET_MIN, maxStake)));
-  const row = m => `<button class="mkt ${on.has(m.id) ? 'on' : ''}" onclick="betPick('${m.id}')"><span class="qi">${gi(m.ico)}</span><span class="grow"><span class="mt">${m.t}</span>${m.need && m.show !== false ? `<span class="mut">${Math.min(m.prog, m.need)}/${m.need} so far</span>` : ''}</span><span class="odd">${m.o.toFixed(2)}</span></button>`;
+  const row = m => `<button class="mkt ${on.has(m.id) ? 'on' : ''}" onclick="betPick('${m.id}')"><span class="qi">${gi(m.ico)}</span><span class="grow"><span class="mt">${m.t}</span>${m.need && m.show !== false ? `<span class="mut">${Math.min(m.prog, m.need)}/${m.need} so far</span>` : ''}</span>${oddCell(m, on.has(m.id))}</button>`;
   const list = ms.filter(m => m.tab === betTab), per = periods().find(P => P.k === betTab);
   const fmt = t => new Date(t).toLocaleDateString(LANG, { weekday: 'short', day: 'numeric', month: 'short' });
   const note = betTab === 'today' ? 'Ends at midnight.' : per.live ? `Ends ${fmt(per.to)}.` : `From ${fmt(per.from)} to ${fmt(per.to)}. ${betTab === 'nweek' ? 'You can bet on it until Sunday night.' : 'You can bet on it until the end of this month.'}`;
   view.innerHTML = `${hud()}<button class="btn sm ghost back" onclick="location.hash='#/earn'">${ic('back', 18)} Back</button><h1>Bets</h1>
   <details class="card howto"><summary>How bets work</summary><ol>
-    <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true.</li>
+    <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the big number is the total odds your bet would have with that goal added, and its own odds are shown small.</li>
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
     <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
     <li>Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
@@ -583,7 +591,7 @@ if (typeof i18nAdd === 'function') {
     Bets: 'Apuestas', 'Bet on yourself': 'Apuesta por ti', 'Open bets': 'Abrir apuestas', '{n} open': '{n} abiertas',
     'Stake coins on your own goals: train today, clear dungeons, hit your water goal. Combine picks to multiply the odds.': 'Apuesta monedas a tus propios objetivos: entrenar hoy, superar mazmorras, llegar a tu meta de agua. Combina selecciones para multiplicar la cuota.',
     'How bets work': 'Cómo funcionan las apuestas',
-    "Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true.": 'Toca un objetivo para añadirlo a tu boleto. El número de la derecha es su cuota: lo que te devuelve cada moneda apostada si se cumple.',
+    "Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the big number is the total odds your bet would have with that goal added, and its own odds are shown small.": 'Toca un objetivo para añadirlo a tu boleto. El número de la derecha es su cuota: lo que te devuelve cada moneda apostada si se cumple. Cuando ya tienes selecciones, el número grande es la cuota total que tendría tu apuesta al añadirlo, y su propia cuota sale en pequeño.',
     'One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.': 'Una selección es una apuesta simple. De dos a cinco selecciones forman una combinada: las cuotas se multiplican y paga mucho más, pero se tienen que cumplir todas.',
     'Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.': 'Las selecciones de entrenamiento están relacionadas, así que en una combinada cada selección de entrenamiento extra baja la cuota total un 15%. Solo una selección por tipo de objetivo, y no dos que se ganarían con el mismo entrenamiento.',
     'Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.': 'Apuesta a hoy, esta semana, la semana que viene, este mes o el mes que viene. La semana que viene admite apuestas hasta el domingo por la noche, y el mes que viene hasta final de este mes. La apuesta se paga en cuanto se cumplen todas sus selecciones y se pierde si a una se le acaba el tiempo.',

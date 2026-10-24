@@ -282,3 +282,5 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .bettabs{margin:14px 0 6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.bettabs .chip{flex:none}
 .rep{gap:10px;margin:10px 0 2px;align-items:center}.rep input{width:20px;height:20px;accent-color:var(--acc)}
 .betcat{margin:16px 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.odd small{display:block;font-size:10px;font-weight:600;opacity:.75;margin-top:1px}
+.odd.tot{background:color-mix(in srgb,var(--acc2) 18%,var(--card2))}
