@@ -12,11 +12,11 @@ function wkState() {
 // ---------- weekly quests ----------
 const mealsEaten = () => M.plan?.week === weekId() ? M.plan.days.reduce((s, d) => s + d.items.filter(i => i.eaten).length, 0) : 0;
 const WQ = [
-  { id: 'w-train', t: 'Train 4 times this week', ico: '🏋️', n: 4, v: () => S.history.filter(h => h.t >= weekStart()).length, xp: 200, coins: 60 },
-  { id: 'w-dungeon', t: 'Clear 2 dungeons', ico: '🏰', n: 2, v: () => S.history.filter(h => h.t >= weekStart() && h.dungeon).length, xp: 250, coins: 80, chest: 'wood', need: () => lvl() >= 2 },
-  { id: 'w-meals', t: 'Eat 15 planned meals', ico: '🍽️', n: 15, v: mealsEaten, xp: 200, coins: 60, need: () => !!M.set },
-  { id: 'w-water', t: 'Hit your water goal on 4 days', ico: '💧', n: 4, v: () => wkState().waterDays, xp: 150, coins: 50 },
-  { id: 'w-weigh', t: 'Log your weight twice', ico: '⚖️', n: 2, v: () => S.weights.filter(x => x.t >= weekStart()).length, xp: 100, coins: 30 },
+  { id: 'w-train', t: 'Train 4 times this week', ico: 'lifter', n: 4, v: () => S.history.filter(h => h.t >= weekStart()).length, xp: 200, coins: 60 },
+  { id: 'w-dungeon', t: 'Clear 2 dungeons', ico: 'gate', n: 2, v: () => S.history.filter(h => h.t >= weekStart() && h.dungeon).length, xp: 250, coins: 80, chest: 'wood', need: () => lvl() >= 2 },
+  { id: 'w-meals', t: 'Eat 15 planned meals', ico: 'cutlery', n: 15, v: mealsEaten, xp: 200, coins: 60, need: () => !!M.set },
+  { id: 'w-water', t: 'Hit your water goal on 4 days', ico: 'water', n: 4, v: () => wkState().waterDays, xp: 150, coins: 50 },
+  { id: 'w-weigh', t: 'Log your weight twice', ico: 'scale', n: 2, v: () => S.weights.filter(x => x.t >= weekStart()).length, xp: 100, coins: 30 },
 ];
 window.claimWeekly = id => {
   const q = WQ.find(x => x.id === id), w = wkState();
@@ -43,18 +43,22 @@ window.logSleep = h => {
 
 // ---------- daily spin ----------
 const SPIN = [[30, 'coins', 20], [25, 'coins', 50], [8, 'coins', 100], [20, 'xp', 40], [10, 'xp', 100], [6, 'chest', 'wood'], [1, 'chest', 'silver']];
+const spinsToday = () => G.spinDay?.d === dayId() ? G.spinDay.n : 0;
+const freeSpins = () => (perk('spin2') ? 2 : 1) - spinsToday();
+const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
 window.spin = () => {
-  if (G.spun === dayId()) return;
+  if (spinsLeft() <= 0) return;
+  if (freeSpins() > 0) G.spinDay = { d: dayId(), n: spinsToday() + 1 }; else G.extraSpins--;
   let r = Math.random() * 100, pick = SPIN[0];
   for (const s of SPIN) { if (r < s[0]) { pick = s; break; } r -= s[0]; }
   G.spun = dayId(); G.spins++;
   const [, kind, v] = pick;
   let html;
-  if (kind === 'coins') { G.coins += v; html = `<div class="avbig">🪙</div><h2>${v} coins</h2>`; }
-  else if (kind === 'xp') { award(v, 0); html = `<div class="avbig">✨</div><h2>${v} XP</h2>`; }
-  else { G.chests.push(v); html = `<div class="avbig">${CHEST[v][1]}</div><h2>${CHEST[v][0]}</h2>`; }
+  if (kind === 'coins') { G.coins += v; html = `<div class="avbig">${gi('coin', 'cn')}</div><h2>${v} coins</h2>`; }
+  else if (kind === 'xp') { award(v, 0); html = `<div class="avbig">${gi('sparkles', 'hero')}</div><h2>${v} XP</h2>`; }
+  else { G.chests.push(v); html = `<div class="avbig">${gi(CHEST[v][1])}</div><h2>${CHEST[v][0]}</h2>`; }
   commit();
-  modal(`<div class="chest">🎰</div><div class="mut">Daily spin</div><div class="reveal">${html}<button class="btn" data-close>Nice</button></div>`, () => { checkAch(); flushLevelUp(earn); });
+  modal(`<div class="chest">${gi('slot')}</div><div class="mut">Daily spin</div><div class="reveal">${html}<button class="btn" data-close>Nice</button></div>`, () => { checkAch(); flushLevelUp(earn); });
   setTimeout(() => { sfx('claim'); confetti(); }, 900);
 };
 
@@ -70,30 +74,30 @@ window.checkPerfect = di => {
 function earn() {
   if (needProfile()) return;
   ensureDay(); flushLevelUp();
-  const t = G.today, goal = waterGoal(), w = wkState(), canSpin = G.spun !== dayId();
+  const t = G.today, goal = waterGoal(), w = wkState(), canSpin = spinsLeft() > 0;
   const wq = WQ.filter(q => !q.need || q.need());
   view.innerHTML = `${hud()}<h1>Ways to earn</h1>
-  <section class="card"><div class="row between"><h3>Daily spin</h3><span class="mut">${canSpin ? 'Ready' : 'Come back tomorrow'}</span></div>
-  <p class="mut">One free spin a day: coins, XP or even a chest.</p>
-  <button class="btn ${canSpin ? 'chestbtn' : 'ghost'}" ${canSpin ? '' : 'disabled'} onclick="spin()">🎰 ${canSpin ? 'Spin now' : 'Spun today'}</button></section>
+  <section class="card"><div class="row between"><h3>Daily spin</h3><span class="mut">${canSpin ? `${spinsLeft()} spin${spinsLeft() > 1 ? 's' : ''} ready` : 'Come back tomorrow'}</span></div>
+  <p class="mut">${perk('spin2') ? 'Two free spins a day' : 'One free spin a day'}: coins, XP or even a chest. More spins are sold in the Shop.</p>
+  <button class="btn ${canSpin ? 'chestbtn' : 'ghost'}" ${canSpin ? '' : 'disabled'} onclick="spin()">${gi('slot')} ${canSpin ? 'Spin now' : 'Spun today'}</button></section>
   <section class="card"><div class="row between"><h3>Water</h3><span class="mut">${t.water || 0}/${goal} glasses</span></div>
   <div class="qbar kc"><i style="width:${clamp((t.water || 0) / goal * 100, 0, 100)}%"></i></div>
   <p class="mut">+3 XP per glass (250 ml), +20 XP when you hit your goal.</p>
-  <div class="row"><button class="btn ghost" onclick="addWater(-1)">−</button><button class="btn" onclick="addWater(1)">💧 Add a glass</button></div></section>
+  <div class="row"><button class="btn ghost" onclick="addWater(-1)">−</button><button class="btn" onclick="addWater(1)">${gi('water')} Add a glass</button></div></section>
   <section class="card"><div class="row between"><h3>Sleep</h3><span class="mut">${t.sleep ? t.sleep + ' h logged' : 'Not logged'}</span></div>
   <p class="mut">How long did you sleep last night? 7 hours or more earns +20 XP.</p>
   <div class="chips">${[5, 6, 7, 8, 9].map(h => `<button class="chip ${t.sleep === h ? 'on' : ''}" onclick="logSleep(${h})">${h} h${h === 9 ? '+' : ''}</button>`).join('')}</div></section>
   <h2 class="sec">Weekly quests</h2>
   ${wq.map(q => { const v = Math.min(q.n, q.v()), ok = v >= q.n, cl = w.claimed.includes(q.id);
-    return `<div class="quest ${cl ? 'cl' : ok ? 'ok' : ''}"><div class="qi">${q.ico}</div><div class="grow"><div class="qt">${q.t}</div><div class="qbar"><i style="width:${v / q.n * 100}%"></i></div>
-    <div class="mut">${v}/${q.n} · +${q.xp} XP · 🪙${q.coins}${q.chest ? ' · chest' : ''}</div></div>${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimWeekly('${q.id}')">Claim</button>` : ''}</div>`; }).join('')}
+    return `<div class="quest ${cl ? 'cl' : ok ? 'ok' : ''}"><div class="qi">${gi(q.ico)}</div><div class="grow"><div class="qt">${q.t}</div><div class="qbar"><i style="width:${v / q.n * 100}%"></i></div>
+    <div class="mut">${v}/${q.n} · +${q.xp} XP · ${gi('coin', 'cn')} ${q.coins}${q.chest ? ' · chest' : ''}</div></div>${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimWeekly('${q.id}')">Claim</button>` : ''}</div>`; }).join('')}
   <h2 class="sec">Everything that pays</h2>
   <div class="card earnlist">
-    ${[['🏋️', 'Every set', '10 XP'], ['⚔️', 'Workout cleared', '100 XP, + chest for dungeons'], ['🏆', 'New personal record', '40 XP each'], ['🔥', 'Training streak', 'up to ×1.5 XP'],
-      ['🏰', 'Dungeons', '×1.3 to ×3.5 XP, dungeon of the day ×1.5'], ['📜', 'Daily quests', '25 to 100 XP each, bonus chest for all three'], ['🗓️', 'Weekly quests', '100 to 250 XP + coins'],
-      ['🗿', 'Weekly boss', '250 XP + silver chest'], ['🍽️', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['💧', 'Water', '3 XP a glass, +20 at your goal'], ['😴', 'Sleep 7 h+', '20 XP'],
-      ['⚖️', 'Weigh-in', '15 XP'], ['🎁', 'Daily check-in', 'up to 22 XP and 45 coins, silver chest on day 7'], ['🎰', 'Daily spin', 'coins, XP or a chest'], ['🏅', 'Badges', '50 to 600 XP'], ['⬆️', 'Level-ups', 'coins, and a chest every 5th level']]
-      .map(([i, a, b]) => `<div class="row between"><span>${i} ${a}</span><b class="mut">${b}</b></div>`).join('')}
+    ${[['lifter', 'Every set', '10 XP'], ['swords', 'Workout cleared', '100 XP, + chest for dungeons'], ['trophy', 'New personal record', '40 XP each (80 with a level perk)'], ['flame', 'Training streak', 'up to ×1.5 XP'],
+      ['gate', 'Dungeons', '×1.3 to ×3.5 XP, dungeon of the day ×1.5'], ['scroll', 'Daily quests', '25 to 100 XP each, bonus chest for all of them'], ['calendar', 'Weekly quests', '100 to 250 XP + coins'],
+      ['golem', 'Weekly boss', '250 XP + a chest'], ['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
+      ['scale', 'Weigh-in', '15 XP'], ['crate', 'Daily check-in', 'up to 22 XP and 45 coins, silver chest on day 7'], ['slot', 'Daily spin', 'coins, XP or a chest'], ['medal', 'Badges', '50 to 600 XP'], ['upgrade', 'Level-ups', 'coins, a chest every 5th level, and new meals, workouts and perks']]
+      .map(([i, a, b]) => `<div class="row between"><span>${gi(i, 'hero')} ${a}</span><b class="mut">${b}</b></div>`).join('')}
   </div>`;
 }
 
@@ -102,6 +106,6 @@ const _home3 = home;
 home = function () {
   _home3();
   const boss = [...view.querySelectorAll('h2.sec')].find(h => h.textContent === 'Weekly boss');
-  if (boss) boss.insertAdjacentHTML('beforebegin', `<button class="btn ghost" onclick="location.hash='#/earn'">⚡ More ways to earn${G.spun !== dayId() ? ' · 🎰 spin ready' : ''}</button>`);
+  if (boss) boss.insertAdjacentHTML('beforebegin', `<button class="btn ghost" onclick="location.hash='#/earn'">${gi('bolt')} More ways to earn${spinsLeft() > 0 ? ' · spin ready' : ''}</button>`);
 };
 Object.assign(routes, { home, earn });

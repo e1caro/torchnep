@@ -258,9 +258,9 @@ function mealsView(arg) {
   ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.cu ? ' · ' + CUISINE_ICO[r.cu[0]] + ' ' + CUISINES[r.cu[0]] : ''}${r.chef ? ' · ⭐ Chef' : ''}${timesInWeek(it.rid) > 1 ? ` · ×${timesInWeek(it.rid)} this week` : ''}</div><div class="qt">${esc(r.name)}</div>
   <div class="mut">${Math.round(n.kcal * it.k)} kcal · P ${Math.round(n.p * it.k)} · C ${Math.round(n.c * it.k)} · F ${Math.round(n.f * it.k)}</div></div><span class="chk">${it.eaten ? '✓' : ''}</span></a>`; }).join('')}
   ${filterNotes(M.set).map(n => `<p class="mut">⚠️ ${esc(n)}</p>`).join('')}
-  <button class="btn" onclick="location.hash='#/shop'">🛒 Shopping list</button>
+  <button class="btn" onclick="location.hash='#/shop'">${gi('pack')} Shopping list</button>
   <button class="btn ghost" onclick="rebuildWeek()">Shuffle the whole week</button>
-  <button class="btn ghost" onclick="location.hash='#/rewards'">⭐ Unlock chef's recipes with coins</button>
+  <button class="btn ghost" onclick="location.hash='#/rewards'">${gi('chef')} See which chef recipes you unlock next</button>
   <button class="btn ghost" onclick="location.hash='#/meals/setup'">Change diet and preferences</button>
   <p class="mut">Calories and macros are estimates from typical ingredient values. They are not medical or dietitian advice.</p>`;
 }
@@ -320,7 +320,7 @@ function shopView() {
 }
 
 function mealsCard() {
-  if (!M.set || !M.plan || M.plan.week !== weekId()) return `<section class="card tap row" onclick="location.hash='#/meals'"><div class="dgi">🍽️</div><div class="grow"><h3>Meal plan</h3><div class="mut">Set your diet and cooking time to get a week of recipes that hit your calories.</div></div></section>`;
+  if (!M.set || !M.plan || M.plan.week !== weekId()) return `<section class="card tap row" onclick="location.hash='#/meals'"><div class="dgi">${gi('cutlery')}</div><div class="grow"><h3>Meal plan</h3><div class="mut">Set your diet and cooking time to get a week of recipes that hit your calories.</div></div></section>`;
   const d = M.plan.days[todayIdx()], t = dayTotals(d), nxt = d.items.findIndex(x => !x.eaten), a = target();
   return `<section class="card tap" onclick="location.hash='#/${nxt < 0 ? 'meals' : 'recipe/' + todayIdx() + '/' + nxt}'"><div class="row between"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div>
