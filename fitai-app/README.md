@@ -20,6 +20,10 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 ## Gym pass
 The Hero tab and the Today screen have an **Open Synergym** button that launches the Synergym member app on Android (default app id `digifit.android.virtuagym.pro.synergym`, editable under "Wrong app opens?"). FitQuest never handles your Synergym login. If your gym's QR is fixed you can also save a screenshot of it and show it full screen; a code that changes each time cannot be saved.
 
+## Languages
+
+English and Spanish. The language is picked from the phone on first run and can be switched at any time in the Hero screen (or on the first setup page). The app text is written in English; when Spanish is selected, `i18n.js` translates every piece of text as it reaches the screen, using `es-ui.js` (interface), `es-food.js` (ingredients, recipes, steps) and `data/es-exercises.json` (exercise names and instructions, loaded only in Spanish). Anything without a translation simply stays in English.
+
 ## Credits
 Icons by Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed and Carl Olsen from [game-icons.net](https://game-icons.net), licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Edited by removing the black background. Exercise photos from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain).
 

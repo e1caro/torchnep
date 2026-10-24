@@ -13,7 +13,7 @@ const EQUIP = {
 };
 const EQ_MAP = { barbell: ['barbell', 'e-z curl bar'], extras: ['medicine ball', 'exercise ball', 'foam roll'] };
 const FOCUS = {
-  chest: ['Chest', ['chest']], back: ['Back', ['lats', 'middle back', 'traps', 'lower back']],
+  chest: ['Chest', ['chest']], back: ['Back muscles', ['lats', 'middle back', 'traps', 'lower back']],
   legs: ['Legs', ['quadriceps', 'hamstrings', 'calves', 'adductors', 'abductors']], glutes: ['Glutes', ['glutes']],
   arms: ['Arms', ['biceps', 'triceps', 'forearms']], shoulders: ['Shoulders', ['shoulders']], abs: ['Abs', ['abdominals']],
 };
@@ -201,8 +201,8 @@ function weightChart() {
   const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)} ${y(p.w).toFixed(1)}`).join('');
   const t = S.profile.target ? `<line x1="${pad}" x2="${W - pad}" y1="${y(S.profile.target)}" y2="${y(S.profile.target)}" class="tg"/><text x="${W - pad}" y="${y(S.profile.target) - 4}" text-anchor="end" class="tl">target ${S.profile.target}</text>` : '';
   return `<svg viewBox="0 0 ${W} ${H}" class="wc">${t}<path d="${line}L${x(pts.length - 1)} ${H - pad}L${x(0)} ${H - pad}Z" class="wa"/><path d="${line}" class="wl"/>
-  <circle cx="${x(pts.length - 1)}" cy="${y(ws.at(-1))}" r="4.5" class="wd"/><text x="${pad}" y="${H - 6}" class="tl">${new Date(pts[0].t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</text>
-  <text x="${W - pad}" y="${H - 6}" text-anchor="end" class="tl">${new Date(pts.at(-1).t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</text></svg>`;
+  <circle cx="${x(pts.length - 1)}" cy="${y(ws.at(-1))}" r="4.5" class="wd"/><text x="${pad}" y="${H - 6}" class="tl">${new Date(pts[0].t).toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric' })}</text>
+  <text x="${W - pad}" y="${H - 6}" text-anchor="end" class="tl">${new Date(pts.at(-1).t).toLocaleDateString(dateLocale(), { month: 'short', day: 'numeric' })}</text></svg>`;
 }
 
 // ---------- onboarding wizard ----------
@@ -218,7 +218,7 @@ function onboarding(edit) {
   if (!wiz) wiz = { step: 0, p: { ...BLANK, ...(edit && S.profile ? S.profile : {}) }, edit: !!edit };
   const p = wiz.p, s = wiz.step;
   const body = [
-    () => `<label class="fld"><span>What should we call you?</span><div class="inp"><input id="f-name" value="${esc(p.name)}" placeholder="Your name" autocomplete="given-name"></div></label>
+    () => `<div class="lbl" style="margin-top:0">Language</div>${langChips()}<label class="fld"><span>What should we call you?</span><div class="inp"><input id="f-name" value="${esc(p.name)}" placeholder="Your name" autocomplete="given-name"></div></label>
       <div class="lbl">Gender</div>${chips('gender', [['male', 'Male'], ['female', 'Female'], ['other', 'Other']], p.gender)}
       <div class="two">${num('f-age', 'Age', p.age, 'yrs', 'min="14" max="90"')}${num('f-height', 'Height', p.height, 'cm', 'min="120" max="230"')}</div>
       ${num('f-weight', 'Weight', p.weight, 'kg', 'min="30" max="250" step="0.1"')}
@@ -400,7 +400,7 @@ function progress() {
   <section class="card"><h3>Volume per workout</h3>${last.length ? `<div class="bars">${vols.map((v, i) => `<div style="height:${Math.max(3, v / max * 100)}%" title="${v} kg"><span>${new Date(last[i].t).getDate()}</span></div>`).join('')}</div><div class="mut" style="margin-top:20px">kg lifted (weight × reps), last ${last.length}</div>` : '<div class="mut">Finish a workout to see this.</div>'}</section>
   <h2 class="sec">Personal records</h2>
   ${Object.keys(prs).length ? Object.entries(prs).map(([id, s]) => `<div class="card row between"><div>${esc(BY[id]?.n || id)}</div><b>${s.w} kg × ${s.r}</b></div>`).join('') : '<div class="mut">No records yet.</div>'}
-  <h2 class="sec">History</h2>${h.length ? h.slice().reverse().slice(0, 50).map(w => `<div class="card"><b>${esc(w.name)}</b><div class="mut">${new Date(w.t).toLocaleDateString()} · ${w.dur} min · ${w.ex.length} exercises</div></div>`).join('') : '<div class="mut">No workouts yet.</div>'}`;
+  <h2 class="sec">History</h2>${h.length ? h.slice().reverse().slice(0, 50).map(w => `<div class="card"><b>${esc(w.name)}</b><div class="mut">${new Date(w.t).toLocaleDateString(dateLocale())} · ${w.dur} min · ${w.ex.length} exercises</div></div>`).join('') : '<div class="mut">No workouts yet.</div>'}`;
   $('#lw').onclick = () => {
     const w = +$('#nw').value; if (!(w >= 30 && w <= 250)) return;
     const t = S.weights.at(-1);
@@ -453,6 +453,7 @@ window.addEventListener('hashchange', route);
   try {
     EX = await (await fetch('data/exercises.json')).json();
     VID = await (await fetch('data/videos.json')).json().catch(() => ({}));
+    await langReady();
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }
   EX.forEach(e => { BY[e.id] = e; });
   initGame();
