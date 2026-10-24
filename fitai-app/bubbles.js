@@ -22,13 +22,13 @@ function bubble(id, i, big) {
 
 // The check-in streak runs in weeks of 7 days; day 7 brings a silver chest. A streak is always at least day 1
 // (older saves could hold 0 for a check-in already made today).
-function streak() {
+function ciStreakNow() {
   const st = Math.max(1, ciInfo().st), today = G.checkin === dayId(), day = ((st - 1) % 7) + 1;
   const n = today ? st + 1 : st, k = Math.min(n - 1, 6); // the next check-in still to make
   return { today, done: today ? day : day - 1, next: { xp: 10 + 2 * k, coins: 15 + 5 * k, chest: n % 7 === 0 } };
 }
 function streakCard() {
-  const s = streak(), el = document.createElement('section');
+  const s = ciStreakNow(), el = document.createElement('section');
   el.className = 'card streak';
   el.innerHTML = `<div class="row between"><h3>Check-in streak</h3><span class="mut">Day ${s.done} of 7</span></div>
     <div class="ckdots">${[...Array(7)].map((_, i) => `<i class="${i < s.done ? 'on' : ''}">${i === 6 ? gi('chest-silver', 'hero') : i + 1}</i>`).join('')}</div>
@@ -61,7 +61,7 @@ function bubbleHome() {
   BUB_INFO = {
     train: { p: hits / p.days, v: `${hits}/${p.days}`, name: next?.querySelector('h2')?.textContent },
     quests: { p: qd / qn, v: `${qd}/${qn}`, bad: !!view.querySelector(':scope > .quest.ok:not(.cl)') || !!boss?.querySelector('button') },
-    loot: (({ done }) => ({ p: done / 7, v: G.chests.length ? `×${G.chests.length}` : `${done}/7`, bad: G.checkin !== dayId() || G.chests.length > 0 }))(streak()),
+    loot: (({ done }) => ({ p: done / 7, v: G.chests.length ? `×${G.chests.length}` : `${done}/7`, bad: G.checkin !== dayId() || G.chests.length > 0 }))(ciStreakNow()),
     meals: (([a, b]) => (b ? { p: a / b, v: `${a}/${b}` } : { v: g4?.querySelector('b')?.textContent }))(num(meals?.querySelector('.mut'))),
     academy: { v: groups.academy?.[0].querySelector('.pc-mini b')?.textContent ?? null },
     earn: { bad: typeof spinsLeft === 'function' && spinsLeft() > 0, v: typeof BT === 'object' && BT.open.length ? `${BT.open.length}` : null },
