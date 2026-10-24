@@ -106,11 +106,22 @@ const weighIn = (a, b) => S.weights.filter(w => w.t >= a && w.t <= b).length;
 const weightDir = () => { const p = S.profile; if (p?.target && Math.abs(p.target - curWeight()) >= .5) return Math.sign(p.target - curWeight()); return p?.goal === 'fat' ? -1 : p?.goal === 'muscle' ? 1 : 0; };
 const ovrNow = key => { const r = key && roleOf(key); return r ? ovrOf(r) : 0; };
 // days with 7 h+ sleep, all daily quests, a perfect nutrition day (logged from now on)
-BT.flags = BT.flags || { sleep: [], quests: [], perfect: [] };
+BT.flags = Object.assign({ sleep: [], quests: [], perfect: [], meals3: [] }, BT.flags || {});
+BT.track = BT.track || Date.now(); // when habit logging started
+// How often you do a daily habit: the share of tracked days (up to 28) where you did it, eased towards `def` while there is little data.
+function habit(k, def) {
+  const days = Math.min(28, Math.floor((Date.now() - BT.track) / DAY)), from = dayStart() - days * DAY;
+  let n;
+  if (k === 'weigh') { const first = S.weights[0]?.t; const span = first ? Math.min(28, Math.floor((Date.now() - first) / DAY)) : 0;
+    n = new Set(S.weights.filter(w => w.t >= dayStart() - span * DAY && w.t < dayStart()).map(w => new Date(w.t).toDateString())).size; return Math.min(.95, Math.max(.05, (n + def * 3) / (span + 3))); }
+  const log = k === 'water' ? BT.water : BT.flags[k];
+  n = log.filter(t => t >= from && t < dayStart()).length;
+  return Math.min(.95, Math.max(.05, (n + def * 3) / (days + 3)));
+}
 function logFlags() {
   ensureDay(); const d = dayStart(), F = BT.flags; let ch = false;
   const mark = (k, ok) => { if (ok && !F[k].includes(d)) { F[k].push(d); F[k] = F[k].filter(t => t > Date.now() - 70 * DAY); ch = true; } };
-  mark('sleep', G.today.sleep >= 7); mark('quests', G.quests.claimed.length >= G.quests.list.length); mark('perfect', !!G.today.perfect);
+  mark('sleep', G.today.sleep >= 7); mark('quests', G.quests.claimed.length >= G.quests.list.length); mark('perfect', !!G.today.perfect); mark('meals3', (G.today.meals || 0) >= 3);
   if (ch) commit();
 }
 const flagIn = (k, a, b) => BT.flags[k].filter(t => t >= a && t <= b).length;
@@ -166,17 +177,17 @@ function legProb(kind, n, from, to, grp) {
     case 'd-train': return Math.min(.85, Math.max(.12, f.perWeek / 7 * 1.15));
     case 'd-dg': return Math.min(.6, Math.max(.06, f.dgPerWeek / 7 * 1.3));
     case 'd-sets': return Math.min(.7, Math.max(.08, f.perWeek / 7 * .7));
-    case 'd-water': return .55;
-    case 'd-quests': return .4;
+    case 'd-water': return habit('water', .55);
+    case 'd-quests': return habit('quests', .4);
     case 'train': return atLeast(n - (live ? trainsIn(from, to) : 0), lam);
     case 'dg': return atLeast(n - (live ? dgIn(from, to) : 0), lamDg);
     case 'min': return atLeast(Math.ceil((n - (live ? minsIn(from, to) : 0)) / f.mins), lam);
     case 'pr': return Math.min(.85, .2 + .08 * lam);
-    case 'water': return binomAtLeast(n - (live ? waterIn(from, to) : 0), days - (live && waterToday() ? 1 : 0), .55);
+    case 'water': return binomAtLeast(n - (live ? waterIn(from, to) : 0), days - (live && waterToday() ? 1 : 0), habit('water', .55));
     case 'd-feat': return Math.min(.5, Math.max(.05, f.dgPerWeek / 7));
     case 'd-pr': return Math.min(.6, Math.max(.06, f.perWeek / 7 * .45));
-    case 'd-sleep': return .5;
-    case 'd-meals': return .45;
+    case 'd-sleep': return habit('sleep', .5);
+    case 'd-meals': return habit('meals3', .45);
     case 'd-xp': return Math.min(.8, Math.max(.1, f.perWeek / 7 * (f.xpw >= 260 ? 1 : .6)));
     case 'sets': return atLeast(Math.ceil((n - (live ? setsIn(from, to) : 0)) / f.sets), lam);
     case 'days': return binomAtLeast(n - (live ? daysIn(from, to) : 0), days - (live && trainsIn(dayStart(), dayEnd()) ? 1 : 0), Math.min(.9, f.perWeek / 7));
@@ -184,13 +195,13 @@ function legProb(kind, n, from, to, grp) {
     case 'boss': return atLeast((S.profile?.days || 3) - (live ? trainsIn(from, to) : 0), lam);
     case 'lvl': return atLeast(Math.ceil((totalXp(n) - G.xp) / f.xpw), lam);
     case 'streak': { const need = Math.max(0, n - (live ? streak() : 0)), q = Math.min(.9, f.perWeek / 7 + .1); return need > days ? 0 : Math.min(.95, q ** need * Math.min(1, days / need)); }
-    case 'meals': return atLeast(n - (live ? mealsEaten() : 0), days * 2.2);
+    case 'meals': return atLeast(n - (live ? mealsEaten() : 0), days * (1 + 2.5 * habit('meals3', .45)));
     case 'd-long': return Math.min(.75, Math.max(.08, f.perWeek / 7 * (f.mins >= 45 ? .9 : .4)));
     case 'd-kg': return Math.min(.7, Math.max(.06, f.perWeek / 7 * .5));
     case 'd-mg': return Math.min(.6, Math.max(.05, f.perWeek / 7 * f.mg[grp]));
-    case 'd-weigh': return .5;
-    case 'd-perfect': return .2;
-    case 'd-triple': return Math.min(.85, f.perWeek / 7 * 1.1) * .55 * .5;
+    case 'd-weigh': return habit('weigh', .4);
+    case 'd-perfect': return habit('perfect', .2);
+    case 'd-triple': return Math.min(.85, f.perWeek / 7 * 1.1) * habit('water', .55) * habit('sleep', .5);
     case 'kg': return f.kgw > 50 ? atLeast(Math.ceil((n - (live ? kgIn(from, to) : 0)) / f.kgw), lam) : 0;
     case 'reps': return atLeast(Math.ceil((n - (live ? repsIn(from, to) : 0)) / f.repw), lam);
     case 'var': return atLeast(Math.ceil((n - (live ? varIn(from, to) : 0)) / (f.exw * .6)), lam);
@@ -207,9 +218,9 @@ function legProb(kind, n, from, to, grp) {
     case 'ovr': return atLeast(n * 2, f.drills * days / 7 + lam * .3);
     case 'weigh': return atLeast(n - (live ? weighIn(from, to) : 0), f.weigh * days / 7);
     case 'wlose': case 'wgain': return Math.min(.6, .18 * days / 7 / n + .05);
-    case 'sleepn': return binomAtLeast(n - (live ? flagIn('sleep', from, to) : 0), days - (live && G.today.sleepDone ? 1 : 0), .5);
-    case 'questd': return binomAtLeast(n - (live ? flagIn('quests', from, to) : 0), days - (live && questsAllDone() ? 1 : 0), .4);
-    case 'perfect': return binomAtLeast(1, days, .2);
+    case 'sleepn': return binomAtLeast(n - (live ? flagIn('sleep', from, to) : 0), days - (live && G.today.sleepDone ? 1 : 0), habit('sleep', .5));
+    case 'questd': return binomAtLeast(n - (live ? flagIn('quests', from, to) : 0), days - (live && questsAllDone() ? 1 : 0), habit('quests', .4));
+    case 'perfect': return binomAtLeast(1, days, habit('perfect', .2));
     case 'badge': return Math.min(.75, .25 + .05 * days);
     case 'match': case 'nolose': { const k = sportKey(); if (!k) return 0; const w = winChance(k); return kind === 'match' ? w.pw : Math.min(.95, w.pw + w.draw); }
   }
@@ -218,7 +229,7 @@ function legProb(kind, n, from, to, grp) {
 // Odds: lower than fair, never below 1.00 (a stake back, no profit). Training once in a week or month never pays.
 // Weeks and months pay much less than a single day. Muscle picks start at 1.00 and only muscles you rarely train get a small bonus.
 const ODDS_SCALE = { day: 1, week: .6, month: .45 }, ODDS_CAP = { day: 4, week: 2.5, month: 2 };
-const MG_CAP = { day: 1.5, week: 1.3, month: 1.2 };
+const MG_CAP = { day: 2, week: 1.5, month: 1.3 };
 // how rarely you train a muscle compared with your most trained one (0 = most trained, 1 = never)
 const mgRarity = grp => { const m = form().mg, top = Math.max(...Object.values(m)); return top > 0 ? 1 - m[grp] / top : 0; };
 function oddsFor(kind, n, p, per = 'day', grp) {
