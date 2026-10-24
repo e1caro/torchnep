@@ -268,6 +268,45 @@ html[data-skin=arcade] :is(.seg a.on,.dpill.on){background:#00e4ff;color:#05030f
 html[data-skin=arcade] :is(.xpbar,.qbar,.prog,.hp,.rkbar){border-radius:0;box-shadow:inset 0 0 0 2px #00e4ff}
 html[data-skin=arcade] :is(.xpbar i,.qbar i,.prog i,.hp i,.rkbar i){border-radius:0;background:repeating-linear-gradient(90deg,#ffe14d 0 8px,#0000 8px 10px)}
 
+/* ==========================================================================
+   Themes recolour the interfaces (html[data-tint])
+   ========================================================================== */
+html[data-tint][data-theme=ember]{--acc:#ff6a3d;--acc2:#ffb347}
+html[data-tint][data-theme=neon]{--acc:#00e5ff;--acc2:#ff2bd6}
+html[data-tint][data-theme=sakura]{--acc:#ff7eb6;--acc2:#ffd1e8}
+html[data-tint][data-theme=frost]{--acc:#7cc6ff;--acc2:#e0f4ff}
+html[data-tint][data-theme=toxic]{--acc:#8dff3a;--acc2:#e6ff5a}
+html[data-tint][data-theme=ocean]{--acc:#2ee6d6;--acc2:#3a8dff}
+html[data-tint][data-theme=royal]{--acc:#a66bff;--acc2:#ffd166}
+html[data-tint][data-theme=retro]{--acc:#ff3d7f;--acc2:#ffe14d}
+html[data-tint][data-theme=lava]{--acc:#ff4b1f;--acc2:#ffd000}
+html[data-tint][data-theme=matrix]{--acc:#2bff88;--acc2:#b7ffd8}
+html[data-tint][data-theme=gold]{--acc:#ffd34d;--acc2:#fff1a8}
+html[data-tint][data-theme=aurora]{--acc:#5cffc8;--acc2:#b46bff}
+html[data-tint][data-theme=hologram]{--acc:#7df9ff;--acc2:#e8fdff}
+html[data-tint][data-theme=stealth]{--acc:#9fb3c8;--acc2:#3ddc97}
+html[data-tint][data-theme=redalert]{--acc:#ff2b3d;--acc2:#ffb020}
+html[data-tint][data-theme=synthwave]{--acc:#ff3cc7;--acc2:#7b5cff}
+html[data-tint][data-theme=nightcity]{--acc:#fcee0a;--acc2:#00f0ff}
+html[data-tint][data-skin]{--line:color-mix(in srgb,var(--acc) 40%,transparent);--line2:color-mix(in srgb,var(--acc) 75%,transparent);
+  --card:color-mix(in srgb,var(--acc) 7%,var(--bg));--card2:color-mix(in srgb,var(--acc) 13%,var(--bg));--on:#0b0d12;
+  --pshadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px var(--line),inset 0 0 30px #0006}
+html[data-tint][data-skin] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){background-image:none}
+html[data-tint][data-skin] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::before{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--deco);mask:var(--deco);-webkit-mask-repeat:var(--rep,no-repeat);mask-repeat:var(--rep,no-repeat)}
+html[data-tint][data-skin=arcade] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::before{display:none}
+/* pirate rope frames keep their own rope colours with any theme */
+html[data-tint][data-skin=pirate] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::before{background:var(--deco);-webkit-mask:none;mask:none}
+html[data-tint][data-skin=arcade]{--pshadow:inset 0 0 0 3px var(--acc),inset 0 0 0 6px var(--card),inset 0 0 0 7px var(--line)}
+html[data-tint][data-skin] h1::after{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-mask:var(--orn) 0 50%/100% 100% no-repeat;mask:var(--orn) 0 50%/100% 100% no-repeat}
+html[data-tint][data-skin] .btn,html[data-tint][data-skin] .btn.sm{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 70%,#fff),var(--acc) 55%,color-mix(in srgb,var(--acc) 75%,#000));color:#0b0d12;box-shadow:inset 0 0 0 1px #fff4,inset 0 -3px 0 #0004}
+html[data-tint][data-skin] .btn.ghost{background:var(--card);color:var(--acc);box-shadow:inset 0 0 0 1px var(--line2)}
+html[data-tint][data-skin] :is(.btn.gold,.btn.chestbtn){background:linear-gradient(180deg,color-mix(in srgb,var(--acc2) 70%,#fff),var(--acc2));color:#0b0d12}
+html[data-tint][data-skin] :is(.seg a.on,.dpill.on,.chip.on){background:var(--acc);color:#0b0d12;border-color:var(--acc)}
+html[data-tint][data-skin] .xpbar i{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:none}
+html[data-tint][data-skin] h2.sec::before{background:var(--acc2);color:var(--acc2);box-shadow:none}
+html[data-tint]:is([data-skin=egypt],[data-skin=pirate]) h2.sec::before{width:10px;height:10px;transform:rotate(45deg)}
+html[data-tint][data-skin=chinese] body::after,html[data-tint][data-skin=japanese] body::after{filter:none}
+
 /* ---- interface previews in the shop ---- */
 .skp{width:100%;height:70px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:30px;position:relative;overflow:hidden}
 .skp[data-sk=hud]{background:linear-gradient(#22e4ff14 1px,#0000 1px) 0 0/12px 12px,linear-gradient(90deg,#22e4ff14 1px,#0000 1px) 0 0/12px 12px,#03080f;box-shadow:inset 0 0 0 1px #22e4ff88}

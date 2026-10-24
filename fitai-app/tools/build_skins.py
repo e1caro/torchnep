@@ -394,5 +394,33 @@ body.focus #trybar{bottom:calc(16px + env(safe-area-inset-bottom))}
 .themenote{margin:-2px 0 8px;padding:8px 10px;border-left:2px solid var(--acc);background:color-mix(in srgb,var(--acc) 8%,transparent)}
 """
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + PREVIEW)
+# ---------------------------------------------------------------- themes recolour interfaces
+# With any theme except the default Cyber HUD, an interface's accents (frames, ornaments, buttons, tabs, bars, markers)
+# take the theme's two colours; its scenery keeps its own. Theme colours are read from game.js so they stay in sync.
+import re
+THEMES = re.findall(r"\['(\w+)', '[^']+', \d+, '(#[0-9a-fA-F]{6})', '(#[0-9a-fA-F]{6})'\]", (HERE.parent / 'game.js').read_text())
+T = 'html[data-tint][data-skin]'
+TINT = "\n/* ==========================================================================\n   Themes recolour the interfaces (html[data-tint])\n   ========================================================================== */\n"
+TINT += ''.join(f"html[data-tint][data-theme={k}]{{--acc:{a};--acc2:{b}}}\n" for k, a, b in THEMES if k != 'hud')
+TINT += f"""{T}{{--line:color-mix(in srgb,var(--acc) 40%,transparent);--line2:color-mix(in srgb,var(--acc) 75%,transparent);
+  --card:color-mix(in srgb,var(--acc) 7%,var(--bg));--card2:color-mix(in srgb,var(--acc) 13%,var(--bg));--on:#0b0d12;
+  --pshadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px var(--line),inset 0 0 30px #0006}}
+{T} {P}{{background-image:none}}
+{T} {P}::before{{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--deco);mask:var(--deco);-webkit-mask-repeat:var(--rep,no-repeat);mask-repeat:var(--rep,no-repeat)}}
+html[data-tint][data-skin=arcade] {P}::before{{display:none}}
+/* pirate rope frames keep their own rope colours with any theme */
+html[data-tint][data-skin=pirate] {P}::before{{background:var(--deco);-webkit-mask:none;mask:none}}
+html[data-tint][data-skin=arcade]{{--pshadow:inset 0 0 0 3px var(--acc),inset 0 0 0 6px var(--card),inset 0 0 0 7px var(--line)}}
+{T} h1::after{{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-mask:var(--orn) 0 50%/100% 100% no-repeat;mask:var(--orn) 0 50%/100% 100% no-repeat}}
+{T} .btn,{T} .btn.sm{{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 70%,#fff),var(--acc) 55%,color-mix(in srgb,var(--acc) 75%,#000));color:#0b0d12;box-shadow:inset 0 0 0 1px #fff4,inset 0 -3px 0 #0004}}
+{T} .btn.ghost{{background:var(--card);color:var(--acc);box-shadow:inset 0 0 0 1px var(--line2)}}
+{T} :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,color-mix(in srgb,var(--acc2) 70%,#fff),var(--acc2));color:#0b0d12}}
+{T} :is(.seg a.on,.dpill.on,.chip.on){{background:var(--acc);color:#0b0d12;border-color:var(--acc)}}
+{T} .xpbar i{{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:none}}
+{T} h2.sec::before{{background:var(--acc2);color:var(--acc2);box-shadow:none}}
+html[data-tint]:is([data-skin=egypt],[data-skin=pirate]) h2.sec::before{{width:10px;height:10px;transform:rotate(45deg)}}
+html[data-tint][data-skin=chinese] body::after,html[data-tint][data-skin=japanese] body::after{{filter:none}}
+"""
+
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + PREVIEW)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')

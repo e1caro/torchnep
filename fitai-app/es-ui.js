@@ -258,3 +258,4 @@ i18nAdd({ 'Themes recolour the Sci-fi HUD interface.': 'Los temas cambian los co
   'Theme saved. You will see it with the Sci-fi HUD interface.': 'Tema guardado. Lo verás con la interfaz HUD de ciencia ficción.' });
 i18nPat(/^(.+) Themes recolour the Sci-fi HUD interface\. (.+) uses its own colours\.$/, (e, n) => `${e} Los temas cambian los colores de la interfaz HUD de ciencia ficción. ${tr(n)} usa sus propios colores.`);
 i18nAdd({ 'Something to claim': 'Hay algo para reclamar' });
+i18nPat(/^(.+) Themes recolour (.+) too\. Choose Cyber HUD to see its original colours\.$/, (e, n) => `${e} Los temas también cambian los colores de ${tr(n)}. Elige Cyber HUD para ver sus colores originales.`);
