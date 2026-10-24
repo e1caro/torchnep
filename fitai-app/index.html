@@ -3,24 +3,32 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0e1116">
+<meta name="theme-color" content="#0b0d12">
+<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=DM+Sans:wght@400;500;700&family=Press+Start+2P&display=swap">
 <link rel="stylesheet" href="style.css">
 <title>FitCoach</title>
 </head>
 <body>
 <main id="view"></main>
 <nav id="tabs">
-  <a href="#/home" data-t="home"><i>🏠</i>Today</a>
-  <a href="#/plan" data-t="plan"><i>📋</i>Plan</a>
-  <a href="#/library" data-t="library"><i>🎬</i>Library</a>
-  <a href="#/progress" data-t="progress"><i>📈</i>Progress</a>
-  <a href="#/premium" data-t="premium"><i>⭐</i>Premium</a>
+  <a href="#/home" data-t="home" data-i="home"><span>Today</span></a>
+  <a href="#/plan" data-t="plan" data-i="plan"><span>Plan</span></a>
+  <a href="#/dungeons" data-t="dungeons" data-i="dungeon"><span>Dungeons</span></a>
+  <a href="#/rewards" data-t="rewards" data-i="gift"><span>Rewards</span></a>
+  <a href="#/progress" data-t="progress" data-i="chart"><span>Stats</span></a>
+  <a href="#/me" data-t="me" data-i="user"><span>Hero</span></a>
 </nav>
 <div id="rest" hidden></div>
+<div id="modal" hidden></div>
+<div id="toasts"></div>
 <script src="app.js"></script>
+<script src="game.js"></script>
 </body>
 </html>
