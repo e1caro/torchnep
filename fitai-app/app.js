@@ -465,8 +465,34 @@ function compactText() {
     d.innerHTML = '<summary>More info</summary>'; p.replaceWith(d); d.appendChild(p);
   });
 }
+// Cleaner screens: each section (a "sec" heading and what follows it) folds into a dropdown on the busy screens.
+// Buttons that sit between sections (check-in, open chest, more ways to earn) stay visible.
+const FOLD_ROUTES = ['home', 'earn', 'progress', 'rewards'];
+const foldState = (() => { try { return JSON.parse(localStorage.getItem('fc.fold')) || {}; } catch { return {}; } })();
+function foldSections() {
+  const name = (location.hash || '#/home').split('/')[1] || 'home';
+  if (!FOLD_ROUTES.includes(name) || view.querySelector(':scope > details.fold')) return;
+  const isHead = el => el.matches('h2.sec, .sec2');
+  const heads = [...view.children].filter(isHead);
+  heads.forEach((h, idx) => {
+    const key = name + ':' + (location.hash.split('/')[2] || '') + ':' + idx, body = [], loose = [];
+    for (let el = h.nextElementSibling; el && !isHead(el); el = el.nextElementSibling) (el.matches('button.btn, a.btn, label.btn') ? loose : body).push(el);
+    if (!body.length) return;
+    const d = document.createElement('details'); d.className = 'fold';
+    const sum = document.createElement('summary');
+    h.before(d); // place the dropdown first, then move the heading into its summary
+    const title = h.matches('h2') ? h : h.querySelector('h2'), status = h.matches('h2') ? null : h.querySelector('.mut');
+    title.classList.add('sec'); sum.appendChild(title); if (status) sum.appendChild(status);
+    if (h !== title) h.remove();
+    if (body.some(el => el.querySelector?.('.quest.ok button, .chestbtn, button[onclick*="claim"]') || el.matches?.('.quest.ok'))) sum.insertAdjacentHTML('beforeend', '<i class="foldnew" aria-label="Something to claim">!</i>');
+    d.appendChild(sum); body.forEach(el => d.appendChild(el));
+    d.open = key in foldState ? foldState[key] : body.some(el => el.matches?.('.next'));
+    d.addEventListener('toggle', () => { foldState[key] = d.open; try { localStorage.setItem('fc.fold', JSON.stringify(foldState)); } catch { /* storage blocked */ } });
+    let after = d; loose.forEach(b => { after.after(b); after = b; });
+  });
+}
 let compactQ = 0;
-new MutationObserver(() => { if (!compactQ) compactQ = requestAnimationFrame(() => { compactQ = 0; compactText(); }); }).observe(view, { childList: true, subtree: true });
+new MutationObserver(() => { if (!compactQ) compactQ = requestAnimationFrame(() => { compactQ = 0; compactText(); foldSections(); }); }).observe(view, { childList: true, subtree: true });
 
 try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // the Synergym gym pass was removed
 (async function init() {

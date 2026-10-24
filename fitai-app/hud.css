@@ -310,3 +310,14 @@ main{text-shadow:0 1px 2px color-mix(in srgb,var(--bg) 85%,#000),0 0 6px color-m
 /* light or filled backgrounds already read well: no shadow there */
 main :is(.btn:not(.ghost),.chip.on,.seg a.on,.dpill.on,.mkt.on .odd,.lv,.rk,.xpchip,.dot,.hwn,.lg,.ck,.qrfs,.demo,.thumb,.pc-mini,.pcard[class*=pc-],input,select,.bignum,.wl span){text-shadow:none}
 .rl.now .dot,.rl.past .dot{text-shadow:none}
+
+/* ---- folding sections (Today, Ways to earn, Progress, Rewards) ---- */
+details.fold{margin:6px 0}
+details.fold>summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer;padding:6px 0;margin:14px 0 4px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary h2.sec{flex:1;margin:0;min-width:0}
+details.fold>summary .mut{flex:none;font-size:13px}
+details.fold>summary::after{content:"";flex:none;width:9px;height:9px;border-right:2px solid var(--acc);border-bottom:2px solid var(--acc);transform:rotate(45deg);margin:0 6px 4px 2px;transition:transform .2s}
+details.fold[open]>summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+.foldnew{flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--acc2);color:var(--on,#021016);font:800 12px var(--body);font-style:normal;text-shadow:none;animation:pulse 1.4s ease-in-out infinite alternate}
+@keyframes pulse{to{box-shadow:0 0 0 5px color-mix(in srgb,var(--acc2) 25%,transparent)}}

@@ -257,3 +257,4 @@ i18nAdd({ Olympus: 'Olimpo', 'Ancient Egypt': 'Antiguo Egipto', 'Viking Saga': '
 i18nAdd({ 'Themes recolour the Sci-fi HUD interface.': 'Los temas cambian los colores de la interfaz HUD de ciencia ficción.', 'uses its own colours.': 'usa sus propios colores.',
   'Theme saved. You will see it with the Sci-fi HUD interface.': 'Tema guardado. Lo verás con la interfaz HUD de ciencia ficción.' });
 i18nPat(/^(.+) Themes recolour the Sci-fi HUD interface\. (.+) uses its own colours\.$/, (e, n) => `${e} Los temas cambian los colores de la interfaz HUD de ciencia ficción. ${tr(n)} usa sus propios colores.`);
+i18nAdd({ 'Something to claim': 'Hay algo para reclamar' });
