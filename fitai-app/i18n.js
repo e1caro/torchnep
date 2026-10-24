@@ -26,7 +26,7 @@ function tr(s, depth = 0) {
   return s;
 }
 // "1 ejercicios" -> "1 ejercicio"
-const SING = { ejercicios: 'ejercicio', series: 'serie', veces: 'vez', días: 'día', minutos: 'minuto', monedas: 'moneda', selecciones: 'selección', apuestas: 'apuesta', horas: 'hora', semanas: 'semana', vasos: 'vaso', recetas: 'receta', comidas: 'comida', insignias: 'insignia', mazmorras: 'mazmorra', entrenamientos: 'entrenamiento', récords: 'récord', cofres: 'cofre', tiradas: 'tirada' };
+const SING = { ejercicios: 'ejercicio', series: 'serie', veces: 'vez', días: 'día', minutos: 'minuto', monedas: 'moneda', selecciones: 'selección', apuestas: 'apuesta', horas: 'hora', semanas: 'semana', vasos: 'vaso', recetas: 'receta', comidas: 'comida', insignias: 'insignia', mazmorras: 'mazmorra', entrenamientos: 'entrenamiento', récords: 'récord', cofres: 'cofre', tiradas: 'tirada', noches: 'noche', repeticiones: 'repetición' };
 const singular = t => t.replace(/(^|[^\d.,])1 (\p{L}+)/gu, (x, a, w) => SING[w] ? `${a}1 ${SING[w]}` : x);
 function trCore(c, depth) {
   const W = I18N.words;
