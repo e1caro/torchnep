@@ -36,7 +36,9 @@ function weekStats(ws, upto = WEEK) {
   return { ws, n: hs.length, min: hs.reduce((a, h) => a + (h.dur || 0), 0), kg: hs.reduce((a, h) => a + volume(h), 0), sets, reps, days, run: best, mus, prs, top, xp,
     dungeons: hs.filter(h => h.dungeon).length };
 }
-const grade = (n, goal) => { const r = n / Math.max(1, goal); return r >= 1 ? 'A+' : r >= .75 ? 'A' : r >= .5 ? 'B' : r > 0 ? 'C' : '—'; };
+// S is an exceptional week: more workouts than the goal, plus a new record or more kilos than the week before
+const grade = (w, goal, prev) => { const r = w.n / Math.max(1, goal);
+  return r > 1 && (w.prs.length || (prev && w.kg > prev.kg)) ? 'S' : r >= 1 ? 'A+' : r >= .75 ? 'A' : r >= .5 ? 'B' : r > 0 ? 'C' : '—'; };
 
 // ---------- the story viewer ----------
 let RC = null;
@@ -67,8 +69,8 @@ window.openRecap = (which = 'last') => {
       <div class="rdays">${w.days.map((d, i) => `<span class="${d ? 'on' : ''}"><i>${d ? '✓' : ''}</i><b>${wd[i]}</b></span>`).join('')}</div>
       <div class="rgrid"><div>${cnt(w.run)}<div class="rlbl">days in a row</div></div><div>${cnt(w.xp ?? 0)}<div class="rlbl">XP earned</div></div></div>
       <div class="rnote">${Math.min(w.n, goal) >= goal ? 'Weekly boss defeated.' : `${goal - Math.min(w.n, goal)} more workouts would have beaten the weekly boss.`}</div>`,
-    `<div class="rkick">Week grade</div><div class="rgrade">${grade(w.n, goal)}</div><div class="rsub">${w.n} / ${goal} workouts</div>
-      <div class="rnote">${w.n >= goal ? 'Next week: keep the rhythm, and try one more set per exercise.' : `Next week: aim for ${goal} workouts.`}</div>
+    `<div class="rkick">Week grade</div><div class="rgrade${grade(w, goal, prev) === 'S' ? ' s' : ''}">${grade(w, goal, prev)}</div><div class="rsub">${w.n} / ${goal} workouts</div>
+      <div class="rnote">${grade(w, goal, prev) === 'S' ? 'An exceptional week. Above your goal and stronger than before.' : w.n >= goal ? 'Next week: keep the rhythm, and try one more set per exercise.' : `Next week: aim for ${goal} workouts.`}</div>
       <button class="btn" onclick="shareRecap(event)">Share</button><button class="btn ghost" onclick="closeRecap()">Done</button>`,
   ];
   closeRecap(true);
@@ -96,6 +98,7 @@ window.recapGo = d => {
     const step = t => { const k = Math.min(1, (t - t0) / 900), e = 1 - (1 - k) ** 3; b.textContent = fmtN(to * e) + (b.dataset.u || ''); if (k < 1 && RC) requestAnimationFrame(step); };
     requestAnimationFrame(step);
   });
+  if (RC.el.querySelector('.rs.on .rgrade.s')) setTimeout(() => { if (RC) confetti(); }, 500);
   clearTimeout(RC.t);
   if (i < RC.n - 1) RC.t = setTimeout(() => recapGo(1), 6500); // the last slide waits for you
 };
@@ -177,7 +180,7 @@ routes.progress = function () {
   const w = weekStats(weekStart()), prev = weekStats(weekStart() - WEEK, Date.now() - weekStart()), goal = S.profile?.days || 3, wd = [...Array(7)].map((_, i) => new Date(weekStart() + i * 864e5).toLocaleDateString(LANG, { weekday: 'narrow' }));
   const today = (new Date().getDay() + 6) % 7;
   const d = (a, b) => (b ? `<i class="${a >= b ? 'up' : 'down'}">${a >= b ? '▲' : '▼'}${fmtN(Math.abs(a - b))}</i>` : '');
-  view.querySelector('.grid3')?.insertAdjacentHTML('afterend', `<section class="card wkcard"><div class="row between"><h3>${gi('calendar', 'hero')} Your week</h3><span class="wkgrade">${grade(w.n, goal)}</span></div>
+  view.querySelector('.grid3')?.insertAdjacentHTML('afterend', `<section class="card wkcard"><div class="row between"><h3>${gi('calendar', 'hero')} Your week</h3><span class="wkgrade${grade(w, goal, prev) === 'S' ? ' s' : ''}">${grade(w, goal, prev)}</span></div>
     <div class="wkdays">${w.days.map((x, i) => `<span class="${x ? 'on' : ''}${i === today ? ' now' : ''}"><i>${x ? '✓' : ''}</i><b>${wd[i]}</b></span>`).join('')}</div>
     <div class="wkstats"><div><b>${w.n}<small>/${goal}</small></b><span>workouts</span>${d(w.n, prev.n)}</div><div><b>${fmtN(w.min)}</b><span>minutes</span>${d(w.min, prev.min)}</div>
       <div><b>${fmtN(w.kg)}</b><span>kg lifted</span>${d(w.kg, prev.kg)}</div><div><b>${w.prs.length}</b><span>records</span></div></div>
@@ -195,7 +198,7 @@ if (typeof i18nAdd === 'function') i18nAdd({
   'Best workout': 'Mejor entrenamiento', '{n} dungeon cleared': '{n} mazmorra superada', '{n} dungeons cleared': '{n} mazmorras superadas', Consistency: 'Constancia',
   'days in a row': 'días seguidos', 'XP earned': 'XP ganada', 'Weekly boss defeated.': 'Jefe semanal derrotado.',
   '{n} more workouts would have beaten the weekly boss.': 'Con {n} entrenamientos más habrías derrotado al jefe semanal.',
-  'Week grade': 'Nota de la semana', '{n} / {n} workouts': '{n} / {n} entrenamientos', 'Next week: keep the rhythm, and try one more set per exercise.': 'La próxima semana: mantén el ritmo y prueba una serie más por ejercicio.',
+  'Week grade': 'Nota de la semana', 'An exceptional week. Above your goal and stronger than before.': 'Una semana excepcional. Por encima de tu objetivo y más fuerte que antes.', '{n} / {n} workouts': '{n} / {n} entrenamientos', 'Next week: keep the rhythm, and try one more set per exercise.': 'La próxima semana: mantén el ritmo y prueba una serie más por ejercicio.',
   'Next week: aim for {n} workouts.': 'La próxima semana: apunta a {n} entrenamientos.', Share: 'Compartir', Done: 'Hecho', 'My week on FitQuest': 'Mi semana en FitQuest',
   'new records': 'nuevos récords', 'Copied, paste it anywhere': 'Copiado, pégalo donde quieras',
   'Good morning': 'Buenos días', 'Good afternoon': 'Buenas tardes', 'Good evening': 'Buenas noches', 'Your weekly summary is ready.': 'Tu resumen semanal está listo.',

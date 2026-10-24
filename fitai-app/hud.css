@@ -550,3 +550,9 @@ html[data-skin=hud] .rkick::after{height:2px;width:120px;background:linear-gradi
 html[data-skin=arcade] #recap .rbig{font-size:38px}html[data-skin=arcade] #recap .rgrid .rbig{font-size:26px}html[data-skin=arcade] #recap .rkick{font-size:15px;line-height:1.5}
 html[data-skin=arcade] #recap .rgrade{font-size:80px}html[data-skin=arcade] #recap .rnote{font-size:20px}html[data-skin=arcade] #recap .rlbl{font-size:9px}
 html[data-skin=arcade] #recap :is(.rbar,.rpr){font-size:18px}
+/* S grade: an exceptional week shines gold */
+@keyframes sshine{to{background-position:200% 0}}
+:is(.rgrade,.wkgrade).s{background:linear-gradient(110deg,#b8860b 0%,#ffe27a 25%,#fff8d6 35%,#ffd23a 50%,#b8860b 70%,#ffe27a 100%) 0 0/200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 18px #ffcc33aa);animation:sshine 2.4s linear infinite}
+.rgrade.s{animation:rpop .8s both,sshine 2.4s .8s linear infinite;font-size:150px}
+html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
