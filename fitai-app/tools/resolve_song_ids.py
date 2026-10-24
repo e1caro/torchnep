@@ -61,7 +61,19 @@ def source_link(t, a):
     return hits[0]['link'] if hits else None
 
 
+def probe(n):
+    """Quick check: look up a few songs and print every step, without writing anything."""
+    for t, a in songs()[:: max(1, len(songs()) // n)][:n]:
+        link = source_link(t, a)
+        sl = get('https://api.song.link/v1-alpha.1/links?' + urllib.parse.urlencode({'url': link, 'songIfSingle': 'true'})) if link else None
+        sp = ((sl or {}).get('linksByPlatform', {}).get('spotify', {}) or {}).get('url')
+        print(f'{t} | {a}\n   source: {link}\n   spotify: {sp}', flush=True)
+        time.sleep(6.5)
+
+
 def main():
+    if len(sys.argv) > 2 and sys.argv[1] == '--probe':
+        return probe(int(sys.argv[2]))
     ids = json.loads(OUT.read_text()) if OUT.exists() else {}
     todo = [(t, a) for t, a in songs() if f'{t}|{a}' not in ids]
     print(f'{len(ids)} known, {len(todo)} to find', flush=True)
