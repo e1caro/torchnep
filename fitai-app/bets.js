@@ -7,7 +7,7 @@ const BT = (G.bets = Object.assign({ open: [], done: [], won: 0, lost: 0, net: 0
 let slip = [], stake = 25;
 const BET_MIN = 5, BET_MAX = 300, BET_OPEN = 8, LEGS_MAX = 6, BET_COMBO_MAX = 20;
 // Today's muscle picks pay 1.00 each (you will train something); combining them multiplies the bet by these odds.
-const MG_DAY = [1, 1, 1.5, 2, 2.5, 3, 3.6];
+const MG_DAY = [1, 1, 1.25, 1.6, 2.1, 2.8, 3.6];
 let betTab = 'today', slipRepeat = false;
 
 // ---------- time windows ----------
@@ -502,7 +502,7 @@ function betsView() {
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
     <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
     <li>Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
-    <li>Today's muscle picks pay 1.00 alone, because you will train something. Combine several to raise the odds: 2 muscles ×1.5, 3 ×2, 4 ×2.5, 5 ×3, all 6 ×3.6.</li>
+    <li>Today's muscle picks pay 1.00 alone, because you will train something. Combine several to raise the odds: 2 muscles ×1.25, 3 ×1.6, 4 ×2.1, 5 ×2.8, all 6 ×3.6.</li>
     <li>Tick Repeat to renew a bet on its own every day, week or month. Stop it from My bets whenever you like.</li>
     <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back) and training once a week or month never pays. Stakes go from ${BET_MIN} to ${BET_MAX} coins, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
   ${slip.length ? `<section class="card slip"><div class="row between"><h3>${slip.length > 1 ? `Combined bet · ${slip.length} picks` : 'Single bet'}</h3><button class="icon" aria-label="Clear slip" onclick="betClear()">${ic('close', 18)}</button></div>
@@ -518,7 +518,7 @@ function betsView() {
     : `<p class="mut">Pick one goal for a single bet, or several for a combined bet.</p>`}
   <div class="chips bettabs">${PER_TABS.map(([k, t]) => `<button class="chip ${betTab === k ? 'on' : ''}" onclick="betTabSet('${k}')">${t}</button>`).join('')}</div>
   <div class="mut">${note}</div>
-  ${list.length ? CATS.map(([c, name]) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<h3 class="betcat">${name}</h3>${c === 'muscle' && betTab === 'today' ? `<div class="mut">Each muscle pays 1.00 alone. Combine them: 2 muscles ×1.5, 3 ×2, 4 ×2.5, 5 ×3, all 6 ×3.6.</div>` : ''}${xs.map(row).join('')}` : ''; }).join('') : `<p class="mut">${betTab === 'today' ? 'Nothing left to bet on today. Well done!' : 'Nothing to bet on here right now.'}</p>`}
+  ${list.length ? CATS.map(([c, name]) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<h3 class="betcat">${name}</h3>${c === 'muscle' && betTab === 'today' ? `<div class="mut">Each muscle pays 1.00 alone. Combine them: 2 muscles ×1.25, 3 ×1.6, 4 ×2.1, 5 ×2.8, all 6 ×3.6.</div>` : ''}${xs.map(row).join('')}` : ''; }).join('') : `<p class="mut">${betTab === 'today' ? 'Nothing left to bet on today. Well done!' : 'Nothing to bet on here right now.'}</p>`}
   <h2 class="sec">My bets</h2>
   ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
   ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}</details>` : ''}
