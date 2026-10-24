@@ -5,7 +5,9 @@
 
 const BT = (G.bets = Object.assign({ open: [], done: [], won: 0, lost: 0, net: 0, best: 0 }, G.bets || {}));
 let slip = [], stake = 25;
-const BET_MIN = 5, BET_MAX = 300, BET_OPEN = 8, LEGS_MAX = 5, BET_COMBO_MAX = 20;
+const BET_MIN = 5, BET_MAX = 300, BET_OPEN = 8, LEGS_MAX = 6, BET_COMBO_MAX = 20;
+// Today's muscle picks pay 1.00 each (you will train something); combining them multiplies the bet by these odds.
+const MG_DAY = [1, 1, 1.25, 1.6, 2.1, 2.8, 3.6];
 let betTab = 'today', slipRepeat = false;
 
 // ---------- time windows ----------
@@ -213,7 +215,7 @@ function legProb(kind, n, from, to, grp) {
 }
 // Odds: lower than fair, never below 1.00 (a stake back, no profit). Training once in a week or month never pays.
 function oddsFor(kind, n, p) {
-  if (kind === 'train' && n <= 1) return 1;
+  if ((kind === 'train' && n <= 1) || kind === 'd-mg') return 1;
   return Math.min(4, Math.max(1, Math.round((1 + (.85 / Math.max(p, .01) - 1) * .45) * 20) / 20));
 }
 
@@ -236,7 +238,7 @@ function markets() {
   if (xpIn(ds) < 300) day('d-xp', 'xp', 'train', { need: 300, prog: xpIn(ds) });
   if (!countIn(ds, de, h => h.dur >= 45)) day('d-long', 'today', 'train');
   if (f.kgw > 50) { const n = Math.max(500, Math.round(f.kgw * 1.1 / 250) * 250); if (kgIn(ds, de) < n) day('d-kg', 'today', 'train', { n, t: `Lift ${n} kg today`, need: n, prog: kgIn(ds, de) }); }
-  for (const grp of Object.keys(MG)) if (!mgIn(grp, ds, de)) out.push({ id: 'd-mg-' + grp, kind: 'd-mg', grp, per: 'day', g: 'today', topic: 'train', t: `Train ${GRP[grp]} today`, ico: 'strong', tab: 'today', from: ds, to: de, p: legProb('d-mg', 0, ds, de, grp) });
+  for (const grp of Object.keys(MG)) if (!mgIn(grp, ds, de)) out.push({ id: 'd-mg-' + grp, kind: 'd-mg', grp, per: 'day', g: 'mg-' + grp, topic: 'muscle', t: `Train ${GRP[grp]} today`, ico: 'strong', tab: 'today', from: ds, to: de, p: legProb('d-mg', 0, ds, de, grp) });
   if (!weighIn(ds, de)) day('d-weigh', 'weigh', 'weight');
   if (mealsOn() && !G.today.perfect) day('d-perfect', 'perfect', 'meals');
   if (!G.today.sleepDone && !(trainsIn(ds, de) && G.today.waterGoal)) day('d-triple', 'triple', 'train');
@@ -381,7 +383,8 @@ function slipOdds(legs) {
   const raw = legs.reduce((a, l) => a * l.o, 1);
   const byTopic = {}; legs.filter(l => l.o > 1).forEach(l => { byTopic[l.topic] = (byTopic[l.topic] || 0) + 1; }); // 1.00 picks add nothing, so they cost nothing
   const related = Object.values(byTopic).reduce((a, n) => a + Math.max(0, n - 1), 0);
-  return { raw, related, total: Math.min(BET_COMBO_MAX, Math.max(1, Math.round(raw * .85 ** related * 100) / 100)) };
+  const muscles = legs.filter(l => l.kind === 'd-mg').length, mgx = MG_DAY[muscles] || 1;
+  return { raw, related, muscles, mgx, total: Math.min(BET_COMBO_MAX, Math.max(1, Math.round(raw * mgx * .85 ** related * 100) / 100)) };
 }
 
 // ---------- settle open bets ----------
@@ -446,8 +449,9 @@ window.betPick = id => {
   if (i >= 0) slip.splice(i, 1);
   else {
     // two training goals that a single workout could finish (today's goals, or weekly ones one workout away) would pay twice for one workout
-    const solo = x => x.g === 'today' || x.one, clash = solo(m) ? slip.findIndex(l => solo(l) && l.g !== m.g) : -1;
-    if (clash >= 0) { slip.splice(clash, 1); toast('One workout would win both picks, so they cannot be combined.'); }
+    const solo = x => x.g === 'today' || x.one || x.kind === 'd-mg';
+    const clashes = l => solo(m) && solo(l) && l.g !== m.g && !(l.kind === 'd-mg' && m.kind === 'd-mg');
+    if (slip.some(clashes)) { slip = slip.filter(l => !clashes(l)); toast('One workout would win both picks, so they cannot be combined.'); }
     const same = slip.findIndex(l => l.g === m.g);
     if (same >= 0) slip.splice(same, 1); // one pick per group: swap it
     if (slip.length >= LEGS_MAX) { toast(`Up to ${LEGS_MAX} picks per bet.`); return; }
@@ -498,10 +502,12 @@ function betsView() {
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
     <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
     <li>Bet on today, this week, next week, this month or next month. Next week is open for bets until Sunday night, and next month until the end of this month. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
+    <li>Today's muscle picks pay 1.00 alone, because you will train something. Combine several to raise the odds: 2 muscles ×1.25, 3 ×1.6, 4 ×2.1, 5 ×2.8, all 6 ×3.6.</li>
     <li>Tick Repeat to renew a bet on its own every day, week or month. Stop it from My bets whenever you like.</li>
     <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back) and training once a week or month never pays. Stakes go from ${BET_MIN} to ${BET_MAX} coins, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
   ${slip.length ? `<section class="card slip"><div class="row between"><h3>${slip.length > 1 ? `Combined bet · ${slip.length} picks` : 'Single bet'}</h3><button class="icon" aria-label="Clear slip" onclick="betClear()">${ic('close', 18)}</button></div>
     ${slip.map(l => `<div class="row betleg"><span class="grow">${l.t}</span><span class="mut">${l.o.toFixed(2)}</span></div>`).join('')}
+    ${so.muscles > 1 ? `<div class="mut">Muscle combo: ${so.muscles} muscles ×${so.mgx.toFixed(2)}</div>` : ''}
     ${so.related ? `<div class="mut">Related training picks: odds ×${(.85 ** so.related).toFixed(2)}</div>` : ''}
     <div class="row between"><span>Total odds</span><span class="odd big">${so.total.toFixed(2)}</span></div>
     <div class="lbl">Stake</div><div class="chips">${[10, 25, 50, 100, 200].filter(v => v <= maxStake).map(v => `<button class="chip ${stake === v ? 'on' : ''}" onclick="betStake(${v})">${v}</button>`).join('')}${maxStake >= BET_MIN ? `<button class="chip ${stake === maxStake ? 'on' : ''}" onclick="betStake(${maxStake})">Max</button>` : ''}</div>
@@ -512,7 +518,7 @@ function betsView() {
     : `<p class="mut">Pick one goal for a single bet, or several for a combined bet.</p>`}
   <div class="chips bettabs">${PER_TABS.map(([k, t]) => `<button class="chip ${betTab === k ? 'on' : ''}" onclick="betTabSet('${k}')">${t}</button>`).join('')}</div>
   <div class="mut">${note}</div>
-  ${list.length ? CATS.map(([c, name]) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<h3 class="betcat">${name}</h3>${xs.map(row).join('')}` : ''; }).join('') : `<p class="mut">${betTab === 'today' ? 'Nothing left to bet on today. Well done!' : 'Nothing to bet on here right now.'}</p>`}
+  ${list.length ? CATS.map(([c, name]) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<h3 class="betcat">${name}</h3>${c === 'muscle' && betTab === 'today' ? `<div class="mut">Each muscle pays 1.00 alone. Combine them: 2 muscles ×1.25, 3 ×1.6, 4 ×2.1, 5 ×2.8, all 6 ×3.6.</div>` : ''}${xs.map(row).join('')}` : ''; }).join('') : `<p class="mut">${betTab === 'today' ? 'Nothing left to bet on today. Well done!' : 'Nothing to bet on here right now.'}</p>`}
   <h2 class="sec">My bets</h2>
   ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
   ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}</details>` : ''}
@@ -589,6 +595,9 @@ if (typeof i18nAdd === 'function') {
     'Bet on Yourself': 'Apuesta por ti', 'Win a bet': 'Gana una apuesta', 'Combo King': 'Rey de la combinada', 'Win a combined bet with 3 or more picks': 'Gana una combinada de 3 o más selecciones',
   });
   const GRP_ES = { legs: 'piernas', chest: 'pecho', back: 'espalda', shoulders: 'hombros', arms: 'brazos', core: 'core' };
+  i18nAdd({ 'Muscle combo: {n} muscles ×{n}': 'Combo de músculos: {n} músculos ×{n}',
+    'Each muscle pays {n} alone. Combine them: {n} muscles ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, all {n} ×{n}.': 'Cada músculo paga {n} solo. Combínalos: {n} músculos ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, los {n} ×{n}.',
+    "Today's muscle picks pay {n} alone, because you will train something. Combine several to raise the odds: {n} muscles ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, all {n} ×{n}.": 'Los músculos de hoy pagan {n} solos, porque algo vas a entrenar. Combina varios para subir la cuota: {n} músculos ×{n}, {n} ×{n}, {n} ×{n}, {n} ×{n}, los {n} ×{n}.' });
   i18nAdd({ Training: 'Entrenamiento', Muscles: 'Músculos', Health: 'Salud', Game: 'Juego',
     'Train 45 minutes or more today': 'Entrenar 45 minutos o más hoy', 'Train 45 minutes or more tomorrow': 'Entrenar 45 minutos o más mañana',
     'Log your weight today': 'Registrar tu peso hoy', 'Log your weight tomorrow': 'Registrar tu peso mañana',
