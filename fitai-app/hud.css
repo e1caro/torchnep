@@ -430,3 +430,5 @@ html[data-skin=arcade] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::after{displ
 html[data-skin=hud] nav a span{font:700 9px var(--disp);letter-spacing:.02em}
 @media(max-width:360px){html[data-skin=hud] nav a span{font-size:8px;letter-spacing:0}}
 .orbs .bub{gap:calc(var(--d) * .14 + 2px)}
+/* all circles float together, so the gaps between them never shrink */
+.orbs .bub{animation-delay:0s}
