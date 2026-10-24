@@ -22,7 +22,7 @@ const target = () => analyze({ ...S.profile, weight: curWeight() });
 
 function recipeOk(r, set = M.set) {
   const fl = flagsOf(r), ban = DIET_BAN[set.diet] + set.avoid.map(a => AVOID[a][1]).join('');
-  return ![...fl].some(f => ban.includes(f));
+  return ![...fl].some(f => ban.includes(f)) && (!r.chef || has(item('r-' + r.id)));
 }
 function portion(r, kcal) { return Math.round(clamp(kcal / nutOf(r).kcal, .5, 2.2) * 20) / 20; }
 
@@ -127,11 +127,12 @@ function mealsView(arg) {
   ${bar('Protein', t.p, a.protein, 'pr')}${bar('Carbs', t.c, a.carbs, 'cb')}${bar('Fat', t.f, a.fat, 'ft')}</section>
   <div class="lbl">Time to cook this day</div>
   <div class="chips">${Object.entries(COOK).map(([v, l]) => `<button class="chip ${+v === d.cook ? 'on' : ''}" onclick="setCook(${mDay},${v})">${l}</button>`).join('')}</div>
-  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min</div><div class="qt">${esc(r.name)}</div>
+  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutOf(r); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.chef ? ' · ⭐ Chef' : ''}</div><div class="qt">${esc(r.name)}</div>
   <div class="mut">${Math.round(n.kcal * it.k)} kcal · P ${Math.round(n.p * it.k)} · C ${Math.round(n.c * it.k)} · F ${Math.round(n.f * it.k)}</div></div><span class="chk">${it.eaten ? '✓' : ''}</span></a>`; }).join('')}
   ${filterNotes(M.set).map(n => `<p class="mut">⚠️ ${esc(n)}</p>`).join('')}
   <button class="btn" onclick="location.hash='#/shop'">🛒 Shopping list</button>
   <button class="btn ghost" onclick="rebuildWeek()">Shuffle the whole week</button>
+  <button class="btn ghost" onclick="location.hash='#/rewards'">⭐ Unlock chef's recipes with coins</button>
   <button class="btn ghost" onclick="location.hash='#/meals/setup'">Change diet and preferences</button>
   <p class="mut">Calories and macros are estimates from typical ingredient values. They are not medical or dietitian advice.</p>`;
 }
@@ -162,6 +163,7 @@ window.toggleEat = (di, ii) => {
   if (it.eaten && !it.xp && +di === todayIdx()) {
     it.xp = 1; ensureDay(); G.today.meals = (G.today.meals || 0) + 1; award(15, 3); sfx('tick'); toast('+15 XP'); checkAch();
   }
+  if (window.checkPerfect) checkPerfect(+di);
   mealSave(); flushLevelUp(recipeView);
 };
 window.swapMeal = (di, ii) => {

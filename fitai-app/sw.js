@@ -1,5 +1,5 @@
-const V = 'fitquest-v7';
-const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'game.js', 'gym.js', 'recipes.js', 'meals.js', 'manifest.webmanifest', 'data/exercises.json', 'data/videos.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon.png'];
+const V = 'fitquest-v8';
+const SHELL = ['./', 'index.html', 'style.css', 'app.js', 'game.js', 'gym.js', 'recipes.js', 'meals.js', 'earn.js', 'manifest.webmanifest', 'data/exercises.json', 'data/videos.json', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/icon-maskable-512.png', 'icons/apple-touch-icon.png', 'icons/favicon.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(V).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
