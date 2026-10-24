@@ -353,6 +353,190 @@ html[data-skin=arcade] :is(.xpbar,.qbar,.prog,.hp,.rkbar){{border-radius:0;box-s
 html[data-skin=arcade] :is(.xpbar i,.qbar i,.prog i,.hp i,.rkbar i){{border-radius:0;background:repeating-linear-gradient(90deg,{AY} 0 8px,#0000 8px 10px)}}
 """)
 
+# ---------------------------------------------------------------- Mythical Realm
+MV, ME, MGD = '#b07cff', '#3ddc97', '#ffd36e'
+my_corner = (f"<path d='M2 38V12Q2 2 12 2h26' fill='none' stroke='{MV}' stroke-width='2'/><path d='M8 30V14q0-6 6-6h16' fill='none' stroke='{ME}' stroke-width='1.2' stroke-opacity='.8'/>"
+             f"<path d='M8 8l4-6 4 6-4 6z' fill='{MGD}'/><circle cx='12' cy='8' r='1.6' fill='#fff'/>")
+my_orn = svg(f"<path d='M0 12H96M144 12H240' stroke='{MV}' stroke-width='1.5'/><path d='M96 12l8-6v12z' fill='{ME}'/><path d='M144 12l-8-6v12z' fill='{ME}'/>"
+             f"<path d='M120 0l9 12-9 12-9-12z' fill='{MV}' stroke='{MGD}' stroke-width='1.5'/><circle cx='120' cy='12' r='3' fill='{MGD}'/>"
+             + ''.join(f"<path d='M{x} 6v12M{x - 3} 9l6 0' stroke='{ME}' stroke-width='1.2' stroke-opacity='.8'/>" for x in (40, 64, 176, 200)), '0 0 240 24')
+dragon = svg("<path d='M20 150C60 140 80 110 110 105C130 100 150 112 170 100C185 90 190 70 210 62C225 56 240 60 255 52L262 40L268 58C280 60 290 70 292 82C270 76 255 82 240 92C215 108 205 130 180 140C150 152 120 140 95 150C70 160 40 166 20 150Z' fill='#140a26'/>"
+             "<path d='M150 104C140 70 120 50 90 40C110 62 118 80 120 102C100 80 80 70 55 70C80 86 92 100 98 112' fill='#1b0f33'/><circle cx='275' cy='66' r='2.5' fill='#3ddc97'/>", '0 0 300 170')
+mt = svg("<path d='M0 120L60 40l40 50 50-80 60 70 40-30 50 70z' fill='#120a22'/><path d='M150 10l15 18-12-4-8 10-6-8-10 6z' fill='#2a1a4a'/>", '0 0 300 120')
+skin('Mythical Realm', f"""
+html[data-skin=mythical]{{
+  --bg:#0b0616;--glow:#2a1250;--acc:{MV};--acc2:{ME};--fg:#efe8ff;--mut:#a99cc6;--on:#140826;--r:10px;
+  --card:#150b29;--card2:#1e1238;--line:{MV}44;--line2:{MV}aa;
+  --disp:'Uncial Antiqua','Alegreya',serif;--body:'Alegreya',Georgia,serif;--mono:'Uncial Antiqua',serif;
+  --clip:none;--pshadow:inset 0 0 0 1px {MV}33,inset 0 0 30px #0008,0 0 18px {MV}22;--rep:no-repeat;
+  --deco:{corners(my_corner, 34)};--orn:{my_orn};--orn-h:24px}}
+html[data-skin=mythical] body{{background:radial-gradient(circle at 78% 12%,#e9dcff 0 20px,#b07cff44 26px,#0000 70px) no-repeat,
+  radial-gradient(90% 45% at 30% -5%,#4a1f8aaa,#0000 70%) no-repeat,linear-gradient(#120a22,#120a22) 0 100%/100% 80px no-repeat,
+  {dragon} 20% 30%/min(380px,95vw) auto no-repeat,{mt} 50% calc(100% - 78px)/min(560px,140vw) auto no-repeat,
+  radial-gradient(circle,#fff 0 1px,#0000 1.5px) 0 0/90px 110px,var(--bg);background-attachment:fixed}}
+html[data-skin=mythical] body::after{{inset:0;background:radial-gradient(circle,{ME} 0 1.5px,#0000 3px) 0 0/97px 131px,radial-gradient(circle,{MV} 0 1.5px,#0000 3px) 40px 60px/113px 89px;animation:fireflies 6s ease-in-out infinite alternate}}
+html[data-skin=mythical] h2.sec::before{{transform:rotate(45deg);border:0;width:9px;height:9px;background:{ME};box-shadow:0 0 8px {ME}}}
+html[data-skin=mythical] .btn{{background:linear-gradient(135deg,#c79bff,#7c4dff 60%,#5a2fd6);color:#fff;box-shadow:inset 0 0 0 1px #fff4,0 0 14px {MV}66;text-shadow:0 1px 2px #0006}}
+html[data-skin=mythical] .btn.ghost{{background:#150b29;color:{ME};box-shadow:inset 0 0 0 1px {ME}88}}
+html[data-skin=mythical] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,#ffe7a1,#d9a43a);color:#1a0d02;text-shadow:none}}
+html[data-skin=mythical] :is(.seg a.on,.dpill.on,.chip.on){{background:{MV};color:#140826;border-color:{MV}}}
+html[data-skin=mythical] .xpbar i{{background:linear-gradient(90deg,{MV},{ME});box-shadow:0 0 10px {ME}88}}
+""")
+
+# ---------------------------------------------------------------- Classical Concert Hall
+CG, IV = '#d4af37', '#efe6d2'
+cl_corner = (f"<path d='M2 38V2h36' fill='none' stroke='{CG}' stroke-width='1.5'/><path d='M6 38V6h32' fill='none' stroke='{CG}' stroke-width='.8'/>"
+             f"<circle cx='6' cy='6' r='2.2' fill='{CG}'/>")
+staff = svg(''.join(f"<path d='M0 {4 + i * 4}H240' stroke='{CG}' stroke-width='.8' stroke-opacity='.7'/>" for i in range(5))
+            + f"<g fill='{CG}'><ellipse cx='70' cy='16' rx='3.6' ry='2.6' transform='rotate(-20 70 16)'/><path d='M73 16V2' stroke='{CG}' stroke-width='1.2'/>"
+              f"<ellipse cx='110' cy='12' rx='3.6' ry='2.6' transform='rotate(-20 110 12)'/><ellipse cx='126' cy='8' rx='3.6' ry='2.6' transform='rotate(-20 126 8)'/>"
+              f"<path d='M113 12V0M129 8V-4M113 0L129 -4' stroke='{CG}' stroke-width='1.4'/><ellipse cx='170' cy='20' rx='3.6' ry='2.6' transform='rotate(-20 170 20)'/><path d='M173 20V6' stroke='{CG}' stroke-width='1.2'/></g>"
+              f"<path d='M20 26C14 18 26 2 22 -2C18 8 26 12 22 20C18 26 10 20 16 14' fill='none' stroke='{CG}' stroke-width='1.8'/>", '0 -4 240 32')
+keys = svg(''.join(f"<rect x='{i * 14}' y='0' width='13' height='60' fill='#efe6d2'/>" for i in range(22))
+           + ''.join(f"<rect x='{i * 14 + 9}' y='0' width='9' height='36' fill='#0e0b08'/>" for i in range(22) if i % 7 not in (2, 6)), '0 0 308 60')
+notes = svg(f"<g fill='{CG}' fill-opacity='.35'><ellipse cx='20' cy='60' rx='6' ry='4.5' transform='rotate(-20 20 60)'/><path d='M25 58V20' stroke='{CG}' stroke-opacity='.35' stroke-width='2'/>"
+            f"<ellipse cx='120' cy='150' rx='6' ry='4.5' transform='rotate(-20 120 150)'/><ellipse cx='146' cy='140' rx='6' ry='4.5' transform='rotate(-20 146 140)'/>"
+            f"<path d='M125 148V112M151 138V102M125 112L151 102' stroke='{CG}' stroke-opacity='.35' stroke-width='2.5'/></g>", '0 0 200 220')
+skin('Classical Concert', f"""
+html[data-skin=classical]{{
+  --bg:#120e0a;--glow:#3a2a14;--acc:{CG};--acc2:{IV};--fg:{IV};--mut:#b3a68c;--on:#140f06;--r:0;
+  --card:#1b1510;--card2:#241c14;--line:{CG}40;--line2:{CG}99;
+  --disp:'Playfair Display','Cormorant Garamond',serif;--body:'Cormorant Garamond',Georgia,serif;--mono:'Playfair Display',serif;
+  --clip:none;--pshadow:inset 0 0 0 1px #0000,inset 0 0 34px #0008;--rep:no-repeat;
+  --deco:{corners(cl_corner, 30)};--orn:{staff};--orn-h:30px}}
+html[data-skin=classical] body{{font-size:18px;font-weight:600;background:radial-gradient(60% 40% at 50% -5%,#f3d68a55,#0000 70%) no-repeat,
+  linear-gradient(90deg,#4a0d12 0,#6a1520 6%,#0000 16% 84%,#6a1520 94%,#4a0d12) 0 0/100% 100%,
+  {keys} 0 calc(100% - 78px)/308px 46px repeat-x,linear-gradient(#0e0b08,#0e0b08) 0 100%/100% 80px no-repeat,var(--bg);background-attachment:fixed}}
+html[data-skin=classical] body::after{{inset:0;background:{notes} 0 0/200px 220px;animation:petals 40s linear infinite reverse}}
+html[data-skin=classical] h2.sec::before{{content:"♪";transform:none;border:0;width:auto;height:auto;color:{CG};font-size:20px;line-height:1}}
+html[data-skin=classical] .btn{{background:{IV};color:#140f06;box-shadow:inset 0 0 0 1px {CG},inset 0 0 0 3px {IV},inset 0 0 0 4px {CG}88}}
+html[data-skin=classical] .btn.ghost{{background:transparent;color:{CG};box-shadow:inset 0 0 0 1px {CG}99}}
+html[data-skin=classical] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,#f3d68a,{CG});color:#140f06}}
+html[data-skin=classical] :is(.seg a.on,.dpill.on,.chip.on){{background:{CG};color:#140f06;border-color:{CG}}}
+html[data-skin=classical] .xpbar i{{background:linear-gradient(90deg,#a8862a,#f3d68a)}}
+""")
+
+# ---------------------------------------------------------------- Baroque Palace
+BG_, VEL = '#e0b44c', '#8e1b2e'
+scroll = (f"<path d='M3 37C3 20 8 8 20 4C28 1 36 3 37 9C38 15 30 17 27 12C25 8 30 6 31 9' fill='none' stroke='{BG_}' stroke-width='2.2' stroke-linecap='round'/>"
+          f"<path d='M3 37C6 30 12 28 15 31C18 34 14 38 11 36' fill='none' stroke='{BG_}' stroke-width='1.6' stroke-linecap='round'/>"
+          f"<path d='M9 22c3-5 8-8 13-8' fill='none' stroke='#fff3c4' stroke-opacity='.6' stroke-width='1'/><circle cx='20' cy='20' r='2' fill='{BG_}'/>")
+br_orn = svg(f"<path d='M120 12C100 2 80 2 62 10C50 16 36 18 22 12M120 12C140 2 160 2 178 10C190 16 204 18 218 12' fill='none' stroke='{BG_}' stroke-width='2'/>"
+             f"<path d='M62 10C58 4 50 4 48 9C47 13 52 15 54 12M178 10C182 4 190 4 192 9C193 13 188 15 186 12' fill='none' stroke='{BG_}' stroke-width='1.6'/>"
+             f"<path d='M120 2c6 4 6 16 0 20c-6-4-6-16 0-20z' fill='{VEL}' stroke='{BG_}' stroke-width='1.5'/><circle cx='120' cy='12' r='2.5' fill='{BG_}'/>", '0 0 240 24')
+damask = svg(f"<g fill='{BG_}' fill-opacity='.06'><path d='M40 4C52 16 52 30 40 42C28 30 28 16 40 4z'/><path d='M40 42C52 54 60 56 70 52C60 64 48 66 40 80C32 66 20 64 10 52C20 56 28 54 40 42z'/>"
+             f"<circle cx='40' cy='44' r='4'/></g>", '0 0 80 84')
+skin('Baroque Palace', f"""
+html[data-skin=baroque]{{
+  --bg:#16060a;--glow:#4a0d18;--acc:{BG_};--acc2:#e8687a;--fg:#fbefd6;--mut:#c9a99a;--on:#2a0b0a;--r:14px;
+  --card:#250a10;--card2:#330e16;--line:{BG_}44;--line2:{BG_}aa;
+  --disp:'Cormorant SC','Cormorant Garamond',serif;--body:'Cormorant Garamond',Georgia,serif;--mono:'Cormorant SC',serif;
+  --clip:none;--pshadow:inset 0 0 0 2px {BG_}55,inset 0 0 0 5px var(--card),inset 0 0 0 6px {BG_}33,inset 0 0 36px #0009;--rep:no-repeat;
+  --deco:{corners(scroll, 38)},linear-gradient({BG_},{BG_}) 50% 0/60px 2px;--orn:{br_orn};--orn-h:24px}}
+html[data-skin=baroque] body{{font-size:18px;font-weight:600;background:radial-gradient(70% 40% at 50% -6%,#ffcf7a55,#0000 70%) no-repeat,
+  radial-gradient(40% 30% at 0 30%,#ffb04a22,#0000 70%) no-repeat,radial-gradient(40% 30% at 100% 30%,#ffb04a22,#0000 70%) no-repeat,
+  {damask} 0 0/80px 84px,linear-gradient(180deg,#2a0a12,#14050a);background-attachment:fixed}}
+html[data-skin=baroque] body::after{{inset:0;background:radial-gradient(28% 22% at 4% 30%,#ffb04a33,#0000 70%),radial-gradient(28% 22% at 96% 30%,#ffb04a33,#0000 70%);animation:torch 2.6s ease-in-out infinite alternate}}
+html[data-skin=baroque] h2.sec::before{{content:"❦";transform:none;border:0;width:auto;height:auto;color:{BG_};font-size:20px;line-height:1}}
+html[data-skin=baroque] .btn{{background:linear-gradient(180deg,#f7da8a,{BG_} 50%,#a87a22);color:#2a0b0a;border-radius:24px;box-shadow:inset 0 0 0 1px #fff6,inset 0 -3px 0 #0004,0 0 12px #e0b44c44}}
+html[data-skin=baroque] .btn.ghost{{background:#250a10;color:{BG_};box-shadow:inset 0 0 0 1px {BG_}99}}
+html[data-skin=baroque] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,#e8687a,{VEL});color:#fbefd6}}
+html[data-skin=baroque] :is(.seg a.on,.dpill.on,.chip.on){{background:{VEL};color:#fbefd6;border-color:{BG_}}}
+html[data-skin=baroque] .xpbar i{{background:linear-gradient(90deg,#a87a22,#f7da8a,#a87a22)}}
+""")
+
+# ---------------------------------------------------------------- Art Deco
+DG, DT = '#e6c36a', '#3fb8af'
+dc_corner = (f"<g fill='none' stroke='{DG}' stroke-width='1.5'><path d='M2 38V2h36'/><path d='M7 38V7h31'/><path d='M12 38V12h26'/></g>"
+             f"<path d='M2 2l10 10' stroke='{DG}' stroke-width='1.5'/>")
+dc_orn = svg(f"<path d='M0 14H84M156 14H240M0 18H76M164 18H240' stroke='{DG}' stroke-width='1.2'/>"
+             + ''.join(f"<path d='M120 26L{120 + 30 * __import__('math').cos(__import__('math').radians(a)):.1f} {26 - 30 * __import__('math').sin(__import__('math').radians(a)):.1f}' stroke='{DG}' stroke-width='1.4'/>" for a in range(20, 161, 20))
+             + f"<path d='M90 26a30 30 0 0 1 60 0z' fill='none' stroke='{DG}' stroke-width='1.4'/>", '0 0 240 28')
+fans = svg(''.join(f"<path d='M0 40a40 40 0 0 1 80 0' fill='none' stroke='{DG}' stroke-opacity='.08' stroke-width='1.5' transform='translate(0 {0}) scale({s / 40})' transform-origin='40 40'/>" for s in (40, 30, 20))
+           + ''.join(f"<path d='M80 40a40 40 0 0 1 80 0' fill='none' stroke='{DG}' stroke-opacity='.08' stroke-width='1.5' transform='scale({s / 40})' transform-origin='120 40'/>" for s in (40, 30, 20))
+           + ''.join(f"<path d='M40 80a40 40 0 0 1 80 0' fill='none' stroke='{DT}' stroke-opacity='.07' stroke-width='1.5' transform='scale({s / 40})' transform-origin='80 80'/>" for s in (40, 30, 20)), '0 0 160 80')
+burst = svg(''.join(f"<path d='M200 200L{200 + 200 * __import__('math').cos(__import__('math').radians(a)):.0f} {200 + 200 * __import__('math').sin(__import__('math').radians(a)):.0f}' stroke='{DG}' stroke-width='2'/>" for a in range(0, 360, 10)), '0 0 400 400')
+skin('Art Deco', f"""
+html[data-skin=artdeco]{{
+  --bg:#0a0a0c;--glow:#2a2414;--acc:{DG};--acc2:{DT};--fg:#f5ecd6;--mut:#a9a08a;--on:#0a0a0c;--r:0;
+  --card:#121214;--card2:#1a1a1d;--line:{DG}44;--line2:{DG}aa;
+  --disp:'Poiret One','Josefin Sans',sans-serif;--body:'Josefin Sans',system-ui,sans-serif;--mono:'Poiret One',sans-serif;
+  --clip:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% calc(100% - 10px),calc(100% - 10px) 100%,10px 100%,0 calc(100% - 10px),0 10px);
+  --pshadow:inset 0 0 0 1px {DG}66,inset 0 0 0 4px var(--card),inset 0 0 0 5px {DG}33;--rep:no-repeat;
+  --deco:{corners(dc_corner, 30)};--orn:{dc_orn};--orn-h:28px}}
+html[data-skin=artdeco] body{{background:radial-gradient(80% 40% at 50% -6%,#e6c36a33,#0000 70%) no-repeat,{fans} 0 0/160px 80px,var(--bg);background-attachment:fixed}}
+html[data-skin=artdeco] body::after{{left:50%;top:-260px;width:620px;aspect-ratio:1;margin-left:-310px;opacity:.07;background:{burst} center/contain no-repeat;animation:spin 120s linear infinite}}
+html[data-skin=artdeco] h1{{font-weight:400;letter-spacing:.16em}}
+html[data-skin=artdeco] :is(h2,h3,.hn){{font-weight:400;letter-spacing:.12em}}
+html[data-skin=artdeco] h2.sec::before{{transform:none;border:0;width:14px;height:14px;background:linear-gradient(135deg,#0000 45%,{DG} 45% 55%,#0000 55%),linear-gradient(45deg,#0000 45%,{DG} 45% 55%,#0000 55%)}}
+html[data-skin=artdeco] .btn{{background:linear-gradient(180deg,#f3dc9a,{DG} 50%,#b08d3a);color:#0a0a0c;letter-spacing:.14em;box-shadow:inset 0 0 0 1px #fff5,inset 0 0 0 3px #0000,inset 0 0 0 4px #0a0a0c55}}
+html[data-skin=artdeco] .btn.ghost{{background:#121214;color:{DG};box-shadow:inset 0 0 0 1px {DG}99,inset 0 0 0 4px #121214,inset 0 0 0 5px {DG}44}}
+html[data-skin=artdeco] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,#7fe0d8,{DT});color:#0a0a0c}}
+html[data-skin=artdeco] :is(.seg a.on,.dpill.on,.chip.on){{background:{DG};color:#0a0a0c;border-color:{DG}}}
+html[data-skin=artdeco] .xpbar i{{background:repeating-linear-gradient(90deg,{DG} 0 10px,#b08d3a 10px 12px)}}
+""")
+
+# ---------------------------------------------------------------- Gothic Cathedral
+GB, GR, GS = '#7aa2ff', '#e0455a', '#c9c3d6'
+go_corner = (f"<path d='M2 38V18Q2 4 16 2Q10 10 10 20V38' fill='none' stroke='{GS}' stroke-width='1.6'/>"
+             f"<path d='M2 2h14' stroke='{GS}' stroke-width='1.6'/><circle cx='8' cy='26' r='3' fill='{GR}'/><circle cx='8' cy='34' r='2' fill='{GB}'/>")
+go_orn = svg(f"<path d='M0 20H90M150 20H240' stroke='{GS}' stroke-width='1.2'/>"
+             f"<path d='M100 26V14Q100 2 120 0Q140 2 140 14V26z' fill='#0e0d1a' stroke='{GS}' stroke-width='1.4'/>"
+             f"<path d='M110 26V15Q110 6 120 4Q130 6 130 15V26z' fill='{GB}' fill-opacity='.7'/><path d='M120 4V26M110 16H130' stroke='{GS}' stroke-width='1'/>"
+             f"<circle cx='120' cy='12' r='3' fill='{GR}'/>", '0 0 240 28')
+rose = svg(f"<circle cx='100' cy='100' r='96' fill='#0b0a14' stroke='{GS}' stroke-opacity='.4' stroke-width='3'/>"
+           + ''.join(f"<path d='M100 100L{100 + 90 * __import__('math').cos(__import__('math').radians(a)):.1f} {100 + 90 * __import__('math').sin(__import__('math').radians(a)):.1f}A90 90 0 0 1 {100 + 90 * __import__('math').cos(__import__('math').radians(a + 30)):.1f} {100 + 90 * __import__('math').sin(__import__('math').radians(a + 30)):.1f}z' fill='{[GB, GR, '#e8b04a', '#5ec27a'][k % 4]}' fill-opacity='.45' stroke='{GS}' stroke-opacity='.5'/>" for k, a in enumerate(range(0, 360, 30)))
+           + f"<circle cx='100' cy='100' r='30' fill='{GR}' fill-opacity='.5' stroke='{GS}' stroke-opacity='.6' stroke-width='2'/><circle cx='100' cy='100' r='10' fill='#e8b04a' fill-opacity='.7'/>", '0 0 200 200')
+arches = svg(''.join(f"<path d='M{x} 140V60Q{x} 20 {x + 30} 6Q{x + 60} 20 {x + 60} 60V140z' fill='#0d0c18'/><path d='M{x + 10} 140V64Q{x + 10} 34 {x + 30} 22Q{x + 50} 34 {x + 50} 64V140z' fill='#151428'/>" for x in (0, 80, 160, 240)), '0 0 300 140')
+skin('Gothic Cathedral', f"""
+html[data-skin=gothic]{{
+  --bg:#07060e;--glow:#1a1530;--acc:{GB};--acc2:{GR};--fg:#ece8f4;--mut:#a39fb6;--on:#07060e;--r:0;
+  --card:#0f0d1a;--card2:#171425;--line:{GS}33;--line2:{GS}88;
+  --disp:'UnifrakturMaguntia','EB Garamond',serif;--body:'EB Garamond',Georgia,serif;--mono:'EB Garamond',serif;
+  --clip:none;--pshadow:inset 0 0 0 1px {GS}22,inset 0 0 34px #000a;--rep:no-repeat;
+  --deco:{corners(go_corner, 34, 'tl tr')},linear-gradient({GS},{GS}) 0 100%/100% 1px;--orn:{go_orn};--orn-h:28px}}
+html[data-skin=gothic] body{{font-size:18px;background:radial-gradient(50% 30% at 50% 14%,#7aa2ff22,#0000 70%) no-repeat,
+  {rose} 50% 70px/min(260px,62vw) auto no-repeat,linear-gradient(#0d0c18,#0d0c18) 0 100%/100% 80px no-repeat,
+  {arches} 50% calc(100% - 78px)/min(560px,140vw) auto no-repeat,linear-gradient(180deg,#0a0914,#07060e);background-attachment:fixed}}
+html[data-skin=gothic] body::after{{left:50%;top:70px;width:min(260px,62vw);aspect-ratio:1;transform:translateX(-50%);border-radius:50%;
+  background:radial-gradient(circle,#7aa2ff44,#e0455a22 50%,#0000 70%);animation:torch 3.4s ease-in-out infinite alternate}}
+html[data-skin=gothic] :is(h1,h2){{letter-spacing:.02em}}
+html[data-skin=gothic] :is(h3,.hn,.lbl,.bl,.ov,.on2,.bxv,.btn,.chip,.seg a,.dpill,nav a span,.stat b,.rbig,.rlbl,.wkstats b,.ckdots i,details summary){{font-family:'EB Garamond',Georgia,serif;font-weight:700;letter-spacing:.04em}}
+html[data-skin=gothic] h2.sec::before{{content:"✠";transform:none;border:0;width:auto;height:auto;color:{GR};font-size:18px;line-height:1}}
+html[data-skin=gothic] .btn{{background:linear-gradient(180deg,#9db9ff,#4a6fd6);color:#07060e;box-shadow:inset 0 0 0 1px #fff4,inset 0 -3px 0 #0005}}
+html[data-skin=gothic] .btn.ghost{{background:#0f0d1a;color:{GS};box-shadow:inset 0 0 0 1px {GS}77}}
+html[data-skin=gothic] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,#ff8a9a,{GR});color:#07060e}}
+html[data-skin=gothic] :is(.seg a.on,.dpill.on,.chip.on){{background:{GR};color:#07060e;border-color:{GR}}}
+html[data-skin=gothic] .xpbar i{{background:linear-gradient(90deg,{GB},#c08bff,{GR})}}
+""")
+
+# ---------------------------------------------------------------- Cosmic Voyage
+CV, CC = '#9b7bff', '#22d3ee'
+cs_corner = (f"<path d='M2 30A28 28 0 0 1 30 2' fill='none' stroke='{CC}' stroke-width='1.4'/><path d='M2 20A18 18 0 0 1 20 2' fill='none' stroke='{CV}' stroke-width='1' stroke-dasharray='2 3'/>"
+             f"<circle cx='10' cy='10' r='3' fill='{CV}'/><circle cx='26' cy='4' r='1.6' fill='#fff'/>")
+cs_orn = svg(f"<ellipse cx='120' cy='12' rx='110' ry='5' fill='none' stroke='{CC}' stroke-width='1.2' stroke-opacity='.8'/><circle cx='120' cy='12' r='8' fill='{CV}'/>"
+             f"<ellipse cx='120' cy='12' rx='16' ry='3.5' fill='none' stroke='#fff' stroke-width='1.2'/><circle cx='30' cy='9' r='3' fill='{CC}'/><circle cx='205' cy='15' r='2.2' fill='#fff'/>", '0 0 240 24')
+planet = svg(f"<circle cx='100' cy='100' r='56' fill='url(#p)'/><ellipse cx='100' cy='100' rx='96' ry='20' fill='none' stroke='{CC}' stroke-opacity='.6' stroke-width='4' transform='rotate(-18 100 100)'/>"
+             f"<defs><radialGradient id='p' cx='.35' cy='.35'><stop offset='0' stop-color='#c7b4ff'/><stop offset='.6' stop-color='#5b3fd1'/><stop offset='1' stop-color='#1a0e4a'/></radialGradient></defs>", '0 0 200 200')
+stars2 = svg("<g fill='#fff'><circle cx='10' cy='20' r='1'/><circle cx='70' cy='5' r='.8'/><circle cx='130' cy='40' r='1.2'/><circle cx='40' cy='90' r='.7'/><circle cx='100' cy='120' r='1'/><circle cx='150' cy='100' r='.8'/><circle cx='20' cy='150' r='1.1'/><circle cx='120' cy='170' r='.7'/></g>", '0 0 180 180')
+skin('Cosmic Voyage', f"""
+html[data-skin=cosmic]{{
+  --bg:#03020a;--glow:#1b0f45;--acc:{CV};--acc2:{CC};--fg:#eef0ff;--mut:#9aa0c8;--on:#05031a;--r:16px;
+  --card:#0b0920;--card2:#120f30;--line:{CV}44;--line2:{CC}88;
+  --disp:'Michroma','Space Grotesk',sans-serif;--body:'Space Grotesk',system-ui,sans-serif;--mono:'Michroma',sans-serif;
+  --clip:none;--pshadow:inset 0 0 0 1px {CV}33,inset 0 0 30px #000a,0 0 22px {CV}22;--rep:no-repeat;
+  --deco:{corners(cs_corner, 32, 'tl br')};--orn:{cs_orn};--orn-h:24px}}
+html[data-skin=cosmic] body{{background:radial-gradient(60% 40% at 15% 20%,#6b2fd655,#0000 70%) no-repeat,radial-gradient(50% 35% at 90% 60%,#0e8fb044,#0000 70%) no-repeat,
+  radial-gradient(40% 30% at 40% 90%,#c2185b33,#0000 70%) no-repeat,{planet} calc(100% + 60px) 120px/240px 240px no-repeat,{stars2} 0 0/180px 180px,var(--bg);background-attachment:fixed}}
+html[data-skin=cosmic] body::after{{inset:0;background:{stars2} 30px 60px/240px 240px,{stars2} 100px 10px/130px 130px;animation:petals 60s linear infinite;opacity:.8}}
+html[data-skin=cosmic] h2.sec::before{{transform:none;border:0;width:10px;height:10px;border-radius:50%;background:{CC};box-shadow:0 0 0 3px {CV}55,0 0 10px {CC}}}
+html[data-skin=cosmic] .btn{{background:linear-gradient(135deg,{CC},{CV});color:#05031a;border-radius:24px;box-shadow:0 0 16px {CV}66,inset 0 0 0 1px #fff5}}
+html[data-skin=cosmic] .btn.ghost{{background:#0b0920;color:{CC};box-shadow:inset 0 0 0 1px {CC}77}}
+html[data-skin=cosmic] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(135deg,#ffd36e,#ff7ab6);color:#05031a}}
+html[data-skin=cosmic] :is(.seg a.on,.dpill.on,.chip.on){{background:{CV};color:#05031a;border-color:{CV}}}
+html[data-skin=cosmic] .xpbar i{{background:linear-gradient(90deg,{CV},{CC});box-shadow:0 0 10px {CC}}}
+""")
+
 ANIM = """
 /* ---- ambient animations ---- */
 @keyframes sway{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
@@ -384,6 +568,12 @@ PREVIEW = """
 .skp[data-sk=pirate]{background:#2a2016;box-shadow:inset 0 0 0 5px #8a6a38,inset 0 0 0 6px #e0b55a66;border-radius:6px}
 .skp[data-sk=outrun]{background:linear-gradient(180deg,#2a0650,#a0187a 70%,#ff6a3d 72%,#12002a 73%);box-shadow:inset 0 0 0 1px #ff3cc7,0 0 12px #ff3cc755}
 .skp[data-sk=arcade]{background:#05030f;box-shadow:inset 0 0 0 3px #00e4ff;image-rendering:pixelated}
+.skp[data-sk=mythical]{background:radial-gradient(circle at 80% 30%,#e9dcff 0 8px,#0000 9px),radial-gradient(circle,#3ddc97 0 1.5px,#0000 2px) 0 0/19px 17px,linear-gradient(#2a1250,#0b0616);box-shadow:inset 0 0 0 2px #b07cff88;border-radius:10px}
+.skp[data-sk=classical]{background:linear-gradient(#0000 70%,#efe6d2 70% 100%),repeating-linear-gradient(90deg,#0000 0 9px,#120e0a 9px 10px) 0 100%/100% 30% no-repeat,linear-gradient(90deg,#6a1520 0 8%,#120e0a 8% 92%,#6a1520 92%);box-shadow:inset 0 0 0 1px #d4af37}
+.skp[data-sk=baroque]{background:radial-gradient(circle,#e0b44c22 0 6px,#0000 7px) 0 0/16px 16px,linear-gradient(#330e16,#16060a);box-shadow:inset 0 0 0 2px #e0b44c,inset 0 0 0 5px #250a10,inset 0 0 0 6px #e0b44c66;border-radius:14px}
+.skp[data-sk=artdeco]{background:repeating-conic-gradient(from -90deg at 50% 100%,#e6c36a33 0 6deg,#0000 6deg 12deg),#0a0a0c;box-shadow:inset 0 0 0 1px #e6c36a,inset 0 0 0 4px #0a0a0c,inset 0 0 0 5px #e6c36a66}
+.skp[data-sk=gothic]{background:conic-gradient(from 0deg at 50% 40%,#7aa2ff88,#e0455a88,#e8b04a88,#5ec27a88,#7aa2ff88) 50% 40%/40px 40px no-repeat,linear-gradient(#0a0914,#07060e);box-shadow:inset 0 0 0 1px #c9c3d677}
+.skp[data-sk=cosmic]{background:radial-gradient(circle at 80% 40%,#9b7bff 0 10px,#0000 11px),radial-gradient(circle,#fff 0 1px,#0000 1.5px) 0 0/17px 13px,radial-gradient(60% 60% at 20% 30%,#6b2fd688,#0000),#03020a;border-radius:16px;box-shadow:inset 0 0 0 1px #22d3ee88}
 .emo{font-style:normal;line-height:1}
 /* one-minute interface preview bar */
 #trybar{position:fixed;left:12px;right:12px;bottom:calc(86px + env(safe-area-inset-bottom));z-index:25;display:flex;align-items:center;justify-content:space-between;gap:10px;
@@ -499,6 +689,20 @@ RINGS = {
                   + each(4, lambda a: rot(a, f"<path d='M60 0l3 6h-6z' fill='{PG}'/>"), 45), '0 0 120 120'),
     'outrun': svg(f"<circle {C} r='56' fill='none' stroke='{PK}' stroke-width='2.5'/><circle {C} r='50.5' fill='none' stroke='{CY}' stroke-width='1.5' stroke-dasharray='14 6'/>", '0 0 120 120'),
     'arcade': svg(pixel_ring(49, 58, 4, AC) + pixel_ring(53, 55, 4, AY), '0 0 120 120'),
+    'mythical': svg(f"<circle {C} r='50' fill='none' stroke='{MV}' stroke-width='2'/><circle {C} r='57' fill='none' stroke='{ME}' stroke-width='1.2' stroke-dasharray='3 4'/>"
+                    + each(8, lambda a: rot(a, f"<path d='M60 3l3 4-3 4-3-4z' fill='{MGD}'/>"))
+                    + each(8, lambda a: rot(a, f"<path d='M60 46v-5M58 43h4' stroke='{MV}' stroke-width='1.3' transform='translate(0 -40)'/>"), 22.5), '0 0 120 120'),
+    'classical': svg(f"<g fill='none' stroke='{CG}'><circle {C} r='49.5' stroke-width='1.4'/><circle {C} r='53' stroke-width='.7'/><circle {C} r='55' stroke-width='.7'/><circle {C} r='57' stroke-width='.7'/></g>"
+                     + each(4, lambda a: rot(a, f"<ellipse cx='60' cy='4' rx='3.4' ry='2.5' fill='{CG}' transform='rotate(-20 60 4)'/>"), 45), '0 0 120 120'),
+    'baroque': svg(f"<circle {C} r='53' fill='none' stroke='{BG_}' stroke-width='6'/><circle {C} r='53' fill='none' stroke='#fff3c4' stroke-opacity='.5' stroke-width='1'/>"
+                   + each(12, lambda a: rot(a, f"<circle cx='60' cy='5' r='3.2' fill='{BG_}'/><circle cx='60' cy='5' r='1.2' fill='{VEL}'/>"))
+                   + f"<circle {C} r='48' fill='none' stroke='{BG_}' stroke-width='1' stroke-dasharray='1 3'/>", '0 0 120 120'),
+    'artdeco': svg(f"<circle {C} r='49' fill='none' stroke='{DG}' stroke-width='1.5'/>" + each(36, lambda a: rot(a, f"<path d='M60 2v{7 if round(a) % 30 == 0 else 4}' stroke='{DG}' stroke-width='1.6'/>"))
+                   + f"<circle {C} r='52' fill='none' stroke='{DT}' stroke-width='1'/>", '0 0 120 120'),
+    'gothic': svg(f"<circle {C} r='53' fill='none' stroke='{GB}' stroke-width='7' stroke-dasharray='10 4'/><circle {C} r='53' fill='none' stroke='{GR}' stroke-width='7' stroke-dasharray='4 24' stroke-dashoffset='-2'/>"
+                  + f"<g fill='none' stroke='{GS}' stroke-width='1.4'><circle {C} r='48.5'/><circle {C} r='57.5'/></g>", '0 0 120 120'),
+    'cosmic': svg(f"<circle {C} r='55' fill='none' stroke='{CC}' stroke-width='2' stroke-dasharray='60 12 20 12'/><circle {C} r='50' fill='none' stroke='{CV}' stroke-width='1.5' stroke-dasharray='2 5'/>"
+                  + f"<circle cx='112' cy='38' r='4' fill='{CC}'/><circle cx='10' cy='80' r='3' fill='{CV}'/><circle cx='30' cy='14' r='1.6' fill='#fff'/><circle cx='100' cy='108' r='1.4' fill='#fff'/>", '0 0 120 120'),
 }
 BUB = '\n/* ==========================================================================\n   Today bubbles: each interface dresses the circles with its own ring\n   ========================================================================== */\n'
 BUB += ''.join(f"html[data-skin={k}]{{--bring:{v}}}\n" for k, v in RINGS.items())
@@ -519,6 +723,12 @@ html[data-skin=viking] :is(.orb,.bxi)::before{--gc:#8fd3ff;animation:bspin 70s l
 html[data-skin=pirate] :is(.orb,.bxi)::before{--gc:#e0b55a;animation:bsway 3.2s ease-in-out infinite alternate}
 html[data-skin=outrun] :is(.orb,.bxi)::before{animation:bspin 18s linear infinite,bneon 4s linear infinite}
 html[data-skin=arcade] :is(.orb,.bxi)::before{animation:bspin 8s steps(12) infinite}
+html[data-skin=mythical] :is(.orb,.bxi)::before{--gc:#3ddc97;animation:bspin 45s linear infinite reverse,bglow 2.4s ease-in-out infinite}
+html[data-skin=classical] :is(.orb,.bxi)::before{--gc:#f3d68a;animation:bsway 5s ease-in-out infinite alternate,bglow 3.2s ease-in-out infinite}
+html[data-skin=baroque] :is(.orb,.bxi)::before{--gc:#ffcf7a;animation:bspin 80s linear infinite,bflick 2.8s ease-in-out infinite}
+html[data-skin=artdeco] :is(.orb,.bxi)::before{--gc:#e6c36a;animation:bspin 30s steps(36) infinite,bglow 3s ease-in-out infinite}
+html[data-skin=gothic] :is(.orb,.bxi)::before{--gc:#7aa2ff;animation:bspin 70s linear infinite,bflick 3.4s ease-in-out infinite}
+html[data-skin=cosmic] :is(.orb,.bxi)::before{--gc:#22d3ee;animation:bspin 14s linear infinite,bglow 2.6s ease-in-out infinite}
 html[data-skin] .bub:nth-child(3n) .orb::before{animation-delay:-1.3s}html[data-skin] .bub:nth-child(3n+1) .orb::before{animation-delay:-2.1s}
 """
 BUB += """html[data-skin=outrun] :is(.orb,.bxi)::before{filter:drop-shadow(0 0 4px #ff3cc7) drop-shadow(0 0 8px #00f0ff88)}

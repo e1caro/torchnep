@@ -76,12 +76,17 @@ const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', '
 // panel styles: the shape of every card in the app
 // whole interfaces: each changes the palette, fonts, frames, buttons and background (fonts load only when in use)
 const SKINS = [['hud', 'Sci-fi HUD', 0, '🛰️'], ['chinese', 'Imperial China', 1000, '🏮'], ['japanese', 'Zen Japan', 1000, '⛩️'], ['fairy', 'Fairy Tale Forest', 1250, '🌳'], ['medieval', 'Medieval Castle', 1250, '🏰'], ['steampunk', 'Steampunk Works', 1500, '⚙️'],
-  ['greek', 'Olympus', 1250, '🏛️'], ['egypt', 'Ancient Egypt', 1250, '🏜️'], ['viking', 'Viking Saga', 1400, '🪓'], ['pirate', 'Pirate Seas', 1400, '🏴‍☠️'], ['outrun', 'Outrun 80s', 1600, '🌆'], ['arcade', 'Arcade 8-bit', 1750, '👾']];
+  ['greek', 'Olympus', 1250, '🏛️'], ['egypt', 'Ancient Egypt', 1250, '🏜️'], ['viking', 'Viking Saga', 1400, '🪓'], ['pirate', 'Pirate Seas', 1400, '🏴‍☠️'], ['outrun', 'Outrun 80s', 1600, '🌆'], ['arcade', 'Arcade 8-bit', 1750, '👾'],
+  ['classical', 'Classical Concert', 1250, '🎻'], ['artdeco', 'Art Deco', 1400, '🎷'], ['gothic', 'Gothic Cathedral', 1500, '🕯️'], ['baroque', 'Baroque Palace', 1600, '👑'],
+  ['mythical', 'Mythical Realm', 1750, '🐉'], ['cosmic', 'Cosmic Voyage', 1750, '🪐']];
 const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japanese: 'Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700',
   fairy: 'IM+Fell+English+SC&family=Lora:wght@400;600;700', medieval: 'MedievalSharp&family=EB+Garamond:wght@400;600;700', steampunk: 'Rye&family=Special+Elite&family=Lora:wght@400;600;700',
   greek: 'Cinzel:wght@500;700;900&family=Cormorant+Garamond:wght@500;600;700', egypt: 'Cinzel+Decorative:wght@700;900&family=Lora:wght@400;600;700',
   viking: 'Metamorphous&family=Alegreya:wght@400;600;700', pirate: 'Pirata+One&family=IM+Fell+English&family=Lora:wght@400;600',
-  outrun: 'Audiowide&family=Exo+2:wght@400;600;700', arcade: 'Press+Start+2P&family=VT323' };
+  outrun: 'Audiowide&family=Exo+2:wght@400;600;700', arcade: 'Press+Start+2P&family=VT323',
+  classical: 'Playfair+Display:wght@600;800&family=Cormorant+Garamond:wght@500;600;700', artdeco: 'Poiret+One&family=Josefin+Sans:wght@400;600;700',
+  gothic: 'UnifrakturMaguntia&family=EB+Garamond:wght@400;600;700', baroque: 'Cormorant+SC:wght@600;700&family=Cormorant+Garamond:wght@500;600;700',
+  mythical: 'Uncial+Antiqua&family=Alegreya:wght@400;600;700', cosmic: 'Michroma&family=Space+Grotesk:wght@400;600;700' };
 const PANELS = [['chamfer', 'Chamfered', 0], ['classic', 'Classic', 0], ['brackets', 'Brackets', 150], ['octa', 'Octagon', 200], ['notch', 'Notch', 250], ['double', 'Double line', 300], ['circuit', 'Circuit', 400], ['holo', 'Hologram', 500]];
 const ITEMS = [
   ...THEMES.map(([k, name, cost, a, b]) => ({ id: 't-' + k, type: 'theme', key: k, name, cost, sw: [a, b], shop: true })),
@@ -438,7 +443,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 65</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 66</div>`;
 }
 
 function initGame() {
