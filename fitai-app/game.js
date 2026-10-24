@@ -14,7 +14,7 @@ const TITLES = [[1, 'Rookie'], [3, 'Iron Will'], [5, 'Challenger'], [8, 'Warrior
 // ---------- state ----------
 const G = Object.assign({
   xp: 0, coins: 0, owned: [], theme: 'ember', avatar: '🥊', ach: [], bosses: 0, questsDone: 0,
-  sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '',
+  sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '', ciStreak: 0, spun: '', spins: 0, waterGoalDays: 0, perfectDays: 0, sleepGood: 0, wk: null,
 }, load('game', {}));
 let LAST = null; // result of the latest workout, shown on the victory screen
 const commit = () => save('game', G);
@@ -59,12 +59,13 @@ const ITEMS = [
     .map(([e, lv, cost]) => ({ id: 'a-' + e, type: 'avatar', key: e, name: 'Hero skin', lv, cost })),
   ...[['none', 'Plain ring', 1, 0], ['flame', 'Flame ring', 5, 100], ['electric', 'Electric ring', 8, 160], ['diamond', 'Diamond ring', 12, 260], ['rainbow', 'Rainbow ring', 17, 380], ['galaxy', 'Galaxy ring', 24, 600]]
     .map(([k, name, lv, cost]) => ({ id: 'f-' + k, type: 'frame', key: k, name, lv, cost })),
+  ...RECIPES.filter(r => r.chef).map(r => ({ id: 'r-' + r.id, type: 'recipe', name: r.name, lv: r.chef[0], cost: r.chef[1], rid: r.id })),
   ...Object.entries(DUNGEONS).map(([id, d]) => ({ id, type: 'dungeon', name: d.name, lv: d.lv, cost: d.lv * 35 })),
 ];
 const item = id => ITEMS.find(i => i.id === id);
 const has = i => lvl() >= i.lv || G.owned.includes(i.id);
-const KIND = { theme: 'Theme', avatar: 'Avatar', frame: 'Frame', dungeon: 'Workout' };
-const ICO = i => i.type === 'dungeon' ? DUNGEONS[i.id].ico : i.type === 'avatar' ? i.key : i.type === 'frame' ? '💠' : '🎨';
+const KIND = { theme: 'Theme', avatar: 'Avatar', frame: 'Frame', dungeon: 'Workout', recipe: 'Recipe' };
+const ICO = i => i.type === 'dungeon' ? DUNGEONS[i.id].ico : i.type === 'avatar' ? i.key : i.type === 'frame' ? '💠' : i.type === 'recipe' ? '🍽️' : '🎨';
 
 // ---------- daily quests ----------
 const QT = [
@@ -74,6 +75,8 @@ const QT = [
   { id: 'weigh', t: 'Log your weight', n: 1, m: 'weigh', xp: 25, ico: '⚖️' },
   { id: 'min', t: 'Train for 25 minutes', n: 25, m: 'minutes', xp: 60, ico: '⏱️' },
   { id: 'dungeon', t: 'Clear a dungeon', n: 1, m: 'dungeons', xp: 100, ico: '🏰', needLv: 2 },
+  { id: 'water', t: 'Drink 8 glasses of water', n: 8, m: 'water', xp: 40, ico: '💧' },
+  { id: 'sleep', t: 'Sleep 7 hours or more', n: 7, m: 'sleep', xp: 40, ico: '😴' },
   { id: 'meals', t: 'Eat 3 planned meals', n: 3, m: 'meals', xp: 50, ico: '🍽️', need: () => typeof M !== 'undefined' && !!M.set },
 ];
 const metric = m => m === 'guides' ? G.today.guides.length : (G.today[m] || 0);
@@ -81,7 +84,7 @@ const metric = m => m === 'guides' ? G.today.guides.length : (G.today[m] || 0);
 function ensureDay() {
   const d = dayId();
   if (G.today?.day === d && G.quests?.day === d) return;
-  G.today = { day: d, sets: 0, workouts: 0, minutes: 0, guides: [], weigh: 0, dungeons: 0, meals: 0 };
+  G.today = { day: d, sets: 0, workouts: 0, minutes: 0, guides: [], weigh: 0, dungeons: 0, meals: 0, water: 0, sleep: 0 };
   const pool = shuffle(QT.slice(1).filter(q => (!q.needLv || lvl() >= q.needLv) && (!q.need || q.need())), rng(hash(d)));
   G.quests = { day: d, list: ['workout', ...pool.slice(0, 2).map(q => q.id)], claimed: [], bonus: false };
   commit();
@@ -167,6 +170,11 @@ const ACH = [
   { id: 'dg10', t: 'Dungeon Lord', n: 'Dungeon Lord', d: 'Clear 10 dungeons', i: '👹', xp: 600, ok: () => S.history.filter(h => h.dungeon).length >= 10 },
   { id: 'lv10', t: 'Double Digits', n: 'Double Digits', d: 'Reach level 10', i: '🔟', xp: 300, ok: () => lvl() >= 10 },
   { id: 'ch5', t: 'Treasure Hunter', n: 'Treasure Hunter', d: 'Open 5 chests', i: '💎', xp: 250, ok: () => G.chestsOpened >= 5 },
+  { id: 'wat7', n: 'Aqua Hero', d: 'Hit your water goal on 7 days', i: '💧', xp: 150, ok: () => G.waterGoalDays >= 7 },
+  { id: 'spin5', n: 'Lucky Streak', d: 'Use the daily spin 5 times', i: '🎰', xp: 100, ok: () => G.spins >= 5 },
+  { id: 'chef1', n: 'Gourmet', d: 'Buy your first chef recipe with coins', i: '👨‍🍳', xp: 100, ok: () => G.owned.some(id => id.startsWith('r-')) },
+  { id: 'perf', n: 'Perfect Plate', d: 'Eat every planned meal in one day', i: '🍽️', xp: 100, ok: () => G.perfectDays >= 1 },
+  { id: 'rest5', n: 'Well Rested', d: 'Log 7+ hours of sleep on 5 days', i: '😴', xp: 120, ok: () => G.sleepGood >= 5 },
   { id: 'q10', t: 'Questmaster', n: 'Questmaster', d: 'Claim 10 daily quests', i: '📜', xp: 200, ok: () => G.questsDone >= 10 },
 ];
 function checkAch() {
@@ -245,7 +253,16 @@ window.claimQuestBonus = () => {
   if (G.quests.bonus || G.quests.claimed.length < 3) return;
   G.quests.bonus = true; G.chests.push('wood'); award(60, 25); sfx('claim'); flushLevelUp(home);
 };
-window.checkIn = () => { if (G.checkin === dayId()) return; G.checkin = dayId(); award(10, 15); sfx('claim'); flushLevelUp(home); };
+const ciInfo = () => {
+  const st = G.checkin === dayId() ? G.ciStreak : G.checkin === dayId(Date.now() - 864e5) ? G.ciStreak + 1 : 1;
+  return { st, xp: 10 + 2 * Math.min(st - 1, 6), coins: 15 + 5 * Math.min(st - 1, 6), chest: st % 7 === 0 };
+};
+window.checkIn = () => {
+  if (G.checkin === dayId()) return;
+  const c = ciInfo(); G.checkin = dayId(); G.ciStreak = c.st;
+  if (c.chest) G.chests.push('silver');
+  toast(`Check-in day ${c.st}${c.chest ? ': silver chest!' : ''}`); award(c.xp, c.coins); sfx('claim'); flushLevelUp(home);
+};
 const BOSSES = [['Iron Golem', '🗿'], ['Sloth Dragon', '🐲'], ['Couch Lord', '🛋️'], ['Fatigue Wraith', '👻'], ['Gravity Beast', '🦍']];
 window.claimBoss = () => {
   if (G.bossClaimed === weekId() || weekCount() < S.profile.days) return;
@@ -254,7 +271,7 @@ window.claimBoss = () => {
 window.buy = id => {
   const i = item(id);
   if (has(i) || G.coins < i.cost) { toast(has(i) ? 'Already yours.' : `Need ${i.cost - G.coins} more coins.`); return; }
-  G.coins -= i.cost; G.owned.push(id); commit(); sfx('claim'); toast(`Unlocked ${i.name}`); route();
+  G.coins -= i.cost; G.owned.push(id); commit(); sfx('claim'); toast(i.type === 'recipe' ? `${i.name} added to your meal pool. Shuffle your week to try it.` : `Unlocked ${i.name}`); checkAch(); route();
 };
 window.equip = id => {
   const i = item(id); if (!has(i)) return;
@@ -319,7 +336,7 @@ function home() {
   }).join('')}
   ${G.quests.bonus ? '' : `<div class="quest ${done >= 3 ? 'ok' : ''}"><div class="qi">🎁</div><div class="grow"><div class="qt">Clear all three quests</div><div class="mut">Bonus chest: +60 XP · 🪙25</div></div>
   ${done >= 3 ? '<button class="btn sm" onclick="claimQuestBonus()">Open</button>' : ''}</div>`}
-  ${G.checkin === dayId() ? '' : '<button class="btn gold" onclick="checkIn()">Daily check-in · +10 XP · 🪙15</button>'}
+  ${G.checkin === dayId() ? '' : (c => `<button class="btn gold" onclick="checkIn()">Daily check-in · day ${c.st} · +${c.xp} XP · 🪙${c.coins}${c.chest ? ' · chest' : ''}</button>`)(ciInfo())}
   ${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${CHEST[G.chests[0]][1]} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : ''}
   <h2 class="sec">Weekly boss</h2>
   <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${be}</div><div class="grow"><h3>${bn}</h3>
@@ -356,6 +373,7 @@ function rewards() {
     : G.coins >= i.cost ? `<button class="btn sm gold" onclick="buy('${i.id}')">🪙 ${i.cost}</button>` : `<span class="mut">🔒 Lv ${i.lv} · 🪙${i.cost}</span>`;
   const by = t => ITEMS.filter(i => i.type === t).sort((x, y) => x.lv - y.lv);
   view.innerHTML = `${hud()}${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${CHEST[G.chests[0]][1]} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : '<div class="mut">Chests drop from dungeons, bosses, the daily bonus and every 5th level.</div>'}
+  <button class="btn ghost" onclick="location.hash='#/earn'">⚡ Ways to earn points</button>
   <h2 class="sec">Reward road</h2><div class="road">` +
     Array.from({ length: max }, (_, k) => k + 1).map(n => {
       const its = ITEMS.filter(i => i.lv === n && n > 1);
@@ -367,6 +385,9 @@ function rewards() {
   <h2 class="sec">Avatar rings</h2><div class="grid3">${by('frame').map(i => `<div class="card sw ${has(i) ? '' : 'locked'}"><div class="av fr-${i.key}" style="--p:.6;width:54px;height:54px"><span style="font-size:24px">${G.avatar}</span></div><b>${i.name.replace(' ring', '')}</b>${state(i)}</div>`).join('')}</div>
   <h2 class="sec">Titles</h2><div class="chips">${ACH.filter(a => a.t).map(a => G.ach.includes(a.id) ? `<button class="chip ${G.title === a.id ? 'on' : ''}" onclick="equipTitle('${a.id}')">${a.t}</button>` : `<span class="chip locked">🔒 ${a.t}</span>`).join('')}</div>
   <div class="mut">Titles come from badges. Tap one to show it under your name.</div>
+  <h2 class="sec">Chef's recipes · ${ITEMS.filter(i => i.type === 'recipe' && has(i)).length}/${ITEMS.filter(i => i.type === 'recipe').length}</h2>
+  <p class="mut">Nicer dishes for your meal plan. Unlock them with coins or by levelling up, then shuffle your week.</p>
+  ${ITEMS.filter(i => i.type === 'recipe').sort((x, y) => x.lv - y.lv).map(i => { const r = RBY[i.rid], n = nutOf(r), ok = has(i); return `<div class="card row ${ok ? '' : 'locked'}"><div class="mi">${ok ? r.ico : '🔒'}</div><div class="grow"><b>${esc(r.name)}</b><div class="mut">${r.time} min · ${Math.round(n.kcal)} kcal · P ${Math.round(n.p)} · ${{ b: 'breakfast', m: 'lunch or dinner', s: 'snack' }[r.meal]}</div></div>${ok ? '<span class="mut">✓ Unlocked</span>' : G.coins >= i.cost ? `<button class="btn sm gold" onclick="buy('${i.id}')">🪙 ${i.cost}</button>` : `<span class="mut">Lv ${i.lv} · 🪙${i.cost}</span>`}</div>`; }).join('')}
   <h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>${ACH.map(a => `<div class="card row ${G.ach.includes(a.id) ? '' : 'locked'}"><div class="avbig sm">${G.ach.includes(a.id) ? a.i : '🔒'}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}</div></div><span class="mut">+${a.xp} XP</span></div>`).join('')}`;
 }
 

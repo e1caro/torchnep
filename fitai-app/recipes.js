@@ -66,10 +66,21 @@ const ING = {
   honey: ['Honey', 304, 0.3, 82, 0, 'H', 'Pantry'],
   maple: ['Maple syrup', 260, 0, 67, 0, '', 'Pantry'],
   chia: ['Chia seeds', 486, 17, 42, 31, '', 'Pantry'],
+  smokedsalmon: ['Smoked salmon', 117, 18, 0, 4.5, 'F', 'Meat & fish'],
+  lamb: ['Lean lamb mince', 180, 20, 0, 11, 'M', 'Meat & fish'],
+  mango: ['Mango', 60, 0.8, 15, 0.4, '', 'Produce'],
+  asparagus: ['Asparagus', 20, 2.2, 3.9, 0.1, '', 'Produce'],
+  eggplant: ['Eggplant', 25, 1, 6, 0.2, '', 'Produce'],
+  ricenoodles: ['Rice noodles (dry)', 364, 3.4, 83, 0.6, '', 'Pantry'],
+  darkchoc: ['Dark chocolate (70%)', 570, 8, 46, 38, '', 'Pantry'],
+  pesto: ['Basil pesto', 470, 5, 6, 48, 'DN', 'Pantry'],
+  sesame: ['Sesame seeds', 573, 18, 23, 50, '', 'Pantry'],
   whey: ['Protein powder', 400, 80, 8, 6, 'D', 'Pantry', ['scoop', 30, 's']],
 };
 
 const R = (id, name, ico, meal, time, ing, steps) => ({ id, name, ico, meal, time, ing, steps });
+// Chef's recipes: nicer dishes unlocked with coins or by reaching a level (chef: [level, coins]).
+const C = (lv, cost, ...a) => ({ ...R(...a), chef: [lv, cost] });
 // meal: b breakfast, m lunch or dinner, s snack
 const RECIPES = [
   // ---- breakfasts ----
@@ -133,6 +144,28 @@ const RECIPES = [
   R('s-skyrcup', 'Skyr berry cup', '🍧', 's', 5, [['skyr', 200], ['berries', 80], ['chia', 5]], ['Layer skyr and berries in a glass.', 'Sprinkle with chia.']),
   R('s-tunatoast', 'Tuna and tomato toast', '🐟', 's', 5, [['bread', 60], ['tuna', 80], ['tomato', 50]], ['Toast the bread.', 'Top with tuna and sliced tomato, pepper and lemon.']),
   R('s-edamame', 'Salted edamame', '🫛', 's', 10, [['edamame', 150], ['soy', 5]], ['Boil or microwave the edamame for 4 minutes.', 'Toss with a little soy sauce.']),
+  // ---- chef's recipes ----
+  C(3, 80, 'c-frenchtoast', 'Blueberry protein French toast', '🍞', 'b', 15, [['bread', 100], ['egg', 100], ['milk', 80], ['berries', 100], ['maple', 15], ['skyr', 80]], ['Whisk eggs and milk with cinnamon and soak the bread 30 seconds per side.', 'Pan-fry until golden, about 3 minutes per side.', 'Top with skyr, blueberries and maple syrup.']),
+  C(4, 100, 'c-salmontoast', 'Smoked salmon and avocado toast', '🐟', 'b', 10, [['bread', 70], ['smokedsalmon', 70], ['avocado', 80], ['egg', 100]], ['Toast the bread and mash the avocado on top with lemon and pepper.', 'Poach or soft-boil the eggs.', 'Layer salmon and egg over the avocado.']),
+  C(4, 60, 'c-chocyogurt', 'Dark chocolate almond yogurt', '🍫', 's', 5, [['gyogurt', 200], ['darkchoc', 15], ['almonds', 15]], ['Spoon the yogurt into a glass.', 'Grate the chocolate over it and add chopped almonds.']),
+  C(5, 70, 'c-lassi', 'Mango lassi shake', '🥭', 's', 5, [['mango', 150], ['gyogurt', 150], ['milk', 100], ['honey', 8]], ['Blend everything with a few ice cubes.', 'Pour and sprinkle with cardamom if you like.']),
+  C(6, 120, 'c-poke', 'Salmon poke-style bowl', '🍣', 'm', 20, [['salmon', 150], ['rice', 70], ['avocado', 60], ['cucumber', 80], ['edamame', 60], ['soy', 15], ['sesame', 8]], ['Cook the rice and let it cool slightly.', 'Pan-sear the salmon 3 minutes per side and flake it.', 'Build the bowl with avocado, cucumber and edamame, then add soy sauce and sesame.']),
+  C(6, 70, 'c-salmonbites', 'Smoked salmon cucumber bites', '🥒', 's', 5, [['smokedsalmon', 60], ['cucumber', 100], ['cottage', 80]], ['Cut the cucumber into thick rounds.', 'Top with cottage cheese and a roll of smoked salmon, finish with pepper and dill.']),
+  C(7, 110, 'c-bakedeggs', 'Mediterranean baked eggs with chickpeas', '🍳', 'b', 25, [['egg', 150], ['chickpeas', 100], ['tomato', 150], ['spinach', 40], ['feta', 30], ['oil', 8], ['bread', 50]], ['Simmer tomato, chickpeas and paprika in the oil for 8 minutes.', 'Stir in spinach, make wells and crack in the eggs.', 'Bake or cover on the hob for 8 minutes, crumble over feta and serve with bread.']),
+  C(8, 130, 'c-pestochicken', 'Pesto chicken pasta', '🍝', 'm', 25, [['chicken', 150], ['pasta', 90], ['pesto', 25], ['tomato', 100], ['spinach', 40], ['parmesan', 10]], ['Boil the pasta, 10 minutes.', 'Pan-fry the sliced chicken and tomato for 8 minutes.', 'Toss everything with pesto, spinach and parmesan.']),
+  C(9, 140, 'c-shrimppasta', 'Lemon garlic shrimp pasta', '🍤', 'm', 20, [['shrimp', 150], ['pasta', 90], ['zucchini', 100], ['oil', 12], ['parmesan', 10], ['tomato', 60]], ['Boil the pasta.', 'Sauté garlic and zucchini in the oil, add shrimp and cook 3 minutes.', 'Toss with pasta, tomato, lemon zest and parmesan.']),
+  C(9, 90, 'c-mangochia', 'Mango coconut chia bowl', '🥭', 'b', 5, [['chia', 40], ['plantmilk', 150], ['coconut', 40], ['mango', 120], ['almonds', 15]], ['Whisk chia, plant milk and coconut milk, chill 2 hours or overnight.', 'Top with diced mango and almonds.']),
+  C(10, 180, 'c-tikka', 'Chicken tikka masala', '🍛', 'm', 40, [['chicken', 180], ['gyogurt', 60], ['passata', 150], ['onion', 60], ['coconut', 50], ['rice', 70], ['oil', 8]], ['Marinate the chicken in yogurt, tikka spices and salt for 10 minutes.', 'Brown the chicken, then soften the onion in the oil.', 'Add passata and coconut milk and simmer the chicken 15 minutes. Serve with rice.']),
+  C(11, 160, 'c-peanutnoodles', 'Thai peanut chicken noodles', '🍜', 'm', 25, [['chicken', 150], ['ricenoodles', 70], ['pepper', 80], ['carrot', 60], ['pb', 25], ['soy', 15], ['oil', 5]], ['Soak the noodles in hot water until soft.', 'Stir-fry chicken, pepper and carrot in the oil for 8 minutes.', 'Add noodles, then toss with peanut butter thinned with soy sauce and water.']),
+  C(11, 80, 'c-bakedapple', 'Baked apple cinnamon oat cup', '🍎', 's', 10, [['apple', 180], ['oats', 40], ['walnuts', 15], ['honey', 8], ['gyogurt', 80]], ['Dice the apple and microwave with cinnamon for 3 minutes.', 'Stir in oats, walnuts and honey.', 'Top with the yogurt.']),
+  C(12, 100, 'c-chocoats', 'Dark chocolate protein oats', '🍫', 'b', 10, [['oats', 60], ['milk', 200], ['whey', 30], ['darkchoc', 15], ['banana', 80]], ['Cook oats in the milk for 5 minutes.', 'Stir in the protein off the heat.', 'Top with banana and shaved chocolate.']),
+  C(13, 170, 'c-fajita', 'Beef fajita bowl', '🌮', 'm', 30, [['beef', 160], ['pepper', 120], ['onion', 60], ['rice', 70], ['salsa', 50], ['avocado', 60], ['oil', 6]], ['Cook the rice.', 'Brown the beef with fajita spices, then add sliced pepper and onion for 8 minutes.', 'Serve over rice with salsa and avocado.']),
+  C(14, 190, 'c-miso', 'Miso-style glazed cod with asparagus', '🐟', 'm', 25, [['cod', 180], ['asparagus', 150], ['rice', 65], ['soy', 15], ['honey', 10], ['oil', 6], ['sesame', 5]], ['Cook the rice.', 'Brush the cod with soy and honey and bake 12 minutes at 200 °C.', 'Pan-fry the asparagus in the oil, 5 minutes, and finish with sesame.']),
+  C(15, 170, 'c-tagine', 'Moroccan chickpea tagine', '🍲', 'm', 45, [['chickpeas', 180], ['sweetpotato', 150], ['passata', 150], ['onion', 60], ['couscous', 60], ['oil', 8], ['almonds', 15]], ['Soften onion in the oil with cumin, cinnamon and paprika.', 'Add sweet potato cubes, chickpeas and passata and simmer 25 minutes.', 'Serve over couscous with toasted almonds.']),
+  C(16, 180, 'c-chickenskillet', 'Tuscan chicken skillet', '🥘', 'm', 35, [['chicken', 170], ['chickpeas', 120], ['tomato', 150], ['spinach', 60], ['oil', 10], ['parmesan', 10]], ['Brown the chicken in the oil, 6 minutes per side, and set aside.', 'Simmer tomato and chickpeas with garlic and herbs for 8 minutes.', 'Return the chicken, wilt in spinach and top with parmesan.']),
+  C(17, 200, 'c-burger', 'Lean burger with sweet potato wedges', '🍔', 'm', 35, [['beef', 170], ['sweetpotato', 250], ['bread', 70], ['tomato', 60], ['greens', 30], ['oil', 8], ['mozz', 25]], ['Roast sweet potato wedges with the oil at 220 °C for 25 minutes.', 'Shape and grill the patty, 4 minutes per side, adding mozzarella at the end.', 'Build the burger with tomato and greens.']),
+  C(18, 220, 'c-kofta', 'Lamb kofta bowl', '🥙', 'm', 40, [['lamb', 160], ['couscous', 60], ['cucumber', 80], ['tomato', 80], ['gyogurt', 60], ['feta', 20]], ['Mix the lamb with cumin, coriander and salt and shape into koftas.', 'Grill or pan-fry for 10 minutes, turning.', 'Serve on couscous with cucumber, tomato, yogurt and feta.']),
+  C(20, 260, 'c-eggplant', 'Lighter eggplant parmigiana', '🍆', 'm', 55, [['eggplant', 300], ['passata', 200], ['mozz', 70], ['parmesan', 15], ['oil', 10], ['bread', 30]], ['Slice the eggplant, brush with oil and roast 20 minutes at 210 °C.', 'Layer with passata and mozzarella in a dish and top with breadcrumbs and parmesan.', 'Bake 20 minutes until bubbling.']),
 ];
 
 const nutOf = r => r.ing.reduce((a, [k, g]) => { const i = ING[k]; a.kcal += i[1] * g / 100; a.p += i[2] * g / 100; a.c += i[3] * g / 100; a.f += i[4] * g / 100; return a; }, { kcal: 0, p: 0, c: 0, f: 0 });

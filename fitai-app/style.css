@@ -173,3 +173,4 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .rhero{font-size:90px;line-height:1;text-align:center;margin:6px 0;filter:drop-shadow(0 6px 14px #000a)}
 .ing{padding:7px 0;border-bottom:1px solid var(--line)}.ing:last-of-type{border:0}
 .shop{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.shop:last-child{border:0}.shop input{width:22px;height:22px;accent-color:var(--acc);flex:none}.shop input:checked~*{opacity:.45;text-decoration:line-through}
+.earnlist .row{padding:8px 0;border-bottom:1px solid var(--line);gap:12px;align-items:flex-start}.earnlist .row:last-child{border:0}.earnlist b{text-align:right;font-weight:500;max-width:55%}
