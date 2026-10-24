@@ -18,7 +18,6 @@ Free, offline-first workout app (PWA). Nothing to pay for, no accounts, no ads; 
 - **Progress:** body-weight chart against your target, volume per workout, personal records, history.
 
 ## Gym pass
-The Hero tab and the Today screen have an **Open Synergym** button that launches the Synergym member app on Android (default app id `digifit.android.virtuagym.pro.synergym`, editable under "Wrong app opens?"). FitQuest never handles your Synergym login. If your gym's QR is fixed you can also save a screenshot of it and show it full screen; a code that changes each time cannot be saved.
 
 ## My routines
 
@@ -44,7 +43,7 @@ Icons by Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed and Carl Olse
 
 ## Install on a phone
 It is published with the docs site at `/fitcoach/` (repo Settings → Pages → Source: GitHub Actions; see `.github/workflows/docs.yml`).
-Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open it in **Safari** → Share → **Add to Home Screen** (the app shows these steps on the Today screen until it is installed or the hint is closed). Open it once online; viewed exercises then work offline. On iPhone the Synergym button opens the Synergym page in the App Store, which has an Open button when the app is installed (iOS does not let web apps launch other apps directly).
+Android: open the URL in Chrome → menu → **Install app**. iPhone/iPad: open it in **Safari** → Share → **Add to Home Screen** (the app shows these steps on the Today screen until it is installed or the hint is closed). Open it once online; viewed exercises then work offline.
 
 Local test: `python3 -m http.server -d fitai-app 8000`.
 

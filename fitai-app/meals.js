@@ -1,6 +1,6 @@
 'use strict';
 // Meal plan: picks recipes that fit your diet, your cooking time per day and your calorie / protein targets,
-// scales each portion to hit the target and builds a weekly shopping list. Runs after recipes.js, game.js and gym.js.
+// scales each portion to hit the target and builds a weekly shopping list. Runs after recipes.js and game.js.
 
 const M = Object.assign({ set: null, plan: null, shop: [] }, load('meal', {}));
 const mealSave = () => save('meal', M);

@@ -468,6 +468,7 @@ function compactText() {
 let compactQ = 0;
 new MutationObserver(() => { if (!compactQ) compactQ = requestAnimationFrame(() => { compactQ = 0; compactText(); }); }).observe(view, { childList: true, subtree: true });
 
+try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // the Synergym gym pass was removed
 (async function init() {
   if ('serviceWorker' in navigator) {
     // New versions apply on their own: check when the app comes back to the screen, and reload once the new worker takes over.

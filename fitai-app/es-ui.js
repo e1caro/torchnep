@@ -65,19 +65,13 @@ i18nAdd({
 });
 i18nPat(/^(\d+) new records? × (\d+)$/, (a, b) => `${a} ${a === '1' ? 'nuevo récord' : 'nuevos récords'} × ${b}`);
 
-// ---------- progress, hero, gym, profile ----------
+// ---------- progress, hero, profile ----------
 i18nAdd({
   'Progress': 'Progreso', 'day streak': 'días de racha', 'workouts': 'entrenamientos', 'minutes': 'minutos', 'Body weight': 'Peso corporal', 'Log': 'Registrar', "Today's weight (kg)": 'Peso de hoy (kg)',
   '{n} kg since start': '{n} kg desde el inicio', 'target {n}': 'objetivo {n}', 'Volume per workout': 'Volumen por entrenamiento', 'Finish a workout to see this.': 'Termina un entrenamiento para verlo.',
   'kg lifted (weight × reps), last {n}': 'kg levantados (peso × repeticiones), últimos {n}', 'Personal records': 'Récords personales', 'No records yet.': 'Aún no hay récords.', 'History': 'Historial', 'No workouts yet.': 'Aún no hay entrenamientos.',
   '{n} kg × {n}': '{n} kg × {n}', '{n} exercises': '{n} ejercicios', '{n} exercise': '{n} ejercicio',
-  'Gym access': 'Acceso al gimnasio', 'Open Synergym': 'Abrir Synergym', 'Open the Synergym app to show your entry QR. FitQuest never sees your Synergym login.': 'Abre la app de Synergym para mostrar tu QR de entrada. FitQuest nunca ve tus datos de acceso de Synergym.',
-  'Save a QR screenshot': 'Guardar una captura del QR', 'Replace a QR screenshot': 'Cambiar la captura del QR', 'Show saved QR': 'Mostrar el QR guardado', 'My saved QR': 'Mi QR guardado', 'Remove': 'Quitar',
-  "A saved picture only works if your gym's QR never changes. If Synergym makes a new code each time, use the button above.": 'Una imagen guardada solo sirve si el QR de tu gimnasio no cambia. Si Synergym genera un código nuevo cada vez, usa el botón de arriba.',
-  'Wrong app opens? App id': '¿Se abre otra app? ID de la app', 'Save': 'Guardar', 'Saved': 'Guardado', 'Android package of the Synergym app (Play Store link ends in': 'Paquete Android de la app de Synergym (el enlace de Play Store termina en',
-  'id=…': 'id=…', 'Turn your screen brightness up': 'Sube el brillo de la pantalla', 'Gym QR code': 'Código QR del gimnasio', 'Open the Synergym app from your home screen.': 'Abre la app de Synergym desde tu pantalla de inicio.',
-  'QR saved on this phone': 'QR guardado en este teléfono', 'Could not save the image. Try a smaller screenshot.': 'No se pudo guardar la imagen. Prueba con una captura más pequeña.', 'That file is not an image.': 'Ese archivo no es una imagen.',
-  'That does not look like an app package name.': 'Eso no parece el nombre de un paquete de app.',
+  'Remove': 'Quitar', 'Save': 'Guardar', 'Saved': 'Guardado',
   'STR · kg lifted': 'FUE · kg levantados', 'END · minutes': 'RES · minutos', 'DEX · workouts': 'DES · entrenos', 'Edit profile and looks': 'Editar perfil y aspecto', 'Edit profile': 'Editar perfil',
   'Sound effects: on': 'Efectos de sonido: sí', 'Sound effects: off': 'Efectos de sonido: no', 'Body': 'Cuerpo', 'Goal': 'Objetivo', 'Schedule': 'Horario', 'Equipment': 'Material', '{n} days · {n} min': '{n} días · {n} min',
   'Edit body data and training plan': 'Editar datos corporales y plan de entrenamiento', 'Export my data': 'Exportar mis datos', 'Reset everything': 'Borrarlo todo', 'Delete all data?': '¿Borrar todos los datos?', 'Cancel': 'Cancelar', 'Delete': 'Borrar',
