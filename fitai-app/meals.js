@@ -327,7 +327,7 @@ window.swapMeal = (di, ii) => {
   const r = pk.r; it.rid = r.id; it.k = it.userK ? it.k : portion(r, a.kcal * it.share); it.eaten = false; it.xp = 0; mealSave(); recipeView();
 };
 
-function shopView() {
+function groceryView() {
   if (!ensureMeals()) { location.hash = '#/meals'; return; }
   const tot = {};
   M.plan.days.forEach(d => d.items.forEach(it => RBY[it.rid].ing.forEach(([k, g]) => { tot[k] = (tot[k] || 0) + g * it.k; })));
@@ -360,4 +360,4 @@ home = function () {
   const fuel = [...view.querySelectorAll('h2.sec')].find(h => h.textContent === 'Fuel');
   if (fuel) fuel.insertAdjacentHTML('beforebegin', mealsCard());
 };
-Object.assign(routes, { plan: planView, home, meals: mealsView, recipe: recipeView, shop: shopView });
+Object.assign(routes, { plan: planView, home, meals: mealsView, recipe: recipeView, shop: groceryView });
