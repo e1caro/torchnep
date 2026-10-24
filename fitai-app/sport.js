@@ -59,6 +59,27 @@ const SPORTS = {
       DR('shoulder', TT('Shot-Stopper Shoulders', 'Hombros de parador'), TT('Strong shoulders and back to catch and punch.', 'Hombros y espalda fuertes para atrapar y despejar.')),
       DR('power', TT('Diving Power', 'Potencia de estirada'), TT('Explosive jumps for top-corner saves.', 'Saltos explosivos para las escuadras.')),
       DR('core', TT('Landing Core', 'Core de aterrizaje'), TT('A tough core to take every dive.', 'Un core duro para aguantar cada estirada.'))]) } },
+  futsal: { ico: '🥅', name: TT('Futsal', 'Fútbol sala'), unit: 'goals', roles: {
+    keeper: RL('GK', TT('Futsal Goalkeeper', 'Portero de sala'), TT('Close range saves and quick throws: reflexes, agility and power.', 'Paradas a bocajarro y saques rápidos: reflejos, agilidad y potencia.'), { AGI: 3.5, PWR: 3, CORE: 2, STR: 1.5, SPD: 1.5, STA: 1 }, [
+      DR('agility', TT('Point-Blank Reflexes', 'Reflejos a bocajarro'), TT('Lateral hops for saves from two metres.', 'Saltos laterales para paradas a dos metros.')),
+      DR('throw', TT('Fast Throw-Outs', 'Saques rápidos'), TT('Explosive throws to start counter-attacks.', 'Lanzamientos explosivos para iniciar contraataques.')),
+      DR('power', TT('Block and Spread', 'Cruz y estirada'), TT('Jumps to spread big and close angles.', 'Saltos para hacerte grande y cerrar ángulos.')),
+      DR('core', TT('Goal-Line Core', 'Core bajo palos'), TT('A tough core for low saves.', 'Un core duro para las paradas bajas.'))]),
+    fixo: RL('FIX', TT('Fixo', 'Cierre'), TT('The last defender: strength, reading the game and quick recoveries.', 'El último defensa: fuerza, lectura del juego y recuperaciones rápidas.'), { STR: 3, AGI: 2.5, STA: 2.5, CORE: 2, SPD: 2, PWR: 1.5 }, [
+      DR('contact', TT('Hold the Pivot', 'Aguantar al pívot'), TT('Neck, core and strength to win body duels.', 'Cuello, core y fuerza para ganar los duelos al cuerpo.')),
+      DR('agility', TT('Defensive Shuffle', 'Desplazamiento defensivo'), TT('Lateral steps to stay in front of attackers.', 'Pasos laterales para seguir delante del atacante.')),
+      DR('stamina', TT('Rotation Engine', 'Motor de rotaciones'), TT('A circuit for constant pressing and rotations.', 'Un circuito para presión y rotaciones constantes.')),
+      DR('lower', TT('Long-Shot Legs', 'Piernas de disparo lejano'), TT('Leg strength for shots from distance.', 'Fuerza de piernas para disparar de lejos.'))]),
+    ala: RL('ALA', TT('Ala', 'Ala'), TT('One against one on the wing: quick feet, short sprints and stamina.', 'El uno contra uno en banda: pies rápidos, sprints cortos y resistencia.'), { AGI: 3.5, SPD: 3, STA: 2.5, PWR: 1.5, CORE: 1.5, STR: 1 }, [
+      DR('agility', TT('Sole Control Feet', 'Pies de control con la suela'), TT('Fast lateral footwork for tight spaces.', 'Juego de pies lateral rápido para espacios cortos.')),
+      DR('sprint', TT('Short Sprints', 'Sprints cortos'), TT('Five-metre bursts to win the space.', 'Arrancadas de cinco metros para ganar el espacio.')),
+      DR('stamina', TT('Pressing Engine', 'Motor de presión'), TT('A circuit for high pressing all match.', 'Un circuito para presionar arriba todo el partido.')),
+      DR('core', TT('Turn and Balance', 'Giro y equilibrio'), TT('A steady core for quick turns.', 'Un core firme para girar rápido.'))]),
+    pivot: RL('PIV', TT('Pivot', 'Pívot'), TT('Play with your back to goal: strength, power and a solid core.', 'Juega de espaldas a portería: fuerza, potencia y un core sólido.'), { STR: 3.5, PWR: 3, CORE: 2.5, AGI: 1.5, SPD: 1.5, STA: 1.5 }, [
+      DR('contact', TT('Back to Goal', 'De espaldas a portería'), TT('Neck, traps and core to hold off defenders.', 'Cuello, trapecios y core para aguantar a los defensas.')),
+      DR('power', TT('Turn and Shoot', 'Gira y dispara'), TT('Explosive legs for quick finishes.', 'Piernas explosivas para rematar rápido.')),
+      DR('upper', TT('Shielding Strength', 'Fuerza para proteger'), TT('Upper body strength to protect the ball.', 'Fuerza de tren superior para proteger el balón.')),
+      DR('lower', TT('Anchor Legs', 'Piernas de ancla'), TT('A base nobody can move.', 'Una base que nadie mueve.'))]) } },
   basketball: { ico: '🏀', name: TT('Basketball', 'Baloncesto'), unit: 'points', roles: {
     guard: RL('GRD', TT('Guard', 'Base'), TT('Run the offence: speed, quick feet and stamina.', 'Dirige el ataque: velocidad, pies rápidos y resistencia.'), { SPD: 3, AGI: 3, STA: 2.5, PWR: 1.5, CORE: 1.5, STR: 1 }, [
       DR('sprint', TT('Fast Break', 'Contraataque'), TT('Sprints to run the floor.', 'Sprints para correr la cancha.')),
@@ -87,12 +108,12 @@ const SPORTS = {
       DR('power', TT('Leg Drive', 'Impulso de piernas'), TT('Jumps to launch into the serve.', 'Saltos para lanzarte al saque.')),
       DR('core', TT('Core Torque', 'Torsión del core'), TT('Rotation strength through the middle.', 'Fuerza de rotación en el centro.'))]) } },
   rugby: { ico: '🏉', name: TT('Rugby', 'Rugby'), unit: 'points', roles: {
-    forward: RL('FRW', TT('Forward', 'Delantero (forward)'), TT('Win the scrum and the breakdown: strength, neck and core.', 'Gana la melé y el ruck: fuerza, cuello y core.'), { STR: 3.5, CORE: 2.5, STA: 2.5, PWR: 2, SPD: 1, AGI: 1 }, [
+    forward: RL('FRW', TT('Rugby Forward', 'Delantero de rugby'), TT('Win the scrum and the breakdown: strength, neck and core.', 'Gana la melé y el ruck: fuerza, cuello y core.'), { STR: 3.5, CORE: 2.5, STA: 2.5, PWR: 2, SPD: 1, AGI: 1 }, [
       DR('contact', TT('Scrum Machine', 'Máquina de melé'), TT('Neck, traps and core for the scrum.', 'Cuello, trapecios y core para la melé.')),
-      DR('lower', TT('Driving Legs', 'Piernas de empuje'), TT('Heavy legs to drive through contact.', 'Piernas fuertes para empujar en el contacto.')),
+      DR('lower', TT('Scrum Legs', 'Piernas de empuje'), TT('Heavy legs to drive through contact.', 'Piernas fuertes para empujar en el contacto.')),
       DR('upper', TT('Tackle Strength', 'Fuerza de placaje'), TT('Pushing and pulling power for tackles.', 'Fuerza de empuje y tirón para placar.')),
       DR('stamina', TT('Ruck Engine', 'Motor de ruck'), TT('A circuit for 80 minutes of work.', 'Un circuito para 80 minutos de trabajo.'))]),
-    back: RL('BCK', TT('Back', 'Tres cuartos'), TT('Break the line: speed, agility and power.', 'Rompe la línea: velocidad, agilidad y potencia.'), { SPD: 3.5, AGI: 3, PWR: 2.5, STA: 1.5, STR: 1.5, CORE: 1 }, [
+    back: RL('BCK', TT('Outside Back', 'Tres cuartos'), TT('Break the line: speed, agility and power.', 'Rompe la línea: velocidad, agilidad y potencia.'), { SPD: 3.5, AGI: 3, PWR: 2.5, STA: 1.5, STR: 1.5, CORE: 1 }, [
       DR('sprint', TT('Open-Field Speed', 'Velocidad en campo abierto'), TT('Sprints to outrun the defence.', 'Sprints para dejar atrás a la defensa.')),
       DR('agility', TT('Step and Swerve', 'Quiebro y esquive'), TT('Lateral hops for sidesteps.', 'Saltos laterales para los quiebros.')),
       DR('power', TT('Breakaway Power', 'Potencia de ruptura'), TT('Explosive legs to burst through gaps.', 'Piernas explosivas para romper huecos.')),
@@ -267,7 +288,8 @@ function opponentFor(key, ovr) {
 function scoreFor(sport, res, r) {
   const W = res === 'W', D = res === 'D', pick = (a, b) => a + Math.floor(r() * (b - a + 1));
   let a, b, text;
-  if (sport === 'football') { if (D) a = b = pick(0, 2); else { const hi = pick(1, 3), lo = Math.floor(r() * hi); a = W ? hi : lo; b = W ? lo : hi; } }
+  if (sport === 'futsal') { if (D) a = b = pick(1, 4); else { const hi = pick(2, 6), lo = Math.floor(r() * hi); a = W ? hi : lo; b = W ? lo : hi; } }
+  else if (sport === 'football') { if (D) a = b = pick(0, 2); else { const hi = pick(1, 3), lo = Math.floor(r() * hi); a = W ? hi : lo; b = W ? lo : hi; } }
   else if (sport === 'basketball') { const hi = pick(82, 108), lo = hi - pick(2, 14); a = W ? hi : lo; b = W ? lo : hi; }
   else if (sport === 'rugby') { if (D) a = b = pick(10, 24); else { const hi = pick(17, 36), lo = hi - pick(3, 14); a = W ? hi : lo; b = W ? lo : hi; } }
   else if (sport === 'volleyball') { const lo = pick(0, 2); a = W ? 3 : lo; b = W ? lo : 3; }
@@ -285,7 +307,7 @@ window.playMatch = () => {
   const rs = roleState(key), sport = key.split('/')[0];
   if (rs.match?.week === weekId() || weekDrills(sport) < 2) return;
   const ovr = ovrOf(role), opp = opponentFor(key, ovr), r = rng(hash('m' + weekId() + key));
-  const p = Math.max(.08, Math.min(.92, .5 + (ovr - opp.ovr) / 50 + .04 * (weekDrills(sport) - 2))), draw = ['football', 'rugby', 'running', 'combat'].includes(sport) ? .14 : 0;
+  const p = Math.max(.08, Math.min(.92, .5 + (ovr - opp.ovr) / 50 + .04 * (weekDrills(sport) - 2))), draw = ['football', 'futsal', 'rugby', 'running', 'combat'].includes(sport) ? .14 : 0;
   const roll = r(), pw = Math.max(.04, p - draw / 2), res = roll < pw ? 'W' : roll < pw + draw ? 'D' : 'L';
   const sc = scoreFor(sport, res, r), ranked = SATTRS.slice().sort((x, y) => role.w[y] * statVal(y) - role.w[x] * statVal(x)), weak = SATTRS.slice().sort((x, y) => statVal(x) / role.w[x] - statVal(y) / role.w[y]);
   const rew = { W: [200, 120, 80], D: [80, 50, 40], L: [40, 20, 30] }[res];
@@ -348,7 +370,7 @@ function sportView(arg) {
 }
 
 function sportRow() {
-  if (!SP.cur) return `<section class="card tap row sp-row" onclick="location.hash='#/sport'"><div class="sp-ico">⚽🏀🎾</div><div class="grow"><h3>Sports Academy</h3><div class="mut">Pick your sport</div></div></section>`;
+  if (!SP.cur) return `<section class="card tap row sp-row" onclick="location.hash='#/sport'"><div class="sp-ico">⚽🥅🏀</div><div class="grow"><h3>Sports Academy</h3><div class="mut">Pick your sport</div></div></section>`;
   const role = roleOf(SP.cur), ovr = ovrOf(role), sport = SPORTS[SP.cur.split('/')[0]];
   return `<section class="card tap row sp-row" onclick="location.hash='#/sport'"><div class="pc-mini pc-${cardClass(ovr)}"><b>${ovr}</b><i>${role.pos}</i></div><div class="grow"><h3>${sport.ico} ${role.name}</h3><div class="mut">${careerTier(ovr)} · Career level ${sportLevel(roleState(SP.cur).sxp)}</div></div><span class="chip on">Train</span></section>`;
 }
