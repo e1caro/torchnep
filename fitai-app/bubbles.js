@@ -87,7 +87,7 @@ function layoutOrbs() {
   const cx = W / 2, cy = PAD + (H - PAD) / 2 - LBL / 2;
   // try the largest outer circles first; on short screens shrink them until the middle circle is clearly the biggest
   const plan = d => {
-    const rx = W / 2 - d * E / 2 - 2, ry = (H - PAD) / 2 - d * O / 2 - LBL / 2;
+    const rx = W / 2 - d * O / 2 - 2, ry = (H - PAD) / 2 - d * O / 2 - LBL / 2;
     const at = SPOTS.slice(0, n).map(([fx, fy]) => [rx * fx, ry * fy]);
     // the middle circle sits halfway between the side circles above and below it, and grows until its ornament
     // stays well clear of the closest circle or label around it

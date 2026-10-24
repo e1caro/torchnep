@@ -432,3 +432,9 @@ html[data-skin=hud] nav a span{font:700 9px var(--disp);letter-spacing:.02em}
 .orbs .bub{gap:calc(var(--d) * .14 + 2px)}
 /* all circles float together, so the gaps between them never shrink */
 .orbs .bub{animation-delay:0s}
+
+/* the app always fits the phone screen: nothing may widen the page (that makes phones zoom out),
+   no double-tap zoom, and no text inflation when the phone turns */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;touch-action:manipulation}
+html,body,main{overflow-x:clip;max-width:100%}
+.orbs{overflow-x:clip;overflow-clip-margin:0}
