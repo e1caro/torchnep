@@ -468,8 +468,17 @@ function compactText() {
 let compactQ = 0;
 new MutationObserver(() => { if (!compactQ) compactQ = requestAnimationFrame(() => { compactQ = 0; compactText(); }); }).observe(view, { childList: true, subtree: true });
 
+try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // the Synergym gym pass was removed
 (async function init() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
+  if ('serviceWorker' in navigator) {
+    // New versions apply on their own: check when the app comes back to the screen, and reload once the new worker takes over.
+    const hadSW = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.register('sw.js').then(reg => {
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => { }); });
+    }).catch(() => { });
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => { if (hadSW && !reloaded && !session) { reloaded = true; location.reload(); } });
+  }
   try {
     EX = await (await fetch('data/exercises.json')).json();
     VID = await (await fetch('data/videos.json')).json().catch(() => ({}));

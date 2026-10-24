@@ -161,11 +161,7 @@ html[data-theme=aurora] body{background:radial-gradient(90% 40% at 20% -5%,#1b6b
 .boot{display:flex;flex-direction:column;align-items:center;gap:14px;margin-top:28vh}.boot img{border-radius:22px;box-shadow:0 0 40px color-mix(in srgb,var(--acc) 50%,transparent)}
 .boot .bt{font:700 38px var(--disp);letter-spacing:.12em;text-transform:uppercase}
 
-/* ---- gym pass ---- */
-.gymrow{display:flex;gap:10px;margin:8px 0}.gymrow .btn{flex:1;margin:0}
 label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-radius:6px}
-.qrfs{position:fixed;inset:0;z-index:60;background:#fff;color:#111;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:20px}
-.qrfs img{max-width:100%;max-height:68vh;object-fit:contain}.qrfs .mut{color:#555}.qrfs .btn{width:min(320px,100%)}
 
 /* ---- meals ---- */
 .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;margin:0 0 10px}.seg a{flex:1;text-align:center;padding:9px;border-radius:10px;color:var(--mut);font-weight:700}.seg a.on{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#12080a}

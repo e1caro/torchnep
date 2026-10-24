@@ -75,9 +75,13 @@ const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', '
   ['scan', 'Scanlines', 90], ['hexgrid', 'Lattice', 140], ['circuit', 'Circuit board', 180], ['radar', 'Radar sweep', 220], ['data', 'Data stream', 260], ['hazard', 'Hazard', 280]];
 // panel styles: the shape of every card in the app
 // whole interfaces: each changes the palette, fonts, frames, buttons and background (fonts load only when in use)
-const SKINS = [['hud', 'Sci-fi HUD', 0, '🛰️'], ['chinese', 'Imperial China', 2000, '🏮'], ['japanese', 'Zen Japan', 2000, '⛩️'], ['fairy', 'Fairy Tale Forest', 2500, '🌳'], ['medieval', 'Medieval Castle', 2500, '🏰'], ['steampunk', 'Steampunk Works', 3000, '⚙️']];
+const SKINS = [['hud', 'Sci-fi HUD', 0, '🛰️'], ['chinese', 'Imperial China', 2000, '🏮'], ['japanese', 'Zen Japan', 2000, '⛩️'], ['fairy', 'Fairy Tale Forest', 2500, '🌳'], ['medieval', 'Medieval Castle', 2500, '🏰'], ['steampunk', 'Steampunk Works', 3000, '⚙️'],
+  ['greek', 'Olympus', 2500, '🏛️'], ['egypt', 'Ancient Egypt', 2500, '🏜️'], ['viking', 'Viking Saga', 2800, '🪓'], ['pirate', 'Pirate Seas', 2800, '🏴‍☠️'], ['outrun', 'Outrun 80s', 3200, '🌆'], ['arcade', 'Arcade 8-bit', 3500, '👾']];
 const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japanese: 'Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700',
-  fairy: 'IM+Fell+English+SC&family=Lora:wght@400;600;700', medieval: 'MedievalSharp&family=EB+Garamond:wght@400;600;700', steampunk: 'Rye&family=Special+Elite&family=Lora:wght@400;600;700' };
+  fairy: 'IM+Fell+English+SC&family=Lora:wght@400;600;700', medieval: 'MedievalSharp&family=EB+Garamond:wght@400;600;700', steampunk: 'Rye&family=Special+Elite&family=Lora:wght@400;600;700',
+  greek: 'Cinzel:wght@500;700;900&family=Cormorant+Garamond:wght@500;600;700', egypt: 'Cinzel+Decorative:wght@700;900&family=Lora:wght@400;600;700',
+  viking: 'Metamorphous&family=Alegreya:wght@400;600;700', pirate: 'Pirata+One&family=IM+Fell+English&family=Lora:wght@400;600',
+  outrun: 'Audiowide&family=Exo+2:wght@400;600;700', arcade: 'Press+Start+2P&family=VT323' };
 const PANELS = [['chamfer', 'Chamfered', 0], ['classic', 'Classic', 0], ['brackets', 'Brackets', 150], ['octa', 'Octagon', 200], ['notch', 'Notch', 250], ['double', 'Double line', 300], ['circuit', 'Circuit', 400], ['holo', 'Hologram', 500]];
 const ITEMS = [
   ...THEMES.map(([k, name, cost, a, b]) => ({ id: 't-' + k, type: 'theme', key: k, name, cost, sw: [a, b], shop: true })),
@@ -432,7 +436,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 39</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 42</div>`;
 }
 
 function initGame() {
@@ -440,7 +444,8 @@ function initGame() {
     G.xp = S.history.reduce((a, h) => a + 100 + h.ex.reduce((b, x) => b + x.sets.length * 10, 0), 0);
   }
   migrateGame();
-  if (!G.hudLook) { G.hudLook = 1; if (G.theme === 'ember') G.theme = 'hud'; G.panel = G.panel || 'chamfer'; } // the HUD redesign: move the old default look to the new one once
+  // the HUD redesign: everyone starts once on the Cyber HUD look (bought themes stay owned and can be equipped again)
+  if (!G.hudLook2) { G.hudLook2 = 1; G.theme = 'hud'; G.skin = 'hud'; G.panel = 'chamfer'; }
   ensureDay(); applyTheme(); commit();
 }
 // Version 3 split rewards: levels give workouts, meals and perks; coins buy looks. Keep everything players already had.
