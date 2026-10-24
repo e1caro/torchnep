@@ -1,0 +1,161 @@
+/* ==========================================================================
+   Interface skins (Rewards > Shop > Interfaces). Each one replaces the whole look:
+   palette, fonts, background, panel frames, buttons, bars and markers. Plain CSS, no images.
+   Fonts (SIL Open Font License, Google Fonts) are loaded only for the active skin (see applyTheme).
+   ========================================================================== */
+
+/* ---- shared: undo the sci-fi pieces (segmented bars, tick rings, hex badges, cut corners) ---- */
+html[data-skin]:not([data-skin=hud]){--r:6px}
+html[data-skin]:not([data-skin=hud]) :is(.btn,.btn.sm,.chip,.seg,.seg a.on,.dpill,.pick,.icon,.coins,input,select,.qi,.dgi,.mi,.odd,.pill,.xpchip,.rk,.toast,.demo,.thumb,.swc,.xpbar,.pcard[class*=bn-],.pnp){clip-path:none;border-radius:var(--r)}
+html[data-skin]:not([data-skin=hud]) :is(.dot,.lv,.lg,.ck,.hwn){clip-path:none;border-radius:50%}
+html[data-skin]:not([data-skin=hud]) :is(.xpbar,.qbar,.prog,.hp,.rkbar,.steps i){background:var(--card2);box-shadow:inset 0 1px 3px #0008;border-radius:99px}
+html[data-skin]:not([data-skin=hud]) .xpbar i,html[data-skin]:not([data-skin=hud]) :is(.qbar,.prog,.hp,.rkbar) i{border-radius:99px;-webkit-mask:none;mask:none;filter:none;background:linear-gradient(90deg,var(--acc),var(--acc2))}
+html[data-skin]:not([data-skin=hud]) .steps i.on{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:none}
+html[data-skin]:not([data-skin=hud]) .bars div{border-radius:6px 6px 2px 2px;background:linear-gradient(180deg,var(--acc2),var(--acc))}
+html[data-skin]:not([data-skin=hud]) .ring::before{display:none}
+html[data-skin]:not([data-skin=hud]) .fr-none::after{background:none}
+html[data-skin]:not([data-skin=hud]) .ring circle{stroke-linecap:round}
+html[data-skin]:not([data-skin=hud]) :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){border-style:solid;-webkit-backdrop-filter:none;backdrop-filter:none}
+html[data-skin]:not([data-skin=hud]) nav#tabs{border-top:1px solid var(--line)}
+html[data-skin]:not([data-skin=hud]) nav#tabs::before{background:linear-gradient(90deg,#0000,var(--acc),#0000) 50% 0/60% 2px no-repeat}
+html[data-skin]:not([data-skin=hud]) :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){border-radius:var(--r)}
+html[data-skin]:not([data-skin=hud]) .btn{letter-spacing:.05em;font-size:14px}
+html[data-skin]:not([data-skin=hud]) .btn.sm{font-size:12px}
+html[data-skin]:not([data-skin=hud]) h1{letter-spacing:.03em}
+html[data-skin]:not([data-skin=hud]) :is(h2,h3,.hn,.lbl,.chip,.seg a,.dpill){letter-spacing:.03em}
+html[data-skin]:not([data-skin=hud]) body::after{content:"";position:fixed;pointer-events:none;z-index:0}
+
+/* ==========================================================================
+   Imperial China: red lacquer, gold lattice corners, vermilion seals
+   ========================================================================== */
+html[data-skin=chinese]{
+  --bg:#13070a;--glow:#5a0f14;--acc:#d9ad45;--acc2:#e8433a;--fg:#f8ead0;--mut:#c2a985;--on:#2a0a06;--r:4px;
+  --card:#22090d;--card2:#331015;--line:color-mix(in srgb,#d9ad45 40%,transparent);--line2:#d9ad45aa;
+  --disp:'ZCOOL XiaoWei','Lora',serif;--body:'Lora',Georgia,serif;--mono:'ZCOOL XiaoWei','Lora',serif;
+  --clip:none;--pshadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px color-mix(in srgb,#d9ad45 45%,transparent);
+  --deco:
+    linear-gradient(#d9ad45,#d9ad45) 6px 6px/18px 2px,linear-gradient(#d9ad45,#d9ad45) 6px 6px/2px 18px,linear-gradient(#d9ad45,#d9ad45) 11px 11px/6px 6px,
+    linear-gradient(#d9ad45,#d9ad45) calc(100% - 6px) 6px/18px 2px,linear-gradient(#d9ad45,#d9ad45) calc(100% - 6px) 6px/2px 18px,linear-gradient(#d9ad45,#d9ad45) calc(100% - 11px) 11px/6px 6px,
+    linear-gradient(#d9ad45,#d9ad45) 6px calc(100% - 6px)/18px 2px,linear-gradient(#d9ad45,#d9ad45) 6px calc(100% - 6px)/2px 18px,linear-gradient(#d9ad45,#d9ad45) 11px calc(100% - 11px)/6px 6px,
+    linear-gradient(#d9ad45,#d9ad45) calc(100% - 6px) calc(100% - 6px)/18px 2px,linear-gradient(#d9ad45,#d9ad45) calc(100% - 6px) calc(100% - 6px)/2px 18px,linear-gradient(#d9ad45,#d9ad45) calc(100% - 11px) calc(100% - 11px)/6px 6px,
+    linear-gradient(#e8433a,#e8433a) 50% 0/34px 3px}
+html[data-skin=chinese] body{background:
+  radial-gradient(110% 50% at 50% -10%,#7a141a 0,#0000 70%) no-repeat,
+  radial-gradient(circle,#0000 10px,#d9ad4514 11px 12px,#0000 13px) 0 0/44px 44px,
+  radial-gradient(circle,#0000 10px,#d9ad450d 11px 12px,#0000 13px) 22px 22px/44px 44px,var(--bg);background-attachment:fixed}
+html[data-skin=chinese] h2.sec::before{transform:none;border:0;width:12px;height:12px;background:#e8433a;box-shadow:inset 0 0 0 2px #f8ead055;border-radius:2px}
+html[data-skin=chinese] .btn{background:linear-gradient(180deg,#e8433a,#a91c17);color:#fbe7b0;box-shadow:inset 0 0 0 1px #d9ad45,inset 0 0 0 3px #a91c17,inset 0 0 0 4px #d9ad4588}
+html[data-skin=chinese] .btn.ghost{background:#22090d;color:#d9ad45;box-shadow:inset 0 0 0 1px #d9ad4599}
+html[data-skin=chinese] .btn.gold,html[data-skin=chinese] .btn.chestbtn{background:linear-gradient(180deg,#f3cf6e,#c08a1f);color:#2a0a06;box-shadow:inset 0 0 0 1px #fff4}
+html[data-skin=chinese] :is(.seg a.on,.dpill.on,.chip.on){background:#a91c17;color:#fbe7b0;border-color:#d9ad45}
+
+/* ==========================================================================
+   Zen Japan: indigo night, seigaiha waves, vermilion torii bars
+   ========================================================================== */
+html[data-skin=japanese]{
+  --bg:#0b1222;--glow:#1d2c52;--acc:#e5432f;--acc2:#f2d8a7;--fg:#f3ecdf;--mut:#a9b2c6;--on:#fff6e6;--r:0;
+  --card:#111a30;--card2:#18243f;--line:#f2d8a733;--line2:#f2d8a777;
+  --disp:'Shippori Mincho','Zen Kaku Gothic New',serif;--body:'Zen Kaku Gothic New',system-ui,sans-serif;--mono:'Shippori Mincho',serif;
+  --clip:none;--pshadow:none;
+  --deco:linear-gradient(#e5432f,#e5432f) 0 0/100% 4px,linear-gradient(#e5432f,#e5432f) 0 9px/100% 2px,
+    linear-gradient(#e5432f,#e5432f) 14% 0/4px 16px,linear-gradient(#e5432f,#e5432f) 86% 0/4px 16px}
+html[data-skin=japanese] body{background:
+  radial-gradient(90% 40% at 80% -5%,#2a3d70aa,#0000 70%) no-repeat,
+  radial-gradient(circle at 50% 100%,#0000 0 8px,#f2d8a714 8px 9px,#0000 9px 13px,#f2d8a714 13px 14px,#0000 14px 18px,#f2d8a714 18px 19px,var(--bg) 19px 20px,#0000 20px) 0 0/40px 20px,
+  radial-gradient(circle at 50% 100%,#0000 0 8px,#f2d8a714 8px 9px,#0000 9px 13px,#f2d8a714 13px 14px,#0000 14px 18px,#f2d8a714 18px 19px,var(--bg) 19px 20px,#0000 20px) 20px 10px/40px 20px,var(--bg);background-attachment:fixed}
+html[data-skin=japanese] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){padding-top:20px}
+html[data-skin=japanese] .quest,html[data-skin=japanese] .mkt,html[data-skin=japanese] .stat{padding-top:16px}
+html[data-skin=japanese] h2.sec::before{transform:none;border:0;width:12px;height:12px;border-radius:50%;background:#e5432f}
+html[data-skin=japanese] .btn{background:#e5432f;color:#fff6e6;box-shadow:inset 0 -3px 0 #0003}
+html[data-skin=japanese] .btn.ghost{background:transparent;color:#f2d8a7;box-shadow:inset 0 0 0 1px #f2d8a766}
+html[data-skin=japanese] .btn.gold,html[data-skin=japanese] .btn.chestbtn{background:#f2d8a7;color:#2a1a0a}
+html[data-skin=japanese] :is(.seg a.on,.dpill.on){background:#e5432f;color:#fff6e6}
+
+/* ==========================================================================
+   Fairy Tale Forest: night woods, pine silhouettes, fireflies, leafy frames
+   ========================================================================== */
+html[data-skin=fairy]{
+  --bg:#06130c;--glow:#1d4a2b;--acc:#9be27a;--acc2:#ffd86a;--fg:#f4f1dc;--mut:#aabd9f;--on:#0d2a12;--r:18px;
+  --card:#0d2216e6;--card2:#163322;--line:#9be27a40;--line2:#9be27a88;
+  --disp:'IM Fell English SC','Lora',serif;--body:'Lora',Georgia,serif;--mono:'IM Fell English SC','Lora',serif;
+  --clip:none;--pshadow:inset 0 0 22px #9be27a14,0 6px 18px #0006;
+  --deco:radial-gradient(circle at 0 0,#0000 15px,#9be27a99 16px 18px,#0000 19px) 0 0/34px 34px,
+    radial-gradient(circle at 100% 100%,#0000 15px,#9be27a99 16px 18px,#0000 19px) 100% 100%/34px 34px,
+    radial-gradient(circle,#ffd86a 0 2px,#ffd86a55 3px,#0000 6px) calc(100% - 14px) 10px/14px 14px,
+    radial-gradient(circle,#ffd86a 0 1.5px,#ffd86a44 2.5px,#0000 5px) 14px calc(100% - 12px)/12px 12px}
+html[data-skin=fairy] body{background:
+  radial-gradient(circle at 82% 8%,#fff8d8 0 26px,#fff8d855 30px,#0000 70px) no-repeat,
+  radial-gradient(circle,#ffd86acc 0 1.5px,#0000 4px) 0 0/97px 131px,radial-gradient(circle,#ffd86a99 0 1.2px,#0000 3px) 40px 60px/71px 89px,
+  linear-gradient(#0a2414,#0a2414) 0 100%/100% 84px no-repeat,
+  conic-gradient(from 150deg at 50% 0,#0a2414 0 60deg,#0000 0) 0 calc(100% - 82px)/70px 120px repeat-x,
+  conic-gradient(from 150deg at 50% 0,#0f2f1a 0 60deg,#0000 0) 30px calc(100% - 82px)/50px 86px repeat-x,
+  linear-gradient(180deg,#0b2a3a 0,var(--bg) 60%);background-attachment:fixed}
+html[data-skin=fairy] .card::after{content:"🍃";position:absolute;top:-4px;right:18px;font-size:15px;transform:rotate(25deg);pointer-events:none;filter:saturate(.8)}
+html[data-skin=fairy] h2.sec::before{transform:rotate(-30deg);border:0;width:10px;height:14px;border-radius:0 100% 0 100%;background:#9be27a}
+html[data-skin=fairy] .btn{border-radius:99px;background:linear-gradient(180deg,#a8ea86,#5aa04a);color:#0d2a12;box-shadow:inset 0 -3px 0 #0003,0 0 14px #9be27a44}
+html[data-skin=fairy] .btn.ghost{background:#0d2216;color:#c6f0ad;box-shadow:inset 0 0 0 1px #9be27a66}
+html[data-skin=fairy] .btn.gold,html[data-skin=fairy] .btn.chestbtn{background:linear-gradient(180deg,#ffe58f,#e0a83a);color:#3a2306}
+html[data-skin=fairy] :is(.chip,.seg a.on,.dpill){border-radius:99px}
+html[data-skin=fairy] :is(.seg a.on,.dpill.on){background:#9be27a;color:#0d2a12}
+
+/* ==========================================================================
+   Medieval Castle: stone walls, iron rivets, gold trim, heraldic red
+   ========================================================================== */
+html[data-skin=medieval]{
+  --bg:#141210;--glow:#3d2c14;--acc:#c9a24a;--acc2:#b8352b;--fg:#efe3c4;--mut:#a99a7c;--on:#f6e6bf;--r:4px;
+  --card:#1f1a13;--card2:#2a2318;--line:#c9a24a4d;--line2:#c9a24a99;
+  --disp:'MedievalSharp','EB Garamond',serif;--body:'EB Garamond',Georgia,serif;--mono:'MedievalSharp',serif;
+  --clip:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px);
+  --pshadow:inset 0 0 0 3px #1f1a13,inset 0 0 0 4px #c9a24a66,inset 0 0 30px #0007;
+  --deco:radial-gradient(circle,#e8c46a 0 3px,#6b5320 3.5px 4.5px,#0000 5px) 9px 9px/10px 10px,radial-gradient(circle,#e8c46a 0 3px,#6b5320 3.5px 4.5px,#0000 5px) calc(100% - 9px) 9px/10px 10px,
+    radial-gradient(circle,#e8c46a 0 3px,#6b5320 3.5px 4.5px,#0000 5px) 9px calc(100% - 9px)/10px 10px,radial-gradient(circle,#e8c46a 0 3px,#6b5320 3.5px 4.5px,#0000 5px) calc(100% - 9px) calc(100% - 9px)/10px 10px}
+html[data-skin=medieval] body{font-size:17px;background:
+  radial-gradient(100% 50% at 50% -10%,#4a3418aa,#0000 70%) no-repeat,
+  linear-gradient(#0000 30px,#00000066 30px 32px) 0 0/64px 32px,
+  conic-gradient(from 270deg at 2px 32px,#00000066 0 90deg,#0000 0) 0 0/64px 64px,
+  conic-gradient(from 180deg at 2px 32px,#00000066 0 90deg,#0000 0) 32px 0/64px 64px,
+  linear-gradient(135deg,#1b1814,#121010);background-attachment:fixed}
+html[data-skin=medieval] :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat){background-image:linear-gradient(180deg,#2a2218,#1a150f)}
+html[data-skin=medieval] h2.sec::before{transform:none;border:0;width:11px;height:13px;background:#b8352b;clip-path:polygon(0 0,100% 0,100% 60%,50% 100%,0 60%);box-shadow:inset 0 0 0 2px #c9a24a}
+html[data-skin=medieval] .btn{background:linear-gradient(180deg,#b8352b,#7a1f18);color:#f6e6bf;box-shadow:inset 0 0 0 1px #c9a24a,inset 0 0 0 3px #7a1f18,inset 0 0 0 4px #c9a24a88;
+  clip-path:polygon(6px 0,calc(100% - 6px) 0,100% 6px,100% calc(100% - 6px),calc(100% - 6px) 100%,6px 100%,0 calc(100% - 6px),0 6px)}
+html[data-skin=medieval] .btn.ghost{background:#1f1a13;color:#e8c46a;box-shadow:inset 0 0 0 1px #c9a24a88}
+html[data-skin=medieval] .btn.gold,html[data-skin=medieval] .btn.chestbtn{background:linear-gradient(180deg,#f0cf74,#a9822c);color:#2a1d06}
+html[data-skin=medieval] :is(.seg a.on,.dpill.on){background:#7a1f18;color:#f6e6bf}
+
+/* ==========================================================================
+   Steampunk Works: brass and copper, rivets, pipes and a slowly turning gear
+   ========================================================================== */
+html[data-skin=steampunk]{
+  --bg:#120c07;--glow:#4a2a10;--acc:#d08a3c;--acc2:#e8c06a;--fg:#f2e3c7;--mut:#b49c7c;--on:#2a1606;--r:8px;
+  --card:#1e150c;--card2:#2a1d10;--line:#d08a3c55;--line2:#e8c06a99;
+  --disp:'Rye','Lora',serif;--body:'Lora',Georgia,serif;--mono:'Special Elite','Lora',serif;
+  --clip:none;--pshadow:inset 0 0 0 2px #e8c06a33,inset 0 0 26px #0008;
+  --deco:radial-gradient(circle at 35% 35%,#ffe2a0 0 1px,#c88a3a 2px 3.5px,#4a2a10 4px,#0000 4.5px) 8px 8px/10px 10px,radial-gradient(circle at 35% 35%,#ffe2a0 0 1px,#c88a3a 2px 3.5px,#4a2a10 4px,#0000 4.5px) calc(100% - 8px) 8px/10px 10px,
+    radial-gradient(circle at 35% 35%,#ffe2a0 0 1px,#c88a3a 2px 3.5px,#4a2a10 4px,#0000 4.5px) 8px calc(100% - 8px)/10px 10px,radial-gradient(circle at 35% 35%,#ffe2a0 0 1px,#c88a3a 2px 3.5px,#4a2a10 4px,#0000 4.5px) calc(100% - 8px) calc(100% - 8px)/10px 10px,
+    linear-gradient(90deg,#0000,#e8c06a66,#0000) 50% 0/70% 2px}
+html[data-skin=steampunk] body{background:
+  radial-gradient(100% 50% at 50% -10%,#5a3214aa,#0000 70%) no-repeat,
+  linear-gradient(#0000 0 70%,#d08a3c1a 70% 72%,#0000 72%) 0 0/100% 260px,
+  linear-gradient(90deg,#0000 0 86%,#d08a3c14 86% 88%,#0000 88%) 0 0/300px 100%,
+  linear-gradient(135deg,#1a110a,#0e0905);background-attachment:fixed}
+html[data-skin=steampunk] body::after{right:-150px;top:28%;width:420px;aspect-ratio:1;border-radius:50%;opacity:.09;
+  background:radial-gradient(circle,#0000 0 30%,#e8c06a 30.5% 33%,#0000 33.5% 58%,#e8c06a 58.5% 100%),
+    repeating-conic-gradient(#e8c06a 0 6deg,#0000 6deg 12deg);
+  -webkit-mask:radial-gradient(circle,#000 0 70%,#0000 70.5%);mask:radial-gradient(circle,#000 0 70%,#0000 70.5%);animation:spin 60s linear infinite}
+html[data-skin=steampunk] h2.sec::before{content:"⚙";transform:none;border:0;width:auto;height:auto;color:#e8c06a;font-size:18px;line-height:1}
+html[data-skin=steampunk] .btn{background:linear-gradient(180deg,#f0cd7a,#c4893a 55%,#8a5520);color:#2a1606;box-shadow:inset 0 0 0 1px #ffe2a088,inset 0 -3px 0 #0004}
+html[data-skin=steampunk] .btn.ghost{background:#1e150c;color:#e8c06a;box-shadow:inset 0 0 0 1px #d08a3c88}
+html[data-skin=steampunk] .btn.gold,html[data-skin=steampunk] .btn.chestbtn{background:linear-gradient(180deg,#ffe9a8,#d9a441);color:#2a1606}
+html[data-skin=steampunk] :is(.seg a.on,.dpill.on){background:linear-gradient(180deg,#e8c06a,#b8792f);color:#2a1606}
+
+/* ---- interface previews in the shop ---- */
+.skp{width:100%;height:70px;display:flex;align-items:center;justify-content:center;gap:10px;font-size:30px;position:relative;overflow:hidden}
+.skp b{font-size:13px;letter-spacing:.06em}
+.skp[data-sk=hud]{background:linear-gradient(#22e4ff14 1px,#0000 1px) 0 0/12px 12px,linear-gradient(90deg,#22e4ff14 1px,#0000 1px) 0 0/12px 12px,#03080f;box-shadow:inset 0 0 0 1px #22e4ff88;color:#22e4ff}
+.skp[data-sk=chinese]{background:#22090d;box-shadow:inset 0 0 0 2px #d9ad45,inset 0 0 0 5px #22090d,inset 0 0 0 6px #e8433a;color:#d9ad45}
+.skp[data-sk=japanese]{background:radial-gradient(circle at 50% 100%,#0000 0 8px,#f2d8a722 8px 9px,#0000 9px 13px,#f2d8a722 13px 14px,#0b1222 14px) 0 0/28px 14px,#0b1222;border-top:5px solid #e5432f;color:#f2d8a7}
+.skp[data-sk=fairy]{background:conic-gradient(from 150deg at 50% 0,#0f2f1a 0 60deg,#0000 0) 0 100%/30px 46px repeat-x,radial-gradient(circle,#ffd86a 0 1.5px,#0000 3px) 0 0/23px 19px,linear-gradient(#0b2a3a,#06130c);border-radius:14px;color:#ffd86a}
+.skp[data-sk=medieval]{background:linear-gradient(#0000 14px,#0007 14px 16px) 0 0/32px 16px,#2a2218;box-shadow:inset 0 0 0 2px #c9a24a;color:#e8c46a}
+.skp[data-sk=steampunk]{background:repeating-conic-gradient(from 0deg at 85% 50%,#e8c06a22 0 8deg,#0000 8deg 16deg),linear-gradient(135deg,#2a1d10,#120c07);box-shadow:inset 0 0 0 2px #d08a3c88;border-radius:8px;color:#e8c06a}
+.emo{font-style:normal;line-height:1}

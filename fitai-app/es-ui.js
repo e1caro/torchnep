@@ -239,3 +239,22 @@ i18nPat(/^(\d+(?:\.\d+)?) (egg|slice|banana|apple|avocado|tortilla|scoop)(s?)$/,
   const one = +n === 1, w = { egg: ['huevo', 'huevos'], slice: ['rebanada', 'rebanadas'], banana: ['plátano', 'plátanos'], apple: ['manzana', 'manzanas'], avocado: ['aguacate', 'aguacates'], tortilla: ['tortilla', 'tortillas'], scoop: ['cacito', 'cacitos'] }[u];
   return `${n} ${one ? w[0] : w[1]}`;
 });
+
+// ---------- HUD redesign: new looks ----------
+i18nAdd({
+  'Cyber HUD': 'Cyber HUD', Hologram: 'Holograma', 'Stealth Ops': 'Operación sigilo', 'Red Alert': 'Alerta roja', Synthwave: 'Synthwave', 'Night City': 'Night City',
+  'Segment ring': 'Anillo de segmentos', 'Gauge ring': 'Anillo indicador', 'Reticle ring': 'Anillo de mira', 'Gear ring': 'Anillo de engranaje', 'Hex frame': 'Marco hexagonal',
+  'Orbit ring': 'Anillo orbital', 'Radar ring': 'Anillo de radar', 'Glitch ring': 'Anillo glitch',
+  'Scanlines banner': 'Banner de líneas de escaneo', 'Lattice banner': 'Banner de celosía', 'Circuit board banner': 'Banner de circuito', 'Radar sweep banner': 'Banner de radar',
+  'Data stream banner': 'Banner de flujo de datos', 'Hazard banner': 'Banner de peligro',
+  'Chamfered panels': 'Paneles biselados', 'Classic panels': 'Paneles clásicos', 'Brackets panels': 'Paneles de corchetes', 'Octagon panels': 'Paneles octogonales', 'Notch panels': 'Paneles con muesca',
+  'Double line panels': 'Paneles de doble línea', 'Circuit panels': 'Paneles de circuito', 'Hologram panels': 'Paneles holográficos',
+  'Panel styles · {n}/{n}': 'Estilos de panel · {n}/{n}', 'Panel style': 'Estilo de panel', 'New panel style': 'Nuevo estilo de panel',
+});
+i18nAdd({
+  'Interfaces · {n}/{n}': 'Interfaces · {n}/{n}', Interface: 'Interfaz', Try: 'Probar', 'New interface': 'Nueva interfaz',
+  'A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.': 'Un aspecto totalmente nuevo para la app: marcos, letras, colores y fondo. Toca Probar para verlo.',
+  'Previewing. Leave the Shop to go back.': 'Vista previa. Sal de la Tienda para volver.',
+  'Sci-fi HUD': 'HUD de ciencia ficción', 'Imperial China': 'China imperial', 'Zen Japan': 'Japón zen', 'Fairy Tale Forest': 'Bosque de cuento', 'Medieval Castle': 'Castillo medieval', 'Steampunk Works': 'Taller steampunk',
+});
+i18nAdd({ 'More info': 'Más info' });

@@ -13,7 +13,7 @@ const TITLES = [[1, 'Rookie'], [3, 'Iron Will'], [5, 'Challenger'], [8, 'Warrior
 
 // ---------- state ----------
 const G = Object.assign({
-  xp: 0, coins: 0, owned: [], theme: 'ember', avatar: 'glove', banner: 'plain', boostUntil: 0, extraSpins: 0, ver: 0, ach: [], bosses: 0, questsDone: 0,
+  xp: 0, coins: 0, owned: [], theme: 'hud', panel: 'chamfer', skin: 'hud', avatar: 'glove', banner: 'plain', boostUntil: 0, extraSpins: 0, ver: 0, ach: [], bosses: 0, questsDone: 0,
   sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '', ciStreak: 0, spun: '', spins: 0, waterGoalDays: 0, perfectDays: 0, sleepGood: 0, wk: null,
 }, load('game', {}));
 let LAST = null; // result of the latest workout, shown on the victory screen
@@ -59,22 +59,33 @@ const PERKS = [
   ['xp2', 16, 'XP Boost II', '+10% XP from every workout', 'upgrade'], ['rec', 18, 'Record breaker', 'New personal records are worth 80 XP', 'medal'],
   ['coin2', 20, 'Coin Boost II', '+20% coins from every workout', 'coins'], ['xp3', 24, 'XP Boost III', '+15% XP from every workout', 'upgrade'],
 ];
-const THEMES = [['ember', 'Ember', 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 120, '#00e5ff', '#ff2bd6'], ['sakura', 'Sakura', 140, '#ff7eb6', '#ffd1e8'], ['frost', 'Frostbite', 160, '#7cc6ff', '#e0f4ff'],
+const THEMES = [['hud', 'Cyber HUD', 0, '#22e4ff', '#ffb020'], ['ember', 'Ember', 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 120, '#00e5ff', '#ff2bd6'], ['sakura', 'Sakura', 140, '#ff7eb6', '#ffd1e8'], ['frost', 'Frostbite', 160, '#7cc6ff', '#e0f4ff'],
   ['toxic', 'Toxic', 200, '#8dff3a', '#e6ff5a'], ['ocean', 'Deep Ocean', 240, '#2ee6d6', '#3a8dff'], ['royal', 'Royal', 300, '#a66bff', '#ffd166'], ['retro', 'Arcade', 400, '#ff3d7f', '#ffe14d'],
-  ['lava', 'Lava Flow', 420, '#ff4b1f', '#ffd000'], ['matrix', 'Mainframe', 520, '#2bff88', '#b7ffd8'], ['gold', 'Golden Hour', 700, '#ffd34d', '#fff1a8'], ['aurora', 'Aurora', 800, '#5cffc8', '#b46bff']];
+  ['lava', 'Lava Flow', 420, '#ff4b1f', '#ffd000'], ['matrix', 'Mainframe', 520, '#2bff88', '#b7ffd8'], ['gold', 'Golden Hour', 700, '#ffd34d', '#fff1a8'], ['aurora', 'Aurora', 800, '#5cffc8', '#b46bff'],
+  ['hologram', 'Hologram', 180, '#7df9ff', '#e8fdff'], ['stealth', 'Stealth Ops', 220, '#9fb3c8', '#3ddc97'], ['redalert', 'Red Alert', 350, '#ff2b3d', '#ffb020'], ['synthwave', 'Synthwave', 450, '#ff3cc7', '#7b5cff'], ['nightcity', 'Night City', 600, '#fcee0a', '#00f0ff']];
 const AVATARS = [['glove', 'Boxer', 0], ['sun', 'Sun', 0], ['moon', 'Moon', 0], ['leaf', 'Leaf', 0], ['mountain', 'Mountain', 0], ['anchor', 'Anchor', 0], ['compass', 'Compass', 0], ['feather', 'Feather', 0],
   ['snowflake', 'Snowflake', 0], ['cactus', 'Cactus', 0], ['pine', 'Pine', 0], ['panda', 'Panda', 0], ['penguin', 'Penguin', 0], ['turtle', 'Turtle', 0], ['duck', 'Duck', 0], ['bee', 'Bee', 0],
   ['wolf', 'Wolf', 60], ['lion', 'Lion', 80], ['tiger', 'Tiger', 100], ['bear', 'Bear', 120], ['fox', 'Fox', 120], ['eagle', 'Eagle', 150], ['rooster', 'Rooster', 150],
   ['shark', 'Shark', 160], ['gorilla', 'Gorilla', 180], ['horse', 'Stallion', 180], ['bull', 'Bull', 200], ['ram', 'Ram', 200], ['raven', 'Raven', 220], ['owl', 'Owl', 220], ['scorpion', 'Scorpion', 260],
   ['ninja', 'Ninja', 280], ['samurai', 'Samurai', 320], ['viking', 'Viking', 320], ['spartan', 'Spartan', 340], ['minotaur', 'Minotaur', 380], ['robot', 'Robot', 400], ['wyvern', 'Wyvern', 420],
   ['unicorn', 'Unicorn', 450], ['astronaut', 'Astronaut', 480], ['dragon', 'Dragon', 500], ['kraken', 'Kraken', 520], ['alien', 'Alien', 560], ['trex', 'T-Rex', 600], ['rocket', 'Rocket', 700], ['crown', 'Crown', 800]];
-const FRAMES = [['none', 'Plain ring', 0], ['flame', 'Flame ring', 120], ['electric', 'Electric ring', 200], ['diamond', 'Diamond ring', 300], ['rainbow', 'Rainbow ring', 450], ['galaxy', 'Galaxy ring', 700]];
-const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', 'Speed lines', 100], ['dots', 'Dotted', 100], ['waves', 'Ripples', 120], ['peaks', 'Peaks', 150], ['glow', 'Glow', 250], ['heat', 'Heat', 300]];
+const FRAMES = [['none', 'Plain ring', 0], ['flame', 'Flame ring', 120], ['electric', 'Electric ring', 200], ['diamond', 'Diamond ring', 300], ['rainbow', 'Rainbow ring', 450], ['galaxy', 'Galaxy ring', 700],
+  ['segments', 'Segment ring', 90], ['ticks', 'Gauge ring', 110], ['reticle', 'Reticle ring', 160], ['gear', 'Gear ring', 220], ['hexagon', 'Hex frame', 260], ['orbit', 'Orbit ring', 320], ['radar', 'Radar ring', 380], ['glitch', 'Glitch ring', 520]];
+const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', 'Speed lines', 100], ['dots', 'Dotted', 100], ['waves', 'Ripples', 120], ['peaks', 'Peaks', 150], ['glow', 'Glow', 250], ['heat', 'Heat', 300],
+  ['scan', 'Scanlines', 90], ['hexgrid', 'Lattice', 140], ['circuit', 'Circuit board', 180], ['radar', 'Radar sweep', 220], ['data', 'Data stream', 260], ['hazard', 'Hazard', 280]];
+// panel styles: the shape of every card in the app
+// whole interfaces: each changes the palette, fonts, frames, buttons and background (fonts load only when in use)
+const SKINS = [['hud', 'Sci-fi HUD', 0, '🛰️'], ['chinese', 'Imperial China', 2000, '🏮'], ['japanese', 'Zen Japan', 2000, '⛩️'], ['fairy', 'Fairy Tale Forest', 2500, '🌳'], ['medieval', 'Medieval Castle', 2500, '🏰'], ['steampunk', 'Steampunk Works', 3000, '⚙️']];
+const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japanese: 'Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700',
+  fairy: 'IM+Fell+English+SC&family=Lora:wght@400;600;700', medieval: 'MedievalSharp&family=EB+Garamond:wght@400;600;700', steampunk: 'Rye&family=Special+Elite&family=Lora:wght@400;600;700' };
+const PANELS = [['chamfer', 'Chamfered', 0], ['classic', 'Classic', 0], ['brackets', 'Brackets', 150], ['octa', 'Octagon', 200], ['notch', 'Notch', 250], ['double', 'Double line', 300], ['circuit', 'Circuit', 400], ['holo', 'Hologram', 500]];
 const ITEMS = [
   ...THEMES.map(([k, name, cost, a, b]) => ({ id: 't-' + k, type: 'theme', key: k, name, cost, sw: [a, b], shop: true })),
   ...AVATARS.map(([k, name, cost]) => ({ id: 'a-' + k, type: 'avatar', key: k, name, cost, shop: true })),
   ...FRAMES.map(([k, name, cost]) => ({ id: 'f-' + k, type: 'frame', key: k, name, cost, shop: true })),
   ...BANNERS.map(([k, name, cost]) => ({ id: 'b-' + k, type: 'banner', key: k, name: name + ' banner', cost, shop: true })),
+  ...PANELS.map(([k, name, cost]) => ({ id: 'pn-' + k, type: 'panel', key: k, name: name + ' panels', cost, shop: true })),
+  ...SKINS.map(([k, name, cost, emo]) => ({ id: 'sk-' + k, type: 'skin', key: k, name, cost, emo, shop: true })),
   ...RECIPES.filter(r => r.chef).map(r => ({ id: 'r-' + r.id, type: 'recipe', name: r.name, lv: r.chef[0], rid: r.id })),
   ...Object.entries(DUNGEONS).map(([id, d]) => ({ id, type: 'dungeon', name: d.name, lv: d.lv })),
   ...PERKS.map(([k, lv, name, desc, ico]) => ({ id: 'p-' + k, type: 'perk', key: k, name, lv, desc, ico })),
@@ -86,8 +97,8 @@ const perk = k => has(item('p-' + k));
 const xpPerk = () => perk('xp3') ? .15 : perk('xp2') ? .10 : perk('xp1') ? .05 : 0;
 const coinPerk = () => perk('coin2') ? .20 : perk('coin1') ? .10 : 0;
 const boostOn = () => Date.now() < (G.boostUntil || 0);
-const KIND = { theme: 'Theme', avatar: 'Profile picture', frame: 'Ring', banner: 'Banner', dungeon: 'Workout', recipe: 'Meal', perk: 'Perk' };
-const ICO = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : gi('palette', 'hero');
+const KIND = { theme: 'Theme', avatar: 'Profile picture', frame: 'Ring', banner: 'Banner', panel: 'Panel style', skin: 'Interface', dungeon: 'Workout', recipe: 'Meal', perk: 'Perk' };
+const ICO = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : i.type === 'panel' ? gi('frame', 'hero') : i.type === 'skin' ? `<span class="emo">${i.emo}</span>` : gi('palette', 'hero');
 
 // ---------- daily quests ----------
 const QT = [
@@ -302,7 +313,7 @@ window.buy = id => {
 };
 window.equip = id => {
   const i = item(id); if (!has(i)) return;
-  if (i.type === 'theme') G.theme = i.key; else if (i.type === 'frame') G.frame = i.key; else if (i.type === 'banner') G.banner = i.key; else if (i.type === 'avatar') G.avatar = i.key; else return;
+  if (i.type === 'theme') G.theme = i.key; else if (i.type === 'frame') G.frame = i.key; else if (i.type === 'banner') G.banner = i.key; else if (i.type === 'avatar') G.avatar = i.key; else if (i.type === 'panel') G.panel = i.key; else if (i.type === 'skin') G.skin = i.key; else return;
   commit(); applyTheme(); route();
 };
 window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(); };
@@ -311,7 +322,7 @@ const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
 window.openChest = () => {
   if (!G.chests.length) return;
   const tier = G.chests.shift(), [name, ico, cut, cr, xr] = CHEST[tier], roll = Math.random() * 100;
-  const cos = ITEMS.filter(i => i.shop && !has(i)), dg = []; // chests drop looks only; workouts and meals come from levels
+  const cos = ITEMS.filter(i => i.shop && !has(i) && i.type !== 'skin'), dg = []; // chests drop looks only; workouts and meals come from levels
   let html;
   if (roll < cut[0] || (roll >= cut[1] && roll < cut[2] && !cos.length) || (roll >= cut[2] && !dg.length && !cos.length)) {
     const c = rand(cr); G.coins += c; html = `<div class="avbig">${gi('coin', 'cn')}</div><h2>${c} coins</h2>`;
@@ -327,8 +338,16 @@ window.openChest = () => {
 };
 window.toggleSound = () => { G.sound = !G.sound; commit(); if (G.sound) sfx('tick'); route(); };
 
+// show an interface (also used by the shop's Try button) and load its fonts
+function setSkin(k) {
+  document.documentElement.dataset.skin = k;
+  let l = document.getElementById('skinfont');
+  if (SKIN_FONTS[k]) { if (!l) { l = document.createElement('link'); l.id = 'skinfont'; l.rel = 'stylesheet'; document.head.appendChild(l); } l.href = `https://fonts.googleapis.com/css2?family=${SKIN_FONTS[k]}&display=swap`; }
+}
 function applyTheme() {
   document.documentElement.dataset.theme = G.theme;
+  document.documentElement.dataset.panel = G.panel || 'chamfer';
+  setSkin(G.skin || 'hud');
   const m = document.querySelector('meta[name=theme-color]');
   if (m) m.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#0b0d12';
 }
@@ -413,14 +432,16 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 37</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 39</div>`;
 }
 
 function initGame() {
   if (!localStorage.getItem('fc.game') && S.history.length) { // welcome back: convert past workouts to XP
     G.xp = S.history.reduce((a, h) => a + 100 + h.ex.reduce((b, x) => b + x.sets.length * 10, 0), 0);
   }
-  migrateGame(); ensureDay(); applyTheme(); commit();
+  migrateGame();
+  if (!G.hudLook) { G.hudLook = 1; if (G.theme === 'ember') G.theme = 'hud'; G.panel = G.panel || 'chamfer'; } // the HUD redesign: move the old default look to the new one once
+  ensureDay(); applyTheme(); commit();
 }
 // Version 3 split rewards: levels give workouts, meals and perks; coins buy looks. Keep everything players already had.
 function migrateGame() {

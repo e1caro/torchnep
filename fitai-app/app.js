@@ -456,6 +456,18 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
+// Less text on screen: long explanations fold into a small "More info" dropdown, on every screen.
+function compactText() {
+  view.querySelectorAll('p.mut:not([data-c])').forEach(p => {
+    p.dataset.c = 1;
+    if (p.textContent.trim().length < 70 || p.closest('details,summary,button,.mbox')) return;
+    const d = document.createElement('details'); d.className = 'info';
+    d.innerHTML = '<summary>More info</summary>'; p.replaceWith(d); d.appendChild(p);
+  });
+}
+let compactQ = 0;
+new MutationObserver(() => { if (!compactQ) compactQ = requestAnimationFrame(() => { compactQ = 0; compactText(); }); }).observe(view, { childList: true, subtree: true });
+
 (async function init() {
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => { });
   try {
