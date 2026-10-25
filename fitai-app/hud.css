@@ -901,3 +901,6 @@ h2.sec .secst{margin-left:auto;padding-left:10px;font:600 12px var(--body);lette
 .sld output{min-width:96px;text-align:right;font:600 14px var(--body);color:var(--fg)}
 .todaytime .sld{margin:4px 0 8px}
 .sld input{clip-path:none!important;border-radius:3px!important;height:6px!important;min-height:0!important;box-shadow:none!important}
+/* Android app: a new version is ready */
+#updbar{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:45;display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:var(--acc);color:var(--on,#fff);font:600 14px var(--body);text-decoration:none;box-shadow:0 6px 24px #0008}
+#updbar .grow{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

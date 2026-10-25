@@ -337,3 +337,5 @@ i18nAdd({ "Servings are {n}% smaller because you often aren't very hungry.": 'La
 i18nAdd({ '{n} hits left': 'Quedan {n} golpes', '{n} hit left': 'Queda {n} golpe', Shop: 'Tienda', Overview: 'Resumen', Levels: 'Niveles', Badges: 'Insignias', Train: 'Entrenar' });
 i18nAdd({ 'Levels {n}–{n}': 'Niveles {n}–{n}' });
 i18nAdd({ 'in the Shop': 'en la Tienda' });
+i18nAdd({ Update: 'Actualizar', Check: 'Buscar', 'You have the latest version': 'Tienes la última versión', 'No connection': 'Sin conexión', 'App {n}': 'App {n}' });
+i18nPat(/^(FitQuest [\d.]+) is ready$/, n => `${n} está lista`);
