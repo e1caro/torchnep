@@ -908,3 +908,8 @@ h2.sec .secst{margin-left:auto;padding-left:10px;font:600 12px var(--body);lette
 html:has(body.fitpage),body.fitpage{overflow:hidden;overscroll-behavior:none}
 body.fitpage main#view{padding-bottom:0;min-height:0}
 body.fitpage .orbs{min-height:0}
+/* friends on Hero */
+.friends{display:grid;gap:8px;margin:8px 0 12px}
+.lookt.frow{flex-direction:row;justify-content:flex-start;gap:12px;padding:10px 12px;text-align:left}
+.frow .grow{display:flex;flex-direction:column}
+.frow small{color:var(--mut)}
