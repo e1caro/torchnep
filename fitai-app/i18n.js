@@ -44,11 +44,11 @@ function trCore(c, depth) {
 const T = (s, ...a) => { const t = tr(s); return a.length ? t.replace(/\{(\d)\}/g, (_, i) => a[i]) : t; };
 
 // ---------- Money ----------
-// Each interface has its own money: credits in the Sci-fi HUD, points in the arcade, yen in Japan...
+// Each interface has its own money: plain coins in Minimal, credits in the Sci-fi HUD, points in the arcade, yen in Japan...
 // The app's text says "coins" ("monedas" in Spanish); the word is swapped for the current interface's money on the way to the page.
 // English singular, plural, Spanish singular, plural.
 const CUR = {
-  hud: ['credit', 'credits', 'crédito', 'créditos'], chinese: ['yuan', 'yuan', 'yuan', 'yuanes'], japanese: ['yen', 'yen', 'yen', 'yenes'],
+  clean: ['coin', 'coins', 'moneda', 'monedas'], hud: ['credit', 'credits', 'crédito', 'créditos'], chinese: ['yuan', 'yuan', 'yuan', 'yuanes'], japanese: ['yen', 'yen', 'yen', 'yenes'],
   fairy: ['acorn', 'acorns', 'bellota', 'bellotas'], medieval: ['crown', 'crowns', 'corona', 'coronas'], steampunk: ['cog', 'cogs', 'engranaje', 'engranajes'],
   greek: ['drachma', 'drachmas', 'dracma', 'dracmas'], egypt: ['scarab', 'scarabs', 'escarabajo', 'escarabajos'], viking: ['rune', 'runes', 'runa', 'runas'],
   pirate: ['doubloon', 'doubloons', 'doblón', 'doblones'], outrun: ['chip', 'chips', 'ficha', 'fichas'], arcade: ['point', 'points', 'punto', 'puntos'],
@@ -56,7 +56,7 @@ const CUR = {
   baroque: ['ducat', 'ducats', 'ducado', 'ducados'], mythical: ['gem', 'gems', 'gema', 'gemas'], cosmic: ['star', 'stars', 'estrella', 'estrellas'],
 };
 const CUR_M = new Set(['hud', 'chinese', 'japanese', 'steampunk', 'egypt', 'pirate', 'arcade', 'classical', 'artdeco', 'baroque'].map(k => CUR[k])); // masculine in Spanish
-const curSet = () => CUR[document.documentElement.dataset.skin] || CUR.hud;
+const curSet = () => CUR[document.documentElement.dataset.skin] || CUR.clean;
 const capLike = (w, x) => w.length > 1 && w === w.toUpperCase() ? x.toUpperCase() : w[0] === w[0].toUpperCase() ? x[0].toUpperCase() + x.slice(1) : x;
 // "Coins" -> "Credits", "1 moneda" -> "1 crédito"
 function cur(s) {

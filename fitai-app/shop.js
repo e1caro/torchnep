@@ -25,7 +25,7 @@ window.buyBoost = id => {
 // ---------- confirm before spending, and selling back ----------
 // every purchase asks first; owned looks can be sold back for 80% of their price
 const SELL = .8, sellPrice = i => Math.round(i.cost * SELL);
-const SELL_DEF = { theme: 'hud', panel: 'chamfer', skin: 'hud', avatar: 'glove', banner: 'plain', frame: 'none' }; // the free look of each kind
+const SELL_DEF = { theme: 'hud', panel: 'chamfer', skin: 'clean', avatar: 'glove', banner: 'plain', frame: 'none' }; // the free look of each kind
 function askCoins(title, pic, name, delta, yes, fn, note = '') {
   modal(`<div class="avbig">${pic}</div><div class="lvup">${title}</div><h2>${esc(name)}</h2>
   ${note ? `<div class="mut">${note}</div>` : ''}<div class="cfm"><div class="row between"><span>${delta < 0 ? 'Price' : 'You get'}</span><b>${gi('coin', 'cn')} ${Math.abs(delta)}</b></div>
@@ -92,7 +92,7 @@ function preview(i) {
 }
 // a mini card drawn in that panel style
 // themes recolour the Sci-fi HUD; other interfaces keep their own colours
-const themeNote = () => { const k = G.skin || 'hud'; if (k === 'hud') return ''; const it = ITEMS.find(i => i.type === 'skin' && i.key === k);
+const themeNote = () => { const k = G.skin || 'clean'; if (k === 'hud') return ''; const it = ITEMS.find(i => i.type === 'skin' && i.key === k);
   return `<div class="mut themenote">${it.emo} Themes recolour ${esc(it.name)} too. Choose Cyber HUD to see its original colours.</div>`; };
 const skinPrev = i => `<div class="skp" data-sk="${i.key}">${i.emo}</div>`;
 const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></div>`;

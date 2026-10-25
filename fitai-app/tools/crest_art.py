@@ -146,6 +146,7 @@ def build_min():
     hexa = lambda cx, cy, r: poly([pt(cx, cy, r, a) for a in range(-90, 270, 60)])
     star = lambda cx, cy, r1, r2: poly([pt(cx, cy, r1 if k % 2 == 0 else r2, -90 + k * 36) for k in range(10)])
     A = {}
+    A['clean'] = (P(circ(60, 10, 6)), '', P(circ(60, 10, 2.2)))
     A['hud'] = (P(hexa(60, 11, 9)), '', P(hexa(60, 11, 3.2)))
     A['chinese'] = (P(circ(60, 9, 5.5)) + P(circ(53, 12, 4)) + P(circ(67, 12, 4)) + P('M49 13H71V17H49Z'), '', P(circ(60, 4, 2)))
     A['japanese'] = (P('M44 6Q60 2 76 6V9Q60 6 44 9Z') + P('M47 12H73V14.5H47Z') + P('M50 9h3.5v12H50zM66.5 9H70v12h-3.5z'), '', P(circ(60, 2.6, 1.8)))
