@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
     private static final String RELEASES = "https://api.github.com/repos/e1caro/torchnep/releases?per_page=30";
     private WebView web;
+    private String home; // the app's own page
     private int shown; // the web version on screen (the APK's own one is its versionCode)
     private volatile boolean ready; // a newer web version is downloaded and waits for the next resume
 
@@ -73,7 +74,16 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest req) {
                 Uri u = req.getUrl();
-                if (HOST.equals(u.getHost())) return false;
+                String h = u.getHost() == null ? "" : u.getHost();
+                if (HOST.equals(h)) return false;
+                // linking Spotify: its sign-in pages stay in the app, and the way back (the web app's address with
+                // ?code=...) is brought home to the app's own page, where the sign-in started
+                if (h.equals("e1caro.github.io") && u.getPath() != null && u.getPath().startsWith("/torchnep/fitcoach")
+                        && (u.getQueryParameter("code") != null || u.getQueryParameter("error") != null)) {
+                    view.loadUrl(home + "?" + u.getEncodedQuery());
+                    return true;
+                }
+                if (h.endsWith("spotify.com") && !h.equals("open.spotify.com")) return false;
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, u));
                 } catch (Exception ignored) {
@@ -83,7 +93,8 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(web);
-        web.loadUrl("https://" + HOST + (local ? "/local/index.html" : "/assets/www/index.html"));
+        home = "https://" + HOST + (local ? "/local/index.html" : "/assets/www/index.html");
+        web.loadUrl(home);
         cleanOld(shown);
         new Thread(this::checkUpdate).start();
     }

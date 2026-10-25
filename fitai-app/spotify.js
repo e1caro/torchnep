@@ -3,12 +3,14 @@
 // plus a few new ones from the same artists. It runs in the browser with Spotify's PKCE sign-in (no server, no secret).
 // It needs the Client ID of a Spotify app: set SPOTIFY_CLIENT_ID below, or paste one in Settings > Music.
 const SPOTIFY_CLIENT_ID = '';
-const SP_SCOPES = 'user-top-read user-library-read user-read-private playlist-modify-private playlist-modify-public';
+const SP_SCOPES = 'user-read-private playlist-read-private playlist-modify-private playlist-modify-public user-library-modify';
 const SPF = Object.assign({ cid: '', tok: '', exp: 0, refresh: '', user: null, used: [], lists: {}, genres: [], mine: [], rot: 0 }, load('spotify', {}));
 const spoSave = () => save('spotify', SPF);
 const spCid = () => SPF.cid || SPOTIFY_CLIENT_ID;
 const spOn = () => !!(spCid() && SPF.refresh);
-const spRedirect = () => location.origin + location.pathname.replace(/index\.html$/, '');
+const SP_WEB = 'https://e1caro.github.io/torchnep/fitcoach/';
+// the APK can't receive a web address, so it uses the web app's one and the APK catches it on the way back
+const spRedirect = () => (/FitQuestApp\//.test(navigator.userAgent) ? SP_WEB : location.origin + location.pathname.replace(/index\.html$/, ''));
 const b64url = buf => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 let SP_BUSY = false;
 
@@ -51,7 +53,8 @@ async function spApi(path, opt = {}, tries = 2) {
   if (r.status === 429 && tries > 0) { await new Promise(ok => setTimeout(ok, 1000 * Math.min(5, +r.headers.get('Retry-After') || 1))); return spApi(path, opt, tries - 1); }
   if (r.status === 401 && tries > 0) { SPF.exp = 0; return spApi(path, opt, tries - 1); }
   if (!r.ok) throw new Error('spotify ' + r.status);
-  return r.status === 204 ? null : r.json();
+  const txt = await r.text(); // some answers are empty
+  return txt ? JSON.parse(txt) : null;
 }
 
 // coming back from Spotify's sign-in page with ?code=...
@@ -60,7 +63,7 @@ async function spApi(path, opt = {}, tries = 2) {
   if (!q.has('code') && !q.has('error')) return;
   const pk = load('spPkce', null);
   localStorage.removeItem('fc.spPkce');
-  history.replaceState(null, '', spRedirect() + (pk?.back || '#/home'));
+  history.replaceState(null, '', location.pathname + (pk?.back || '#/home'));
   if (q.get('error') || !pk || q.get('state') !== pk.state) { toast('Spotify was not linked.'); route(); return; }
   try {
     await spTokenCall({ grant_type: 'authorization_code', code: q.get('code'), redirect_uri: spRedirect(), code_verifier: pk.ver });
@@ -71,96 +74,51 @@ async function spApi(path, opt = {}, tries = 2) {
   route();
 })();
 
-// ---------- picking energetic songs ----------
-// Spotify no longer gives apps a song's "energy" number, so the energy of a song is judged from its artists' genres,
-// its title (live, acoustic and slowed versions are calmer) and how much you play it.
-const SP_HOT = [[/hardstyle|hardcore|drum and bass|\bdnb\b|dubstep|metalcore|nu metal|thrash|death metal|phonk|drill|trap|techno|hard rock|punk|big room|gym|workout/, 1],
-  [/metal|edm|electro|house|trance|bass|reggaeton|dembow|hip hop|rap|grime|garage|funk carioca|brazilian funk|dance|rave|eurodance/, .85],
-  [/rock|pop punk|dancehall|afrobeat|latin|moombahton|k-pop|j-pop|cumbia|salsa|bachata|disco|pop/, .6]];
-const SP_CALM = /ambient|acoustic|classical|lo-?fi|sleep|chill|piano|folk|jazz|singer-songwriter|ballad|bolero|soundtrack|meditation|new age|bossa|soft|lullaby|orchestra|choral|instrumental/;
-const genreEnergy = gs => {
-  if (!gs?.length) return .45;
-  let best = 0, calm = 0;
-  gs.forEach(g => { if (SP_CALM.test(g)) calm++; for (const [re, v] of SP_HOT) if (re.test(g)) { best = Math.max(best, v); break; } });
-  return Math.max(0, (best || .35) - (calm / gs.length) * .9);
-};
-const titleEnergy = n => (/\b(acoustic|unplugged|piano|slowed|reverb|lullaby|sleep|live at|live from|orchestral)\b/i.test(n) ? -.6 : /\b(remix|sped up|edit|club mix|extended)\b/i.test(n) ? .1 : 0);
-// a seeded shuffle: the same workout gives the same picks until you ask for a new playlist
-const seeded = seed => () => { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; };
-
-async function spBuild(work) {
-  const pages = await Promise.all([
-    spApi('/me/top/tracks?time_range=short_term&limit=50').catch(() => ({ items: [] })),
-    spApi('/me/top/tracks?time_range=medium_term&limit=50').catch(() => ({ items: [] })),
-    spApi('/me/tracks?limit=50').catch(() => ({ items: [] })),
-    spApi('/me/top/artists?time_range=medium_term&limit=20').catch(() => ({ items: [] })),
-  ]);
-  const liked = new Map(), aff = [.35, .25, .15];
-  pages.slice(0, 3).forEach((pg, k) => (pg.items || []).forEach(it => {
-    const t = it.track || it;
-    if (!t?.uri || t.is_local) return;
-    const cur = liked.get(t.uri);
-    liked.set(t.uri, { t, aff: Math.max(cur?.aff || 0, aff[k]) });
-  }));
-  // genres of every artist in play
-  const genres = new Map((pages[3].items || []).map(a => [a.id, a.genres]));
-  const ids = [...new Set([...liked.values()].map(x => x.t.artists?.[0]?.id).filter(id => id && !genres.has(id)))];
-  for (let i = 0; i < ids.length; i += 50) {
-    try { (await spApi('/artists?ids=' + ids.slice(i, i + 50).join(','))).artists.forEach(a => a && genres.set(a.id, a.genres)); } catch { /* genres are optional */ }
-  }
-  const rnd = seeded([...work.key].reduce((a, c) => a * 31 + c.charCodeAt(0) >>> 0, 7) + (work.round || 0) * 7919);
-  const used = new Set(SPF.used);
-  const score = (t, a) => genreEnergy(genres.get(t.artists?.[0]?.id)) + titleEnergy(t.name) + a + (t.popularity || 0) / 600 + rnd() * .25 - (used.has(t.uri) ? .35 : 0);
-  const mine = [...liked.values()].map(({ t, aff: a }) => ({ t, s: score(t, a), mine: true })).filter(x => x.s > .5).sort((a, b) => b.s - a.s);
-  // new songs: the most played tracks of your most energetic artists that you have not saved
-  const hot = (pages[3].items || []).filter(a => genreEnergy(a.genres) >= .6).sort(() => rnd() - .5).slice(0, 5);
-  const fresh = [];
-  for (const a of hot) {
-    try {
-      (await spApi(`/artists/${a.id}/top-tracks?market=${SPF.user?.country || 'from_token'}`)).tracks
-        .filter(t => !liked.has(t.uri)).slice(0, 4).forEach(t => fresh.push({ t, s: score(t, .1), mine: false }));
-    } catch { /* skip this artist */ }
-  }
-  fresh.sort((a, b) => b.s - a.s);
-  // about 70% songs you like and 30% new ones, until the workout (plus 5 minutes) is covered
-  const goal = (work.minutes + 5) * 60000, out = [], seen = new Set();
-  let ms = 0, mi = 0, fi = 0;
-  while (ms < goal && (mi < mine.length || fi < fresh.length)) {
-    const pickFresh = fi < fresh.length && (mi >= mine.length || out.length % 10 >= 7);
-    const x = pickFresh ? fresh[fi++] : mine[mi++];
-    const name = x.t.name.toLowerCase() + '|' + (x.t.artists?.[0]?.name || '');
-    if (seen.has(name)) continue;
-    seen.add(name); out.push(x); ms += x.t.duration_ms || 200000;
-  }
-  if (out.length < 5) throw new Error('few');
-  // warm up with a couple of slightly calmer songs, peak in the middle, ease off at the end
-  out.sort((a, b) => a.s - b.s);
-  const warm = out.splice(Math.floor(out.length * .25), 2), cool = out.splice(Math.floor(out.length * .35), 1);
-  out.sort((a, b) => b.s - a.s);
-  const peak = [];
-  out.forEach((x, i) => (i % 2 ? peak.push(x) : peak.unshift(x))); // highest in the middle
-  return [...warm, ...peak, ...cool];
+// ---------- the workout playlist ----------
+// A random playlist from the song list (data/songs.txt) of the genre you pick, as long as the workout. It always has the
+// same name, and the previous one is removed when a new one is made, so your library never fills up with them.
+const SP_TITLE = 'FitQuest · Workout';
+SPF.durs = SPF.durs || {};
+// a song's Spotify id and length, from Spotify's search (kept, so each song is looked up once)
+async function spFind(t, a) {
+  const key = `${t}|${a}`;
+  if (SPF.ids[key] && SPF.durs[key]) return { id: SPF.ids[key], ms: SPF.durs[key] };
+  const who = a.split(/ & |, | feat\. /)[0];
+  const tk = (await spApi(`/search?type=track&limit=1&q=${encodeURIComponent(`track:${t} artist:${who}`)}`)).tracks?.items?.[0];
+  if (!tk) return null;
+  SPF.ids[key] = tk.id; SPF.durs[key] = tk.duration_ms || 200000;
+  return { id: tk.id, ms: SPF.durs[key] };
 }
+async function spUnfollow(id) {
+  await spApi(`/playlists/${id}/followers`, { method: 'DELETE' }).catch(() => spApi(`/me/library?uris=${encodeURIComponent('spotify:playlist:' + id)}`, { method: 'DELETE' })).catch(() => {});
+}
+const spPlGenre = () => SPF.plGenre || SPF.genres[0] || 'rock';
+window.spSetPlGenre = g => { SPF.plGenre = g; spoSave(); sfx('tick'); spRefreshView(); };
 
-window.spMakePlaylist = async (again) => {
+window.spMakePlaylist = async () => {
   if (SP_BUSY || !spOn()) return;
-  const di = nextDayIdx(), d = dayFor(di), key = `${dayId()}:${di}`, prev = SPF.lists[key];
-  const work = { key, round: again ? (prev?.round || 0) + 1 : 0, minutes: S.profile.minutes };
+  const di = nextDayIdx(), minutes = dayMinutes(di), g = spPlGenre();
+  const pool = [...(SP_SONGS[g] || SP_SONGS.rock)].sort(() => Math.random() - .5);
   SP_BUSY = true; spRefreshView();
   try {
-    const picks = await spBuild(work);
-    if (!SPF.user) { const me = await spApi('/me'); SPF.user = { id: me.id, name: me.display_name || me.id, country: me.country || '' }; }
-    const date = new Date().toLocaleDateString(LANG === 'es' ? 'es-ES' : 'en-GB', { day: 'numeric', month: 'short' });
-    const title = `FitQuest · ${tr(d.name.split(' · ')[1] || d.name)} · ${date}`;
-    const pl = await spApi(`/users/${encodeURIComponent(SPF.user.id)}/playlists`, { method: 'POST', body: JSON.stringify({ name: title, public: false, description: tr('Energetic songs you like, picked by FitQuest for your workout.') }) });
-    await spApi(`/playlists/${pl.id}/tracks`, { method: 'POST', body: JSON.stringify({ uris: picks.slice(0, 100).map(x => x.t.uri) }) });
-    SPF.lists = { [key]: { id: pl.id, url: pl.external_urls?.spotify || `https://open.spotify.com/playlist/${pl.id}`, name: title, round: work.round,
-      min: Math.round(picks.reduce((a, x) => a + (x.t.duration_ms || 0), 0) / 60000), fresh: picks.filter(x => !x.mine).length,
-      songs: picks.map(x => [x.t.name, (x.t.artists || []).map(a => a.name).join(', ')]) } };
-    SPF.used = [...picks.map(x => x.t.uri), ...SPF.used].slice(0, 200);
+    const picks = [], goal = minutes * 60000;
+    let ms = 0, k = 0;
+    while (ms < goal && k < pool.length) { // a few searches at a time until the workout is covered
+      const found = await Promise.all(pool.slice(k, k + 4).map(([t, a]) => spFind(t, a).then(f => f && { t, a, ...f }).catch(() => null)));
+      k += 4;
+      for (const f of found) if (f && ms < goal) { picks.push(f); ms += f.ms; }
+    }
+    spoSave();
+    if (picks.length < 3) throw new Error('few');
+    // the previous one goes (and any other left with this name)
+    if (SPF.pl?.id) await spUnfollow(SPF.pl.id);
+    try { for (const x of (await spApi('/me/playlists?limit=50')).items || []) if (x?.name === SP_TITLE && x.id !== SPF.pl?.id) await spUnfollow(x.id); } catch { /* fine */ }
+    const pl = await spApi('/me/playlists', { method: 'POST', body: JSON.stringify({ name: SP_TITLE, public: false, description: `${(SP_GENRES.find(([x]) => x === g) || [, g])[1]} · ${Math.round(ms / 60000)} min` }) });
+    await spApi(`/playlists/${pl.id}/items`, { method: 'POST', body: JSON.stringify({ uris: picks.map(x => 'spotify:track:' + x.id) }) });
+    SPF.pl = { id: pl.id, url: pl.external_urls?.spotify || `https://open.spotify.com/playlist/${pl.id}`, g, min: Math.round(ms / 60000), songs: picks.map(x => [x.t, x.a]), t: Date.now() };
     spoSave(); sfx('claim');
   } catch (e) {
-    toast(e.message === 'few' ? 'Not enough energetic songs yet. Like a few more on Spotify and try again.' : e.message === 'auth' ? 'Link Spotify again.' : 'Spotify did not answer. Try again in a moment.');
+    toast(e.message === 'few' ? 'Spotify did not find enough songs. Try another genre.' : e.message === 'auth' ? 'Link Spotify again.' : 'Spotify did not answer. Try again in a moment.');
   }
   SP_BUSY = false; spRefreshView();
 };
@@ -340,18 +298,14 @@ function songCard() {
 }
 
 function musicCard() {
-  const di = nextDayIdx(), pl = SPF.lists[`${dayId()}:${di}`];
-  if (!spOn()) return musicFree();
-  if (SP_BUSY) return `<section class="card music"><h3>${spLogo} Workout music</h3><div class="mut sppulse">Picking energetic songs…</div></section>`;
-  if (!pl) {
-    return `<section class="card music"><h3>${spLogo} Workout music</h3><div class="mut">Get a playlist for this workout: energetic songs you like, plus a few new ones.</div>
-      <button class="btn spbtn" onclick="spMakePlaylist()">${spLogo} Make my workout playlist</button></section>`;
-  }
-  return `<section class="card music"><div class="row between"><h3>${spLogo} Workout music</h3><span class="mut">${pl.songs.length} songs · ${pl.min} min</span></div>
-    <ol class="splist" translate="no">${pl.songs.slice(0, 5).map(([n, a]) => `<li><b>${esc(n)}</b><span>${esc(a)}</span></li>`).join('')}</ol>
-    ${pl.songs.length > 5 ? `<div class="mut">+${pl.songs.length - 5} more${pl.fresh ? ` · ${pl.fresh} new to you` : ''}</div>` : ''}
-    <a class="btn spbtn" href="${esc(pl.url)}" target="_blank" rel="noopener">${spLogo} Play in Spotify</a>
-    <button class="btn ghost sm" onclick="spMakePlaylist(true)">Another playlist</button></section>`;
+  if (!spOn()) return '';
+  const pl = SPF.pl, g = spPlGenre(), mins = dayMinutes(nextDayIdx());
+  const chips = `<div class="chips spgen">${SP_GENRES.map(([k, n]) => `<button class="chip ${k === g ? 'on' : ''}" onclick="spSetPlGenre('${k}')">${n}</button>`).join('')}</div>`;
+  if (SP_BUSY) return `<section class="card music"><h3>${spLogo} Workout playlist</h3><div class="mut sppulse">Making your playlist…</div></section>`;
+  return `<section class="card music"><div class="row between"><h3>${spLogo} Workout playlist</h3>${pl ? `<span class="mut">${pl.songs.length} songs · ${pl.min} min</span>` : ''}</div>
+    ${chips}
+    ${pl ? `<a class="btn spbtn" href="${esc(pl.url)}" target="_blank" rel="noopener">${spLogo} Play in Spotify</a>` : ''}
+    <button class="btn ${pl ? 'ghost sm' : 'spbtn'}" onclick="spMakePlaylist()">${pl ? 'New playlist' : `${spLogo} Make a ${mins} min playlist`}</button></section>`;
 }
 
 function musicSettings() {
@@ -370,7 +324,7 @@ function musicSettings() {
 }
 
 const _spoHome = home;
-home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', songCard()); }; // just the song of the day
+home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', songCard() + musicCard()); }; // the song of the day, and the workout playlist once Spotify is linked
 const _spoSet = settings;
 settings = function () { _spoSet(); const m = view.querySelector('#setmusic'); if (m) m.outerHTML = musicSettings(); };
 Object.assign(routes, { home, settings });

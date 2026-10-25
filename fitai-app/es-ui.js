@@ -344,3 +344,5 @@ i18nAdd({ '{n} planned': '{n} planificadas', 'New week': 'Nueva semana', Prefere
 i18nAdd({ Chest: 'Pecho', Back: 'Atrás', Shoulders: 'Hombros', Arms: 'Brazos', Legs: 'Piernas', Glutes: 'Glúteos', Core: 'Core', Neck: 'Cuello', Exercises: 'Ejercicios', 'Search {n} exercises': 'Buscar entre {n} ejercicios', 'All equipment': 'Todo el material' });
 i18nAdd({ 'Show the move': 'Ver el movimiento' });
 i18nAdd({ 'Swap for a similar exercise': 'Cambiar por un ejercicio similar', 'Similar exercises': 'Ejercicios similares' });
+i18nAdd({ 'Workout playlist': 'Lista para entrenar', 'Making your playlist…': 'Creando tu lista…', 'New playlist': 'Nueva lista', 'Make a {n} min playlist': 'Crear una lista de {n} min',
+  'Spotify did not find enough songs. Try another genre.': 'Spotify no encontró suficientes canciones. Prueba otro género.' });
