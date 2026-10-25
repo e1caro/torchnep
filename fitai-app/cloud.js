@@ -178,10 +178,14 @@ function friendsView() {
   const reqs = FR_IN.map(f => { const p = f.public || {}; return `<div class="card row freq"><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
     <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small class="mut">wants to be your friend</small></span>
     <button class="btn sm" onclick="acceptFriend('${f.id}')">Accept</button><button class="icon" aria-label="Decline" onclick="declineFriend('${f.id}')">✕</button></div>`; }).join('');
-  view.innerHTML = `<h1>Friends</h1>${reqs ? `<h2 class="sec">Requests</h2>${reqs}` : ''}${podium(all)}
+  const sent = FR_OUT.map(f => { const p = f.public || {}; return `<div class="card row freq"><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
+    <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small class="mut">request sent</small></span>
+    <button class="btn ghost sm" onclick="declineFriend('${f.id}')">Cancel</button></div>`; }).join('');
+  view.innerHTML = `<h1>Friends</h1>${podium(all)}
   <div class="row"><input id="fr-code" placeholder="Friend's code" maxlength="6" autocapitalize="characters" spellcheck="false"><button class="btn sm" onclick="addFriend()">Add</button></div>
   <div class="mut">Your code: <b translate="no">${esc(CL.code || '')}</b></div>
-  ${FR_OUT.length ? `<div class="mut">Waiting for: <b translate="no">${FR_OUT.map(f => esc(f.public?.name || f.username)).join(', ')}</b></div>` : ''}
+  <h2 class="sec">Pending requests${FR_IN.length ? ` · ${FR_IN.length}` : ''}</h2>
+  ${reqs || sent ? reqs + sent : `<div class="mut">${FRIENDS === null ? '…' : 'No pending requests.'}</div>`}
   <h2 class="sec">Ranking</h2><div class="friends">${all.map(row).join('')}</div>`;
   if (Date.now() - FR_AT > 30e3) { FR_AT = Date.now(); loadFriends().then(() => { if (location.hash === '#/friends') route(); }).catch(() => { FRIENDS = FRIENDS || []; }); }
 }
@@ -254,7 +258,7 @@ if (typeof i18nAdd === 'function') {
     Friends: 'Amigos', 'Sign in to add friends': 'Entra para añadir amigos', "Friend's code": 'Código de tu amigo', Add: 'Añadir', 'Your code:': 'Tu código:',
     'Codes have 6 letters and numbers': 'Los códigos tienen 6 letras y números', "That's your own code": 'Ese es tu propio código', 'No player with that code': 'No hay ningún jugador con ese código',
     'Friend added': 'Amigo añadido', '{0} is now #{1}': '{0} pasa al puesto {1}', 'Sign in to add friends and see their profiles.': 'Entra para añadir amigos y ver sus perfiles.', Ranking: 'Ranking', You: 'Tú', 'Lv {n}': 'Nv {n}', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
-    Requests: 'Solicitudes', 'wants to be your friend': 'quiere ser tu amigo', Accept: 'Aceptar', Decline: 'Rechazar', 'Request sent': 'Solicitud enviada', 'Waiting for:': 'Esperando a:',
+    Requests: 'Solicitudes', 'Pending requests': 'Peticiones pendientes', 'request sent': 'petición enviada', 'No pending requests.': 'No hay peticiones pendientes.', 'Pending requests · {n}': 'Peticiones pendientes · {n}', 'wants to be your friend': 'quiere ser tu amigo', Accept: 'Aceptar', Decline: 'Rechazar', 'Request sent': 'Solicitud enviada', 'Waiting for:': 'Esperando a:',
     'Turn off e-mail confirmation in Supabase (see tools/supabase.sql)': 'Desactiva la confirmación por e-mail en Supabase (mira tools/supabase.sql)',
   });
 }
