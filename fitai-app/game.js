@@ -127,7 +127,7 @@ const item = id => ITEMS.find(i => i.id === id);
 // Shop items are owned once bought (or free); level rewards open at their level. Dungeons and recipes bought before this split stay owned.
 // XP only comes from looking after yourself (training, food, water, sleep, weighing in); everything else pays coins,
 // a bit more than before to make up for it
-const coinsFor = xp => Math.round(xp / 14); // quests, check-ins and matches turn their old XP value into coins
+const coinsFor = xp => Math.round(xp * 3 / 28); // 75% of the old xp / 7 // quests, check-ins and matches turn their old XP value into coins
 // the picture of an item: looks show themselves (a ring, a banner strip, a theme swatch), the rest an icon
 const ICO = i => i.type === 'frame' ? `<div class="av fr-${i.key} icoav" style="--p:.6"><span></span></div>` : i.type === 'banner' ? `<span class="bnp icobn bn-${i.key}"></span>`
   : i.type === 'theme' && i.sw ? `<span class="swc round icosw" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>` : ICO0(i);
@@ -292,7 +292,7 @@ function gameWorkout(h) {
   const xpP = xpPerk(), coinP = coinPerk(), boost = boostOn(), recXp = perk('rec') ? 40 : 20;
   const sm = 1 + Math.min(0.5, (st - 1) * 0.05), mult = (dg?.mult || 1) * sm * (feat ? 1.5 : 1) * (1 + xpP) * (boost ? 2 : 1);
   const exXpSum = h.xpEx ?? 0, bonus = 40;
-  const base = exXpSum + bonus + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 20 * (1 + coinP));
+  const base = exXpSum + bonus + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp * .075 * (1 + coinP));
   const lines = [];
   [4, 3, 2, 1].forEach(t => { const n = h.ex.filter(x => x.tier === t).length; if (n) lines.push([`${n} × ${MEDAL_NAME[t]}`, null]); });
   lines.push(['Exercises', exXpSum], ['Workout cleared', bonus]);
@@ -354,7 +354,7 @@ window.claimQuestBonus = () => {
 };
 const ciInfo = () => {
   const st = G.checkin === dayId() ? G.ciStreak : G.checkin === dayId(Date.now() - 864e5) ? G.ciStreak + 1 : 1;
-  return { st, xp: 10 + 2 * Math.min(st - 1, 6), coins: 4 + 2 * Math.min(st - 1, 6), chest: st % 7 === 0 };
+  return { st, xp: 10 + 2 * Math.min(st - 1, 6), coins: Math.round((8 + 3 * Math.min(st - 1, 6)) * .75), chest: st % 7 === 0 };
 };
 window.checkIn = () => {
   if (G.checkin === dayId()) return;
@@ -365,7 +365,7 @@ window.checkIn = () => {
 const BOSSES = [['Iron Golem', 'golem'], ['Sloth Dragon', 'dragon'], ['Couch Lord', 'sofa'], ['Fatigue Wraith', 'ghost'], ['Gravity Beast', 'gorilla']];
 window.claimBoss = () => {
   if (G.bossClaimed === weekId() || weekCount() < S.profile.days) return;
-  G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(0, 50); sfx('claim'); checkAch(); flushLevelUp(home);
+  G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(0, 75); sfx('claim'); checkAch(); flushLevelUp(home);
 };
 // The shop opens kind by kind over the first levels: at level 1 nothing can be bought yet
 const SHOP_LV = { avatar: 2, banner: 3, frame: 4, theme: 5, panel: 7, skin: 10 };
@@ -401,7 +401,7 @@ window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(
 // [name, icon, odds cuts (coins below cut 0, XP below cut 1, a look after), coin range, XP range]
 // Chests give no XP any more (cut 0 = cut 1): the share XP had went to coins, so the chance of a look did not change.
 // Coin amounts were lowered when every level started giving a chest.
-const CHEST = { wood: ['Wooden chest', 'crate', [95, 95, 100, 100], [5, 12], [0, 0]], silver: ['Silver chest', 'chest-silver', [70, 70, 100, 100], [8, 20], [0, 0]], gold: ['Golden chest', 'chest-gold', [50, 50, 90, 100], [20, 50], [0, 0]] };
+const CHEST = { wood: ['Wooden chest', 'crate', [95, 95, 100, 100], [8, 19], [0, 0]], silver: ['Silver chest', 'chest-silver', [70, 70, 100, 100], [11, 30], [0, 0]], gold: ['Golden chest', 'chest-gold', [50, 50, 90, 100], [30, 75], [0, 0]] };
 const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
 // Any shop item can come out of a chest, interfaces included. The pricier the item, the rarer it is, and how much rarer
 // depends on the chest: wooden chests mostly give cheap looks, golden ones give expensive ones a fair chance.
@@ -514,7 +514,7 @@ function home() {
   <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${gi(be, 'hero')}</div><div class="grow"><h3>${bn}</h3>
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
     <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left`}</div>
-    ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 50</button>` : ''}</div></section>
+    ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 75</button>` : ''}</div></section>
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
   <section class="card next">${ownPlan() ? `<div class="chips pickday">${S.plan.days.map((x, i) => `<button class="chip ${i === di ? 'on' : ''}" onclick="pickTrain(${i})">${esc(dayFor(i).name.split(' · ').pop())}</button>`).join('')}</div>` : ''}
