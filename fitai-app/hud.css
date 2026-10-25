@@ -1020,3 +1020,13 @@ html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /
 .mgroup{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,14px);color:var(--fg);font:inherit;cursor:pointer}
 .mgroup .bmap{height:120px}
 .mgroup b{font-size:15px}.mgroup .mut{font-size:12px}
+/* tap the muscle map to see the move: two photos cross-fading like a short clip, with a slight zoom */
+.demo.tap{cursor:pointer}
+.demo .flip{position:absolute;right:8px;bottom:8px;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--bg) 70%,transparent);color:var(--fg);box-shadow:0 2px 8px #0006}
+.demo.anim{background:#fff}
+.demo.anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.demo.anim img.f2{animation:demofade 2.4s ease-in-out infinite}
+.demo.anim img:first-child{animation:demozoom 2.4s ease-in-out infinite}
+@keyframes demofade{0%,18%{opacity:0}42%,68%{opacity:1}92%,100%{opacity:0}}
+@keyframes demozoom{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@media(prefers-reduced-motion:reduce){.demo.anim img{animation:none!important}}

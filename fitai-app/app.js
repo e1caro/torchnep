@@ -84,10 +84,19 @@ document.querySelectorAll('#tabs a').forEach(a => { a.insertAdjacentHTML('afterb
 
 // ---------- demo media ----------
 // A real video (data/videos.json: id -> mp4 URL or YouTube id) wins; otherwise the start/end pose photos loop.
-// The exercise's picture: a muscle map (front and back) with the muscles it works lit up (bodymap.js), no people.
+// The exercise's picture: a muscle map (front and back) with the muscles it works lit up (bodymap.js). Tapping it shows
+// the move itself: the two photos of the exercise cross-fading like a short clip; tapping again goes back to the map.
 function demo(e) {
-  return `<div class="demo body">${bodyMap(e.m, e.s, 'both')}</div>`;
+  return `<div class="demo body ${e.x ? '' : 'tap'}" ${e.x ? '' : `onclick="demoFlip(this,'${e.id}')" role="button" aria-label="Show the move"`}>${bodyMap(e.m, e.s, 'both')}${e.x ? '' : `<span class="flip">${ic('play', 14)}</span>`}</div>`;
 }
+const photoDemo = e => { const a = IMG_BASE + e.id + '/0.jpg', b = IMG_BASE + e.id + '/' + (e.im > 1 ? 1 : 0) + '.jpg';
+  return `<img src="${a}" alt="${esc(e.n)}">${a === b ? '' : `<img class="f2" src="${b}" alt="">`}<span class="flip">${ic('back', 14)}</span>`; };
+window.demoFlip = (el, id) => {
+  const e = BY[id]; if (!e) return;
+  const toPhoto = !el.classList.contains('anim');
+  el.classList.toggle('anim', toPhoto); el.classList.toggle('body', !toPhoto);
+  el.innerHTML = toPhoto ? photoDemo(e) : `${bodyMap(e.m, e.s, 'both')}<span class="flip">${ic('play', 14)}</span>`;
+};
 function startLoops() {
   timers.forEach(clearInterval); timers = [];
   // demos animate with CSS now (a cross-fade between the two photos)
@@ -704,7 +713,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 140</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 141</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
