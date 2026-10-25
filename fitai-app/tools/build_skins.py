@@ -59,8 +59,9 @@ html[data-skin=clean] h2.sec{{font-size:13px;font-weight:600;color:var(--mut);ma
 html[data-skin=clean] h2.sec::before{{display:none}}
 html[data-skin=clean] h2.sec::after{{opacity:0}}
 html[data-skin=clean] .lbl{{font-size:13px;font-weight:600;color:var(--mut)}}
-html[data-skin=clean] {P}{{background:var(--card);border:1px solid var(--line);box-shadow:none;border-radius:var(--r)}}
-html[data-skin=clean] {P}::before,html[data-skin=clean] {P}::after{{display:none}}
+html[data-skin=clean] {P}{{border:1px solid var(--line);box-shadow:none;border-radius:var(--r)}}
+html[data-skin=clean] {P}:not([class*=bn-]){{background:var(--card)}}
+html[data-skin=clean] {P}:not([class*=bn-])::before,html[data-skin=clean] {P}:not([class*=bn-])::after{{display:none}}  /* banners keep their art */
 html[data-skin=clean] .btn{{background:var(--acc);color:var(--on);box-shadow:none;font-weight:600;font-size:15px;border-radius:12px}}
 html[data-skin=clean] .btn.sm{{font-size:13px;border-radius:10px}}
 html[data-skin=clean] .btn.ghost{{background:var(--card2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}}
