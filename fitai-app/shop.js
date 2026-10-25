@@ -11,7 +11,7 @@ const chestBtn = () => G.chests.length ? `<button class="btn chestbtn" onclick="
 const BOOSTS = [
   { id: 'x-boost', name: 'XP booster', desc: 'Double XP from workouts for 24 hours', cost: 150, ico: 'upgrade', act: () => { G.boostUntil = Math.max(Date.now(), G.boostUntil || 0) + 864e5; } },
   { id: 'x-spin', name: 'Extra spin', desc: 'One more turn of the daily wheel', cost: 60, ico: 'slot', act: () => { G.extraSpins = (G.extraSpins || 0) + 1; } },
-  { id: 'x-wood', name: 'Wooden chest', desc: 'Coins, XP or a small look', cost: 100, ico: 'crate', act: () => G.chests.push('wood') },
+  { id: 'x-wood', name: 'Wooden chest', desc: 'Coins or a small look', cost: 100, ico: 'crate', act: () => G.chests.push('wood') },
   { id: 'x-silver', name: 'Silver chest', desc: 'Better odds of a new look', cost: 250, ico: 'chest-silver', act: () => G.chests.push('silver') },
   { id: 'x-gold', name: 'Golden chest', desc: 'The best odds of a rare look', cost: 600, ico: 'chest-gold', act: () => G.chests.push('gold') },
 ];
