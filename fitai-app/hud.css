@@ -1039,3 +1039,7 @@ html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /
 nav#tabs a{position:relative}
 nav#tabs .nbadge{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff4d5e;color:#fff;font:700 11px/18px var(--body);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
 .freq{align-items:center;gap:10px}.freq small{display:block}
+.rtplan{margin-top:8px;width:100%}
+#resume .rquit{all:unset;display:grid;place-items:center;width:28px;height:28px;margin:-4px -6px -4px 2px;border-radius:50%;color:var(--mut);cursor:pointer}
+#resume .rquit:hover{color:var(--fg);background:var(--card2)}
+.minechip{margin:8px 0 0}

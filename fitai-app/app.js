@@ -110,7 +110,7 @@ function analyze(p) {
   const sex = p.gender === 'male' ? 5 : p.gender === 'female' ? -161 : -78;
   const bmr = 10 * p.weight + 6.25 * p.height - 5 * p.age + sex; // Mifflin-St Jeor
   // daily life (light activity) plus what the training plan really burns, spread over the week
-  const ses = sessionBurn(p), tdee = bmr * 1.3 + ses.kcal * p.days / 7;
+  const ses = planBurn(p), tdee = bmr * 1.3 + ses.kcal * p.days / 7;
   const diff = p.target ? p.target - p.weight : 0;
   const adj = p.goal === 'fat' ? -0.2 : p.goal === 'muscle' ? 0.1 : p.goal === 'strength' ? 0.05 : 0;
   let kcal = tdee * (1 + adj);
@@ -182,6 +182,15 @@ function sessionBurn(p) {
   const strength = Math.max(10, p.minutes - warm - cardio - stretch);
   const kcal = kg * ((3.5 - 1) * warm + ((CARDIO_MET[p.cardioType] || 7) - 1) * cardio + ((LIFT_MET[p.goal] || 5) - 1) * strength + (2.3 - 1) * stretch) / 60;
   return { kcal, strength, cardio, stretch };
+}
+// what an average workout of the plan burns: the made-up days as above, your routines by their length (strength work)
+function planBurn(p) {
+  const base = sessionBurn(p);
+  if (!S.plan?.days?.some(d => d.routine) && !S.plan?.removed?.length) return base;
+  const kg = typeof curWeight === 'function' && S.profile ? curWeight() : p.weight, days = S.plan.days.map((_, i) => dayFor(i)), n = Math.max(1, days.length);
+  const per = days.map(d => (d.routine ? { kcal: kg * (((LIFT_MET[p.goal] || 5) - 1) * planMinutes(d)) / 60, strength: planMinutes(d), cardio: 0, stretch: 0 } : base));
+  const avg = k => per.reduce((a, x) => a + x[k], 0) / n;
+  return { kcal: avg('kcal'), strength: Math.round(avg('strength')), cardio: Math.round(avg('cardio')), stretch: Math.round(avg('stretch')) };
 }
 const STRETCH_MINS = ['auto', 3, 5, 10, 15];
 const SESSIONS = [30, 45, 60, 75, 90, 120];
@@ -263,7 +272,15 @@ function generatePlan(p) {
 // stretching (unless you picked their minutes yourself) so the workout fits the new time. Tomorrow it is back to normal.
 S.today = load('today', null);
 const todayOk = di => S.today && S.plan && S.today.date === dayKey(Date.now()) && S.today.di === di && S.today.plan === S.plan.created;
-const dayFor = di => (todayOk(di) ? { ...S.plan.days[di], items: S.today.items } : S.plan.days[di]);
+// a day of the plan; a day that is one of your routines (routines.js) follows the routine as you edit it
+const dayFor = di => {
+  const d = S.plan.days[di];
+  if (d?.routine) {
+    const r = typeof rtGet === 'function' ? rtGet(d.routine) : null, its = (r?.items || []).filter(it => BY[it.id]);
+    return { ...d, name: r?.name || d.name, items: (its.length ? its : d.items).map(it => ({ ...it, sets: Math.max(1, +it.sets || 1), rest: +it.rest || 0 })) };
+  }
+  return todayOk(di) ? { ...d, items: S.today.items } : d;
+};
 const dayMinutes = di => (todayOk(di) ? S.today.minutes : S.profile.minutes);
 function fitDay(di, minutes) {
   const base = S.plan.days[di], p = { ...S.profile, minutes }, have = equipSet(p), r = rng((Date.now() ^ di * 7919) & 0xffffff);
@@ -432,10 +449,11 @@ function planView() {
   // each day folds to one line; the next workout starts open
   view.innerHTML = `<h1>Your plan</h1><div class="mut">${GOALS[p.goal][0]} · ${p.days} days a week · ${cap(p.level)}</div>` +
     S.plan.days.map((d0, di) => { const d = dayFor(di), nx = di === nextDayIdx(); return `<details class="card day" ${nx ? 'open' : ''}><summary><div class="grow"><h3>${esc(d.name)}</h3>
-    <div class="mut">${nx ? 'Next · ' : ''}${d.items.length} exercises · ~${planMinutes(d)} min</div></div><button class="btn sm" onclick="event.preventDefault();startWorkout(${di})">Start</button></summary>
-    ${nx ? timeChips(di) : ''}
+    <div class="mut">${nx ? 'Next · ' : ''}${d.items.length} exercises · ~${planMinutes(d)} min</div></div><button class="icon" aria-label="Remove from plan" onclick="event.preventDefault();planDrop(${di})">${ic('close', 16)}</button><button class="btn sm" onclick="event.preventDefault();startWorkout(${di})">Start</button></summary>
+    ${nx && !d.routine ? timeChips(di) : ''}
     ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a>
-    <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</details>`; }).join('') +
+    ${d.routine ? '' : `<button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button>`}</div>` : ''; }).join('')}${d.routine ? `<button class="btn ghost sm" onclick="location.hash='#/routine/${d.routine}'">${ic('edit', 16)} Edit routine</button>` : ''}</details>`; }).join('') +
+    (S.plan.removed?.length ? `<button class="btn ghost" onclick="planRestore()">${ic('plus', 18)} Bring back the coach's workouts (${S.plan.removed.length})</button>` : '') +
     `<div id="rtslot"></div><h2 class="sec">Adjust</h2>${optionsCard(p)}${cardioCard(p)}
     <div class="row"><button class="btn ghost" onclick="location.hash='#/library'">Exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button></div>`;
   bindOpts();
@@ -494,7 +512,10 @@ window.swapEx = (di, ii) => {
   it.id = c[Math.floor(Math.random() * c.length)].id; save('plan', S.plan); if (tod) save('today', S.today); planView();
 };
 
-let libF = { q: '', m: '', e: '', g: '' };
+let libF = { q: '', m: '', e: '', g: '', mine: true };
+// only exercises you can do with the equipment in your profile
+const haveEq = e => !S.profile || equipSet(S.profile).has(e.e);
+const mineChip = (on, fn) => `<button class="chip ${on ? 'on' : ''} minechip" onclick="${fn}">${ic('check', 14)} My equipment</button>`;
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const exKey = e => fold(typeof tr === 'function' && tr(e.n) !== e.n ? e.n + ' ' + tr(e.n) : e.n); // search in English and in the app language
 // Filter options keep the English value; only the label gets translated, so filtering works in any language.
@@ -504,14 +525,15 @@ let libN = 60;
 // The exercise library: first the muscle groups, each drawn on the body; then that group's exercises (or a search).
 function library() {
   const grp = MGROUPS.find(g => g[0] === libF.g);
-  const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!grp || e.m.some(m => grp[2].includes(m))) && (!libF.e || e.e === libF.e));
+  const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!grp || e.m.some(m => grp[2].includes(m))) && (!libF.e || e.e === libF.e) && (!libF.mine || haveEq(e)));
   const head = `<button class="btn sm ghost back" onclick="${grp ? "libF.g='';libN=60;library()" : 'history.back()'}">${ic('back', 18)} Back</button>
-  <h1>${grp ? grp[1] : 'Exercises'}</h1><input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">`;
+  <h1>${grp ? grp[1] : 'Exercises'}</h1><input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">
+  <div class="chips">${mineChip(libF.mine, 'libF.mine=!libF.mine;libN=60;library()')}</div>`;
   if (!grp && !libF.q) {
-    view.innerHTML = `${head}<div class="mgrid">${MGROUPS.map(([k, name, ms]) => `<button class="mgroup" onclick="libF.g='${k}';libN=60;library()">${bodyMap(ms, [], 'auto')}<b>${name}</b><span class="mut">${EX.filter(e => e.m.some(m => ms.includes(m))).length}</span></button>`).join('')}</div>`;
+    view.innerHTML = `${head}<div class="mgrid">${MGROUPS.map(([k, name, ms]) => `<button class="mgroup" onclick="libF.g='${k}';libN=60;library()">${bodyMap(ms, [], 'auto')}<b>${name}</b><span class="mut">${EX.filter(e => e.m.some(m => ms.includes(m)) && (!libF.mine || haveEq(e))).length}</span></button>`).join('')}</div>`;
   } else {
     view.innerHTML = `${head}
-    <select id="fe" style="margin:8px 0"><option value="">All equipment</option>${optList([...new Set(EX.map(e => e.e))], libF.e)}</select>
+    <select id="fe" style="margin:8px 0"><option value="">All equipment</option>${optList([...new Set(EX.filter(e => !libF.mine || haveEq(e)).map(e => e.e))], libF.e)}</select>
     ${list.slice(0, libN).map(e => `<a class="card row li" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${e.e}</div></div></a>`).join('')}
     ${list.length > libN ? `<button class="btn ghost" onclick="libN += 60; library()">Show more (${list.length - libN})</button>` : ''}`;
     $('#fe').onchange = ev => { libF.e = ev.target.value; libN = 60; library(); };
@@ -552,7 +574,7 @@ function startSession(name, items, extra = {}) {
   saveSess();
   location.hash = '#/workout';
 }
-window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items, { di, mins: dayMinutes(di) }); };
+window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items, { di, mins: d.routine ? planMinutes(d) : dayMinutes(di) }); };
 
 const MEDAL_NAME = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
 const medal = t => t ? `<span class="medal m${t}">${MEDAL_NAME[t]}</span>` : '';
@@ -631,7 +653,7 @@ window.quitWorkout = () => {
   const b = $('#rest'); b.hidden = false;
   b.innerHTML = '<h2>Discard this workout?</h2><div class="row"><button class="btn ghost" id="no">Keep going</button><button class="btn" id="yes">Discard</button></div>';
   $('#no').onclick = () => { b.hidden = true; };
-  $('#yes').onclick = () => { b.hidden = true; session = null; saveSess(); location.hash = '#/home'; };
+  $('#yes').onclick = () => { b.hidden = true; session = null; saveSess(); location.hash = '#/home'; resumeBar(); };
 };
 window.doneSet = i => {
   const x = session.ex[session.cur], s = x.sets[i], before = exXp(x).tier;
@@ -671,9 +693,14 @@ function resumeBar() {
   let bar = document.getElementById('resume');
   const show = session && location.hash !== '#/workout' && location.hash !== '#/victory';
   if (!show) { bar?.remove(); return; }
-  if (!bar) { bar = document.createElement('button'); bar.id = 'resume'; bar.onclick = () => { location.hash = '#/workout'; }; document.body.appendChild(bar); }
+  if (!bar) {
+    bar = document.createElement('div'); bar.id = 'resume'; bar.setAttribute('role', 'button'); bar.tabIndex = 0;
+    bar.onclick = ev => { if (ev.target.closest('.rquit')) { ev.stopPropagation(); quitWorkout(); } else location.hash = '#/workout'; };
+    document.body.appendChild(bar);
+  }
   const doneN = session.ex.filter(x => x.sets.every(s => s.done)).length;
-  bar.innerHTML = `${ic('play', 16)} <span class="grow">${esc(session.name)}</span><span>${doneN}/${session.ex.length}</span>`;
+  bar.innerHTML = `${ic('play', 16)} <span class="grow">${esc(session.name)}</span><span>${doneN}/${session.ex.length}</span>
+    <button class="rquit" aria-label="Discard workout">${ic('close', 16)}</button>`;
 }
 window.addEventListener('hashchange', resumeBar);
 // a timed set that ends while you are on another screen still ticks itself off
@@ -729,7 +756,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 147</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 149</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();

@@ -349,3 +349,4 @@ i18nAdd({ 'Workout playlist': 'Lista para entrenar', 'Making your playlist…': 
 i18nAdd({ 'Link my Spotify': 'Vincular mi Spotify', 'New list': 'Nueva lista', 'Make a {n} min list': 'Crear una lista de {n} min',
   'Open': 'Abre', 'and sign in.': 'e inicia sesión.', 'Create app: any name, choose Web API, and add this Redirect URI:': 'Crea una app (cualquier nombre), elige Web API y añade esta Redirect URI:',
   'Copy its Client ID and paste it here.': 'Copia su Client ID y pégalo aquí.', 'Spotify asks for Premium for this.': 'Spotify pide Premium para esto.' });
+i18nAdd({ 'My equipment': 'Mi material', 'Discard workout': 'Abandonar entrenamiento' });
