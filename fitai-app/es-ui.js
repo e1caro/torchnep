@@ -341,3 +341,4 @@ i18nAdd({ 'a silver chest (golden every {n}th), meals, workouts, perks and level
 i18nPat(/^Badge unlocked: (.+)$/, n => `Insignia desbloqueada: ${tr(n)}`);
 i18nAdd({ "Today's deals": 'Ofertas de hoy', Boosts: 'Potenciadores', Common: 'Común', Rare: 'Rara', Epic: 'Épica', Legendary: 'Legendaria', 'Opens at level {n}': 'Se abre en el nivel {n}', 'Try any of them for a minute meanwhile.': 'Mientras, puedes probar cualquiera durante un minuto.', '{n}h {n}m': '{n} h {n} min' });
 i18nAdd({ '{n} planned': '{n} planificadas', 'New week': 'Nueva semana', Preferences: 'Preferencias', '{n} / {n} kcal': '{n} / {n} kcal' });
+i18nAdd({ Chest: 'Pecho', Back: 'Atrás', Shoulders: 'Hombros', Arms: 'Brazos', Legs: 'Piernas', Glutes: 'Glúteos', Core: 'Core', Neck: 'Cuello', Exercises: 'Ejercicios', 'Search {n} exercises': 'Buscar entre {n} ejercicios', 'All equipment': 'Todo el material' });

@@ -1009,10 +1009,14 @@ html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /
 .sw .swact .btn{flex:1 1 auto;min-width:0;margin:0;padding:7px 6px;font-size:12px}
 .sw .swact .eq{flex:1 1 100%;text-align:center}
 .mlist{margin:8px 0 12px;padding:4px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,14px)}
-/* exercise demos: the two photos of a move cross-fade with a slight zoom, like a short clip */
-.demo.anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
-.demo.anim img.f2{animation:demofade 2.4s ease-in-out infinite}
-.demo.anim img:first-child{animation:demozoom 2.4s ease-in-out infinite}
-@keyframes demofade{0%,18%{opacity:0}42%,68%{opacity:1}92%,100%{opacity:0}}
-@keyframes demozoom{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-@media(prefers-reduced-motion:reduce){.demo.anim img{animation:none!important}}
+/* muscle maps (bodymap.js): main muscles strong, helpers soft, the rest a faint body */
+:root{--bm0:color-mix(in srgb,var(--fg) 13%,transparent);--bm1:var(--acc);--bm2:color-mix(in srgb,var(--acc) 45%,transparent);--bm-skin:color-mix(in srgb,var(--fg) 22%,transparent)}
+.bmap{display:flex;justify-content:center;align-items:center;gap:6%;width:100%;height:100%}
+.bmap svg{height:100%;width:auto;max-width:48%}
+.demo.body{background:radial-gradient(80% 70% at 50% 45%,color-mix(in srgb,var(--acc) 10%,var(--card)),var(--card));padding:12px;aspect-ratio:4/3;border:1px solid var(--line)}
+.thumb.bthumb{display:grid;place-items:center;background:var(--card2);padding:3px;overflow:hidden}
+.thumb.bthumb .bmap svg{max-width:100%}
+.mgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+.mgroup{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,14px);color:var(--fg);font:inherit;cursor:pointer}
+.mgroup .bmap{height:120px}
+.mgroup b{font-size:15px}.mgroup .mut{font-size:12px}
