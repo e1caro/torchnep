@@ -308,7 +308,7 @@ function gameWorkout(h) {
   if (chest) G.chests.push(chest);
   award(xp, coins);
   const ach = checkAch();
-  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest };
+  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h) };
 }
 function gameWeigh() {
   ensureDay();
@@ -544,6 +544,7 @@ function victory() {
   view.innerHTML = `<div class="vic"><div class="lvup">${r.dungeon ? 'Dungeon cleared' : 'Workout cleared'}</div><h1>${esc(r.name)}</h1>
   <div class="card">${r.lines.map(([t, v]) => `<div class="row between"><span>${t}</span><b>${v == null ? '' : '+' + v}</b></div>`).join('')}
   <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
+  ${typeof liftedCard === 'function' ? liftedCard(r.kg) : ''}
   <div class="hud solo"><div class="av fr-${G.frame}" style="--p:0"><span>${gi(G.avatar, 'hero')}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
   ${r.chest ? `<div class="card row"><div class="avbig sm">${gi(CHEST[r.chest][1])}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}
   ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${gi(a.i, 'hero')}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked</div></div></div>`).join('')}
@@ -584,7 +585,20 @@ function initGame() {
     for (let k = 2; k <= lvl(); k++) { sv += k % 5 === 0 && k % 10 !== 0 ? 0 : 1; gd += k % 5 === 0 && k % 10 !== 0 ? 1 : 0; }
     if (sv + gd) G.gifts = { silver: sv, gold: gd };
   }
-  ensureDay(); applyTheme(); commit();
+  ensureDay();
+  // workouts saved by older versions could count only the warm-up as time trained: estimate them again from the sets done
+  // (each exercise's usual length, in part if only some sets were done), and today's minutes with them
+  if (!G.dur2) {
+    G.dur2 = 1; let fixed = 0;
+    S.history.forEach(h => {
+      if (h.dungeon || !h.ex?.length) return;
+      const secs = WARMUP + h.ex.reduce((a, x) => { const plan = x.plan || x.sets.length, timed = /min|s$/.test(String(x.reps));
+        return a + exSecs({ sets: plan, reps: x.reps, rest: timed ? 10 : 75 }) * Math.min(1, x.sets.length / plan); }, 0);
+      const m = Math.round(secs / 60); if (m > (h.dur || 0)) { h.dur = m; fixed++; }
+    });
+    if (fixed) { save('history', S.history); G.today.minutes = S.history.filter(h => dayId(h.t) === G.today.day).reduce((a, h) => a + (h.dur || 0), 0); }
+  }
+  applyTheme(); commit();
 }
 window.collectGifts = () => {
   const g = G.gifts; if (!g) return;
