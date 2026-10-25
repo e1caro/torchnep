@@ -70,7 +70,7 @@ function levelsView() {
     return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
     ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
     ${Object.entries(SHOP_LV).filter(([, l]) => l === n).map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">open in the Shop</span></div>`).join('')}
-    ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')" title="Tap to try it for a minute"` : ''}>${ICO(i)} ${esc(i.name)} <span class="mut">${KIND[i.type]}</span>${LOOKS.includes(i.type) && !has(i) ? `<span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
+    ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')" title="Tap to try it for a minute"` : ''}>${ICO(i)} <span class="rn">${esc(i.name)}${LOOKS.includes(i.type) && !has(i) ? ` <span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}</span> <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
   }).join('')}</div>`;
 }
 

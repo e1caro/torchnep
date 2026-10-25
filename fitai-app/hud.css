@@ -806,3 +806,10 @@ html[data-theme=olympus]{--bg:#070c16;--glow:#1d2c48;--acc:#f5e6b8;--acc2:#7fd4f
 .ri.trytap{cursor:pointer}
 .trychip{margin-left:6px;padding:1px 7px;border:1px solid var(--line2);border-radius:10px;font-size:.7em;font-weight:600;color:var(--acc);vertical-align:middle}
 .pick.locked{cursor:pointer}
+/* reward road rows in columns: icon, name, kind (right), try chip; the description under the name */
+.ri{display:grid;grid-template-columns:30px 1fr auto;align-items:center;column-gap:10px;margin:7px 0}
+.ri>:first-child{justify-self:center;margin:0}
+.ri>span.mut{margin:0;text-align:right;font-size:.85em;white-space:nowrap}
+.ri>div.mut{grid-column:2/-1;margin:1px 0 0;font-size:.85em;line-height:1.3}
+.ri .trychip{margin-left:6px;white-space:nowrap}
+.ri .icoav{margin:0}
