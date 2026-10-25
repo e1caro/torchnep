@@ -58,7 +58,7 @@ window.sell = id => {
 
 // ---------- Levels ----------
 function levelsView() {
-  const L = lvl(), max = Math.min(50, Math.max(L + 8, 14));
+  const L = lvl(), max = 50; // the whole road, so every level reward can be seen ahead
   const next = ITEMS.filter(i => !i.shop && i.lv > L).sort((a, b) => a.lv - b.lv)[0], perks = ITEMS.filter(i => i.type === 'perk' && has(i));
   return `${hud()}${rwSeg('levels')}${chestBtn()}
   <p class="mut">Levels unlock new <b>meals</b>, <b>workouts</b> and <b>perks</b>. Coins are spent in the Shop on looks and boosts.</p>
@@ -137,7 +137,7 @@ const COS = [
 ];
 function looksView(t) {
   const c = COS.find(x => x[0] === t); if (!c) { location.hash = '#/profile'; return; }
-  const [, name, wide, prev] = c, mine = ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost), more = ITEMS.filter(i => i.type === t && !has(i)).length;
+  const [, name, wide, prev] = c, mine = ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost || (x.lv || 0) - (y.lv || 0)), more = ITEMS.filter(i => i.type === t && !has(i)).length;
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/profile'">${ic('back', 18)} Back</button><h1>${name}</h1>
   <div class="mut">${mine.length} owned · tap one to use it</div>${t === 'theme' ? themeNote() : ''}
   <div class="pgrid ${wide}">${mine.map(i => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name.replace(/ panels$| banner$/, ''))}</small></button>`).join('')}</div>

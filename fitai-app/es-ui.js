@@ -311,3 +311,4 @@ i18nAdd({ 'Level rewards': 'Premios de nivel', "Only earned by levelling up: the
 i18nPat(/^(.+) · level (\d+)$/, (a, b) => `${tr(a)} · nivel ${b}`);
 i18nAdd({ 'level {n}': 'nivel {n}' });
 i18nAdd({ '{n} × Silver chest': '{n} × Cofre de plata', '{n} × Golden chest': '{n} × Cofre dorado', 'Open it in Loot': 'Ábrelo en Botín' });
+i18nAdd({ 'Ember sparks': 'Chispas de brasa', 'Frost crown': 'Corona de escarcha', 'Arcane runes': 'Runas arcanas', 'Storm caller': 'Invocador de tormentas', 'Void rift': 'Grieta del vacío', 'Celestial halo': 'Halo celestial' });

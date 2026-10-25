@@ -99,7 +99,8 @@ const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japa
 const PANELS = [['chamfer', 'Chamfered', 0], ['classic', 'Classic', 0], ['brackets', 'Brackets', 150], ['octa', 'Octagon', 200], ['notch', 'Notch', 250], ['double', 'Double line', 300], ['circuit', 'Circuit', 400], ['holo', 'Hologram', 500]];
 // Level-only looks: they cannot be bought or found in chests, only earned by levelling up ([type, key, name, level, colours])
 const LV_LOOKS = [
-  ['frame', 'lbronze', 'Bronze laurel', 5], ['banner', 'champion', "Champion's banner", 10], ['avatar', 'laurel', 'Laurel crown', 12], ['frame', 'lsilver', 'Silver laurel', 15],
+  ['frame', 'lbronze', 'Bronze laurel', 5], ['frame', 'sparks', 'Ember sparks', 8], ['frame', 'frost', 'Frost crown', 18], ['frame', 'arcane', 'Arcane runes', 28],
+  ['frame', 'storm', 'Storm caller', 38], ['frame', 'void', 'Void rift', 42], ['frame', 'celestial', 'Celestial halo', 47], ['banner', 'champion', "Champion's banner", 10], ['avatar', 'laurel', 'Laurel crown', 12], ['frame', 'lsilver', 'Silver laurel', 15],
   ['banner', 'halloffame', 'Hall of Fame', 20], ['avatar', 'temple', 'Temple', 22], ['frame', 'lgold', 'Golden laurel', 25], ['theme', 'champion', 'Champion', 27, ['#ffcc33', '#e0303c']],
   ['banner', 'constellation', 'Constellation', 30], ['avatar', 'treasure', 'Treasure', 33], ['frame', 'plat', 'Platinum halo', 35], ['banner', 'borealis', 'Borealis', 40],
   ['theme', 'olympus', 'Olympus', 44, ['#f5e6b8', '#7fd4ff']], ['frame', 'phoenix', 'Phoenix ring', 45], ['avatar', 'infinity', 'Infinity', 48], ['frame', 'aura', 'Olympian aura', 50], ['banner', 'olympus', 'Olympus', 50],
@@ -504,7 +505,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 105</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 106</div>`;
 }
 
 function initGame() {
@@ -551,3 +552,16 @@ function migrateGame() {
   G.ver = 3;
 }
 Object.assign(routes, { home, dungeons, victory });
+
+// Prestige rings with particles (sparks, snow, runes, lightning...): two extra layers inside the avatar that carry them.
+// Added to every avatar on screen wearing one of these rings, whichever screen drew it.
+const PFX = new Set(['sparks', 'frost', 'arcane', 'storm', 'void', 'celestial', 'phoenix', 'aura']);
+function addFx() {
+  document.querySelectorAll('.av').forEach(a => {
+    const k = [...a.classList].find(c => c.startsWith('fr-'))?.slice(3), fx = a.querySelectorAll(':scope > .fx');
+    if (PFX.has(k)) { if (!fx.length) a.insertAdjacentHTML('beforeend', '<i class="fx"></i><i class="fx fx2"></i>'); }
+    else fx.forEach(e => e.remove());
+  });
+}
+let fxQ = 0;
+new MutationObserver(() => { if (!fxQ) fxQ = requestAnimationFrame(() => { fxQ = 0; addFx(); }); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
