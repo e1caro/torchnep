@@ -620,6 +620,7 @@ function me() {
 
 // ---------- router ----------
 const routes = { plan: planView, library, progress, me, workout: workoutView, exercise: exerciseView, start: a => onboarding(a === 'edit') };
+let lastRoute = '';
 function route() {
   timers.forEach(clearInterval); timers = [];
   const [, name = 'home', arg] = (location.hash || '#/home').split('/');
@@ -627,8 +628,11 @@ function route() {
   const tab = { profile: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', routine: 'plan', sport: 'home', earn: 'home', bets: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
   document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
+  // a change on the same page (equip, buy, sell, a setting...) redraws it where you were; a new page starts at the top
+  const same = location.hash === lastRoute, y = window.scrollY;
+  lastRoute = location.hash;
   (routes[name] || home)(arg);
-  if (name !== 'exercise') window.scrollTo(0, 0);
+  if (same) window.scrollTo(0, y); else if (name !== 'exercise') window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
 

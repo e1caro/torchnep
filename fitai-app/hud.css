@@ -631,7 +631,7 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 /* sideways swipes between sections belong to the app (swipe.js), not to the browser; vertical scrolling stays native */
 #view{touch-action:pan-y}
 /* names under the panel styles and themes you own */
-.pick:has(small){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:auto;min-height:84px}
+.pgrid .pick:has(small),.pgrid.wide .pick:has(small){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:auto;min-height:84px}
 .pick:has(small) .pnp{height:auto;width:100%;flex:1;min-height:38px}
 .pick small{font-size:10px;line-height:1.1;opacity:.85;text-align:center;letter-spacing:.03em}
 /* the Academy's technical sheet */
