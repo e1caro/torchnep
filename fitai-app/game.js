@@ -584,7 +584,20 @@ function initGame() {
     for (let k = 2; k <= lvl(); k++) { sv += k % 5 === 0 && k % 10 !== 0 ? 0 : 1; gd += k % 5 === 0 && k % 10 !== 0 ? 1 : 0; }
     if (sv + gd) G.gifts = { silver: sv, gold: gd };
   }
-  ensureDay(); applyTheme(); commit();
+  ensureDay();
+  // workouts saved by older versions could count only the warm-up as time trained: estimate them again from the sets done
+  // (each exercise's usual length, in part if only some sets were done), and today's minutes with them
+  if (!G.dur2) {
+    G.dur2 = 1; let fixed = 0;
+    S.history.forEach(h => {
+      if (h.dungeon || !h.ex?.length) return;
+      const secs = WARMUP + h.ex.reduce((a, x) => { const plan = x.plan || x.sets.length, timed = /min|s$/.test(String(x.reps));
+        return a + exSecs({ sets: plan, reps: x.reps, rest: timed ? 10 : 75 }) * Math.min(1, x.sets.length / plan); }, 0);
+      const m = Math.round(secs / 60); if (m > (h.dur || 0)) { h.dur = m; fixed++; }
+    });
+    if (fixed) { save('history', S.history); G.today.minutes = S.history.filter(h => dayId(h.t) === G.today.day).reduce((a, h) => a + (h.dur || 0), 0); }
+  }
+  applyTheme(); commit();
 }
 window.collectGifts = () => {
   const g = G.gifts; if (!g) return;
