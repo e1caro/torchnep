@@ -99,17 +99,15 @@ function tile(i) {
 function shopView() {
   const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
+  const sec = { skin: ['Interfaces', 'grid2', '<p class="mut">A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.</p>'],
+    avatar: ['Profile pictures', 'grid3', ''], frame: ['Rings', 'grid3', ''], banner: ['Banners', 'grid2', ''], panel: ['Panel styles', 'grid2', ''], theme: ['App themes', 'grid2', themeNote()] };
   return `${hud()}${rwSeg('shop')}${chestBtn()}
   <p class="mut">Coins buy looks and boosts, and looks you own sell back for 80% of their price. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
-  <h2 class="sec" data-t="skin">Interfaces · ${owned('skin')}/${by('skin').length}</h2><p class="mut">A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.</p><div class="grid2">${by('skin').map(tile).join('')}</div>
   <h2 class="sec">Boosts and chests</h2>
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
     <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
-  <h2 class="sec" data-t="avatar">Profile pictures · ${owned('avatar')}/${by('avatar').length}</h2><div class="grid3">${by('avatar').map(tile).join('')}</div>
-  <h2 class="sec" data-t="frame">Rings · ${owned('frame')}/${by('frame').length}</h2><div class="grid3">${by('frame').map(tile).join('')}</div>
-  <h2 class="sec" data-t="banner">Banners · ${owned('banner')}/${by('banner').length}</h2><div class="grid2">${by('banner').map(tile).join('')}</div>
-  <h2 class="sec" data-t="panel">Panel styles · ${owned('panel')}/${by('panel').length}</h2><div class="grid2">${by('panel').map(tile).join('')}</div>
-  <h2 class="sec" data-t="theme">App themes · ${owned('theme')}/${by('theme').length}</h2>${themeNote()}<div class="grid2">${by('theme').map(tile).join('')}</div>`;
+  ${Object.entries(sec).sort((x, y) => by(x[0])[0].cost - by(y[0])[0].cost).map(([t, [name, grid, intro]]) => // cheapest kind of look first
+    `<h2 class="sec" data-t="${t}">${name} · ${owned(t)}/${by(t).length}</h2>${intro}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
 }
 
 // ---------- Badges ----------

@@ -669,7 +669,10 @@ function foldSections() {
     const focus = typeof SHOP_FOCUS === 'string' && name === 'rewards' ? SHOP_FOCUS : null; // "more in the Shop" from one kind of look
     d.open = focus ? title.dataset.t === focus : key in foldState ? foldState[key] : body.some(el => el.matches?.('.next'));
     if (focus && d.open) { d.skipSave = true; requestAnimationFrame(() => d.scrollIntoView({ block: 'start' })); } // a one-off view: not remembered
-    d.addEventListener('toggle', () => { if (d.skipSave) { d.skipSave = false; return; } foldState[key] = d.open; try { localStorage.setItem('fc.fold', JSON.stringify(foldState)); } catch { /* storage blocked */ } });
+    d.addEventListener('toggle', () => {
+      // in the shop, opening one kind of look folds the others
+      if (d.open && name === 'rewards' && location.hash.split('/')[2] === 'shop') view.querySelectorAll(':scope > details.fold[open]').forEach(o => { if (o !== d) o.open = false; });
+      if (d.skipSave) { d.skipSave = false; return; } foldState[key] = d.open; try { localStorage.setItem('fc.fold', JSON.stringify(foldState)); } catch { /* storage blocked */ } });
     let after = d; loose.forEach(b => { after.after(b); after = b; });
   });
   if (name === 'rewards' && typeof SHOP_FOCUS === 'string' && heads.length) SHOP_FOCUS = null;
