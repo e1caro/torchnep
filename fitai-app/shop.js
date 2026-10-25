@@ -134,8 +134,8 @@ function profileView() {
   <h2 class="sec">Ring</h2><div class="pgrid">${mine('frame').map(i => pick(i, `<div class="av fr-${i.key}" style="--p:.6;width:40px;height:40px"><span>${gi(G.avatar, 'hero')}</span></div>`)).join('')}</div>${more('frame')}
   <h2 class="sec">Banner</h2><div class="pgrid wide">${mine('banner').map(i => pick(i, `<span class="bnp bn-${i.key}"></span>`)).join('')}</div>${more('banner')}
   <h2 class="sec">Interface</h2><div class="pgrid wide">${mine('skin').map(i => pick(i, skinPrev(i))).join('')}</div>${more('skin')}
-  <h2 class="sec">Panel style</h2><div class="pgrid wide">${mine('panel').map(i => pick(i, panelPrev(i.key))).join('')}</div>${more('panel')}
-  <h2 class="sec">Theme</h2>${themeNote()}<div class="pgrid">${mine('theme').map(i => pick(i, `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>`)).join('')}</div>${more('theme')}
+  <h2 class="sec">Panel style</h2><div class="pgrid wide">${mine('panel').map(i => pick(i, panelPrev(i.key) + `<small>${esc(i.name.replace(/ panels$/, ''))}</small>`)).join('')}</div>${more('panel')}
+  <h2 class="sec">Theme</h2>${themeNote()}<div class="pgrid">${mine('theme').map(i => pick(i, `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span><small>${esc(i.name)}</small>`)).join('')}</div>${more('theme')}
   <h2 class="sec">Title</h2><div class="chips"><button class="chip ${G.title ? '' : 'on'}" onclick="equipTitle('')">${TITLES.filter(t => t[0] <= L).at(-1)[1]} · by level</button>
     ${titles.map(x => `<button class="chip ${G.title === x.id ? 'on' : ''}" onclick="equipTitle('${x.id}')">${x.t}</button>`).join('')}</div>
   <div class="mut">More titles come from badges.</div>

@@ -334,6 +334,43 @@ function playerCard(key) {
   <div class="pc-av fr-${G.frame}">${gi(G.avatar, 'hero')}</div><div class="pc-name"><b>${esc(S.profile.name || 'Player')}</b><span>${role.name} · ${careerTier(ovr)}</span></div></div>
   <div class="pc-stats">${SATTRS.map(attrBar).join('')}</div></section>`;
 }
+// ---------- the club crest (Hero screen) ----------
+// A small card for an invented club of yours: a crest with your rating and position, ringed in the metal of your tier
+// (bronze, silver, gold, icon), drawn in the colours of the interface, with a shape that changes with it.
+const CREST = {
+  heater: 'M50 4h40v44c0 30-22 46-40 54C32 94 10 78 10 48V4z', round: 'M50 4a48 48 0 1 0 .1 0z', hex: 'M50 3l42 24v50L50 101 8 77V27z',
+  pixel: 'M14 4h72v8h8v60h-8v12h-12v8H26v-8H14V72H6V12h8z', oval: 'M50 3c26 0 40 22 40 49s-14 49-40 49S10 79 10 52 24 3 50 3z',
+  deco: 'M30 4h40l20 14v40c0 22-18 36-40 44C28 94 10 80 10 58V18z', baroque: 'M50 2c8 8 22 8 40 4v42c0 30-20 46-40 54C30 94 10 78 10 48V6c18 4 32 4 40-4z',
+};
+const CREST_OF = { hud: 'hex', chinese: 'round', japanese: 'round', fairy: 'baroque', medieval: 'heater', steampunk: 'hex', greek: 'round', egypt: 'oval', viking: 'round',
+  pirate: 'heater', outrun: 'hex', arcade: 'pixel', classical: 'oval', artdeco: 'deco', gothic: 'heater', baroque: 'baroque', mythical: 'baroque', cosmic: 'hex' };
+const TIER_METAL = { bronze: ['#f0b27a', '#a0582a', '#5e2e12'], silver: ['#ffffff', '#b8c2cc', '#69737d'], gold: ['#fff1a8', '#e2b23c', '#8a5a10'], icon: ['#e9d7ff', '#9b6bff', '#2ee6d6'] };
+const TIER_NAME = { bronze: TT('Bronze', 'Bronce'), silver: TT('Silver', 'Plata'), gold: TT('Gold', 'Oro'), icon: TT('Icon', 'Icono') };
+function clubName(key) {
+  const n = (S.profile.name || 'Player').split(' ')[0], av = ITEMS.find(i => i.type === 'avatar' && i.key === G.avatar), h = hash(n + key);
+  const mascot = av ? av.name.split(' ').at(-1) : 'Lions', many = /s$/.test(mascot) ? mascot : /x$|ch$|sh$/.test(mascot) ? mascot + 'es' : mascot + 's';
+  const es = typeof LANG === 'string' && LANG.startsWith('es');
+  const forms = es ? [`Real ${n}`, `Atlético ${n}`, `${n} CF`, `Deportivo ${n}`, `Sporting ${n}`, `Racing ${n}`] : [`${n} United`, `Real ${n}`, `${n} FC`, `Athletic ${n}`, `${n} City`, `Sporting ${n}`];
+  return h % 3 === 0 ? `${n} ${many}` : forms[h % forms.length];
+}
+function crestSvg(ovr, pos) {
+  const tier = cardClass(ovr), [m1, m2, m3] = TIER_METAL[tier], shape = CREST[CREST_OF[document.documentElement.dataset.skin] || 'hex'];
+  return `<svg class="crest" viewBox="0 0 100 106" aria-hidden="true"><defs>
+    <linearGradient id="crm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${m1}"/><stop offset=".5" stop-color="${m2}"/><stop offset="1" stop-color="${m3}"/></linearGradient>
+    <linearGradient id="crf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--card2)"/><stop offset="1" style="stop-color:var(--bg)"/></linearGradient>
+    <clipPath id="crc"><path d="${shape}"/></clipPath></defs>
+    <path d="${shape}" fill="url(#crf)"/>
+    <g clip-path="url(#crc)"><path d="M0 0L100 0 100 18 0 46z" style="fill:var(--acc);opacity:.85"/><path d="M0 46L100 18 100 26 0 54z" style="fill:var(--acc2);opacity:.9"/></g>
+    <path d="${shape}" fill="none" stroke="url(#crm)" stroke-width="6"/><path d="${shape}" fill="none" style="stroke:var(--line2)" stroke-width="1" transform="translate(50 53) scale(.86) translate(-50 -53)"/>
+    <text x="50" y="76" text-anchor="middle" font-size="34" font-weight="800" class="cro">${ovr}</text><text x="50" y="93" text-anchor="middle" font-size="13" font-weight="700" class="crp">${esc(pos)}</text></svg>`;
+}
+function clubCard(key) {
+  const role = roleOf(key), sport = SPORTS[key.split('/')[0]], ovr = ovrOf(role), tier = cardClass(ovr), rs = roleState(key);
+  return `<section class="card tap club" onclick="location.hash='#/sport'"><div class="row">${crestSvg(ovr, role.pos)}
+    <div class="grow"><div class="mut">${sport.ico} ${role.name} · ${TIER_NAME[tier]}</div><h3 translate="no">${esc(clubName(key))}</h3>
+    <div class="mut">${careerTier(ovr)} · ${rs.w}-${rs.d}-${rs.l}</div>
+    <div class="clubst">${SATTRS.map(k => `<span><b style="color:${ATTR[k][1]}">${statVal(k)}</b>${k}</span>`).join('')}</div></div></div></section>`;
+}
 function sportPicker(arg) {
   if (arg && SPORTS[arg]) {
     const sp = SPORTS[arg];
@@ -430,7 +467,7 @@ function sportRow() {
 const _spHome = home;
 home = function () { _spHome(); const hud = view.querySelector('.hud'); if (hud && S.profile) { seedStats(); hud.insertAdjacentHTML('afterend', sportRow()); } };
 const _spMe = me;
-me = function () { _spMe(); if (SP.cur && S.profile) { seedStats(); view.querySelector('.hud')?.insertAdjacentHTML('afterend', playerCard(SP.cur) + `<button class="btn ghost" onclick="location.hash='#/sport'">Open Sports Academy</button>`); } };
+me = function () { _spMe(); if (SP.cur && S.profile) { seedStats(); view.querySelector('.hud')?.insertAdjacentHTML('afterend', clubCard(SP.cur)); } };
 Object.assign(routes, { home, me, sport: sportView });
 
 if (typeof i18nAdd === 'function') {

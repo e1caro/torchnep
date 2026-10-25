@@ -21,7 +21,7 @@
   view.addEventListener('touchmove', e => {
     if (!s) return;
     const t = e.touches[0], dx = t.clientX - s.x, dy = t.clientY - s.y;
-    if (s.horiz === null && Math.hypot(dx, dy) > 12) s.horiz = Math.abs(dx) > Math.abs(dy) * 1.4; // decide once: sideways or scrolling
+    if (s.horiz === null && Math.hypot(dx, dy) > 10) s.horiz = Math.abs(dx) > Math.abs(dy) * 1.2; // decide once: sideways or scrolling
     if (!s.horiz) return;
     const i = curTab(), n = TABS().length, edge = (dx > 0 && i === 0) || (dx < 0 && i === n - 1);
     s.dx = dx;
@@ -35,7 +35,7 @@
     const { dx, t, horiz } = s; s = null;
     const reset = () => { view.style.transition = 'transform .25s ease, opacity .25s ease'; view.style.transform = ''; view.style.opacity = ''; };
     if (!horiz) { reset(); return; }
-    const fast = Math.abs(dx) / Math.max(1, Date.now() - t) > .45, go = Math.abs(dx) > innerWidth * .28 || (fast && Math.abs(dx) > 50);
+    const fast = Math.abs(dx) / Math.max(1, Date.now() - t) > .35, go = Math.abs(dx) > innerWidth * .22 || (fast && Math.abs(dx) > 40);
     const tabs = TABS(), i = curTab(), j = i + (dx < 0 ? 1 : -1);
     if (!go || j < 0 || j >= tabs.length) { reset(); return; }
     // slide out, change section, slide the new one in from the other side

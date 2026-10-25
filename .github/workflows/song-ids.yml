@@ -28,6 +28,10 @@ jobs:
         with:
           python-version: "3.12"
       - name: Find Spotify ids
+        # optional: with a Spotify app's keys saved as repository secrets, Spotify's own search finds almost every song
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
         run: python3 fitai-app/tools/resolve_song_ids.py
       - name: Commit the ids
         if: always()

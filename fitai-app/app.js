@@ -248,6 +248,55 @@ function generatePlan(p) {
   return { created: Date.now(), days, timed: 1 };
 }
 
+// ---------- today's time ----------
+// Some days there is more (or less) time at the gym: the next workout can be fitted to another length for today only.
+// It keeps the day's exercises, then drops or adds strength exercises for the same muscles and resizes cardio and
+// stretching (unless you picked their minutes yourself) so the workout fits the new time. Tomorrow it is back to normal.
+S.today = load('today', null);
+const todayOk = di => S.today && S.plan && S.today.date === dayKey(Date.now()) && S.today.di === di && S.today.plan === S.plan.created;
+const dayFor = di => (todayOk(di) ? { ...S.plan.days[di], items: S.today.items } : S.plan.days[di]);
+const dayMinutes = di => (todayOk(di) ? S.today.minutes : S.profile.minutes);
+function fitDay(di, minutes) {
+  const base = S.plan.days[di], p = { ...S.profile, minutes }, have = equipSet(p), r = rng((Date.now() ^ di * 7919) & 0xffffff);
+  const cat = it => BY[it.id]?.c, isTimed = it => /min|s$/.test(String(it.reps));
+  const cardio = base.items.filter(it => cat(it) === 'cardio').map(it => ({ ...it, reps: `${cardioMin(p)} min` }));
+  const start = cardio.length && cardioPos(p) === 'start';
+  // stretches: as many as the new length asks for, more for the day's muscles if needed
+  let st = base.items.filter(it => cat(it) === 'stretching').map(it => ({ ...it }));
+  const want = stretchCount(p), stPool = EX.filter(e => e.c === 'stretching' && allowed(e, p, have) && !st.some(x => x.id === e.id));
+  const dayMus = [...DAYS[base.kind], 'lower back', 'hamstrings', 'calves'];
+  while (st.length > want) st.pop();
+  for (let k = 0; st.length < want && k < 40; k++) { const m = dayMus[k % dayMus.length], c = shuffle(stPool.filter(e => e.m[0] === m && !st.some(x => x.id === e.id)), r)[0]; if (c) st.push({ ...STRETCH, id: c.id }); }
+  // strength: the day's own exercises first, then more for the same muscles while there is time
+  let [sets, reps, rest] = SCHEME[p.goal];
+  if (p.age >= 50) rest += 15;
+  if (p.level === 'beginner') sets = Math.min(sets, 3);
+  const str = base.items.filter(it => !isTimed(it) && cat(it) !== 'cardio' && cat(it) !== 'stretching').map(it => ({ ...it }));
+  const warm = start ? 180 : WARMUP, fixed = warm + [...cardio, ...st].reduce((a, it) => a + exSecs(it), 0);
+  const used = () => fixed + str.reduce((a, it) => a + exSecs(it), 0), budget = minutes * 60;
+  const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
+  const slots = [...DAYS[base.kind], ...DAYS[base.kind], ...DAYS[base.kind]];
+  for (let k = 0; k < slots.length; k++) {
+    const c = shuffle(pool.filter(e => e.m[0] === slots[(k + str.length) % slots.length] && !str.some(x => x.id === e.id) && !S.plan.days[di].items.some(x => x.id === e.id)), r)[0];
+    if (!c) continue;
+    const it = { id: c.id, sets, reps, rest };
+    if (used() + exSecs(it) > budget + 60) break;
+    str.push(it);
+  }
+  while (used() > budget + 60 && str.length > 2) str.pop();
+  for (let k = str.length - 1; k >= 0 && used() > budget + 60; k--) if (str[k].sets > 2) { str[k].sets--; k++; }
+  // short on time: shorter cardio, fewer stretches (only what is on "auto")
+  if (cardio.length && !+p.cardioMin) while (used() > budget + 60 && parseInt(cardio[0].reps) > 5) cardio[0].reps = `${parseInt(cardio[0].reps) - 1} min`;
+  return [...(start ? cardio : []), ...str, ...(start ? [] : cardio), ...st];
+}
+window.setTodayTime = (di, m) => {
+  m = +m;
+  if (m === S.profile.minutes) { S.today = null; toast('Back to your usual time'); }
+  else { S.today = { date: dayKey(Date.now()), di, minutes: m, plan: S.plan.created, items: fitDay(di, m) }; toast(`Today's workout fitted to ${sessionLabel(m)}`); }
+  save('today', S.today); sfx('tick'); route();
+};
+const timeChips = di => `<div class="todaytime"><span class="mut">Time today</span><div class="chips" data-noswipe>${SESSIONS.map(m => `<button class="chip ${dayMinutes(di) === m ? 'on' : ''}" onclick="event.stopPropagation();setTodayTime(${di},${m})">${sessionLabel(m)}</button>`).join('')}</div></div>`;
+
 // ---------- history helpers ----------
 const dayKey = t => new Date(t).toDateString();
 function streak() {
@@ -363,13 +412,46 @@ function planView() {
   if (needProfile()) return;
   const p = S.profile, a = analyze(p);
   view.innerHTML = `<h1>Your plan</h1><div class="mut">${GOALS[p.goal][0]} · ${p.days} days a week · ${cap(p.level)}</div>
-  ${cardioCard(p)}
+  ${optionsCard(p)}${cardioCard(p)}
   <details class="card why" open><summary>Why this plan</summary><ul>${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` +
-    S.plan.days.map((d, di) => `<section class="card"><div class="row between"><h3>${esc(d.name)}</h3><button class="btn sm" onclick="startWorkout(${di})">Start</button></div>
+    S.plan.days.map((d0, di) => { const d = dayFor(di), nx = di === nextDayIdx(); return `<section class="card"><div class="row between"><h3>${esc(d.name)}</h3><button class="btn sm" onclick="startWorkout(${di})">Start</button></div>
+    ${nx ? `<div class="mut">Next workout · ~${planMinutes(d)} min</div>${timeChips(di)}` : ''}
     ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a>
-    <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</section>`).join('') +
-    `<button class="btn ghost" onclick="location.hash='#/library'">Browse exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button><button class="btn ghost" onclick="location.hash='#/start'">Change my answers</button>`;
+    <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</section>`; }).join('') +
+    `<button class="btn ghost" onclick="location.hash='#/library'">Browse exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button><button class="btn ghost" onclick="location.hash='#/start/edit'">Edit body data</button>`;
+  bindOpts();
 }
+// The answers from the start, editable in place: change any of them and rebuild the plan, without the whole questionnaire.
+let PE = null; // the edited copy, until saved
+function optionsCard(p) {
+  const e = PE || p, ch = (k, opts, sel, multi) => chips(k, opts, sel, multi).replace('class="chips"', 'class="chips" data-pe="1"');
+  return `<details class="card optcard" ${S.optOpen ? 'open' : ''} ontoggle="S.optOpen=this.open"><summary>Training options <span class="mut">· ${p.days} days · ${sessionLabel(p.minutes)}</span></summary>
+    <div class="lbl">Main objective</div>${ch('goal', Object.entries(GOALS).map(([k, [t]]) => [k, t]), e.goal)}
+    <div class="lbl">Experience</div>${ch('level', LEVELS.map(l => [l, cap(l)]), e.level)}
+    <div class="lbl">Days per week</div>${ch('days', [2, 3, 4, 5, 6].map(d => [d, d]), e.days)}
+    <div class="lbl">Time per session</div>${ch('minutes', SESSIONS.map(m => [m, sessionLabel(m)]), e.minutes)}
+    <div class="lbl">Equipment you can use</div>${ch('equipment', Object.entries(EQUIP), e.equipment, true)}
+    <div class="lbl">Extra work on</div>${ch('focus', Object.entries(FOCUS).map(([k, v]) => [k, v[0]]), e.focus, true)}
+    <div class="lbl">Anything that hurts or limits you?</div>${ch('limits', Object.entries(LIMITS).map(([k, v]) => [k, v[0]]), e.limits, true)}
+    ${PE ? '<div class="row optbtns"><button class="btn ghost" onclick="PE=null;planView()">Cancel</button><button class="btn" onclick="saveOpts()">Save and rebuild plan</button></div>' : '<div class="mut">Tap any option to change it. Your history, levels and rewards stay.</div>'}</details>`;
+}
+function bindOpts() {
+  view.querySelectorAll('[data-pe]').forEach(box => box.addEventListener('click', ev => {
+    const c = ev.target.closest('[data-v]'); if (!c) return;
+    PE = PE || JSON.parse(JSON.stringify(S.profile));
+    const k = box.dataset.k, v = c.dataset.v;
+    if (box.dataset.multi) { const i = PE[k].indexOf(v); if (i >= 0) PE[k].splice(i, 1); else PE[k].push(v); }
+    else PE[k] = ['days', 'minutes'].includes(k) ? +v : v;
+    S.optOpen = true; planView();
+  }));
+}
+window.saveOpts = () => {
+  if (!PE) return;
+  if (!PE.equipment.length) PE.equipment = ['body only'];
+  S.profile = PE; PE = null; save('profile', S.profile);
+  S.plan = generatePlan(S.profile); save('plan', S.plan); S.today = null; save('today', null);
+  sfx('claim'); toast('Plan rebuilt with your new options'); planView();
+};
 function cardioCard(p) {
   const row = (k, opts, cur) => `<div class="chips">${opts.map(([v, l]) => `<button class="chip ${String(cur) === String(v) ? 'on' : ''}" onclick="setPlanOpt('${k}','${v}')">${l}</button>`).join('')}</div>`;
   const on = cardioPos(p) !== 'none';
@@ -384,10 +466,10 @@ window.setPlanOpt = (k, v) => { S.cardioOpen = true; S.profile[k] = v; save('pro
 window.setCardio = v => { S.profile.cardio = v; save('profile', S.profile); toast(v === 'none' ? 'Plan without cardio' : v === 'start' ? 'Cardio at the start of each workout' : 'Cardio at the end of each workout'); regen(); };
 window.regen = () => { S.plan = generatePlan(S.profile); save('plan', S.plan); planView(); };
 window.swapEx = (di, ii) => {
-  const it = S.plan.days[di].items[ii], cur = BY[it.id], have = equipSet(S.profile);
+  const tod = todayOk(di), it = (tod ? S.today.items : S.plan.days[di].items)[ii], cur = BY[it.id], have = equipSet(S.profile);
   const c = EX.filter(e => e.m[0] === cur.m[0] && e.c === cur.c && e.id !== cur.id && allowed(e, S.profile, have) && !S.plan.days[di].items.some(i => i.id === e.id));
   if (!c.length) return;
-  it.id = c[Math.floor(Math.random() * c.length)].id; save('plan', S.plan); planView();
+  it.id = c[Math.floor(Math.random() * c.length)].id; save('plan', S.plan); if (tod) save('today', S.today); planView();
 };
 
 let libF = { q: '', m: '', e: '' };
@@ -428,7 +510,7 @@ function startSession(name, items, extra = {}) {
   session.ex.forEach(x => { const l = last[x.id]; if (l) { x.last = l; x.sets.forEach(s => { s.w = l.w; }); } });
   location.hash = '#/workout';
 }
-window.startWorkout = di => { const d = S.plan.days[di]; startSession(d.name, d.items, { di }); };
+window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items, { di }); };
 
 function workoutView() {
   if (!session) { location.hash = '#/home'; return; }

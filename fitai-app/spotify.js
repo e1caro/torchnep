@@ -144,7 +144,7 @@ async function spBuild(work) {
 
 window.spMakePlaylist = async (again) => {
   if (SP_BUSY || !spOn()) return;
-  const di = nextDayIdx(), d = S.plan.days[di], key = `${dayId()}:${di}`, prev = SPF.lists[key];
+  const di = nextDayIdx(), d = dayFor(di), key = `${dayId()}:${di}`, prev = SPF.lists[key];
   const work = { key, round: again ? (prev?.round || 0) + 1 : 0, minutes: S.profile.minutes };
   SP_BUSY = true; spRefreshView();
   try {
