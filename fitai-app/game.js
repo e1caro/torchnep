@@ -335,7 +335,9 @@ window.equip = id => {
   commit(); applyTheme(); route();
 };
 window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(); };
-const CHEST = { wood: ['Wooden chest', 'crate', [80, 95, 100, 100], [20, 60], [50, 120]], silver: ['Silver chest', 'chest-silver', [50, 70, 100, 100], [60, 150], [100, 250]], gold: ['Golden chest', 'chest-gold', [30, 50, 90, 100], [150, 400], [300, 600]] };
+// [name, icon, odds cuts (coins below cut 0, XP below cut 1, a look after), coin range, XP range]
+// coin and XP amounts were lowered when every level started giving a chest; the chances of a look did not change
+const CHEST = { wood: ['Wooden chest', 'crate', [80, 95, 100, 100], [15, 40], [30, 70]], silver: ['Silver chest', 'chest-silver', [50, 70, 100, 100], [25, 60], [50, 110]], gold: ['Golden chest', 'chest-gold', [30, 50, 90, 100], [60, 150], [120, 250]] };
 const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
 // Any shop item can come out of a chest, interfaces included. The pricier the item, the rarer it is, and how much rarer
 // depends on the chest: wooden chests mostly give cheap looks, golden ones give expensive ones a fair chance.
@@ -485,7 +487,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 102</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 103</div>`;
 }
 
 function initGame() {
