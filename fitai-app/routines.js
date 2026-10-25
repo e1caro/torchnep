@@ -70,15 +70,62 @@ window.rtAdd = (id, exId) => {
 };
 window.rtDelete = id => {
   if (rtDel !== id) { rtDel = id; routineView(id); return; }
-  rtDel = null; RT.splice(RT.findIndex(r => r.id === id), 1); rtSave(); toast('Routine deleted'); location.hash = '#/plan';
+  rtDel = null; RT.splice(RT.findIndex(r => r.id === id), 1); rtSave(); toast('Routine deleted');
+  if (inPlan(id)) { S.plan.days = S.plan.days.filter(d => d.routine !== id); if (!S.plan.days.length) planRestore(true); save('plan', S.plan); }
+  location.hash = '#/plan';
+};
+
+// ---------- your own plan ----------
+// Your routines can be days of the plan, and the coach's days can be dropped. Dropped days are kept, to bring back later;
+// remaking the plan (new options, shuffle) keeps your routines in it and leaves the dropped days out.
+const inPlan = id => S.plan?.days.some(d => d.routine === id);
+const planChanged = () => { S.today = null; save('today', null); save('plan', S.plan); sfx('tick'); route(); };
+window.planAddRoutine = id => {
+  const r = rtGet(id); if (!r) return;
+  if (!r.items.some(it => BY[it.id])) { toast('Add at least one exercise first.'); return; }
+  if (inPlan(id)) { S.plan.days = S.plan.days.filter(d => d.routine !== id); if (!S.plan.days.length) planRestore(true); toast('Taken out of your plan'); planChanged(); return; }
+  S.plan.days.push({ name: r.name, routine: id, items: r.items.map(it => ({ ...it })) }); toast('Added to your plan'); planChanged();
+};
+window.planDrop = di => {
+  const d = S.plan.days[di]; if (!d) return;
+  if (S.plan.days.length === 1) { toast('Your plan needs at least one workout.'); return; }
+  S.plan.days.splice(di, 1);
+  if (!d.routine) S.plan.removed = [...(S.plan.removed || []), { ...d, gi: d.gi ?? di }];
+  planChanged();
+};
+// only my routines: drop every coach day at once
+window.planOnlyMine = () => {
+  const gen = S.plan.days.filter(d => !d.routine); if (!gen.length || gen.length === S.plan.days.length) return;
+  S.plan.removed = [...(S.plan.removed || []), ...gen.map(d => ({ ...d, gi: d.gi ?? S.plan.days.indexOf(d) }))];
+  S.plan.days = S.plan.days.filter(d => d.routine); planChanged();
+};
+window.planRestore = quiet => {
+  const back = (S.plan.removed || []).sort((a, b) => a.gi - b.gi);
+  back.forEach(d => S.plan.days.splice(Math.min(d.gi, S.plan.days.length), 0, d));
+  S.plan.removed = [];
+  if (quiet !== true) planChanged();
+};
+const _rtGen = generatePlan;
+generatePlan = function (p) {
+  const old = S.plan, np = _rtGen(p);
+  np.days.forEach((d, i) => { d.gi = i; });
+  if (old?.created && old.days) {
+    const off = new Set((old.removed || []).map(d => d.gi)), mine = old.days.filter(d => d.routine && rtGet(d.routine));
+    if (off.size && mine.length) { np.removed = np.days.filter(d => off.has(d.gi)); np.days = np.days.filter(d => !off.has(d.gi)); }
+    np.days.push(...mine);
+    if (!np.days.length) { np.days = np.removed; np.removed = []; }
+  }
+  return np;
 };
 
 // ---------- on the Plan screen ----------
 function routinesSection() {
   return `<h2 class="sec">My routines</h2>
   ${RT.length ? RT.map(r => `<section class="card"><div class="row between"><div class="grow"><h3>${esc(r.name)}</h3><div class="mut">${r.items.length} exercises · ${r.items.reduce((a, it) => a + (+it.sets || 0), 0)} sets</div></div>
-    <button class="icon" aria-label="Edit routine" onclick="location.hash='#/routine/${r.id}'">${ic('edit', 18)}</button><button class="btn sm" onclick="startRoutine('${r.id}')">Start</button></div></section>`).join('')
-    : ''}
+    <button class="icon" aria-label="Edit routine" onclick="location.hash='#/routine/${r.id}'">${ic('edit', 18)}</button><button class="btn sm" onclick="startRoutine('${r.id}')">Start</button></div>
+    <button class="btn ${inPlan(r.id) ? 'ghost' : ''} sm rtplan" onclick="planAddRoutine('${r.id}')">${inPlan(r.id) ? `${ic('check', 16)} In your plan` : `${ic('plus', 16)} Add to my plan`}</button></section>`).join('')
+    : '<div class="mut">Make your own plan: create routines, add them to your plan and remove the coach\'s days with ✕.</div>'}
+  ${RT.some(r => inPlan(r.id)) && S.plan.days.some(d => !d.routine) ? `<button class="btn ghost" onclick="planOnlyMine()">Keep only my routines in the plan</button>` : ''}
   <button class="btn ghost" onclick="newRoutine()">${ic('plus', 18)} Create a routine</button>`;
 }
 const _rtPlan = planView;
@@ -115,6 +162,10 @@ if (typeof i18nAdd === 'function') {
     'Showing the first 30. Refine your search.': 'Se muestran los 30 primeros. Afina la búsqueda.', 'No exercises found.': 'No se han encontrado ejercicios.',
     'Add to a routine': 'Añadir a una rutina', 'New routine': 'Nueva rutina', 'Already in that routine.': 'Ya está en esa rutina.', 'Routine deleted': 'Rutina borrada',
     'Add at least one exercise first.': 'Añade al menos un ejercicio primero.',
+    'Add to my plan': 'Añadir a mi plan', 'In your plan': 'En tu plan', 'Added to your plan': 'Añadida a tu plan', 'Taken out of your plan': 'Quitada de tu plan',
+    'Remove from plan': 'Quitar del plan', 'Your plan needs at least one workout.': 'Tu plan necesita al menos un entrenamiento.', 'Keep only my routines in the plan': 'Dejar solo mis rutinas en el plan',
+    "Bring back the coach's workouts ({n})": 'Recuperar los entrenamientos del entrenador ({n})',
+    "Make your own plan: create routines, add them to your plan and remove the coach's days with ✕.": 'Hazte tu propio plan: crea rutinas, añádelas a tu plan y quita los días del entrenador con ✕.',
   });
   i18nPat(/^Added to (.+)$/, a => `Añadido a ${a}`);
   i18nPat(/^Added (.+)$/, a => `Añadido: ${tr(a)}`);
