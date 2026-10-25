@@ -90,14 +90,13 @@ function demo(e, label = true) {
   if (v) return `<div class="demo"><video src="${esc(v)}" autoplay loop muted playsinline controls></video></div>`;
   if (e.x) return `<div class="demo nophoto">${typeof gi === 'function' ? gi('shoulder') : ''}<span>Follow the steps below</span></div>`;
   const a = IMG_BASE + e.id + '/0.jpg', b = IMG_BASE + e.id + '/' + (e.im > 1 ? 1 : 0) + '.jpg';
-  return `<div class="demo"><img data-a="${a}" data-b="${b}" src="${a}" alt="${esc(e.n)}" loading="lazy"></div>`;
+  // the two photos of the move cross-fade into each other, like a short clip (free-exercise-db, public domain)
+  return a === b ? `<div class="demo"><img src="${a}" alt="${esc(e.n)}" loading="lazy"></div>`
+    : `<div class="demo anim"><img src="${a}" alt="${esc(e.n)}" loading="lazy"><img class="f2" src="${b}" alt="" loading="lazy"></div>`;
 }
 function startLoops() {
   timers.forEach(clearInterval); timers = [];
-  document.querySelectorAll('.demo img[data-a]').forEach(img => {
-    let f = 0;
-    timers.push(setInterval(() => { f ^= 1; img.src = f ? img.dataset.b : img.dataset.a; }, 900));
-  });
+  // demos animate with CSS now (a cross-fade between the two photos)
 }
 const thumb = e => e.x ? `<span class="thumb nophoto">${typeof gi === 'function' ? gi('shoulder') : ''}</span>` : `<img class="thumb" loading="lazy" src="${IMG_BASE}${e.id}/0.jpg" alt="">`;
 

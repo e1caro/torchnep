@@ -1009,3 +1009,10 @@ html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /
 .sw .swact .btn{flex:1 1 auto;min-width:0;margin:0;padding:7px 6px;font-size:12px}
 .sw .swact .eq{flex:1 1 100%;text-align:center}
 .mlist{margin:8px 0 12px;padding:4px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,14px)}
+/* exercise demos: the two photos of a move cross-fade with a slight zoom, like a short clip */
+.demo.anim img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain}
+.demo.anim img.f2{animation:demofade 2.4s ease-in-out infinite}
+.demo.anim img:first-child{animation:demozoom 2.4s ease-in-out infinite}
+@keyframes demofade{0%,18%{opacity:0}42%,68%{opacity:1}92%,100%{opacity:0}}
+@keyframes demozoom{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+@media(prefers-reduced-motion:reduce){.demo.anim img{animation:none!important}}
