@@ -4,8 +4,8 @@
 // Everything talks to Supabase's REST endpoints with fetch (no library). Without SB_URL/SB_KEY the feature stays hidden.
 // The tables and their access rules are in tools/supabase.sql.
 
-const SB_URL = ''; // e.g. https://abcd1234.supabase.co
-const SB_KEY = ''; // the project's "anon public" key (it is meant to be public: access is limited by the rules in the database)
+const SB_URL = 'https://fghbrevlqmrugbnqshoj.supabase.co';
+const SB_KEY = 'sb_publishable_22MWQyEpsR2OyZv9RXkswg_FdGjA2i9'; // the publishable key: public by design, access is limited by the rules in the database
 const SB_ON = !!(SB_URL && SB_KEY);
 
 // ---------- session ----------

@@ -173,4 +173,4 @@ Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badge
 
 `cloud.js` adds accounts with a username and password: your data is saved online and syncs between the web app and the Android app (sign in on a new device, even from the first setup page, and everything comes over). Each account has a 6-character code; add a friend's code on Hero to see their profile (level, looks, workouts, minutes, streak, kg lifted, badges and Academy club). Friends only see that summary, never body data or history.
 
-It runs on a free Supabase project: run `tools/supabase.sql` in its SQL editor, turn off "Confirm email", and put the project URL and anon key in `cloud.js`. Until then the feature stays hidden.
+It runs on a free Supabase project: run `tools/supabase.sql` in its SQL editor, turn off "Confirm email", and put the project URL and publishable (anon) key in `cloud.js` (already set for this project).
