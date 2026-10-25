@@ -333,3 +333,4 @@ i18nAdd({
 });
 i18nPat(/^(\d+) × (Bronze|Silver|Gold|Platinum)$/, (n, t) => `${n} × ${tr(t)}`);
 i18nAdd({ Week: 'Semana', '{n} days': '{n} días' });
+i18nAdd({ "Servings are {n}% smaller because you often aren't very hungry.": 'Las raciones son un {n}% más pequeñas porque a menudo no tienes mucha hambre.', 'Servings are {n}% bigger because you are often hungry.': 'Las raciones son un {n}% más grandes porque a menudo tienes hambre.' });
