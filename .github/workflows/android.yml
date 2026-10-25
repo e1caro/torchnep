@@ -68,7 +68,8 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk FitQuest-1.${{ github.run_number }}.apk
           (cd android/app/src/main/assets/www && zip -qr "$GITHUB_WORKSPACE/web.zip" .)
           # the native version this web app needs: older apps don't take it and ask to reinstall instead
-          touch "shell-$(grep '^fitquestShell=' android/gradle.properties | cut -d= -f2)"
+          SHELL_V=$(grep '^fitquestShell=' android/gradle.properties | cut -d= -f2)
+          echo "$SHELL_V" > "shell-$SHELL_V" # not empty: GitHub refuses empty release files
 
       - uses: actions/upload-artifact@v4
         with:
