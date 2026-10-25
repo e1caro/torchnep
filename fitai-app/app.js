@@ -708,7 +708,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 129</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 130</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -722,9 +722,11 @@ function settings() {
 }
 
 // ---------- Android app ----------
-// Inside the APK the browser name ends in "FitQuestApp/<version code>". New versions are GitHub releases tagged app-N
-// (built by .github/workflows/android.yml); when one is newer, a bar offers the download.
+// Inside the APK the browser name ends in "FitQuestApp/<web version> FitQuestShell/<native version>". The APK updates its
+// web part by itself (MainActivity downloads web.zip from each release tag app-N); only when a release needs a newer
+// native part (its shell-S asset) does a bar offer the new APK.
 const APP_CODE = +((navigator.userAgent.match(/FitQuestApp\/(\d+)/) || [])[1] || 0);
+const APP_SHELL = +((navigator.userAgent.match(/FitQuestShell\/(\d+)/) || [])[1] || 1);
 let APP_NEW = null;
 async function appUpdate(manual) {
   if (!APP_CODE) return;
@@ -732,7 +734,8 @@ async function appUpdate(manual) {
     const rs = await (await fetch('https://api.github.com/repos/e1caro/torchnep/releases?per_page=30')).json();
     const top = rs.map(r => ({ r, n: +((r.tag_name.match(/^app-(\d+)$/) || [])[1] || 0) })).filter(x => x.n && !x.r.draft).sort((a, b) => b.n - a.n)[0];
     const apk = top?.r.assets.find(a => a.name.endsWith('.apk'));
-    APP_NEW = top && top.n > APP_CODE && apk ? { name: top.r.name, url: apk.browser_download_url, notes: top.r.body || '' } : null;
+    const shell = Math.max(1, ...(top?.r.assets || []).map(a => +((a.name.match(/^shell-(\d+)$/) || [])[1] || 0)));
+    APP_NEW = top && top.n > APP_CODE && shell > APP_SHELL && apk ? { name: top.r.name, url: apk.browser_download_url, notes: top.r.body || '' } : null;
   } catch { if (manual) toast('No connection'); return; }
   if (manual) toast(APP_NEW ? `${APP_NEW.name} is ready` : 'You have the latest version');
   updateBar();

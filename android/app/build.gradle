@@ -16,6 +16,7 @@ android {
         targetSdk 34
         versionCode vCode
         versionName vName
+        buildConfigField 'int', 'SHELL', (project.findProperty('fitquestShell') ?: '1') as String
     }
 
     // Every release is signed with the same key (the FITQUEST_KEYSTORE secret, written to ../fitquest.jks by the
