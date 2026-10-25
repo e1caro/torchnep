@@ -34,6 +34,7 @@ function profileShow(p, own = true) {
     <div class="wkstats"><div><b>${wk.n}<small>/${wk.goal}</small></b><span>workouts</span></div><div><b>${fmtN(wk.min)}</b><span>minutes</span></div>
       <div><b>${fmtN(wk.kg)}</b><span>kg lifted</span></div><div><b>${wk.prs}</b><span>records</span></div></div>
     <div class="qbar"><i style="width:${Math.min(100, wk.n / Math.max(1, wk.goal) * 100)}%"></i></div></section>
+  ${typeof liftedCard === 'function' && wk.kg > 0 ? liftedCard(wk.kg, true) : ''}
   <h2 class="sec">Badges · ${got.length}/${ACH.length}</h2>
   ${got.length ? `<div class="pbadges">${got.slice().reverse().map(a => `<div class="pbadge" title="${esc(a.d)}">${gi(a.i, 'hero')}<span>${a.n}</span></div>`).join('')}</div>` : '<div class="mut">No badges yet.</div>'}`;
 }
