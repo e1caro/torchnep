@@ -484,16 +484,21 @@ function home() {
   startLoops();
 }
 
+// Dungeons: the ones you can enter, then the next one to unlock; the rest stay folded.
 function dungeons() {
   if (needProfile()) return;
   const feat = featuredId(), list = Object.entries(DUNGEONS).sort((x, y) => x[1].lv - y[1].lv);
-  view.innerHTML = `<h1>Dungeons</h1><p class="mut">Special workouts built from your equipment and limits. They unlock as you level up. Clearing one earns bonus XP and a chest. ${list.filter(([id]) => has(item(id))).length} of ${list.length} unlocked.</p>` +
-    list.map(([id, d]) => {
-      const i = item(id), ok = has(i), miss = d.need && !S.profile.equipment.includes(d.need);
-      return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div>
-      <div class="chips static"><span class="chip">Lv ${d.lv}</span><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
+  const open = list.filter(([id]) => has(item(id))), locked = list.filter(([id]) => !has(item(id)));
+  const row = ([id, d]) => {
+    const ok = has(item(id)), miss = d.need && !S.profile.equipment.includes(d.need);
+    return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3>
+      ${ok ? `<div class="mut">${d.desc}</div>` : ''}<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
       ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
-    }).join('');
+  };
+  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>
+    ${open.length ? open.map(row).join('') : '<div class="mut">Your first dungeon opens at level 2.</div>'}
+    ${locked.length ? `<h2 class="sec">Next</h2>${row(locked[0])}` : ''}
+    ${locked.length > 1 ? `<details class="fold"><summary><h2 class="sec">Locked · ${locked.length - 1}</h2></summary>${locked.slice(1).map(row).join('')}</details>` : ''}`;
 }
 
 function victory() {
@@ -513,10 +518,9 @@ function victory() {
 
 function heroCard() {
   const vol = totalVol(), mins = S.history.reduce((a, h) => a + h.dur, 0);
-  return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
-  <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
-  <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 113</div>`;
+  return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>kg lifted</span></div><div class="stat"><b>${mins}</b><span>minutes</span></div><div class="stat"><b>${S.history.length}</b><span>workouts</span></div></div>
+  ${looksBlock()}
+  <button class="btn ghost" onclick="location.hash='#/settings'">${ic('gear', 18)} Settings</button>`;
 }
 
 function initGame() {

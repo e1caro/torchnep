@@ -257,7 +257,7 @@ function fmtAmt(k, g, up = false) {
 }
 
 // ---------- views ----------
-const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Training</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
+const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Training</a><a class="${on === 'dun' ? 'on' : ''}" href="#/dungeons">Dungeons</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
 
 function mealSetup() {
   const st = M.set || { diet: 'any', avoid: [], meals: 4, variety: 'simple', style: 'none', cuisines: [], times: [30, 30, 30, 30, 30, 60, 60] };
@@ -267,15 +267,16 @@ function mealSetup() {
   view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your plan targets about ${target().kcal} kcal and ${target().protein} g protein a day.</p>
   <div class="lbl">Diet</div>${ch('diet', Object.entries(DIETS), draft.diet)}
   <div class="lbl">Avoid</div>${ch('avoid', Object.entries(AVOID).map(([k, v]) => [k, v[0]]), draft.avoid, true)}
+  <div class="lbl">Meals per day</div>${ch('meals', [[3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], draft.meals)}
+  <details class="fold"><summary><h2 class="sec">More options</h2></summary>
   <div class="lbl">Eating style</div>${ch('style', [['none', 'No preference'], ['ai', 'Anti-inflammatory']], draft.style)}
   <div class="mut" id="sdesc">${STYLE_DESC[draft.style]}</div>
   <div class="lbl">Cuisine</div>${ch('cuisines', Object.entries(CUISINES).map(([k, v]) => [k, `${CUISINE_ICO[k]} ${v}`]), draft.cuisines, true)}
-  <div class="mut">Optional. Leave empty for a mix. One cuisine gives the shortest shopping list; pick two or three for more choice.</div>
   <div class="lbl">Variety</div>${ch('variety', Object.entries(VARIETY).map(([k, v]) => [k, v.name]), draft.variety || 'simple')}<div class="mut" id="vdesc">${VARIETY[draft.variety || 'simple'].desc}</div>
-  <div class="lbl">Meals per day</div>${ch('meals', [[3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], draft.meals)}
   <div class="lbl">Time to cook on weekdays</div>${ch('wd', Object.entries(COOK), wd)}
   <div class="lbl">Time to cook on weekends</div>${ch('we', Object.entries(COOK), we)}
-  <p class="mut">You can change the cooking time for any single day later.</p><div id="fnote" class="err" style="min-height:0"></div>
+  </details>
+  <div id="fnote" class="err" style="min-height:0"></div>
   <button class="btn" id="mgo">Build my meal plan</button>`;
   view.querySelectorAll('.chips').forEach(box => box.addEventListener('click', ev => {
     const c = ev.target.closest('[data-v]'); if (!c) return;

@@ -1,7 +1,7 @@
 'use strict';
 // Spotify: link your account and get a fresh playlist for each workout, built from energetic songs you like
 // plus a few new ones from the same artists. It runs in the browser with Spotify's PKCE sign-in (no server, no secret).
-// It needs the Client ID of a Spotify app: set SPOTIFY_CLIENT_ID below, or paste one in Hero > Music.
+// It needs the Client ID of a Spotify app: set SPOTIFY_CLIENT_ID below, or paste one in Settings > Music.
 const SPOTIFY_CLIENT_ID = '';
 const SP_SCOPES = 'user-top-read user-library-read user-read-private playlist-modify-private playlist-modify-public';
 const SPF = Object.assign({ cid: '', tok: '', exp: 0, refresh: '', user: null, used: [], lists: {}, genres: [], mine: [], rot: 0 }, load('spotify', {}));
@@ -14,7 +14,7 @@ let SP_BUSY = false;
 
 // ---------- sign-in ----------
 window.spConnect = async () => {
-  if (!spCid()) { location.hash = '#/me'; toast('Add your Spotify Client ID first.'); return; }
+  if (!spCid()) { location.hash = '#/settings'; toast('Add your Spotify Client ID first.'); return; }
   const ver = b64url(crypto.getRandomValues(new Uint8Array(48)));
   const chal = b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(ver)));
   const state = b64url(crypto.getRandomValues(new Uint8Array(12)));
@@ -168,7 +168,7 @@ window.spMakePlaylist = async (again) => {
 // ---------- on screen ----------
 function spRefreshView() {
   const name = (location.hash || '#/home').split('/')[1] || 'home';
-  if (name === 'home') home(); else if (name === 'me') me();
+  if (name === 'home') home(); else if (name === 'settings') routes.settings();
 }
 const spLogo = '<svg class="splogo" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="12" fill="#1ed760"/><path d="M6 9.2c4-1.2 8.6-.8 12 1.2M6.6 12.4c3.3-1 7-.6 9.8 1M7.2 15.4c2.7-.7 5.4-.4 7.6.8" fill="none" stroke="#000" stroke-width="1.7" stroke-linecap="round"/></svg>';
 
@@ -364,16 +364,16 @@ function musicSettings() {
     : spOn() ? `<div class="mut">Linked as <b translate="no">${esc(SPF.user?.name || '')}</b>. Each workout gets its own playlist on Today › Train.</div>
       <button class="btn ghost" onclick="spDisconnect()">Unlink Spotify</button>`
     : `<button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button>`;
-  return `<h2 class="sec">Music</h2><section class="card music"><div class="row between"><h3>${spLogo} Spotify</h3>${spOn() ? '<span class="mut">Linked</span>' : ''}</div>
+  return `<details class="fold"><summary><h2 class="sec">Music</h2></summary><section class="card music"><div class="row between"><h3>${spLogo} Spotify</h3>${spOn() ? '<span class="mut">Linked</span>' : ''}</div>
     ${spOn() ? '' : musicPrefs()}${acct}
-    ${spCid() && !SPOTIFY_CLIENT_ID ? '<button class="btn ghost sm" onclick="spEditCid()">Change Client ID</button>' : ''}</section>`;
+    ${spCid() && !SPOTIFY_CLIENT_ID ? '<button class="btn ghost sm" onclick="spEditCid()">Change Client ID</button>' : ''}</section></details>`;
 }
 
 const _spoHome = home;
 home = function () { _spoHome(); view.querySelector(':scope > .card.next')?.insertAdjacentHTML('afterend', songCard()); }; // just the song of the day
-const _spoMe = me;
-me = function () { _spoMe(); view.querySelector('#exp')?.insertAdjacentHTML('beforebegin', musicSettings()); };
-Object.assign(routes, { home, me });
+const _spoSet = settings;
+settings = function () { _spoSet(); const m = view.querySelector('#setmusic'); if (m) m.outerHTML = musicSettings(); };
+Object.assign(routes, { home, settings });
 
 if (typeof i18nAdd === 'function') i18nAdd({
   'Workout music': 'Música para entrenar', 'A new playlist for every workout, with energetic songs you like.': 'Una lista nueva para cada entrenamiento, con canciones enérgicas que te gustan.',

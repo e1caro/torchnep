@@ -833,3 +833,31 @@ html[data-skin=gothic] .gi.cn{--m:url(icons/gi/cur-gothic.svg)!important}
 html[data-skin=baroque] .gi.cn{--m:url(icons/gi/cur-baroque.svg)!important}
 html[data-skin=mythical] .gi.cn{--m:url(icons/gi/cur-mythical.svg)!important}
 html[data-skin=cosmic] .gi.cn{--m:url(icons/gi/cur-cosmic.svg)!important}
+
+/* hero: one tile per kind of look */
+.lookgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px}
+.lookt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,12px);color:var(--fg);font:inherit;font-size:12px;cursor:pointer}
+.lookt span{color:var(--mut)}
+.lookt:active{transform:scale(.97)}
+/* settings */
+.setrow{gap:12px}
+.setrow .chips{margin:0;justify-content:flex-end}
+.card .setrow + .setrow{margin-top:12px}
+.tap.setrow{display:flex;align-items:center}
+.setfoot{font-size:11px;margin:18px 0 8px;line-height:1.5;opacity:.75}
+/* plan: one line per day, tap to see its exercises */
+details.day>summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer}
+details.day>summary::-webkit-details-marker{display:none}
+details.day>summary h3{margin:0}
+details.day[open]>summary{margin-bottom:8px}
+details.day>summary .mut{font-family:var(--body);font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;margin-top:2px}
+/* bets: one dropdown per kind of goal */
+details.betfold>summary{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;padding:6px 0}
+details.betfold>summary::-webkit-details-marker{display:none}
+details.betfold>summary h3{margin:0}
+details.betfold>summary::after{content:'▾';color:var(--mut);margin-left:8px}
+details.betfold[open]>summary::after{content:'▴'}
+details.betfold>summary .mut{margin-left:auto}
+details.pageinfo{margin:22px 0 8px}
+details.pageinfo>b{display:block;margin:10px 0 2px;font-size:13px}
+details.pageinfo p.mut{margin:0 0 6px}

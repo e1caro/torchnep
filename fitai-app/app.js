@@ -70,6 +70,7 @@ const ICONS = {
   swap: 'M7 7h11l-3-3M17 17H6l3 3', plus: 'M12 5v14M5 12h14',
   edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6',
   dungeon: 'M4 20V8l3 2V5l3 2 2-3 2 3 3-2v5l3-2v12zM10 20v-5h4v5',
+  gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1',
   gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C11 3.5 7 3.5 7 6.5M12 7c1-3.5 5-3.5 5-.5',
 };
 const ic = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -386,7 +387,7 @@ function onboarding(edit) {
     if (s === 1) p.target = +g('f-target') || '';
   };
   view.querySelectorAll('[data-pic]').forEach(b => b.onclick = () => { G.avatar = b.dataset.pic; commit(); view.querySelectorAll('[data-pic]').forEach(x => x.classList.toggle('on', x === b)); });
-  $('#bk')?.addEventListener('click', () => { read(); if (s) { wiz.step--; onboarding(); } else { wiz = null; location.hash = '#/me'; } });
+  $('#bk')?.addEventListener('click', () => { read(); if (s) { wiz.step--; onboarding(); } else { wiz = null; location.hash = '#/settings'; } });
   $('#nx').onclick = () => {
     read();
     const err = m => { $('#err').textContent = m; };
@@ -410,15 +411,16 @@ function needProfile() { if (!S.profile || !S.plan) { location.hash = '#/start';
 
 function planView() {
   if (needProfile()) return;
-  const p = S.profile, a = analyze(p);
-  view.innerHTML = `<h1>Your plan</h1><div class="mut">${GOALS[p.goal][0]} · ${p.days} days a week · ${cap(p.level)}</div>
-  ${optionsCard(p)}${cardioCard(p)}
-  <details class="card why" open><summary>Why this plan</summary><ul>${a.notes.map(n => `<li>${esc(n)}</li>`).join('')}</ul></details>` +
-    S.plan.days.map((d0, di) => { const d = dayFor(di), nx = di === nextDayIdx(); return `<section class="card"><div class="row between"><h3>${esc(d.name)}</h3><button class="btn sm" onclick="startWorkout(${di})">Start</button></div>
-    ${nx ? `<div class="mut">Next workout · ~${planMinutes(d)} min</div>${timeChips(di)}` : ''}
+  const p = S.profile;
+  // each day folds to one line; the next workout starts open
+  view.innerHTML = `<h1>Your plan</h1><div class="mut">${GOALS[p.goal][0]} · ${p.days} days a week · ${cap(p.level)}</div>` +
+    S.plan.days.map((d0, di) => { const d = dayFor(di), nx = di === nextDayIdx(); return `<details class="card day" ${nx ? 'open' : ''}><summary><div class="grow"><h3>${esc(d.name)}</h3>
+    <div class="mut">${nx ? 'Next · ' : ''}${d.items.length} exercises · ~${planMinutes(d)} min</div></div><button class="btn sm" onclick="event.preventDefault();startWorkout(${di})">Start</button></summary>
+    ${nx ? timeChips(di) : ''}
     ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a>
-    <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</section>`; }).join('') +
-    `<button class="btn ghost" onclick="location.hash='#/library'">Browse exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button><button class="btn ghost" onclick="location.hash='#/start/edit'">Edit body data</button>`;
+    <button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button></div>` : ''; }).join('')}</details>`; }).join('') +
+    `<div id="rtslot"></div><h2 class="sec">Adjust</h2>${optionsCard(p)}${cardioCard(p)}
+    <div class="row"><button class="btn ghost" onclick="location.hash='#/library'">Exercise library</button><button class="btn ghost" onclick="regen()">Shuffle exercises</button></div>`;
   bindOpts();
 }
 // The answers from the start, editable in place: change any of them and rebuild the plan, without the whole questionnaire.
@@ -596,16 +598,26 @@ function progress() {
 // ---------- me ----------
 function me() {
   if (needProfile()) return;
+  view.innerHTML = heroCard();
+}
+
+// Settings: everything that is set once and rarely changed, out of the way of the game screens.
+function settings() {
+  if (needProfile()) return;
   const p = S.profile, a = analyze({ ...p, weight: curWeight() });
-  view.innerHTML = `${heroCard()}<h2 class="sec">Body</h2>
-  <div class="grid3"><div class="stat"><b>${p.age}</b><span>years</span></div><div class="stat"><b>${p.height}</b><span>cm</span></div><div class="stat"><b>${curWeight()}</b><span>kg</span></div></div>
-  <section class="card"><div class="row between"><span class="mut">BMI</span><b>${a.bmi.toFixed(1)} · ${a.bmiLabel}</b></div>
-  <div class="row between"><span class="mut">Goal</span><b>${GOALS[p.goal][0]}</b></div>
-  <div class="row between"><span class="mut">Schedule</span><b>${p.days} days · ${p.minutes} min</b></div>
-  <div class="row between"><span class="mut">Equipment</span><b>${p.equipment.map(k => EQUIP[k]).join(', ')}</b></div></section>
-  <button class="btn" onclick="location.hash='#/start/edit'">Edit body data and training plan</button>
-  <button class="btn ghost" id="exp">Export my data</button><button class="btn ghost" id="rst">Reset everything</button>
-  <p class="mut">FitQuest is free, with no ads and no payments. Coins and XP are just for fun. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain). ${GI_CREDIT}</p>`;
+  view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
+  <h1>Settings</h1>
+  <h2 class="sec">Profile</h2>
+  <label class="fld"><span>Name</span><div class="row"><input id="pname" value="${esc(p.name || '')}" maxlength="20" autocomplete="nickname"><button class="btn sm" onclick="saveName()">Save</button></div></label>
+  <section class="card tap setrow" onclick="location.hash='#/start/edit'"><div class="grow"><b>Body and training plan</b>
+    <div class="mut">${p.age} years · ${p.height} cm · ${curWeight()} kg · BMI ${a.bmi.toFixed(1)}</div><div class="mut">${GOALS[p.goal][0]} · ${p.days} days · ${p.minutes} min</div></div>${ic('edit', 20)}</section>
+  <h2 class="sec">App</h2>
+  <section class="card"><div class="row between setrow"><b>Sound effects</b><button class="chip ${G.sound ? 'on' : ''}" onclick="toggleSound()">${G.sound ? 'On' : 'Off'}</button></div>
+    <div class="row between setrow"><b>Language</b>${langChips()}</div></section>
+  <div id="setmusic"></div>
+  <h2 class="sec">Your data</h2>
+  <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
+  <div class="mut setfoot"><span>FitQuest version 114</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -619,13 +631,13 @@ function me() {
 }
 
 // ---------- router ----------
-const routes = { plan: planView, library, progress, me, workout: workoutView, exercise: exerciseView, start: a => onboarding(a === 'edit') };
+const routes = { plan: planView, library, progress, me, settings, workout: workoutView, exercise: exerciseView, start: a => onboarding(a === 'edit') };
 let lastRoute = '';
 function route() {
   timers.forEach(clearInterval); timers = [];
   const [, name = 'home', arg] = (location.hash || '#/home').split('/');
   if (name !== 'start') wiz = null;
-  const tab = { profile: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', routine: 'plan', sport: 'home', earn: 'home', bets: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
+  const tab = { dungeons: 'plan', profile: 'me', settings: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', routine: 'plan', sport: 'home', earn: 'home', bets: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
   document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
   // a change on the same page (equip, buy, sell, a setting...) redraws it where you were; a new page starts at the top
@@ -636,14 +648,23 @@ function route() {
 }
 window.addEventListener('hashchange', route);
 
-// Less text on screen: long explanations fold into a small "More info" dropdown, on every screen.
+// Less text on screen: long explanations move to one "How it works" dropdown at the end of the page, each under the name
+// of the part it explains.
 function compactText() {
   view.querySelectorAll('p.mut:not([data-c])').forEach(p => {
     p.dataset.c = 1;
     if (p.textContent.trim().length < 70 || p.closest('details,summary,button,.mbox')) return;
-    const d = document.createElement('details'); d.className = 'info';
-    d.innerHTML = '<summary>More info</summary>'; p.replaceWith(d); d.appendChild(p);
+    if (((location.hash || '#/home').split('/')[1] || 'home') === 'home') { // Today's panels keep theirs in place
+      const d = document.createElement('details'); d.className = 'info'; d.innerHTML = '<summary>More info</summary>'; p.replaceWith(d); d.appendChild(p); return;
+    }
+    let box = view.querySelector(':scope > details.pageinfo');
+    if (!box) { box = document.createElement('details'); box.className = 'info pageinfo'; box.innerHTML = '<summary>How it works</summary>'; view.appendChild(box); }
+    const head = p.closest('section,.card')?.querySelector('h3,h2') || [...view.querySelectorAll('h1,h2')].filter(h => h.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING).at(-1);
+    if (head && head.tagName !== 'H1') { const t = document.createElement('b'); t.textContent = head.textContent.trim(); box.appendChild(t); }
+    box.appendChild(p);
   });
+  const box = view.querySelector(':scope > details.pageinfo');
+  if (box && box.nextElementSibling) view.appendChild(box); // keep it last
 }
 // Cleaner screens: each section (a "sec" heading and what follows it) folds into a dropdown on the busy screens.
 // Buttons that sit between sections (check-in, open chest, more ways to earn) stay visible.
@@ -656,7 +677,7 @@ function foldSections() {
   const heads = [...view.children].filter(isHead);
   heads.forEach((h, idx) => {
     const key = name + ':' + (location.hash.split('/')[2] || '') + ':' + idx, body = [], loose = [];
-    for (let el = h.nextElementSibling; el && !isHead(el); el = el.nextElementSibling) (el.matches('button.btn, a.btn, label.btn') ? loose : body).push(el);
+    for (let el = h.nextElementSibling; el && !isHead(el) && !el.matches('details.pageinfo'); el = el.nextElementSibling) (el.matches('button.btn, a.btn, label.btn') ? loose : body).push(el);
     if (!body.length) return;
     const d = document.createElement('details'); d.className = 'fold';
     const sum = document.createElement('summary');

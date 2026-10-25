@@ -36,7 +36,7 @@ Every exercise with weights or reps gets a rank from Iron through Bronze, Silver
 
 ## Languages
 
-English and Spanish. The language is picked from the phone on first run and can be switched at any time in the Hero screen (or on the first setup page). The app text is written in English; when Spanish is selected, `i18n.js` translates every piece of text as it reaches the screen, using `es-ui.js` (interface), `es-food.js` (ingredients, recipes, steps) and `data/es-exercises.json` (exercise names and instructions, loaded only in Spanish). Anything without a translation simply stays in English.
+English and Spanish. The language is picked from the phone on first run and can be switched at any time in Settings (or on the first setup page). The app text is written in English; when Spanish is selected, `i18n.js` translates every piece of text as it reaches the screen, using `es-ui.js` (interface), `es-food.js` (ingredients, recipes, steps) and `data/es-exercises.json` (exercise names and instructions, loaded only in Spanish). Anything without a translation simply stays in English.
 
 ## Credits
 Icons by Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed and Carl Olsen from [game-icons.net](https://game-icons.net), licensed [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/). Edited by removing the black background. Exercise photos from [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (public domain).
@@ -49,7 +49,7 @@ Local test: `python3 -m http.server -d fitai-app 8000`.
 
 ## Swipe between sections
 
-Swipe left or right to move between the tab bar's sections (Today, Plan, Dungeons, Rewards, Stats, Hero); the page follows the finger and the next section slides in (`swipe.js`). Swipes inside sideways scrollers or text fields, with a Today panel, the weekly summary or a dialog open, during a workout, or from the screen edges are left alone.
+Swipe left or right to move between the tab bar's sections (Today, Plan, Rewards, Stats, Hero); the page follows the finger and the next section slides in (`swipe.js`). Swipes inside sideways scrollers or text fields, with a Today panel, the weekly summary or a dialog open, during a workout, or from the screen edges are left alone.
 
 ## Today as circles
 
@@ -101,7 +101,7 @@ Linking needs a Spotify app Client ID, and Spotify now limits such apps to 5 acc
 Every recipe is one serving for one person: mains are capped at about 600 kcal, breakfasts at 500 and snacks at 280. The planner only makes a serving 15% lighter or heartier, and on each recipe you can pick how hungry you are (×0.75 to ×1.5, or −/+ in 10% steps); your choice changes kcal, macros, ingredients and the shopping list, and the planner keeps it. Bigger calorie targets are met with more meals a day, and the plan suggests adding a meal when one serving per meal falls short.
 
 ## HUD look and cosmetics
-The app icon matches the HUD: a glowing hexagon with a weightlifter, a tick ring and corner brackets. Long explanations fold into a small "More info" dropdown on every screen, and the bottom bar uses bigger icons with a highlighted active section.
+The app icon matches the HUD: a glowing hexagon with a weightlifter, a tick ring and corner brackets. Long explanations gather in one "How it works" dropdown at the end of each screen (on Today they stay in each panel), and the bottom bar uses bigger icons with a highlighted active section.
 
 The interface is a sci-fi heads-up display (`hud.css`, layered over `style.css`):
 - a dark grid background, glowing lines, panels with cut corners and corner brackets
@@ -133,3 +133,12 @@ Cosmetics in Rewards → Shop:
 ## Exercise media
 876 exercises with instructions and start/end pose photos come from the public-domain [free-exercise-db](https://github.com/yuhonas/free-exercise-db). The "video" is a looping animation of the two photos. 41 extra shoulder exercises (ids starting with `x_`, flag `x: 1`: lateral raise variations, pike push-ups, landmine and Z presses, rear delt and rotator cuff work, band drills) were written for this app; they have no photos, so they show a shoulder icon and their step-by-step instructions (in English and Spanish).
 To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char YouTube id>"` to `data/videos.json`. Only use videos you have the rights to.
+
+## Simpler screens
+
+- **Hero** shows your card, three stats, one tile per kind of look (tap to change it) and a Settings button.
+- **Settings** holds your name, body and training plan, sound, language, music (Spotify), export and delete.
+- **Plan** has three tabs: Training, Dungeons and Meals. Each training day folds to one line, and the next one starts open. Training options sit under "Adjust".
+- **Dungeons** shows the ones you can enter and the next to unlock; the rest stay folded.
+- **Bets**: each kind of goal is a dropdown, and "How bets work" sits at the end.
+- **Meal setup** asks for diet, foods to avoid and meals per day; the rest is under "More options".

@@ -149,28 +149,19 @@ function looksView(t) {
     <div class="pgrid ${wide}">${lockd.map(i => `<div class="pick locked" role="button" onclick="tryLook('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name)}<br>${gi('lock')} level ${i.lv}</small></div>`).join('')}</div>` : '')(ITEMS.filter(i => i.type === t && i.excl && !has(i)).sort((x, y) => x.lv - y.lv))}
   ${more ? `<button class="btn ghost sm moreb" onclick="shopAt('${t}')">${more} more in the Shop</button>` : ''}`;
 }
+// The hero's looks: one tile per kind (what you wear), tap to change it; titles when there is more than one to pick.
+function looksBlock() {
+  const L = lvl(), titles = ACH.filter(x => x.t && G.ach.includes(x.id));
+  return `<h2 class="sec">Your look</h2><div class="lookgrid">
+  ${COS.map(([t, name, , prev]) => { const on = ITEMS.find(i => i.type === t && equipped(i));
+    return `<button class="lookt" onclick="location.hash='#/profile/${t}'"><div class="lookprev">${on ? prev(on) : ''}</div><span>${name}</span></button>`; }).join('')}</div>
+  ${titles.length ? `<div class="lbl">Title</div><div class="chips"><button class="chip ${G.title ? '' : 'on'}" onclick="equipTitle('')">${TITLES.filter(t => t[0] <= L).at(-1)[1]}</button>
+    ${titles.map(x => `<button class="chip ${G.title === x.id ? 'on' : ''}" onclick="equipTitle('${x.id}')">${x.t}</button>`).join('')}</div>` : ''}`;
+}
 function profileView(sub) {
   if (needProfile()) return;
   if (sub) return looksView(sub);
-  const p = S.profile, L = lvl(), a = totalXp(L), b = totalXp(L + 1), pct = (G.xp - a) / (b - a);
-  const mine = t => ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost);
-  const titles = ACH.filter(x => x.t && G.ach.includes(x.id));
-  view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
-  <section class="pcard pmini bn-${G.banner}"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
-    <div class="grow"><div class="hn">${esc(p.name || 'Player')}</div><div class="mut">${title()} · level ${L}</div></div></section>
-  <label class="fld"><span>Name</span><div class="row"><input id="pname" value="${esc(p.name || '')}" maxlength="20" autocomplete="nickname"><button class="btn sm" onclick="saveName()">Save</button></div></label>
-  <h2 class="sec">Your look</h2>
-  ${COS.map(([t, name, , prev]) => { const on = ITEMS.find(i => i.type === t && equipped(i)), n = mine(t).length;
-    return `<section class="card tap row lookrow" onclick="location.hash='#/profile/${t}'"><div class="lookprev">${on ? prev(on) : ''}</div>
-      <div class="grow"><div class="mut">${name}</div><b>${on ? esc(on.name.replace(/ panels$| banner$/, '')) : ''}</b></div><span class="chip">Change · ${n}</span></section>`; }).join('')}
-  <h2 class="sec">Title</h2><div class="chips"><button class="chip ${G.title ? '' : 'on'}" onclick="equipTitle('')">${TITLES.filter(t => t[0] <= L).at(-1)[1]} · by level</button>
-    ${titles.map(x => `<button class="chip ${G.title === x.id ? 'on' : ''}" onclick="equipTitle('${x.id}')">${x.t}</button>`).join('')}</div>
-  <div class="mut">More titles come from badges.</div>
-  <h2 class="sec">Body and training</h2>
-  <section class="card"><div class="row between"><span class="mut">Body</span><b>${p.age} y · ${p.height} cm · ${curWeight()} kg</b></div>
-    <div class="row between"><span class="mut">Goal</span><b>${GOALS[p.goal][0]}</b></div><div class="row between"><span class="mut">Schedule</span><b>${p.days} days · ${p.minutes} min</b></div></section>
-  <button class="btn" onclick="location.hash='#/start/edit'">Edit body data and training plan</button>
-  <p class="mut">${GI_CREDIT}</p>`;
+  routes.me();
 }
 // Try any look of the shop for one minute, even one you can't buy yet: one per kind at a time (a picture, a ring, a
 // banner, a panel style, a theme and an interface can all be tried together). A bar shows each one with its countdown.

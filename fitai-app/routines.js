@@ -78,14 +78,14 @@ function routinesSection() {
   return `<h2 class="sec">My routines</h2>
   ${RT.length ? RT.map(r => `<section class="card"><div class="row between"><div class="grow"><h3>${esc(r.name)}</h3><div class="mut">${r.items.length} exercises · ${r.items.reduce((a, it) => a + (+it.sets || 0), 0)} sets</div></div>
     <button class="icon" aria-label="Edit routine" onclick="location.hash='#/routine/${r.id}'">${ic('edit', 18)}</button><button class="btn sm" onclick="startRoutine('${r.id}')">Start</button></div></section>`).join('')
-    : '<p class="mut">Build your own workouts: choose the exercises, sets, reps and rest. They give the same XP and rewards as your plan.</p>'}
+    : ''}
   <button class="btn ghost" onclick="newRoutine()">${ic('plus', 18)} Create a routine</button>`;
 }
 const _rtPlan = planView;
 planView = function () {
   _rtPlan();
-  const why = view.querySelector('details.why');
-  if (why && S.profile) why.insertAdjacentHTML('afterend', routinesSection());
+  const slot = view.querySelector('#rtslot');
+  if (slot && S.profile) slot.outerHTML = routinesSection();
 };
 
 // ---------- "Add to routine" on the exercise page ----------

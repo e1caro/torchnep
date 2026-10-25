@@ -317,3 +317,11 @@ i18nAdd({ 'Shop opened': 'Tienda abierta', Shop: 'Tienda', 'open in the Shop': '
 i18nPat(/^(.+) can be bought from level (\d+)\.$/, (a, b) => `${tr(a)} se pueden comprar desde el nivel ${b}.`);
 i18nAdd({ 'End all': 'Terminar todas', 'Try 1 min': 'Probar 1 min', 'Trying · end': 'Probando · terminar' });
 i18nAdd({ Try: 'Probar', Trying: 'Probando', 'Tap to try it for a minute': 'Tócalo para probarlo un minuto' });
+
+// settings, hero and the simpler screens
+i18nAdd({
+  Settings: 'Ajustes', Profile: 'Perfil', 'Body and training plan': 'Cuerpo y plan de entrenamiento', 'Sound effects': 'Efectos de sonido', On: 'Sí', Off: 'No', App: 'App',
+  'Your data': 'Tus datos', Export: 'Exportar', 'Delete everything': 'Borrar todo', '{n} years': '{n} años', 'BMI {n}': 'IMC {n}', 'kg lifted': 'kg levantados', Adjust: 'Ajustar',
+  'Exercise library': 'Biblioteca de ejercicios', Locked: 'Bloqueadas', 'More options': 'Más opciones', 'How it works': 'Cómo funciona', 'Your first dungeon opens at level 2.': 'Tu primera mazmorra se abre en el nivel 2.',
+  'FitQuest version {n}': 'FitQuest versión {n}', 'free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.': 'gratis, sin anuncios ni cuentas: todo se queda en este dispositivo. Las estimaciones son orientativas, no consejo médico. Fotos de ejercicios: free-exercise-db.',
+});
