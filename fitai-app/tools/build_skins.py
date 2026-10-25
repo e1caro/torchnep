@@ -907,6 +907,34 @@ POD = "\n/* friends podium, dressed by each interface */\n" + "".join(
     for k, (a, b, c, ink, orn, extra) in PODIUM.items())
 
 
+# ---------------------------------------------------------------- exercise picture backgrounds
+# A quiet backdrop behind each exercise's muscle map, in each interface's own style (one motif, low contrast).
+SUN = "radial-gradient(circle at 50% 42%,{c} 0 26%,#0000 26.5%)"
+BODYBG = {
+    'clean': "radial-gradient(70% 60% at 50% 40%,#6c8cff1f,#0000 70%),linear-gradient(#0000 82%,#ffffff0d 82% 82.6%,#0000 83%)",
+    'hud': "repeating-linear-gradient(0deg,#22e4ff10 0 1px,#0000 1px 22px),repeating-linear-gradient(90deg,#22e4ff10 0 1px,#0000 1px 22px),radial-gradient(circle at 50% 45%,#0000 0 30%,#22e4ff33 30.3% 30.8%,#0000 31%)",
+    'chinese': SUN.format(c='#d9ad451f') + "," + svg("<path d='M10 90c0-8 12-8 12 0c0-12 18-12 18 0c0-8 12-8 12 0' fill='none' stroke='#d9ad45' stroke-opacity='.25' stroke-width='2'/>", '0 0 60 100') + " 8% 100%/90px auto no-repeat",
+    'japanese': SUN.format(c='#e5432f38') + ",linear-gradient(#0000 80%,#f2d8a722 80% 80.8%,#0000 81%)",
+    'fairy': "radial-gradient(circle at 18% 30%,#ffe27a66 0 2px,#0000 3px),radial-gradient(circle at 80% 22%,#ffe27a55 0 2px,#0000 3px),radial-gradient(circle at 70% 70%,#ffe27a44 0 1.5px,#0000 2.5px),radial-gradient(70% 60% at 50% 100%,#5f9a4333,#0000 70%)",
+    'medieval': svg("<path d='M20 100V45a30 30 0 0 1 60 0v55' fill='none' stroke='#c9a24a' stroke-opacity='.22' stroke-width='2'/>", '0 0 100 100') + " 50% 100%/62% 92% no-repeat",
+    'steampunk': svg(gear(18, 59.5, 52, 47, '#b8733333'), '0 0 120 120') + " 50% 45%/58% auto no-repeat",
+    'greek': "linear-gradient(90deg,#0000 8%,#d9cfb91f 8% 11%,#0000 11% 89%,#d9cfb91f 89% 92%,#0000 92%),repeating-linear-gradient(90deg,#d9cfb933 0 6px,#0000 6px 12px) 0 96%/100% 3px no-repeat",
+    'egypt': svg("<path d='M50 15L92 95H8z' fill='#d9b45a' fill-opacity='.05' stroke='#d9b45a' stroke-opacity='.14'/>", '0 0 100 100') + " 50% 100%/80% auto no-repeat",
+    'viking': "radial-gradient(90% 40% at 30% 0,#4be3a92a,#0000 70%),radial-gradient(80% 35% at 75% 5%,#3fa2ff22,#0000 70%)",
+    'pirate': svg("<path d='M0 20q15-10 30 0t30 0t30 0t30 0V40H0z' fill='#66b7c7' fill-opacity='.14'/>", '0 0 120 40') + " 0 100%/120px 40px repeat-x",
+    'outrun': "radial-gradient(circle at 50% 70%,#ff3cc733 0 22%,#0000 22.5%),linear-gradient(#0000 70%,#ff3cc726 70% 70.6%,#0000 71%),repeating-linear-gradient(90deg,#00f0ff14 0 1px,#0000 1px 28px)",
+    'arcade': "radial-gradient(#ffffff40 1px,#0000 1.5px) 0 0/26px 26px,repeating-linear-gradient(0deg,#00e4ff0d 0 2px,#0000 2px 4px)",
+    'classical': "radial-gradient(80% 70% at 50% 45%,#f6dfa01a,#0000 70%)",
+    'artdeco': "repeating-conic-gradient(from -90deg at 50% 100%,#e6c36a1c 0 4deg,#0000 4deg 9deg)",
+    'gothic': svg("<path d='M25 100V50Q25 15 50 5Q75 15 75 50V100' fill='none' stroke='#7aa2ff' stroke-opacity='.25' stroke-width='2'/><path d='M50 5V100M25 55H75' stroke='#7aa2ff' stroke-opacity='.12'/>", '0 0 100 100') + " 50% 100%/60% 94% no-repeat",
+    'baroque': "radial-gradient(ellipse 34% 44% at 50% 46%,#0000 96%,#e0b44c40 97% 99%,#0000 100%),radial-gradient(70% 60% at 50% 45%,#8e1b2e26,#0000 70%)",
+    'mythical': "radial-gradient(60% 55% at 50% 42%,#7c4dff33,#0000 70%),radial-gradient(circle at 20% 25%,#3ddc9755 0 1.5px,#0000 2.5px),radial-gradient(circle at 82% 60%,#3ddc9744 0 1.5px,#0000 2.5px)",
+    'cosmic': "radial-gradient(circle at 82% 22%,#9b7bff55 0 7%,#0000 7.5%),radial-gradient(#ffffff55 1px,#0000 1.5px) 0 0/37px 41px,radial-gradient(#ffffff33 1px,#0000 1.5px) 13px 19px/53px 47px",
+}
+BBG = "\n/* exercise pictures: each interface's backdrop behind the muscle map */\n" + "".join(
+    f"html[data-skin={k}] :is(.demo.body,.mgroup){{background:{v},var(--card)}}\n" for k, v in BODYBG.items())
+
+
 # ---------------------------------------------------------------- prestige crests
 # Level-only prestige rings wear a small emblem on top, like game profile borders, drawn by each interface
 # (art in crest_art.py: build_min, one emblem each; build keeps the fuller ornaments). Two masks per interface: the
@@ -926,5 +954,5 @@ PREST = "\n/* prestige crests: each interface's ornament for level-only rings (m
     f"html[data-skin={k}]{{--pcrest:{svg(crest_metal(sh, cu), '0 0 120 120')};--pgem:{svg(chr(60) + 'g fill=' + chr(39) + '#fff' + chr(39) + '>' + gm + '</g>', '0 0 120 120')}}}\n"
     for k, (sh, cu, gm) in crest_build().items())
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST + POD)
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST + POD + BBG)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')
