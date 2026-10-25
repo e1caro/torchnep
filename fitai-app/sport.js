@@ -364,6 +364,21 @@ function crestSvg(ovr, pos) {
     <path d="${shape}" fill="none" stroke="url(#crm)" stroke-width="6"/><path d="${shape}" fill="none" style="stroke:var(--line2)" stroke-width="1" transform="translate(50 53) scale(.86) translate(-50 -53)"/>
     <text x="50" y="76" text-anchor="middle" font-size="34" font-weight="800" class="cro">${ovr}</text><text x="50" y="93" text-anchor="middle" font-size="13" font-weight="700" class="crp">${esc(pos)}</text></svg>`;
 }
+// The Academy's main card: a player's technical sheet (ficha técnica), drawn as a normal panel of the interface.
+function techSheet(key) {
+  const role = roleOf(key), sport = SPORTS[key.split('/')[0]], ovr = ovrOf(role), tier = cardClass(ovr), rs = roleState(key), lv = sportLevel(rs.sxp);
+  const top = SATTRS.slice().sort((x, y) => role.w[y] - role.w[x]).slice(0, 2), played = rs.w + rs.d + rs.l;
+  const row = (k, v) => `<div class="fr"><span>${k}</span><b>${v}</b></div>`;
+  return `<section class="card ficha"><div class="fh">${crestSvg(ovr, role.pos)}<div class="grow">
+      <div class="lbl">${TT('Technical sheet', 'Ficha técnica')}</div><h2 translate="no">${esc(S.profile.name || 'Player')}</h2>
+      <div class="mut"><span translate="no">${esc(clubName(key))}</span> · ${sport.ico} ${role.name}</div></div></div>
+    <div class="fgrid">${row(TT('Rating', 'Valoración'), `${ovr} OVR`)}${row(TT('Category', 'Categoría'), `<i class="metal m-${tier}"></i>${TIER_NAME[tier]}`)}
+      ${row(TT('Career', 'Carrera'), careerTier(ovr))}${row(TT('Career level', 'Nivel de carrera'), lv)}
+      ${row(TT('Matches', 'Partidos'), played)}${row(TT('W · D · L', 'V · E · D'), `${rs.w} · ${rs.d} · ${rs.l}`)}</div>
+    <div class="lbl">${TT('Attributes', 'Atributos')}</div>
+    <div class="fattr">${SATTRS.map(k => `<div class="fa ${top.includes(k) ? 'key' : ''}"><span>${ATTR[k][0]}${top.includes(k) ? ' ★' : ''}</span><i><u style="width:${statVal(k)}%"></u></i><b>${statVal(k)}</b></div>`).join('')}</div>
+    <div class="mut fnote">★ ${TT('Key attributes for your position', 'Atributos clave de tu posición')}</div></section>`;
+}
 function clubCard(key) {
   const role = roleOf(key), sport = SPORTS[key.split('/')[0]], ovr = ovrOf(role), tier = cardClass(ovr), rs = roleState(key);
   return `<section class="card tap club" onclick="location.hash='#/sport'"><div class="row">${crestSvg(ovr, role.pos)}
@@ -420,7 +435,7 @@ function sportView(arg) {
   const key = SP.cur, role = roleOf(key), sport = key.split('/')[0], rs = roleState(key), lv = sportLevel(rs.sxp), a = sportLvXp(lv), b = sportLvXp(lv + 1), ovr = ovrOf(role);
   const wk = weekDrills(sport), m = rs.match?.week === weekId() ? rs.match : null, opp = opponentFor(key, ovr);
   const resTxt = { W: TT('Victory', 'Victoria'), D: TT('Draw', 'Empate'), L: TT('Defeat', 'Derrota') };
-  view.innerHTML = `<h1>Sports Academy</h1>${playerCard(key)}${academyGuide(false)}
+  view.innerHTML = `<h1>Sports Academy</h1>${techSheet(key)}${academyGuide(false)}
   <section class="card"><div class="row between"><b>Career level ${lv}</b><span class="mut">${rs.sxp - a} / ${b - a} career XP</span></div><div class="xpbar"><i style="width:${(rs.sxp - a) / (b - a) * 100}%"></i></div>
   ${(nu => nu >= 0 ? `<div class="mut" style="margin-top:6px">Career level ${DRILL_LV[nu]} unlocks</div><b>${role.drills[nu].name}</b>` : '')(DRILL_LV.findIndex(v => v > lv))}
   <div class="row" style="margin-top:10px"><button class="btn sm ghost" onclick="changeRole()">Change position</button><button class="btn sm ghost" onclick="changeSport()">Change sport</button></div></section>

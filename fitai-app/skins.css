@@ -36,8 +36,10 @@ html[data-skin]:not([data-skin=hud]) body::after{content:"";position:fixed;point
 @keyframes crt{0%{opacity:.8}100%{opacity:1}}
 @media(prefers-reduced-motion:reduce){html[data-skin] body::after,html[data-skin] body::before{animation:none!important}}
 /* title ornaments under every page title */
-html[data-skin]:not([data-skin=hud]) h1::after{content:"";display:block;height:var(--orn-h,0);max-width:260px;margin-top:8px;background:var(--orn,none) 0 50%/100% 100% no-repeat}
-html[data-skin]:not([data-skin=hud]) .vic h1::after,html[data-skin]:not([data-skin=hud]) .top h1::after{margin-left:auto;margin-right:auto}
+/* the title is as wide as its words, and its ornament runs under exactly those words */
+html[data-skin]:not([data-skin=hud]) main h1{width:fit-content;max-width:100%}
+html[data-skin]:not([data-skin=hud]) h1::after{content:"";display:block;height:var(--orn-h,0);width:100%;min-width:120px;margin-top:8px;background:var(--orn,none) 0 50%/100% 100% no-repeat}
+html[data-skin]:not([data-skin=hud]) :is(.vic,.top) h1{margin-left:auto;margin-right:auto}
 html[data-skin]:not([data-skin=hud]) :is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)::before{background-repeat:var(--rep,no-repeat)}
 
 /* ==========================================================================
