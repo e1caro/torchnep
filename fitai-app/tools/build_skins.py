@@ -722,6 +722,8 @@ TINT += f"""{T}{{--line:color-mix(in srgb,var(--acc) 34%,color-mix(in srgb,var(-
 html[data-tint][data-skin=arcade] {P}::before{{display:none}}
 /* pirate rope frames keep their own rope colours with any theme */
 html[data-tint][data-skin=pirate] {P}::before{{background:var(--deco);-webkit-mask:none;mask:none}}
+/* Minimal has no frame ornaments: its banners stay as they are, or the coloured layer covers the name on the profile */
+html[data-tint][data-skin=clean] {P}::before{{background:var(--deco);-webkit-mask:none;mask:none}}
 html[data-tint][data-skin=arcade]{{--pshadow:inset 0 0 0 3px var(--acc),inset 0 0 0 6px var(--card),inset 0 0 0 7px var(--acc3)}}
 {T} h1::after{{background:linear-gradient(90deg,var(--acc3),var(--acc) 30%,var(--accL) 50%,var(--acc) 70%,var(--acc3));-webkit-mask:var(--orn) 0 50%/100% 100% no-repeat;mask:var(--orn) 0 50%/100% 100% no-repeat}}
 {T} .btn,{T} .btn.sm{{background:linear-gradient(180deg,var(--accL),var(--acc) 48%,var(--accD));color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc3) 55%,#fff3),inset 0 -3px 0 #0005,0 2px 10px color-mix(in srgb,var(--acc) 25%,transparent)}}
