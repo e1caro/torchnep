@@ -24,9 +24,10 @@ window.buyBoost = id => {
 // ---------- confirm before spending, and selling back ----------
 // every purchase asks first; owned looks can be sold back for 80% of their price
 const SELL = .8, sellPrice = i => Math.round(i.cost * SELL);
-function askCoins(title, pic, name, delta, yes, fn) {
+const SELL_DEF = { theme: 'hud', panel: 'chamfer', skin: 'hud', avatar: 'glove', banner: 'plain', frame: 'none' }; // the free look of each kind
+function askCoins(title, pic, name, delta, yes, fn, note = '') {
   modal(`<div class="avbig">${pic}</div><div class="lvup">${title}</div><h2>${esc(name)}</h2>
-  <div class="cfm"><div class="row between"><span>${delta < 0 ? 'Price' : 'You get'}</span><b>${gi('coin', 'cn')} ${Math.abs(delta)}</b></div>
+  ${note ? `<div class="mut">${note}</div>` : ''}<div class="cfm"><div class="row between"><span>${delta < 0 ? 'Price' : 'You get'}</span><b>${gi('coin', 'cn')} ${Math.abs(delta)}</b></div>
   <div class="row between"><span>Your coins after</span><b>${gi('coin', 'cn')} ${G.coins + delta}</b></div></div>
   <div class="row cfmb"><button class="btn ghost" data-close>Cancel</button><button class="btn ${delta < 0 ? 'gold' : ''}" id="cfmyes">${yes}</button></div>`);
   $('#cfmyes').onclick = () => { $('#modal').hidden = true; fn(); };
@@ -45,10 +46,14 @@ window.buyBoost = id => {
 };
 window.sell = id => {
   const i = item(id);
-  if (!has(i) || !i.shop || !i.cost || equipped(i)) return;
+  if (!has(i) || !i.shop || !i.cost) return;
+  // selling what you are wearing puts the free look of that kind back on
+  const on = equipped(i), def = ITEMS.find(x => x.type === i.type && x.key === SELL_DEF[i.type]);
   askCoins(`Sell this ${KIND[i.type].toLowerCase()}?`, itemPic(i), i.name, sellPrice(i), 'Sell', () => {
-    G.owned = G.owned.filter(x => x !== id); G.coins += sellPrice(i); commit(); sfx('claim'); toast(`Sold for ${sellPrice(i)} coins`); route();
-  });
+    G.owned = G.owned.filter(x => x !== id); G.coins += sellPrice(i);
+    if (on) { G[i.type] = SELL_DEF[i.type]; applyTheme(); }
+    commit(); sfx('claim'); toast(`Sold for ${sellPrice(i)} coins`); route();
+  }, on ? `You are using it, so you will switch back to ${def ? def.name : 'the default look'}.` : '');
 };
 
 // ---------- Levels ----------
@@ -85,7 +90,8 @@ const skinPrev = i => `<div class="skp" data-sk="${i.key}">${i.emo}</div>`;
 const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></div>`;
 function tile(i) {
   const own = has(i);
-  const act = own ? (equipped(i) ? '<b class="eq">Equipped</b>' : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button><button class="btn sm ghost sellb" onclick="sell('${i.id}')">Sell · ${gi('coin', 'cn')} ${sellPrice(i)}</button>`)
+  const sellB = i.cost ? `<button class="btn sm ghost sellb" onclick="sell('${i.id}')">Sell · ${gi('coin', 'cn')} ${sellPrice(i)}</button>` : '';
+  const act = own ? (equipped(i) ? `<b class="eq">Equipped</b>${sellB}` : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>${sellB}`)
     : `<button class="btn sm ${G.coins >= i.cost ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${i.cost}</button>`;
   const tryb = i.type === 'skin' && !own ? `<button class="btn sm ghost" onclick="trySkin('${i.key}')">Try</button>` : '';
   return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${tryb}${act}</div>`;
