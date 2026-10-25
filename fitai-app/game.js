@@ -413,7 +413,7 @@ function featuredId() {
 // ---------- views ----------
 function hud() {
   const L = lvl(), a = totalXp(L), b = totalXp(L + 1), pct = (G.xp - a) / (b - a);
-  return `<div class="hud bn-${G.banner}"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}" onclick="location.hash='#/profile'" role="button" aria-label="Edit profile"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
+  return `<div class="hud tap bn-${G.banner}" onclick="location.hash='#/profile'" role="button" aria-label="Change your looks"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
   <div class="grow"><div class="hn">${esc(S.profile?.name || 'Player')}</div><div class="mut">${title()}${boostOn() ? ' · <b style="color:var(--ok)">2× XP</b>' : ''}</div>
   <div class="xpbar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div><div class="xpt">${G.xp - a} / ${b - a} XP to level ${L + 1}</div></div>
   <div class="coins">${gi('coin', 'cn')} <b>${G.coins}</b></div></div>`;
@@ -485,7 +485,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 101</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 102</div>`;
 }
 
 function initGame() {

@@ -684,3 +684,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 /* type how many coins to stake */
 .stakein{gap:10px;align-items:center;margin-bottom:6px}
 .stakein input{width:110px;font-size:1.1em;text-align:center}
+/* the level number always sits in front of the moving ring */
+.av .lv{z-index:5}
+/* the hero card at the top of Today, Rewards...: tap it to change your looks */
+.hud.tap{cursor:pointer}
