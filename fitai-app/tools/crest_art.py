@@ -139,3 +139,30 @@ def build():
                    '',
                    P(circ(*pt(60, 60, 0, 0), 0)) + P(circ(108, 37, 4.5)) + P(circ(13, 83, 3.6)) + P(circ(60, 9, 2)))
     return A
+
+
+def build_min():
+    """The minimal set: a single emblem on top of the ring per interface (and one small gem)."""
+    hexa = lambda cx, cy, r: poly([pt(cx, cy, r, a) for a in range(-90, 270, 60)])
+    star = lambda cx, cy, r1, r2: poly([pt(cx, cy, r1 if k % 2 == 0 else r2, -90 + k * 36) for k in range(10)])
+    A = {}
+    A['hud'] = (P(hexa(60, 11, 9)), '', P(hexa(60, 11, 3.2)))
+    A['chinese'] = (P(circ(60, 9, 5.5)) + P(circ(53, 12, 4)) + P(circ(67, 12, 4)) + P('M49 13H71V17H49Z'), '', P(circ(60, 4, 2)))
+    A['japanese'] = (P('M44 6Q60 2 76 6V9Q60 6 44 9Z') + P('M47 12H73V14.5H47Z') + P('M50 9h3.5v12H50zM66.5 9H70v12h-3.5z'), '', P(circ(60, 2.6, 1.8)))
+    A['fairy'] = (''.join(P(leaf(60, 20, a, 12, 4)[0]) for a in (-90, -125, -55)), '', P(circ(60, 16, 2)))
+    A['medieval'] = (P('M51 2H69V12C69 19 60 23 60 23C60 23 51 19 51 12Z'), '', P(circ(60, 11, 2)))
+    A['steampunk'] = (P(gear(60, 11, 10, 9, 7)) + P(circ(60, 11, 3.5)), '', P(circ(60, 11, 1.8)))
+    A['greek'] = (''.join(P(leaf(60, 18, a, 11, 3.2)[0]) for a in (-150, -125, -55, -30)), '', P(circ(60, 16, 2)))
+    A['egypt'] = (P(circ(60, 10, 5)) + mir(P('M54 10C46 5 38 6 32 10C38 10 46 11 54 13Z')), '', P(circ(60, 10, 2.2)))
+    A['viking'] = (P('M50 20Q50 8 60 8Q70 8 70 20Z') + mir(P('M51 15Q42 15 38 5Q44 11 52 11Z')), '', P(circ(60, 15, 1.6)))
+    A['pirate'] = (P(circ(60, 10, 7)) + P('M55 15h10v5H55z'), '', P(circ(57, 9.5, 1.6)) + P(circ(63, 9.5, 1.6)))
+    A['outrun'] = (P(star(60, 11, 10, 4.2)), '', P(circ(60, 11, 1.8)))
+    px = lambda cells: ''.join(f'M{x} {y}h3v3h-3z' for x, y in cells)
+    A['arcade'] = (P(px([(50, 5), (58.5, 3), (67, 5)] + [(x, y) for x in range(50, 70, 3) for y in (8, 11)]), "shape-rendering='crispEdges'"), '', P(px([(58.5, 3)]), "shape-rendering='crispEdges'"))
+    A['classical'] = (''.join(P(leaf(60, 11, a, 8, 2.8)[0]) for a in range(0, 360, 45)), '', P(circ(60, 11, 2.2)))
+    A['artdeco'] = (''.join(P(poly([(60, 20), pt(60, 20, 15, a - 5), pt(60, 20, 15, a + 5)])) for a in range(-160, -19, 20)), '', P('M54 20A6 6 0 0 1 66 20Z'))
+    A['gothic'] = (P('M60 0C55 9 52 14 52 22H68C68 14 65 9 60 0Z'), '', P(circ(60, 15, 2.4)))
+    A['baroque'] = (P('M48 20L46 8L53 13L56.5 4L60 11L63.5 4L67 13L74 8L72 20Z'), '', P(circ(60, 15, 1.8)))
+    A['mythical'] = (mir(P('M53 16C48 12 46 6 48 1C51 7 55 9 58 11Z')) + P(diamond(60, 13, 4.5, 4.5)), '', P(diamond(60, 13, 2, 2.4)))
+    A['cosmic'] = (P(star(60, 10, 9, 3)), '', P(circ(60, 10, 1.4)))
+    return A

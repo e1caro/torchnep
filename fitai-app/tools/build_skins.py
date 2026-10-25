@@ -826,11 +826,11 @@ html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,co
 
 
 # ---------------------------------------------------------------- prestige crests
-# Level-only prestige rings wear an ornament around the avatar, like game profile borders: a crest on top, wings or
-# scrolls on the sides and a plate below, drawn by each interface (art in crest_art.py). Two masks per interface: the
+# Level-only prestige rings wear a small emblem on top, like game profile borders, drawn by each interface
+# (art in crest_art.py: build_min, one emblem each; build keeps the fuller ornaments). Two masks per interface: the
 # metal, a fine outline coloured by the ring's metal, and small gems in the ring's gem colour.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from crest_art import build as crest_build  # noqa: E402
+from crest_art import build_min as crest_build  # noqa: E402
 
 
 def crest_metal(shapes, cuts):
