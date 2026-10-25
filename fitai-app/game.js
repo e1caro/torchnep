@@ -145,7 +145,8 @@ const QT = [
   { id: 'sets', t: 'Complete 12 sets', n: 12, m: 'sets', xp: 60, ico: 'biceps' },
   { id: 'guide', t: 'Study 2 exercise guides', n: 2, m: 'guides', xp: 30, ico: 'book' },
   { id: 'weigh', t: 'Log your weight', n: 1, m: 'weigh', xp: 25, ico: 'scale' },
-  { id: 'min', t: 'Train for 25 minutes', n: 25, m: 'minutes', xp: 60, ico: 'stopwatch' },
+  // about two thirds of your usual session (workout minutes are estimated from the exercises you finish)
+  { id: 'min', get n() { return Math.max(15, Math.round((S.profile?.minutes || 45) * .65 / 5) * 5); }, get t() { return `Train for ${this.n} minutes`; }, m: 'minutes', xp: 60, ico: 'stopwatch' },
   { id: 'dungeon', t: 'Clear a dungeon', n: 1, m: 'dungeons', xp: 100, ico: 'gate', needLv: 2 },
   { id: 'water', t: 'Drink 8 glasses of water', n: 8, m: 'water', xp: 40, ico: 'water' },
   { id: 'sleep', t: 'Sleep 7 hours or more', n: 7, m: 'sleep', xp: 40, ico: 'sleep' },

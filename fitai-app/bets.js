@@ -52,7 +52,7 @@ function form() {
   const recentW = S.weights.filter(w => w.t >= since).length;
   return { perWeek, dgPerWeek, mins: Math.max(15, mins), sets: Math.max(4, sets), xpw: Math.max(80, exw * 15 + 40) * 1.15, // about what a workout pays: each exercise by its medal, plus the clear bonus
     kgw, repw: Math.max(30, repw), exw, mg,
-    long: Math.max(.05, frac(h => h.dur >= 60)), morn: Math.max(.05, frac(h => hourOf(h) < 9)), eve: Math.max(.05, frac(h => hourOf(h) >= 20)),
+    long: Math.max(.05, frac(h => h.dur >= LONG_MIN())), morn: Math.max(.05, frac(h => hourOf(h) < 9)), eve: Math.max(.05, frac(h => hourOf(h) >= 20)),
     drills: Math.max(.5, S.history.filter(h => h.t >= since && h.sport).length / 4), weigh: Math.max(.5, recentW / 4) };
 }
 // chance of at least k events when lambda are expected
@@ -64,6 +64,9 @@ const uniq = a => [...new Set(a)];
 const inWin = (h, a, b) => h.t >= a && h.t <= b;
 const trainsIn = (a, b) => S.history.filter(h => inWin(h, a, b)).length;
 const dgIn = (a, b) => S.history.filter(h => inWin(h, a, b) && h.dungeon).length;
+// a "long workout": close to your own full session (workout times are estimated from the exercises done, so a
+// whole plan workout lands near the session length you picked)
+const LONG_MIN = () => Math.max(25, Math.round((S.profile?.minutes || 60) * .9 / 5) * 5);
 const minsIn = (a, b) => S.history.filter(h => inWin(h, a, b)).reduce((s, h) => s + (h.dur || 0), 0);
 const daysIn = (a, b) => new Set(S.history.filter(h => inWin(h, a, b)).map(h => new Date(h.t).toDateString())).size;
 const setsIn = (a, b) => S.history.filter(h => inWin(h, a, b)).reduce((s, h) => s + h.ex.reduce((x, e) => x + e.sets.length, 0), 0);
@@ -156,7 +159,7 @@ const label = (kind, n, suf) => ({
   min: `Train ${n} minutes ${suf}`, pr: `Set a new record ${suf}`, water: n === 1 ? `Hit your water goal once ${suf}` : `Hit your water goal on ${n} days ${suf}`,
   sets: `Log ${n} sets ${suf}`, xp: `Earn ${n} XP ${suf}`, boss: `Defeat the weekly boss ${suf}`, match: `Win your Academy match ${suf}`, nolose: `Don't lose your Academy match ${suf}`,
   streak: `Reach a ${n}-day training streak ${suf}`, lvl: `Reach level ${n} ${suf}`, meals: `Eat ${n} planned meals ${suf}`, days: `Train on ${n} different days ${suf}`,
-  kg: `Lift ${n} kg in total ${suf}`, reps: `Do ${n} reps ${suf}`, var: `Do ${n} different exercises ${suf}`, long: `Do a workout of 60 minutes or more ${suf}`,
+  kg: `Lift ${n} kg in total ${suf}`, reps: `Do ${n} reps ${suf}`, var: `Do ${n} different exercises ${suf}`, long: `Do a workout of ${LONG_MIN()} minutes or more ${suf}`,
   morning: `Train in the morning (before 9h) ${suf}`, evening: `Train at night (from 20h) ${suf}`, weekend: `Train on Saturday and Sunday ${suf}`,
   drills: `Do ${n} Academy drills ${suf}`, ovr: `Raise your OVR by ${n} ${suf}`, weigh: n === 1 ? `Log your weight ${suf}` : `Log your weight ${n} times ${suf}`,
   wlose: `Lose ${n} kg ${suf}`, wgain: `Gain ${n} kg ${suf}`, sleepn: n === 1 ? `Sleep 7 h or more one night ${suf}` : `Sleep 7 h or more on ${n} nights ${suf}`, questd: n === 1 ? `Claim all daily quests on one day ${suf}` : `Claim all daily quests on ${n} days ${suf}`,
@@ -216,7 +219,7 @@ function legProb(kind, n, from, to, grp) {
     case 'reps': return atLeast(Math.ceil((n - (live ? repsIn(from, to) : 0)) / f.repw), lam);
     case 'var': return atLeast(Math.ceil((n - (live ? varIn(from, to) : 0)) / (f.exw * .6)), lam);
     case 'mg': return atLeast(n - (live ? mgIn(grp, from, to) : 0), lam * Math.max(.08, f.mg[grp]));
-    case 'long': return atLeast(1 - (live ? countIn(from, to, h => h.dur >= 60) : 0), lam * f.long);
+    case 'long': return atLeast(1 - (live ? countIn(from, to, h => h.dur >= LONG_MIN()) : 0), lam * f.long);
     case 'morning': return atLeast(1 - (live ? countIn(from, to, h => hourOf(h) < 9) : 0), lam * f.morn);
     case 'evening': return atLeast(1 - (live ? countIn(from, to, h => hourOf(h) >= 20) : 0), lam * f.eve);
     case 'weekend': { // Saturday and Sunday still to come (or done)
@@ -294,7 +297,7 @@ function markets() {
       if (n - gw <= days) mk('mg', n, gw, { grp, t: labelMg(grp, n, P.suf), ico: 'strong', one: P.live && n - gw === 1 });
     }
     // when you train
-    if (!(P.live && countIn(P.from, P.to, h => h.dur >= 60))) mk('long', 0, 0, { need: 0, one: P.live });
+    if (!(P.live && countIn(P.from, P.to, h => h.dur >= LONG_MIN()))) mk('long', 0, 0, { need: 0, one: P.live });
     if (!(P.live && countIn(P.from, P.to, h => hourOf(h) < 9))) mk('morning', 0, 0, { need: 0, one: P.live });
     if (!(P.live && countIn(P.from, P.to, h => hourOf(h) >= 20))) mk('evening', 0, 0, { need: 0, one: P.live });
     if (per === 'week' && !(P.live && weekendIn(P.from, P.to) >= 2)) mk('weekend', 0, 0, { need: 0 });
@@ -359,7 +362,7 @@ function legDone(l) {
   if (k === 'reps') return repsIn(a, b) >= l.need;
   if (k === 'var') return varIn(a, b) >= l.need;
   if (k === 'mg') return mgIn(l.grp, a, b) >= l.need;
-  if (k === 'long') return countIn(a, b, h => h.dur >= 60) >= 1;
+  if (k === 'long') return countIn(a, b, h => h.dur >= LONG_MIN()) >= 1;
   if (k === 'morning') return countIn(a, b, h => hourOf(h) < 9) >= 1;
   if (k === 'evening') return countIn(a, b, h => hourOf(h) >= 20) >= 1;
   if (k === 'weekend') return weekendIn(a, b) >= 2;
