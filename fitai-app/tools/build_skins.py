@@ -639,7 +639,7 @@ body.focus #trybar{bottom:calc(16px + env(safe-area-inset-bottom))}
 """
 
 # ---------------------------------------------------------------- themes recolour interfaces
-# With any theme except the default Cyber HUD, an interface's accents (frames, ornaments, buttons, tabs, bars, markers)
+# With any theme except the default Basic, an interface's accents (frames, ornaments, buttons, tabs, bars, markers)
 # take the theme's two colours; its scenery keeps its own. Theme colours are read from game.js so they stay in sync.
 THEMES = re.findall(r"\['(\w+)', '[^']+', \d+, '(#[0-9a-fA-F]{6})', '(#[0-9a-fA-F]{6})'\]", (HERE.parent / 'game.js').read_text())
 T = 'html[data-tint][data-skin]'
