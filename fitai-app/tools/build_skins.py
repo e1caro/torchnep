@@ -6,6 +6,7 @@ and ambient animation). Ornaments are small hand-written SVGs embedded as data U
 ships no image files for them. Run:  python3 tools/build_skins.py
 """
 import math
+import sys
 import re
 from pathlib import Path
 from urllib.parse import quote
@@ -823,5 +824,25 @@ html[data-tint][data-skin=pirate] .orb::before{{background:var(--bring) center/1
 html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--glow) 80%,var(--acc) 10%),var(--card) 70%),var(--bg)}}
 """
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW)
+
+# ---------------------------------------------------------------- prestige crests
+# Level-only prestige rings wear a small emblem on top, like game profile borders, drawn by each interface
+# (art in crest_art.py: build_min, one emblem each; build keeps the fuller ornaments). Two masks per interface: the
+# metal, a fine outline coloured by the ring's metal, and small gems in the ring's gem colour.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from crest_art import build_min as crest_build  # noqa: E402
+
+
+def crest_metal(shapes, cuts):
+    """minimal line art: only a fine outline of each piece (the engraving cuts are left out)"""
+    for w in ("3", "4", "4.5"):
+        shapes = shapes.replace(f"fill='none' stroke='#fff' stroke-width='{w}'", "fill='none' stroke='#fff' stroke-width='1.4'")
+    return f"<g fill='none' stroke='#fff' stroke-width='1.3' stroke-linejoin='round'>{shapes}</g>"
+
+
+PREST = "\n/* prestige crests: each interface's ornament for level-only rings (metal and gems) */\n" + ''.join(
+    f"html[data-skin={k}]{{--pcrest:{svg(crest_metal(sh, cu), '0 0 120 120')};--pgem:{svg(chr(60) + 'g fill=' + chr(39) + '#fff' + chr(39) + '>' + gm + '</g>', '0 0 120 120')}}}\n"
+    for k, (sh, cu, gm) in crest_build().items())
+
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')

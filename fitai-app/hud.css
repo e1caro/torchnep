@@ -667,7 +667,7 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 .lookprev .swc{width:34px;height:34px}
 .lookrow b{font-size:.95em}
 /* the profile header on the Change-your-look page: compact */
-.pcard.pmini{display:flex;flex-direction:row;align-items:center;gap:14px;padding:12px 14px;min-height:0;text-align:left}
+.pcard.pmini{display:flex;flex-direction:row;align-items:center;gap:22px;padding:24px 18px 24px 30px;min-height:0;text-align:left}
 .pcard.pmini .av{width:64px;height:64px;margin:0;flex:none}
 .pcard.pmini .av span .gi{font-size:30px}
 .pcard.pmini .hn{font-size:22px!important;margin:0}
@@ -688,3 +688,114 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 .av .lv{z-index:5}
 /* the hero card at the top of Today, Rewards...: tap it to change your looks */
 .hud.tap{cursor:pointer}
+/* ---------- level-only looks ---------- */
+/* small previews on the reward road and in chests */
+.icoav{width:30px;height:30px;display:inline-grid;vertical-align:middle;margin-right:4px}.icoav::before{inset:3px}
+.bnp.icobn{display:inline-block;width:46px;height:22px;min-height:0;vertical-align:middle;margin-right:4px}
+.icosw{display:inline-block;width:22px;height:22px;vertical-align:middle;margin-right:4px}
+/* prestige rings: thicker, metallic, with leaves, a halo, fire or an aura */
+.fr-lbronze::after,.fr-lsilver::after,.fr-lgold::after{inset:-8px;-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 7px),#000 calc(100% - 6px));mask:radial-gradient(farthest-side,#0000 calc(100% - 7px),#000 calc(100% - 6px));animation:spin 40s linear infinite}
+.fr-lbronze::after{background:repeating-conic-gradient(from 4deg,#7a4318 0 3deg,#f0b27a 3deg 9deg,#b06a2c 9deg 14deg,#0000 14deg 20deg)}
+.fr-lbronze{box-shadow:0 0 10px #cd7f3255}
+.fr-lsilver::after{background:repeating-conic-gradient(from 4deg,#6d7782 0 3deg,#ffffff 3deg 9deg,#b8c2cc 9deg 14deg,#0000 14deg 20deg)}
+.fr-lsilver{box-shadow:0 0 12px #dfe8f266}
+.fr-lgold::after{background:repeating-conic-gradient(from 4deg,#8a5a10 0 3deg,#fff1a8 3deg 9deg,#e2b23c 9deg 14deg,#0000 14deg 20deg)}
+.fr-lgold{box-shadow:0 0 16px #ffd34d88;animation:lvglow 3s ease-in-out infinite}
+.fr-plat::after{inset:-7px;background:conic-gradient(from 0deg,#e9f6ff,#9fb3c8,#ffffff,#7fd4ff,#e9f6ff,#9fb3c8,#ffffff);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px));animation:spin 6s linear infinite}
+.fr-plat{box-shadow:0 0 18px #bfe8ff99,0 0 4px #fff inset}
+.fr-phoenix::after{inset:-10px;background:conic-gradient(from 0deg,#ff2a00,#ffb000,#fff2a0,#ff6a00,#ff2a00,#ffd000,#ff4500);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 calc(100% - 4px),#0000);mask:radial-gradient(farthest-side,#0000 calc(100% - 8px),#000 calc(100% - 4px),#0000);animation:spin 2.4s linear infinite,flick .35s steps(2) infinite}
+.fr-phoenix{box-shadow:0 0 20px #ff6a00aa,0 0 40px #ff2a0055}
+.fr-aura::after{inset:-11px;background:conic-gradient(from 0deg,#fff1a8,#ffffff,#7fd4ff,#ffd34d,#ffffff,#b46bff,#fff1a8);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 9px),#000 calc(100% - 5px),#0000);mask:radial-gradient(farthest-side,#0000 calc(100% - 9px),#000 calc(100% - 5px),#0000);animation:spin 8s linear infinite}
+.fr-aura{box-shadow:0 0 24px #fff1a8aa,0 0 50px #7fd4ff55;animation:lvglow 2.4s ease-in-out infinite}
+@keyframes lvglow{50%{box-shadow:0 0 30px #fff1a8cc,0 0 60px #7fd4ff66}}
+@keyframes flick{50%{opacity:.82}}
+/* legend banners */
+.bn-champion{background:radial-gradient(120% 120% at 0 0,#e0303c66,#0000 55%),linear-gradient(90deg,#0000 0 calc(100% - 6px),#ffcc33 calc(100% - 6px)),linear-gradient(115deg,#3a0a10,#1a0608 55%,#3b2a08)!important}
+.bn-halloffame{background:radial-gradient(90% 120% at 100% 0,#ffd34d44,#0000 60%),repeating-linear-gradient(125deg,#ffffff08 0 2px,#0000 2px 26px,#ffffff10 26px 27px,#0000 27px 60px),linear-gradient(135deg,#2c2c36,#14141b)!important}
+.bn-constellation{background:radial-gradient(1.5px 1.5px at 12% 30%,#fff,#0000),radial-gradient(1px 1px at 30% 70%,#cfe8ff,#0000),radial-gradient(2px 2px at 55% 22%,#fff,#0000),radial-gradient(1px 1px at 70% 60%,#fff,#0000),radial-gradient(1.5px 1.5px at 88% 35%,#bfe0ff,#0000),radial-gradient(1px 1px at 42% 48%,#fff,#0000),radial-gradient(120% 120% at 80% 100%,#3a2a8a88,#0000 60%),linear-gradient(160deg,#070b24,#0b0420)!important}
+.bn-borealis{background:linear-gradient(115deg,#0000 20%,#2bff8833 35%,#5cffc855 45%,#b46bff44 60%,#0000 75%) 0 0/250% 100%,linear-gradient(180deg,#041018,#08121e)!important;animation:borealis 9s ease-in-out infinite alternate}
+@keyframes borealis{to{background-position:100% 0,0 0}}
+.bn-olympus{background:repeating-conic-gradient(from 270deg at 50% 120%,#fff1a822 0 4deg,#0000 4deg 12deg),radial-gradient(60% 50% at 20% 30%,#ffffff22,#0000 70%),radial-gradient(50% 40% at 80% 20%,#ffffff1a,#0000 70%),linear-gradient(180deg,#2a3f6a,#16203a 70%,#3b3016)!important}
+/* level-only themes */
+html[data-theme=champion]{--bg:#0e0507;--glow:#3d0c12;--acc:#ffcc33;--acc2:#e0303c}
+html[data-theme=olympus]{--bg:#070c16;--glow:#1d2c48;--acc:#f5e6b8;--acc2:#7fd4ff}
+.pick.locked{opacity:.55;filter:saturate(.6);cursor:default}
+.pick.locked small{line-height:1.3}.pick.locked small .gi{font-size:11px}
+.pick .av{margin:8px 0 6px}
+/* ---------- prestige rings with particles (level-only) ---------- */
+.av>.fx{position:absolute;inset:-15px;border-radius:50%;pointer-events:none;z-index:2;background-repeat:no-repeat}
+.av .lv{z-index:5}
+.icoav>.fx{inset:-8px}
+@media (prefers-reduced-motion:reduce){.av>.fx{animation:none!important}}
+/* a ring of 8 motes (colour --c) and a ring of 6 smaller ones (--c2) */
+.av>.fx{background-image:radial-gradient(circle at 50% 2%,var(--c) 0 2px,#0000 3px),radial-gradient(circle at 84% 16%,var(--c) 0 1.5px,#0000 2.5px),radial-gradient(circle at 98% 50%,var(--c) 0 2px,#0000 3px),radial-gradient(circle at 84% 84%,var(--c) 0 1.5px,#0000 2.5px),radial-gradient(circle at 50% 98%,var(--c) 0 2px,#0000 3px),radial-gradient(circle at 16% 84%,var(--c) 0 1.5px,#0000 2.5px),radial-gradient(circle at 2% 50%,var(--c) 0 2px,#0000 3px),radial-gradient(circle at 16% 16%,var(--c) 0 1.5px,#0000 2.5px)}
+.av>.fx2{inset:-9px;background-image:radial-gradient(circle at 70% 4%,var(--c2) 0 1.2px,#0000 2px),radial-gradient(circle at 99% 40%,var(--c2) 0 1.6px,#0000 2.4px),radial-gradient(circle at 75% 95%,var(--c2) 0 1.2px,#0000 2px),radial-gradient(circle at 25% 96%,var(--c2) 0 1.6px,#0000 2.4px),radial-gradient(circle at 1% 55%,var(--c2) 0 1.2px,#0000 2px),radial-gradient(circle at 30% 3%,var(--c2) 0 1.6px,#0000 2.4px)}
+@keyframes fxorbit{to{transform:rotate(360deg)}}
+@keyframes fxback{to{transform:rotate(-360deg)}}
+@keyframes fxtw{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes fxrise{0%{transform:translateY(6px) scale(.9);opacity:0}25%{opacity:1}100%{transform:translateY(-14px) scale(1.1);opacity:0}}
+@keyframes fxpulse{50%{transform:scale(1.08);opacity:.6}}
+@keyframes fxflash{0%,86%,100%{opacity:0}88%,92%{opacity:1}90%{opacity:.3}}
+/* Ember sparks (8): sparks rising off a hot ring */
+.fr-sparks::after{inset:-6px;background:conic-gradient(#ff4500,#ffb000,#ff7a00,#ffd36a,#ff4500);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3px));animation:spin 5s linear infinite}
+.fr-sparks{box-shadow:0 0 14px #ff6a0077;--c:#ffb000;--c2:#ff5a1f}
+.fr-sparks>.fx{animation:fxrise 1.8s ease-out infinite}.fr-sparks>.fx2{animation:fxrise 1.8s ease-out .9s infinite}
+/* Frost crown (18): ice shards orbiting, snow twinkling */
+.fr-frost::after{inset:-8px;background:repeating-conic-gradient(#e0f4ff 0 4deg,#7cc6ff 4deg 8deg,#0000 8deg 15deg);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 6px),#000 calc(100% - 5px));mask:radial-gradient(farthest-side,#0000 calc(100% - 6px),#000 calc(100% - 5px));animation:spin 30s linear infinite}
+.fr-frost{box-shadow:0 0 16px #9fdcff88,0 0 2px #fff inset;--c:#ffffff;--c2:#9fdcff}
+.fr-frost>.fx{animation:fxorbit 14s linear infinite}.fr-frost>.fx2{animation:fxback 9s linear infinite,fxtw 1.6s ease-in-out infinite}
+/* Arcane runes (28): violet glyph ring and orbiting runes */
+.fr-arcane::after{inset:-8px;background:repeating-conic-gradient(from 0deg,#b46bff 0 2deg,#0000 2deg 6deg,#e0b3ff 6deg 7deg,#0000 7deg 15deg),conic-gradient(#7b2cff,#d08bff,#7b2cff);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 6px),#000 calc(100% - 5px));mask:radial-gradient(farthest-side,#0000 calc(100% - 6px),#000 calc(100% - 5px));animation:spin 12s linear infinite reverse}
+.fr-arcane{box-shadow:0 0 18px #a64dff88;--c:#e0b3ff;--c2:#7b5cff}
+.fr-arcane>.fx{animation:fxorbit 6s linear infinite}.fr-arcane>.fx2{animation:fxback 4s linear infinite,fxtw 1.2s ease-in-out infinite}
+/* Storm caller (38): crackling lightning around a steel ring */
+.fr-storm::after{inset:-6px;background:conic-gradient(#3a4a5a,#cfe8ff,#3a4a5a,#7fd4ff,#3a4a5a);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3px));mask:radial-gradient(farthest-side,#0000 calc(100% - 4px),#000 calc(100% - 3px));animation:spin 1.2s linear infinite}
+.fr-storm{box-shadow:0 0 14px #7fd4ff66;--c:#e8fbff;--c2:#7fd4ff}
+.fr-storm>.fx{animation:fxorbit 2.5s linear infinite,fxflash 2.2s linear infinite}.fr-storm>.fx2{background-image:conic-gradient(from 20deg,#0000 0 40deg,#bff0ff 41deg 43deg,#0000 44deg 160deg,#bff0ff 161deg 162deg,#0000 163deg 280deg,#e8fbff 281deg 283deg,#0000 284deg);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 9px),#000 calc(100% - 8px));mask:radial-gradient(farthest-side,#0000 calc(100% - 9px),#000 calc(100% - 8px));animation:fxflash 1.7s linear .4s infinite,fxback 3s linear infinite}
+/* Void rift (42): a dark ring pulling purple motes in */
+.fr-void::after{inset:-9px;background:conic-gradient(from 0deg,#0b0216,#5a1fa0,#0b0216,#c04dff,#0b0216);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 7px),#000 calc(100% - 5px),#0000);mask:radial-gradient(farthest-side,#0000 calc(100% - 7px),#000 calc(100% - 5px),#0000);animation:spin 4s linear infinite reverse}
+.fr-void{box-shadow:0 0 22px #6a1fc099,0 0 40px #20003a;--c:#d08bff;--c2:#5a1fa0}
+.fr-void>.fx{animation:fxorbit 3s linear infinite,fxpulse 2s ease-in-out infinite}.fr-void>.fx2{animation:fxback 5s linear infinite,fxpulse 1.4s ease-in-out infinite}
+/* Celestial halo (47): golden stars circling a white-gold halo */
+.fr-celestial::after{inset:-8px;background:conic-gradient(#fff8d6,#ffd34d,#ffffff,#ffe58a,#fff8d6);-webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px));mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px));animation:spin 10s linear infinite}
+.fr-celestial{box-shadow:0 0 22px #ffe58aaa,0 0 44px #fff1a855;--c:#fff8d6;--c2:#ffd34d}
+.fr-celestial>.fx{animation:fxorbit 10s linear infinite,fxtw 2s ease-in-out infinite}.fr-celestial>.fx2{animation:fxback 7s linear infinite,fxtw 1.3s ease-in-out .5s infinite}
+/* the phoenix and the Olympian aura carry particles too */
+.fr-phoenix{--c:#ffd000;--c2:#ff4500}.fr-phoenix>.fx{animation:fxrise 1.4s ease-out infinite}.fr-phoenix>.fx2{animation:fxrise 1.4s ease-out .7s infinite}
+.fr-aura{--c:#fff1a8;--c2:#7fd4ff}.fr-aura>.fx{animation:fxorbit 8s linear infinite,fxtw 1.8s ease-in-out infinite}.fr-aura>.fx2{animation:fxback 6s linear infinite,fxtw 1.4s ease-in-out .6s infinite}
+/* ---------- prestige crests: an ornament around level-only rings, drawn by the interface, coloured by the ring ---------- */
+.av>.pc{position:absolute;inset:-38%;pointer-events:none;z-index:3;filter:drop-shadow(0 1px 1px #000a)}
+.av>.pc::before,.av>.pc::after{content:"";position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* the metal: the ring's colours with a moving sheen, engraved by the interface's drawing */
+.av>.pc::before{background:var(--pm,linear-gradient(135deg,#fff1a8,#e2b23c,#8a5a10,#fff1a8));background-size:250% 250%;-webkit-mask-image:var(--pcrest);mask-image:var(--pcrest);animation:pcsheen 9s linear infinite}
+/* the gems: the ring's gem colour, lit from the top */
+.av>.pc::after{background:var(--pgemc,#ff4d5a);-webkit-mask-image:var(--pgem);mask-image:var(--pgem)}
+@keyframes pcsheen{to{background-position:250% 250%}}
+@keyframes gemglint{50%{filter:brightness(1.35)}}
+@media (prefers-reduced-motion:reduce){.av>.pc::before,.av>.pc::after{animation:none}}
+.icoav>.pc{display:none}
+.fr-lbronze{--pm:linear-gradient(135deg,#f0b27a,#a0582a,#5e2e12,#f0b27a,#a0582a)}
+.fr-lsilver{--pm:linear-gradient(135deg,#ffffff,#b8c2cc,#69737d,#ffffff,#b8c2cc)}
+.fr-lgold{--pm:linear-gradient(135deg,#fff1a8,#e2b23c,#8a5a10,#fff1a8,#e2b23c)}
+.fr-plat{--pm:linear-gradient(135deg,#ffffff,#9fdcff,#7a8a9a,#ffffff,#cfe8ff)}
+.fr-sparks{--pm:linear-gradient(135deg,#ffd36a,#ff7a00,#c42400,#ffd36a,#ff7a00)}
+.fr-frost{--pm:linear-gradient(135deg,#ffffff,#9fdcff,#3a8dff,#ffffff,#cfefff)}
+.fr-arcane{--pm:linear-gradient(135deg,#f0d0ff,#b46bff,#5a1fa0,#f0d0ff,#b46bff)}
+.fr-storm{--pm:linear-gradient(135deg,#e8fbff,#7fd4ff,#3a4a5a,#e8fbff,#7fd4ff)}
+.fr-void{--pm:linear-gradient(135deg,#f0d0ff,#b46bff,#6a2cc0,#f0d0ff,#b46bff)}
+.fr-celestial{--pm:linear-gradient(135deg,#ffffff,#ffe58a,#c99520,#ffffff,#ffe58a)}
+.fr-phoenix{--pm:linear-gradient(135deg,#fff2a0,#ffb000,#ff2a00,#fff2a0,#ff6a00)}
+.fr-aura{--pm:linear-gradient(135deg,#ffffff,#fff1a8,#7fd4ff,#b46bff,#fff1a8)}
+.lockb{opacity:.7;cursor:default;display:inline-flex;align-items:center;gap:4px}
+.lockn{display:flex;align-items:center;gap:6px}
+
+/* gem colour and glow of each level-only ring's crest */
+.fr-lbronze{--pgemc:#ff5a3a;--pglow:#cd7f3255}.fr-lsilver{--pgemc:#4da3ff;--pglow:#dfe8f255}.fr-lgold{--pgemc:#e0303c;--pglow:#ffd34d66}.fr-plat{--pgemc:#7fd4ff;--pglow:#bfe8ff66}
+.fr-sparks{--pgemc:#ffd000;--pglow:#ff6a0066}.fr-frost{--pgemc:#e0f8ff;--pglow:#9fdcff77}.fr-arcane{--pgemc:#ff7eff;--pglow:#b46bff77}.fr-storm{--pgemc:#bff0ff;--pglow:#7fd4ff66}
+.fr-void{--pgemc:#ff4dd2;--pglow:#a64dff77}.fr-celestial{--pgemc:#7fd4ff;--pglow:#ffe58a88}.fr-phoenix{--pgemc:#fff2a0;--pglow:#ff6a0088}.fr-aura{--pgemc:#b46bff;--pglow:#fff1a888}
+/* the try bar: one chip per look being tried, each with its countdown */
+#trybar{flex-wrap:wrap;justify-content:flex-start}
+#trybar .trc{display:inline-flex;align-items:center;gap:5px;padding:4px 6px 4px 8px;border:1px solid var(--line2);border-radius:20px;font-size:.82em;background:color-mix(in srgb,var(--card) 85%,transparent)}
+#trybar .trc .gi{font-size:15px}
+#trybar .trx{border:0;background:none;color:var(--acc);font-size:13px;padding:0 2px;cursor:pointer}
+#trybar .btn{margin-left:auto}

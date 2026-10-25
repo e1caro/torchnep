@@ -259,7 +259,7 @@ function checkMilestones() {
   const role = SP.cur && roleOf(SP.cur); if (!role) return;
   const ovr = ovrOf(role);
   MILES.forEach(([m, chest, coins]) => {
-    if (ovr >= m && !SP.claimed.includes(m)) { SP.claimed.push(m); G.chests.push(chest); award(coins, coins); toast(`Career milestone! OVR ${m}: ${coins} coins and a chest`); sfx('claim'); }
+    if (ovr >= m && !SP.claimed.includes(m)) { SP.claimed.push(m); G.chests.push(chest); award(0, coins); toast(`Career milestone! OVR ${m}: ${coins} coins and a chest`); sfx('claim'); }
   });
 }
 
@@ -319,10 +319,10 @@ window.playMatch = () => {
   const roll = r(), res = roll < pw ? 'W' : roll < pw + draw ? 'D' : 'L';
   const sc = scoreFor(sport, res, r), ranked = SATTRS.slice().sort((x, y) => role.w[y] * statVal(y) - role.w[x] * statVal(x)), weak = SATTRS.slice().sort((x, y) => statVal(x) / role.w[x] - statVal(y) / role.w[y]);
   const rew = MATCH_REW[res];
-  rs.match = { week: weekId(), res, opp: opp.name, oppOvr: opp.ovr, a: sc.a, b: sc.b, text: sc.text, note: res === 'L' ? NOTE.L[weak[0]] : NOTE.W[ranked[0]], xp: rew[0], coins: rew[1] };
+  rs.match = { week: weekId(), res, opp: opp.name, oppOvr: opp.ovr, a: sc.a, b: sc.b, text: sc.text, note: res === 'L' ? NOTE.L[weak[0]] : NOTE.W[ranked[0]], xp: 0, coins: rew[1] + coinsFor(rew[0]) };
   rs[res.toLowerCase()]++; rs.sxp += rew[2];
   if (res === 'W') G.chests.push('silver');
-  award(rew[0], rew[1]); sfx('claim'); if (res === 'W') confetti();
+  award(0, rew[1] + coinsFor(rew[0])); sfx('claim'); if (res === 'W') confetti();
   checkAch(); spSave(); flushLevelUp(route);
 };
 
@@ -465,7 +465,7 @@ function sportView(arg) {
   <div class="row" style="margin-top:10px"><button class="btn sm ghost" onclick="changeRole()">Change position</button><button class="btn sm ghost" onclick="changeSport()">Change sport</button></div></section>
   <h2 class="sec">Match day</h2>
   <section class="card match">${m ? `<div class="row between"><h3>${resTxt[m.res]}</h3><span class="mut">vs ${esc(m.opp)} · OVR ${m.oppOvr}</span></div>
-    <div class="score">${m.text ? esc(m.text) : `${m.a}–${m.b}`}</div><div class="mut">${m.note}</div><div class="mut" style="margin-top:6px">Match reward: +${m.xp} XP · +${m.coins} coins</div>${m.res === 'W' ? '<div class="mut">Silver chest added. Open it on Today.</div>' : ''}
+    <div class="score">${m.text ? esc(m.text) : `${m.a}–${m.b}`}</div><div class="mut">${m.note}</div><div class="mut" style="margin-top:6px">Match reward: +${m.coins} coins</div>${m.res === 'W' ? '<div class="mut">Silver chest added. Open it on Today.</div>' : ''}
     <div class="mut" style="margin-top:6px">Next opponent in ${(8 - new Date().getDay()) % 7 || 7} days (on Monday).</div>`
     : `<div class="row between"><h3>${esc(opp.name)}</h3><span class="mut">OVR ${opp.ovr}</span></div>
     <div class="mut">You: OVR ${ovr} · Chance to win: ${Math.round(winChance(key).pw * 100)}%</div>

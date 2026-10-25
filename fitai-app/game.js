@@ -17,7 +17,10 @@ const G = Object.assign({
   sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '', ciStreak: 0, spun: '', spins: 0, waterGoalDays: 0, perfectDays: 0, sleepGood: 0, wk: null,
 }, load('game', {}));
 let LAST = null; // result of the latest workout, shown on the victory screen
-const commit = () => save('game', G);
+// Looks being tried on (one per kind, for a minute): G holds the tried look while it lasts so every screen shows it,
+// and saving always writes the look you really wear
+const TRY = {}; // kind -> { key, end, real }
+const commit = () => save('game', Object.keys(TRY).length ? { ...G, ...Object.fromEntries(Object.entries(TRY).map(([t, v]) => [t, v.real])) } : G);
 const lvl = () => levelOf(G.xp);
 const title = () => {
   const a = ACH.find(x => x.id === G.title);
@@ -97,11 +100,22 @@ const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japa
   gothic: 'Grenze:wght@600;700;800&family=EB+Garamond:wght@400;600;700', baroque: 'Cormorant+SC:wght@600;700&family=Cormorant+Garamond:wght@500;600;700',
   mythical: 'Uncial+Antiqua&family=Alegreya:wght@400;600;700', cosmic: 'Michroma&family=Space+Grotesk:wght@400;600;700' };
 const PANELS = [['chamfer', 'Chamfered', 0], ['classic', 'Classic', 0], ['brackets', 'Brackets', 150], ['octa', 'Octagon', 200], ['notch', 'Notch', 250], ['double', 'Double line', 300], ['circuit', 'Circuit', 400], ['holo', 'Hologram', 500]];
+// Level-only looks: they cannot be bought or found in chests, only earned by levelling up ([type, key, name, level, colours])
+const LV_LOOKS = [
+  ['frame', 'lbronze', 'Bronze laurel', 5], ['frame', 'sparks', 'Ember sparks', 8], ['frame', 'frost', 'Frost crown', 18], ['frame', 'arcane', 'Arcane runes', 28],
+  ['frame', 'storm', 'Storm caller', 38], ['frame', 'void', 'Void rift', 42], ['frame', 'celestial', 'Celestial halo', 47], ['banner', 'champion', "Champion's banner", 10], ['avatar', 'laurel', 'Laurel crown', 12], ['frame', 'lsilver', 'Silver laurel', 15],
+  ['banner', 'halloffame', 'Hall of Fame', 20], ['avatar', 'temple', 'Temple', 22], ['frame', 'lgold', 'Golden laurel', 25], ['theme', 'champion', 'Champion', 27, ['#ffcc33', '#e0303c']],
+  ['banner', 'constellation', 'Constellation', 30], ['avatar', 'treasure', 'Treasure', 33], ['frame', 'plat', 'Platinum halo', 35], ['banner', 'borealis', 'Borealis', 40],
+  ['theme', 'olympus', 'Olympus', 44, ['#f5e6b8', '#7fd4ff']], ['frame', 'phoenix', 'Phoenix ring', 45], ['avatar', 'infinity', 'Infinity', 48], ['frame', 'aura', 'Olympian aura', 50], ['banner', 'olympus', 'Olympus', 50],
+];
+// the two level-only themes, in the same shape as THEMES so the interface palettes are built for them too
+const LV_THEMES = [['champion', 'Champion', 27, '#ffcc33', '#e0303c'], ['olympus', 'Olympus', 44, '#f5e6b8', '#7fd4ff']];
 const ITEMS = [
   ...THEMES.map(([k, name, cost, a, b]) => ({ id: 't-' + k, type: 'theme', key: k, name, cost, sw: [a, b], shop: true })),
   ...AVATARS.map(([k, name, cost]) => ({ id: 'a-' + k, type: 'avatar', key: k, name, cost, shop: true })),
   ...FRAMES.map(([k, name, cost]) => ({ id: 'f-' + k, type: 'frame', key: k, name, cost, shop: true })),
   ...BANNERS.map(([k, name, cost]) => ({ id: 'b-' + k, type: 'banner', key: k, name: name + ' banner', cost, shop: true })),
+  ...LV_LOOKS.map(([type, key, name, lv, sw]) => ({ id: 'lv-' + type + '-' + key, type, key, name, cost: 0, shop: false, lv, excl: true, ...(sw ? { sw } : {}) })),
   ...PANELS.map(([k, name, cost]) => ({ id: 'pn-' + k, type: 'panel', key: k, name: name + ' panels', cost, shop: true })),
   ...SKINS.map(([k, name, cost, emo]) => ({ id: 'sk-' + k, type: 'skin', key: k, name, cost, emo, shop: true })),
   ...RECIPES.filter(r => r.chef).map(r => ({ id: 'r-' + r.id, type: 'recipe', name: r.name, lv: r.chef[0], rid: r.id })),
@@ -110,13 +124,19 @@ const ITEMS = [
 ];
 const item = id => ITEMS.find(i => i.id === id);
 // Shop items are owned once bought (or free); level rewards open at their level. Dungeons and recipes bought before this split stay owned.
+// XP only comes from looking after yourself (training, food, water, sleep, weighing in); everything else pays coins,
+// a bit more than before to make up for it
+const coinsFor = xp => Math.round(xp / 4);
+// the picture of an item: looks show themselves (a ring, a banner strip, a theme swatch), the rest an icon
+const ICO = i => i.type === 'frame' ? `<div class="av fr-${i.key} icoav" style="--p:.6"><span></span></div>` : i.type === 'banner' ? `<span class="bnp icobn bn-${i.key}"></span>`
+  : i.type === 'theme' && i.sw ? `<span class="swc round icosw" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>` : ICO0(i);
 const has = i => i.shop ? (i.cost === 0 || G.owned.includes(i.id)) : (lvl() >= i.lv || G.owned.includes(i.id));
 const perk = k => has(item('p-' + k));
 const xpPerk = () => perk('xp4') ? .20 : perk('xp3') ? .15 : perk('xp2') ? .10 : perk('xp1') ? .05 : 0;
 const coinPerk = () => perk('coin3') ? .30 : perk('coin2') ? .20 : perk('coin1') ? .10 : 0;
 const boostOn = () => Date.now() < (G.boostUntil || 0);
 const KIND = { theme: 'Theme', avatar: 'Profile picture', frame: 'Ring', banner: 'Banner', panel: 'Panel style', skin: 'Interface', dungeon: 'Workout', recipe: 'Meal', perk: 'Perk' };
-const ICO = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : i.type === 'panel' ? gi('frame', 'hero') : i.type === 'skin' ? `<span class="emo">${i.emo}</span>` : gi('palette', 'hero');
+const ICO0 = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : i.type === 'panel' ? gi('frame', 'hero') : i.type === 'skin' ? `<span class="emo">${i.emo}</span>` : gi('palette', 'hero');
 
 // ---------- daily quests ----------
 const QT = [
@@ -197,8 +217,9 @@ function flushLevelUp(after) {
   const bonus = Array.from({ length: to - from }, (_, k) => 20 + 5 * (from + 1 + k)).reduce((a, b) => a + b, 0);
   G.pend = null; commit(); sfx('level'); confetti();
   modal(`<div class="lvup">LEVEL UP</div><div class="bignum">${to}</div><div class="mut">${title()}</div>
+    ${(o => o.length ? `<h3>Shop opened</h3>${o.map(([t]) => `<div class="unl">${gi('palette', 'hero')} <b>${SHOP_NAME[t]}</b><span class="mut">Shop</span></div>`).join('')}` : '')(Object.entries(SHOP_LV).filter(([, l]) => l > from && l <= to))}
     ${unlocked.length ? `<h3>Unlocked</h3>${unlocked.map(i => `<div class="unl">${ICO(i)} <b>${esc(i.name)}${i.desc ? `<span class="mut" style="display:block;font-weight:400">${esc(i.desc)}</span>` : ''}</b><span class="mut">${KIND[i.type]}</span></div>`).join('')}` : ''}
-    <div class="unl">${gi('coin', 'cn')} <b>+${bonus} coins</b></div>${[...Array(to - from)].some((_, k) => (from + 1 + k) % 5 === 0) ? `<div class="unl">${gi('crate', 'hero')} <b>Milestone chest</b><span class="mut">Open it on Today</span></div>` : ''}<button class="btn" data-close>Awesome</button>`, after);
+    <div class="unl">${gi('coin', 'cn')} <b>+${bonus} coins</b></div>${(n => `<div class="unl">${gi('chest-silver', 'hero')} <b>${to - from} × Silver chest</b><span class="mut">Open it in Loot</span></div>${n ? `<div class="unl">${gi('chest-gold', 'hero')} <b>${n} × Golden chest</b><span class="mut">Open it in Loot</span></div>` : ''}`)([...Array(to - from)].filter((_, k) => (from + 1 + k) % 5 === 0).length)}<button class="btn" data-close>Awesome</button>`, after);
 }
 
 // ---------- achievements ----------
@@ -233,9 +254,9 @@ function checkAch() {
   const got = [];
   for (let more = true; more;) {
     more = false;
-    for (const a of ACH) if (!G.ach.includes(a.id) && a.ok()) { G.ach.push(a.id); award(a.xp, Math.round(a.xp / 5)); got.push(a); more = true; }
+    for (const a of ACH) if (!G.ach.includes(a.id) && a.ok()) { G.ach.push(a.id); award(0, coinsFor(a.xp)); got.push(a); more = true; }
   }
-  got.forEach(a => toast(`Badge unlocked: ${a.n} (+${a.xp} XP)`));
+  got.forEach(a => toast(`Badge unlocked: ${a.n} (+${coinsFor(a.xp)} coins)`));
   if (got.length) sfx('claim');
   return got;
 }
@@ -301,12 +322,12 @@ window.startDungeon = id => {
 window.claimQuest = id => {
   const q = QT.find(x => x.id === id);
   if (G.quests.claimed.includes(id) || metric(q.m) < q.n) return;
-  G.quests.claimed.push(id); G.questsDone++; award(q.xp, Math.round(q.xp / 5)); sfx('claim'); checkAch();
+  G.quests.claimed.push(id); G.questsDone++; award(0, coinsFor(q.xp)); sfx('claim'); checkAch();
   flushLevelUp(home);
 };
 window.claimQuestBonus = () => {
   if (G.quests.bonus || G.quests.claimed.length < G.quests.list.length) return;
-  G.quests.bonus = true; G.chests.push('wood'); award(60, 25); sfx('claim'); flushLevelUp(home);
+  G.quests.bonus = true; G.chests.push('wood'); award(0, 40); sfx('claim'); flushLevelUp(home);
 };
 const ciInfo = () => {
   const st = G.checkin === dayId() ? G.ciStreak : G.checkin === dayId(Date.now() - 864e5) ? G.ciStreak + 1 : 1;
@@ -316,16 +337,21 @@ window.checkIn = () => {
   if (G.checkin === dayId()) return;
   const c = ciInfo(); G.checkin = dayId(); G.ciStreak = c.st;
   if (c.chest) G.chests.push('silver');
-  toast(`Check-in day ${c.st}${c.chest ? ': silver chest!' : ''}`); award(c.xp, c.coins); sfx('claim'); flushLevelUp(home);
+  toast(`Check-in day ${c.st}${c.chest ? ': silver chest!' : ''}`); award(0, c.coins + coinsFor(c.xp)); sfx('claim'); flushLevelUp(home);
 };
 const BOSSES = [['Iron Golem', 'golem'], ['Sloth Dragon', 'dragon'], ['Couch Lord', 'sofa'], ['Fatigue Wraith', 'ghost'], ['Gravity Beast', 'gorilla']];
 window.claimBoss = () => {
   if (G.bossClaimed === weekId() || weekCount() < S.profile.days) return;
-  G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(250, 100); sfx('claim'); checkAch(); flushLevelUp(home);
+  G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(0, 160); sfx('claim'); checkAch(); flushLevelUp(home);
 };
+// The shop opens kind by kind over the first levels: at level 1 nothing can be bought yet
+const SHOP_LV = { avatar: 2, banner: 3, frame: 4, theme: 5, panel: 7, skin: 10 };
+const SHOP_NAME = { avatar: 'Profile pictures', banner: 'Banners', frame: 'Rings', theme: 'App themes', panel: 'Panel styles', skin: 'Interfaces' };
+const shopOpen = t => lvl() >= (SHOP_LV[t] || 1);
 window.buy = id => {
   const i = item(id);
   if (!i.shop) { toast(`${i.name} unlocks at level ${i.lv}.`); return; }
+  if (!shopOpen(i.type)) { toast(`${SHOP_NAME[i.type]} can be bought from level ${SHOP_LV[i.type]}.`); return; }
   if (has(i) || G.coins < i.cost) { toast(has(i) ? 'Already yours.' : `Need ${i.cost - G.coins} more coins.`); return; }
   G.coins -= i.cost; G.owned.push(id); commit(); sfx('claim'); toast(`Unlocked ${i.name}`); checkAch(); route();
 };
@@ -335,7 +361,10 @@ window.equip = id => {
   commit(); applyTheme(); route();
 };
 window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(); };
-const CHEST = { wood: ['Wooden chest', 'crate', [80, 95, 100, 100], [20, 60], [50, 120]], silver: ['Silver chest', 'chest-silver', [50, 70, 100, 100], [60, 150], [100, 250]], gold: ['Golden chest', 'chest-gold', [30, 50, 90, 100], [150, 400], [300, 600]] };
+// [name, icon, odds cuts (coins below cut 0, XP below cut 1, a look after), coin range, XP range]
+// Chests give no XP any more (cut 0 = cut 1): the share XP had went to coins, so the chance of a look did not change.
+// Coin amounts were lowered when every level started giving a chest.
+const CHEST = { wood: ['Wooden chest', 'crate', [95, 95, 100, 100], [15, 40], [0, 0]], silver: ['Silver chest', 'chest-silver', [70, 70, 100, 100], [25, 60], [0, 0]], gold: ['Golden chest', 'chest-gold', [50, 50, 90, 100], [60, 150], [0, 0]] };
 const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
 // Any shop item can come out of a chest, interfaces included. The pricier the item, the rarer it is, and how much rarer
 // depends on the chest: wooden chests mostly give cheap looks, golden ones give expensive ones a fair chance.
@@ -362,7 +391,7 @@ window.chestOddsView = () => {
   ${['wood', 'silver', 'gold'].map(t => { const o = chestOdds(t), [name, ico, , cr, xr] = CHEST[t];
     return `<div class="card oddc"><div class="row"><span class="oddi">${gi(ico)}</span><b class="grow">${name}</b></div>
     <div class="oddr"><span>${gi('coin', 'cn')} ${cr[0]}–${cr[1]} coins</span><b>${pct(o.coins)}</b></div>
-    <div class="oddr"><span>${gi('sparkles')} ${xr[0]}–${xr[1]} XP</span><b>${pct(o.xp)}</b></div>
+    ${o.xp ? `<div class="oddr"><span>${gi('sparkles')} ${xr[0]}–${xr[1]} XP</span><b>${pct(o.xp)}</b></div>` : ''}
     <div class="oddr"><span>${gi('crown')} A shop item</span><b>${pct(o.item)}</b></div>
     ${kinds.filter(k => o.byType[k]).map(k => `<div class="oddr sub"><span>${KIND[k]}</span><b>${pct(o.byType[k])}</b></div>`).join('')}
     ${o.best ? `<div class="mut"><span>Rarest:</span> <b translate="no">${esc(o.best.i.name)}</b> · <span>${o.best.i.cost} coins</span> · ${pct(o.best.p)}</div>` : ''}</div>`; }).join('')}
@@ -429,19 +458,19 @@ function home() {
   ${G.quests.list.map(id => {
     const q = QT.find(x => x.id === id), v = Math.min(q.n, metric(q.m)), ok = v >= q.n, cl = G.quests.claimed.includes(id);
     return `<div class="quest ${cl ? 'cl' : ok ? 'ok' : ''}"><div class="qi">${gi(q.ico)}</div><div class="grow"><div class="qt">${q.t}</div>
-    <div class="qbar"><i style="width:${v / q.n * 100}%"></i></div><div class="mut">${v}/${q.n} · +${q.xp} XP · ${gi('coin', 'cn')} ${Math.round(q.xp / 5)}</div></div>
+    <div class="qbar"><i style="width:${v / q.n * 100}%"></i></div><div class="mut">${v}/${q.n} · ${gi('coin', 'cn')} ${coinsFor(q.xp)}</div></div>
     ${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimQuest('${id}')">Claim</button>` : ''}</div>`;
   }).join('')}
-  ${G.quests.bonus ? '' : `<div class="quest ${done >= G.quests.list.length ? 'ok' : ''}"><div class="qi">${gi('crate')}</div><div class="grow"><div class="qt">Clear every quest</div><div class="mut">Bonus chest: +60 XP · ${gi('coin', 'cn')} 25</div></div>
+  ${G.quests.bonus ? '' : `<div class="quest ${done >= G.quests.list.length ? 'ok' : ''}"><div class="qi">${gi('crate')}</div><div class="grow"><div class="qt">Clear every quest</div><div class="mut">Bonus chest · ${gi('coin', 'cn')} 40</div></div>
   ${done >= G.quests.list.length ? '<button class="btn sm" onclick="claimQuestBonus()">Open</button>' : ''}</div>`}
-  ${G.checkin === dayId() ? '' : (c => `<button class="btn gold" onclick="checkIn()">Daily check-in · day ${c.st} · +${c.xp} XP · ${gi('coin', 'cn')} ${c.coins}${c.chest ? ' · chest' : ''}</button>`)(ciInfo())}
+  ${G.checkin === dayId() ? '' : (c => `<button class="btn gold" onclick="checkIn()">Daily check-in · day ${c.st} · ${gi('coin', 'cn')} ${c.coins + coinsFor(c.xp)}${c.chest ? ' · chest' : ''}</button>`)(ciInfo())}
   ${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${gi(CHEST[G.chests[0]][1])} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : ''}
   <button class="btn ghost sm chestodds" onclick="chestOddsView()">What can come out?</button>
   <h2 class="sec">Weekly boss</h2>
   <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${gi(be, 'hero')}</div><div class="grow"><h3>${bn}</h3>
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
     <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left. Every workout deals damage.`}</div>
-    ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · +250 XP · ${gi('coin', 'cn')} 100</button>` : ''}</div></section>
+    ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 160</button>` : ''}</div></section>
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
   <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min · +${d.items.reduce((s, i) => s + i.sets, 0) * 10 + 100} XP</div><h2>${esc(d.name.split(' · ')[1])}</h2>
@@ -473,7 +502,7 @@ function victory() {
   <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
   <div class="hud solo"><div class="av fr-${G.frame}" style="--p:0"><span>${gi(G.avatar, 'hero')}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
   ${r.chest ? `<div class="card row"><div class="avbig sm">${gi(CHEST[r.chest][1])}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}
-  ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${gi(a.i, 'hero')}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked · +${a.xp} XP</div></div></div>`).join('')}
+  ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${gi(a.i, 'hero')}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked · +${coinsFor(a.xp)} coins</div></div></div>`).join('')}
   <button class="btn" id="col">Collect</button></div>`;
   sfx('claim'); confetti();
   setTimeout(() => { const b = $('#vb'); if (b) { b.style.width = (lb > la ? 100 : pc(r.after)) + '%'; } }, 150);
@@ -485,7 +514,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 102</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 110</div>`;
 }
 
 function initGame() {
@@ -532,3 +561,19 @@ function migrateGame() {
   G.ver = 3;
 }
 Object.assign(routes, { home, dungeons, victory });
+
+// Prestige rings with particles (sparks, snow, runes, lightning...): two extra layers inside the avatar that carry them.
+// Added to every avatar on screen wearing one of these rings, whichever screen drew it.
+const PFX = new Set(['sparks', 'frost', 'arcane', 'storm', 'void', 'celestial', 'phoenix', 'aura']);
+// every level-only ring also wears its interface's prestige crest (skins.css draws one per interface)
+const PRESTIGE = new Set([...PFX, 'lbronze', 'lsilver', 'lgold', 'plat']);
+function addFx() {
+  document.querySelectorAll('.av').forEach(a => {
+    const k = [...a.classList].find(c => c.startsWith('fr-'))?.slice(3), fx = a.querySelectorAll(':scope > .fx'), pc = a.querySelector(':scope > .pc');
+    if (PFX.has(k)) { if (!fx.length) a.insertAdjacentHTML('beforeend', '<i class="fx"></i><i class="fx fx2"></i>'); }
+    else fx.forEach(e => e.remove());
+    if (PRESTIGE.has(k)) { if (!pc) a.insertAdjacentHTML('beforeend', '<i class="pc"></i>'); } else pc?.remove();
+  });
+}
+let fxQ = 0;
+new MutationObserver(() => { if (!fxQ) fxQ = requestAnimationFrame(() => { fxQ = 0; addFx(); }); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });

@@ -11,7 +11,7 @@ const chestBtn = () => G.chests.length ? `<button class="btn chestbtn" onclick="
 const BOOSTS = [
   { id: 'x-boost', name: 'XP booster', desc: 'Double XP from workouts for 24 hours', cost: 150, ico: 'upgrade', act: () => { G.boostUntil = Math.max(Date.now(), G.boostUntil || 0) + 864e5; } },
   { id: 'x-spin', name: 'Extra spin', desc: 'One more turn of the daily wheel', cost: 60, ico: 'slot', act: () => { G.extraSpins = (G.extraSpins || 0) + 1; } },
-  { id: 'x-wood', name: 'Wooden chest', desc: 'Coins, XP or a small look', cost: 100, ico: 'crate', act: () => G.chests.push('wood') },
+  { id: 'x-wood', name: 'Wooden chest', desc: 'Coins or a small look', cost: 100, ico: 'crate', act: () => G.chests.push('wood') },
   { id: 'x-silver', name: 'Silver chest', desc: 'Better odds of a new look', cost: 250, ico: 'chest-silver', act: () => G.chests.push('silver') },
   { id: 'x-gold', name: 'Golden chest', desc: 'The best odds of a rare look', cost: 600, ico: 'chest-gold', act: () => G.chests.push('gold') },
 ];
@@ -58,7 +58,7 @@ window.sell = id => {
 
 // ---------- Levels ----------
 function levelsView() {
-  const L = lvl(), max = Math.min(50, Math.max(L + 8, 14));
+  const L = lvl(), max = 50; // the whole road, so every level reward can be seen ahead
   const next = ITEMS.filter(i => !i.shop && i.lv > L).sort((a, b) => a.lv - b.lv)[0], perks = ITEMS.filter(i => i.type === 'perk' && has(i));
   return `${hud()}${rwSeg('levels')}${chestBtn()}
   <p class="mut">Levels unlock new <b>meals</b>, <b>workouts</b> and <b>perks</b>. Coins are spent in the Shop on looks and boosts.</p>
@@ -68,6 +68,7 @@ function levelsView() {
     const its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1);
     return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
     ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
+    ${Object.entries(SHOP_LV).filter(([, l]) => l === n).map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">open in the Shop</span></div>`).join('')}
     ${its.map(i => `<div class="ri">${ICO(i)} ${esc(i.name)} <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
   }).join('')}</div>`;
 }
@@ -91,9 +92,11 @@ const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></d
 function tile(i) {
   const own = has(i);
   const sellB = i.cost ? `<button class="btn sm ghost sellb" onclick="sell('${i.id}')">Sell · ${gi('coin', 'cn')} ${sellPrice(i)}</button>` : '';
-  const act = own ? (equipped(i) ? `<b class="eq">Equipped</b>${sellB}` : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>${sellB}`)
+  const act = own ? (equipped(i) && !TRY[i.type] ? `<b class="eq">Equipped</b>${sellB}` : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>${sellB}`)
+    : !shopOpen(i.type) ? `<span class="btn sm ghost lockb">${gi('lock')} Level ${SHOP_LV[i.type]}</span>`
     : `<button class="btn sm ${G.coins >= i.cost ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${i.cost}</button>`;
-  const tryb = i.type === 'skin' && !own ? `<button class="btn sm ghost" onclick="trySkin('${i.key}')">Try</button>` : '';
+  const trying = TRY[i.type]?.key === i.key;
+  const tryb = own ? '' : trying ? `<button class="btn sm ghost on" onclick="endTry('${i.type}')">Trying · end</button>` : `<button class="btn sm ghost" onclick="tryLook('${i.id}')">Try 1 min</button>`;
   return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${tryb}${act}</div>`;
 }
 function shopView() {
@@ -107,13 +110,13 @@ function shopView() {
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
     <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
   ${Object.entries(sec).sort((x, y) => by(x[0])[0].cost - by(y[0])[0].cost).map(([t, [name, grid, intro]]) => // cheapest kind of look first
-    `<h2 class="sec" data-t="${t}">${name} · ${owned(t)}/${by(t).length}</h2>${intro}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
+    `<h2 class="sec" data-t="${t}">${name} · ${shopOpen(t) ? `${owned(t)}/${by(t).length}` : `${gi('lock')} level ${SHOP_LV[t]}`}</h2>${shopOpen(t) ? intro : `<p class="mut lockn">${gi('lock')} You can buy these from level ${SHOP_LV[t]}. Until then they can still come out of chests.</p>`}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
 }
 
 // ---------- Badges ----------
 function badgesView() {
   return `${hud()}${rwSeg('badges')}<h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>
-  ${ACH.map(a => { const got = G.ach.includes(a.id); return `<div class="card row ${got ? '' : 'locked'}"><div class="avbig sm">${got ? gi(a.i, 'hero') : gi('lock')}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}${a.t ? ` · title: ${a.t}` : ''}</div></div><span class="mut">+${a.xp} XP</span></div>`; }).join('')}`;
+  ${ACH.map(a => { const got = G.ach.includes(a.id); return `<div class="card row ${got ? '' : 'locked'}"><div class="avbig sm">${got ? gi(a.i, 'hero') : gi('lock')}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}${a.t ? ` · title: ${a.t}` : ''}</div></div><span class="mut">${gi('coin', 'cn')} ${coinsFor(a.xp)}</span></div>`; }).join('')}`;
 }
 
 function rewards(sub) {
@@ -137,10 +140,12 @@ const COS = [
 ];
 function looksView(t) {
   const c = COS.find(x => x[0] === t); if (!c) { location.hash = '#/profile'; return; }
-  const [, name, wide, prev] = c, mine = ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost), more = ITEMS.filter(i => i.type === t && !has(i)).length;
+  const [, name, wide, prev] = c, mine = ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost || (x.lv || 0) - (y.lv || 0)), more = ITEMS.filter(i => i.type === t && !has(i)).length;
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/profile'">${ic('back', 18)} Back</button><h1>${name}</h1>
   <div class="mut">${mine.length} owned · tap one to use it</div>${t === 'theme' ? themeNote() : ''}
   <div class="pgrid ${wide}">${mine.map(i => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name.replace(/ panels$| banner$/, ''))}</small></button>`).join('')}</div>
+  ${(lockd => lockd.length ? `<h2 class="sec">Level rewards</h2><div class="mut">Only earned by levelling up: they can't be bought or found in chests.</div>
+    <div class="pgrid ${wide}">${lockd.map(i => `<div class="pick locked" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name)}<br>${gi('lock')} level ${i.lv}</small></div>`).join('')}</div>` : '')(ITEMS.filter(i => i.type === t && i.excl && !has(i)).sort((x, y) => x.lv - y.lv))}
   ${more ? `<button class="btn ghost sm moreb" onclick="shopAt('${t}')">${more} more in the Shop</button>` : ''}`;
 }
 function profileView(sub) {
@@ -166,23 +171,38 @@ function profileView(sub) {
   <button class="btn" onclick="location.hash='#/start/edit'">Edit body data and training plan</button>
   <p class="mut">${GI_CREDIT}</p>`;
 }
-// preview an interface for one minute anywhere in the app, with a countdown bar
+// Try any look of the shop for one minute, even one you can't buy yet: one per kind at a time (a picture, a ring, a
+// banner, a panel style, a theme and an interface can all be tried together). A bar shows each one with its countdown.
 let tryT = null;
-window.endTry = () => { clearInterval(tryT); tryT = null; document.getElementById('trybar')?.remove(); setSkin(G.skin || 'hud'); };
-window.trySkin = k => {
-  if (tryT) clearInterval(tryT);
-  setSkin(k);
-  const it = ITEMS.find(i => i.type === 'skin' && i.key === k), end = Date.now() + 60000;
-  let bar = document.getElementById('trybar');
-  if (!bar) { bar = document.createElement('div'); bar.id = 'trybar'; document.body.appendChild(bar); }
-  const draw = () => {
-    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
-    if (!left || (G.skin || 'hud') === k || document.documentElement.dataset.skin !== k) { endTry(); return; }
-    bar.innerHTML = `<span>${it.emo} ${esc(tr(it.name))} · ${tr('Preview')} 0:${String(left).padStart(2, '0')}</span><button class="btn sm" onclick="endTry()">${tr('End')}</button>`;
-  };
-  draw(); tryT = setInterval(draw, 1000);
-  toast('Preview for one minute. Look around the app!');
+const TRY_ICO = { avatar: 'user', frame: 'frame', banner: 'banner', panel: 'frame', theme: 'palette', skin: 'palette' };
+function endTryKind(t) { if (!TRY[t]) return; G[t] = TRY[t].real; delete TRY[t]; }
+window.endTry = t => {
+  if (t) endTryKind(t); else Object.keys(TRY).forEach(endTryKind);
+  applyTheme(); drawTry(); route();
 };
+function drawTry() {
+  const now = Date.now();
+  let ended = false;
+  for (const [t, v] of Object.entries(TRY)) if (now >= v.end || G[t] !== v.key) { if (G[t] === v.key) endTryKind(t); else delete TRY[t]; ended = true; }
+  if (ended) { applyTheme(); route(); }
+  let bar = document.getElementById('trybar');
+  if (!Object.keys(TRY).length) { bar?.remove(); clearInterval(tryT); tryT = null; return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'trybar'; document.body.appendChild(bar); }
+  bar.innerHTML = Object.entries(TRY).map(([t, v]) => { const it = ITEMS.find(i => i.type === t && i.key === v.key), left = Math.max(0, Math.ceil((v.end - now) / 1000));
+    return `<span class="trc">${it.type === 'skin' ? it.emo : gi(TRY_ICO[t])} ${esc(tr(it.name.replace(/ panels$| banner$/, '')))} 0:${String(left).padStart(2, '0')}<button class="trx" onclick="endTry('${t}')" aria-label="End">✕</button></span>`; }).join('')
+    + (Object.keys(TRY).length > 1 ? `<button class="btn sm" onclick="endTry()">${tr('End all')}</button>` : '');
+}
+window.tryLook = id => {
+  const i = item(id), t = i.type, first = !Object.keys(TRY).length;
+  TRY[t] = { key: i.key, end: Date.now() + 60000, real: TRY[t] ? TRY[t].real : G[t] };
+  G[t] = i.key; applyTheme(); route(); drawTry();
+  if (!tryT) tryT = setInterval(drawTry, 1000);
+  if (first) toast('Preview for one minute. Look around the app!');
+};
+window.trySkin = k => tryLook(ITEMS.find(i => i.type === 'skin' && i.key === k).id);
+// wearing a look for real ends the try of that kind
+const _equipTry = window.equip;
+window.equip = id => { const i = item(id); if (TRY[i.type]) { G[i.type] = TRY[i.type].real; delete TRY[i.type]; drawTry(); } _equipTry(id); };
 window.equipTitle = id => { G.title = id; commit(); route(); };
 
 Object.assign(routes, { rewards, profile: profileView });
