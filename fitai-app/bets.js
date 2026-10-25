@@ -5,7 +5,7 @@
 
 const BT = (G.bets = Object.assign({ open: [], done: [], won: 0, lost: 0, net: 0, best: 0 }, G.bets || {}));
 let slip = [], stake = 25;
-const BET_MIN = 5, BET_MAX = 300, STAKE_CAP = { week: 30, month: 100 }, BET_OPEN = 8, LEGS_MAX = 6, BET_COMBO_MAX = 20;
+const BET_MIN = 10, BET_MAX = 300, STAKE_CAP = { week: 30, month: 100 }, BET_OPEN = 8, LEGS_MAX = 6, BET_COMBO_MAX = 20;
 // Muscle picks pay 1.00 each (you will train something); combining muscles of the same day, week or month multiplies the bet by these odds.
 // over a week or a month you end up training most muscles anyway, so their combos pay much less than today's
 const MG_X = { day: [1, 1, 1.25, 1.6, 2.1, 2.8, 3.6], week: [1, 1, 1.1, 1.2, 1.3, 1.45, 1.6], month: [1, 1, 1.05, 1.1, 1.15, 1.25, 1.35] };
@@ -532,7 +532,7 @@ function betsView() {
     ${so.muscles > 1 ? `<div class="mut">Muscle combo: ${so.muscles} muscles ×${so.mgx.toFixed(2)}</div>` : ''}
     ${so.related ? `<div class="mut">Related training picks: odds ×${(.85 ** so.related).toFixed(2)}</div>` : ''}
     <div class="row between"><span>Total odds</span><span class="odd big">${so.total.toFixed(2)}</span></div>
-    <div class="lbl">Stake</div><div class="chips">${[10, 25, 50, 100, 200].filter(v => v <= maxStake).map(v => `<button class="chip ${stake === v ? 'on' : ''}" onclick="betStake(${v})">${v}</button>`).join('')}${maxStake >= BET_MIN ? `<button class="chip ${stake === maxStake ? 'on' : ''}" onclick="betStake(${maxStake})">Max</button>` : ''}</div>
+    <div class="lbl">Stake</div><div class="row stakein"><input id="stakeIn" type="number" inputmode="numeric" min="${BET_MIN}" max="${maxStake}" step="1" value="${stake}" onchange="betStake(this.value)" onkeydown="if(event.key==='Enter')this.blur()" aria-label="Coins to stake"><span class="mut">${BET_MIN}–${stakeCap(slip)} coins</span></div><div class="chips">${[10, 20, 25, 50, 75].filter(v => v <= maxStake).map(v => `<button class="chip ${stake === v ? 'on' : ''}" onclick="betStake(${v})">${v}</button>`).join('')}${maxStake >= BET_MIN ? `<button class="chip ${stake === maxStake ? 'on' : ''}" onclick="betStake(${maxStake})">Max</button>` : ''}</div>
     ${repeatPer(slip) ? `<label class="row rep"><input type="checkbox" ${slipRepeat ? 'checked' : ''} onchange="betRepeat()"><span class="grow">Repeat when it ends</span></label><div class="mut">When it ends, the same bet is placed for the next ${repeatPer(slip) === 'week' ? '7 days' : 'month'} with the same stake.</div>` : slip.length > 1 ? '<div class="mut">Only bets whose picks are all 7-day or all one-month picks can repeat.</div>' : ''}
     <div class="row between pay"><span>Possible win</span><b>${gi('coin', 'cn')} ${Math.round(stake * so.total)}</b></div>
     <button class="btn chestbtn" ${G.coins >= stake && G.coins >= BET_MIN && BT.open.length < BET_OPEN ? '' : 'disabled'} onclick="placeBet()">${gi('ticket')} Place bet · ${stake} coins</button>
