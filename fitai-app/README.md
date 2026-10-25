@@ -156,4 +156,4 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 
 ## Tabs
 
-Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badges) and Hero. The reward road shows the next levels; the rest up to 50 are folded. Screens keep text to a minimum: numbers, names and buttons, with explanations only under "How it works".
+Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badges) and Hero. The reward road shows the next levels, listing only the big unlocks (workouts, looks, perks, shop sections); coins, chests and recipes come every level and are not listed. The rest up to 50 are folded. Screens keep text to a minimum: numbers, names and buttons, with explanations only under "How it works".

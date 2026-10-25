@@ -60,13 +60,14 @@ window.sell = id => {
 // ---------- Levels ----------
 const LOOKS = ['avatar', 'frame', 'banner', 'theme', 'panel', 'skin']; // kinds of look that can be tried on
 // one level of the reward road
+// one level of the reward road: only the big unlocks (every level also gives coins, a silver chest and new recipes, and every 5th a
+// golden one, so those are not listed)
 function roadRow(n) {
-  const L = lvl();
-  const its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1);
-  return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
-  ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
-  ${Object.entries(SHOP_LV).filter(([, l]) => l === n).map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">open in the Shop</span></div>`).join('')}
-  ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')" title="Tap to try it for a minute"` : ''}>${ICO(i)} <span class="rn">${esc(i.name)}${LOOKS.includes(i.type) && !has(i) ? ` <span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}</span> <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
+  const L = lvl(), its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1 && i.type !== 'recipe'), opens = Object.entries(SHOP_LV).filter(([, l]) => l === n);
+  if (!its.length && !opens.length && n !== L) return '';
+  return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}</div>
+  ${opens.map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">in the Shop</span></div>`).join('')}
+  ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')"` : ''}>${ICO(i)} <span class="rn">${esc(i.name)}${LOOKS.includes(i.type) && !has(i) ? ` <span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}</span> <span class="mut">${KIND[i.type]}</span></div>`).join('')}</div></div>`;
 }
 const roadRows = (a, b) => Array.from({ length: b - a + 1 }, (_, k) => roadRow(a + k)).join('');
 function levelsView() {
