@@ -175,3 +175,4 @@ Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badge
 
 It runs on a free Supabase project: run `tools/supabase.sql` in its SQL editor, turn off "Confirm email", and put the project URL and publishable (anon) key in `cloud.js` (already set for this project).
 - **Profile at a glance:** Hero shows four big numbers (day streak, weeks on goal, workouts, hours), this week's progress window and the badges earned; friends see exactly the same on your profile (`profile.js`). The Academy club stays in the Academy.
+- **Podium:** the Friends tab opens with a podium of the three highest levels among you and your friends; when someone climbs onto it or overtakes someone, a toast says so and their step bounces. Every interface builds it from its own materials (castle towers, tree stumps, marble columns, neon grid, pixel blocks, treasure chests, planets...; `PODIUM` in `tools/build_skins.py`).

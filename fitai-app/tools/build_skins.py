@@ -875,6 +875,35 @@ html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,co
 """
 
 
+# ---------------------------------------------------------------- friends podium
+# Each interface builds the podium from its own materials: [first, second, third step colours, number colour,
+# the emblem over the winner, extra CSS for the steps].
+PODIUM = {
+    'clean': ('#6c8cff', '#9aa1b2', '#7d8597', '#ffffff', '"🏆"', 'border-radius:12px 12px 0 0;box-shadow:none'),
+    'hud': ('#22e4ff', '#7aa7c7', '#3d6a8a', '#021016', '"⬢"', 'border-radius:0;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%,0 10px);box-shadow:0 0 18px color-mix(in srgb,var(--pod) 55%,transparent),inset 0 0 0 1px #ffffff55'),
+    'chinese': ('#c4231b', '#8f1a14', '#6e140f', '#f3cf6e', '"🏮"', 'border:2px solid #d9ad45;border-bottom:0;border-radius:4px 4px 0 0;box-shadow:inset 0 0 0 3px #00000033,inset 0 0 0 4px #d9ad4588'),
+    'japanese': ('#e5432f', '#c23a28', '#9e2f20', '#fff6e6', '"⛩️"', 'border-radius:0;border:0;box-shadow:inset 0 6px 0 #1b1b1b,inset 0 10px 0 #e5432f'),
+    'fairy': ('#8a5a33', '#74492a', '#5e3b22', '#ffe9b0', '"🍄"', 'border-radius:40% 40% 6px 6px/22px 22px 6px 6px;border:0;box-shadow:inset 0 8px 0 #5f9a43,inset 0 -6px 12px #0006'),
+    'medieval': ('#7d7465', '#6a6255', '#575046', '#e8d9a8', '"🏰"', 'border-radius:0;border:0;clip-path:polygon(0 8px,14% 8px,14% 0,30% 0,30% 8px,44% 8px,44% 0,56% 0,56% 8px,70% 8px,70% 0,86% 0,86% 8px,100% 8px,100% 100%,0 100%);background-image:linear-gradient(#0002 1px,#0000 1px),linear-gradient(90deg,#0002 1px,#0000 1px);background-size:100% 14px,28px 100%'),
+    'steampunk': ('#b87333', '#9c5f2a', '#7d4b22', '#2a1a0a', '"⚙️"', 'border-radius:6px 6px 0 0;border:2px solid #d6a25c;border-bottom:0;background-image:radial-gradient(circle,#d6a25c 0 2px,#0000 2.5px);background-size:14px 14px;background-position:3px 3px'),
+    'greek': ('#f2ede2', '#ddd6c6', '#c9c0ac', '#3a2f1c', '"🏛️"', 'border-radius:0;border:0;background-image:repeating-linear-gradient(90deg,#0000 0 8px,#0000001a 8px 10px);box-shadow:inset 0 6px 0 #c9b98d'),
+    'egypt': ('#d9b45a', '#c4a050', '#a88745', '#2a1b05', '"🏺"', 'border-radius:0;border:0;clip-path:polygon(12% 0,88% 0,100% 100%,0 100%);background-image:linear-gradient(#0000 0 70%,#2bb3a3 70% 78%,#0000 78%)'),
+    'viking': ('#6b4a2b', '#5a3e24', '#4a331e', '#e9d7a5', '"🛡️"', 'border-radius:3px 3px 0 0;border:0;background-image:repeating-linear-gradient(0deg,#0000 0 12px,#0003 12px 14px);box-shadow:inset 0 0 0 2px #8b9aa6'),
+    'pirate': ('#7a5530', '#664627', '#523920', '#ffd36a', '"🏴‍☠️"', 'border-radius:14px 14px 0 0;border:0;background-image:linear-gradient(90deg,#0000 0 12%,#2a1d10 12% 16%,#0000 16% 84%,#2a1d10 84% 88%,#0000 88%);box-shadow:inset 0 5px 0 #c8a15a'),
+    'outrun': ('#ff3cc7', '#9b4dff', '#00c8ff', '#120024', '"🌴"', 'border-radius:4px 4px 0 0;border:0;background-image:linear-gradient(#0000 60%,#0003 60%),repeating-linear-gradient(90deg,#fff3 0 1px,#0000 1px 16px);box-shadow:0 0 18px color-mix(in srgb,var(--pod) 70%,transparent)'),
+    'arcade': ('#ffe14a', '#4ad6ff', '#ff5ca8', '#0d0a24', '"👾"', 'border-radius:0;border:0;box-shadow:inset 0 0 0 3px #0d0a24,inset 0 0 0 5px #ffffff88;image-rendering:pixelated'),
+    'classical': ('#f3ecdc', '#d9cfb9', '#bfb39b', '#14110a', '"🥂"', 'border-radius:0;border:0;box-shadow:inset 0 0 0 1px #d9b871,inset 0 0 0 4px #f3ecdc,inset 0 0 0 5px #d9b87188'),
+    'artdeco': ('#1a1a1a', '#151515', '#101010', '#e6c36a', '"🎷"', 'border-radius:0;border:2px solid #e6c36a;border-bottom:0;background-image:repeating-conic-gradient(from -90deg at 50% 100%,#e6c36a22 0 6deg,#0000 6deg 12deg)'),
+    'gothic': ('#4a4f63', '#3d4153', '#303444', '#cfd8ff', '"🕯️"', 'border-radius:50% 50% 0 0/26px 26px 0 0;border:0;background-image:linear-gradient(90deg,#0000 0 46%,#7aa2ff55 46% 54%,#0000 54%)'),
+    'baroque': ('#8e1b2e', '#741626', '#5c111e', '#f3cf6e', '"👑"', 'border-radius:16px 16px 0 0;border:2px solid #e0b44c;border-bottom:0;box-shadow:inset 0 0 0 3px #00000033,inset 0 0 0 5px #e0b44c66'),
+    'mythical': ('#7c4dff', '#5a2fd6', '#3ddc97', '#ffffff', '"🐉"', 'border-radius:8px 8px 0 0;border:0;clip-path:polygon(50% 0,100% 18%,100% 100%,0 100%,0 18%);box-shadow:0 0 22px color-mix(in srgb,var(--pod) 70%,transparent),inset 0 0 18px #ffffff33'),
+    'cosmic': ('#9b7bff', '#5f6bd6', '#22d3ee', '#05031a', '"🪐"', 'border-radius:50% 50% 0 0/14px 14px 0 0;border:0;background-image:radial-gradient(circle,#fff 0 1px,#0000 1.5px);background-size:13px 17px;box-shadow:0 0 18px color-mix(in srgb,var(--pod) 60%,transparent)'),
+}
+POD = "\n/* friends podium, dressed by each interface */\n" + "".join(
+    f"html[data-skin={k}]{{--pod1:{a};--pod2:{b};--pod3:{c};--podink:{ink};--podorn:{orn}}}\nhtml[data-skin={k}] .pod .blk{{{extra}}}\n"
+    for k, (a, b, c, ink, orn, extra) in PODIUM.items())
+
+
 # ---------------------------------------------------------------- prestige crests
 # Level-only prestige rings wear a small emblem on top, like game profile borders, drawn by each interface
 # (art in crest_art.py: build_min, one emblem each; build keeps the fuller ornaments). Two masks per interface: the
@@ -894,5 +923,5 @@ PREST = "\n/* prestige crests: each interface's ornament for level-only rings (m
     f"html[data-skin={k}]{{--pcrest:{svg(crest_metal(sh, cu), '0 0 120 120')};--pgem:{svg(chr(60) + 'g fill=' + chr(39) + '#fff' + chr(39) + '>' + gm + '</g>', '0 0 120 120')}}}\n"
     for k, (sh, cu, gm) in crest_build().items())
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST)
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST + POD)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')
