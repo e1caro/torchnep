@@ -505,7 +505,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 106</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 107</div>`;
 }
 
 function initGame() {
@@ -556,11 +556,14 @@ Object.assign(routes, { home, dungeons, victory });
 // Prestige rings with particles (sparks, snow, runes, lightning...): two extra layers inside the avatar that carry them.
 // Added to every avatar on screen wearing one of these rings, whichever screen drew it.
 const PFX = new Set(['sparks', 'frost', 'arcane', 'storm', 'void', 'celestial', 'phoenix', 'aura']);
+// every level-only ring also wears its interface's prestige crest (skins.css draws one per interface)
+const PRESTIGE = new Set([...PFX, 'lbronze', 'lsilver', 'lgold', 'plat']);
 function addFx() {
   document.querySelectorAll('.av').forEach(a => {
-    const k = [...a.classList].find(c => c.startsWith('fr-'))?.slice(3), fx = a.querySelectorAll(':scope > .fx');
+    const k = [...a.classList].find(c => c.startsWith('fr-'))?.slice(3), fx = a.querySelectorAll(':scope > .fx'), pc = a.querySelector(':scope > .pc');
     if (PFX.has(k)) { if (!fx.length) a.insertAdjacentHTML('beforeend', '<i class="fx"></i><i class="fx fx2"></i>'); }
     else fx.forEach(e => e.remove());
+    if (PRESTIGE.has(k)) { if (!pc) a.insertAdjacentHTML('beforeend', '<i class="pc"></i>'); } else pc?.remove();
   });
 }
 let fxQ = 0;

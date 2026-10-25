@@ -823,5 +823,37 @@ html[data-tint][data-skin=pirate] .orb::before{{background:var(--bring) center/1
 html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--glow) 80%,var(--acc) 10%),var(--card) 70%),var(--bg)}}
 """
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW)
+
+# ---------------------------------------------------------------- prestige crests
+# Level-only prestige rings wear an ornament around the avatar, like game profile borders: a crest on top, wings or
+# scrolls on the sides and a plate below. Each interface draws its own (these are masks; the ring's metal colours them).
+def mir(body):
+    return body + f"<g transform='matrix(-1 0 0 1 120 0)'>{body}</g>"
+
+
+W = "fill='#fff'"
+K = "fill='none' stroke='#fff' stroke-linecap='round' stroke-linejoin='round'"
+PCREST = {
+    'hud': mir(f"<path {W} d='M60 3 L70 12 L66 12 L60 7z M8 42h6v4h-2v28h2v4h-6z M18 16h9l-9 9z M44 106h16v5h-20z'/>"),
+    'chinese': mir(f"<path {W} d='M60 2c-5 0-8 4-6 8-5-2-9 2-6 6h12z'/><path {K} stroke-width='3' d='M14 72c-6-6-4-16 4-16 7 0 7 9 1 9M20 40c-6-4-4-12 2-12M54 106c4 4 6 8 6 12'/>"),
+    'japanese': mir(f"<path {K} stroke-width='3.5' d='M34 9h26M38 15h22M44 9v13'/>" + ''.join(f"<circle {W} cx='{14 + 4 * math.cos(math.radians(a))}' cy='{50 + 4 * math.sin(math.radians(a))}' r='3'/>" for a in range(0, 360, 72)) + f"<path {K} stroke-width='2.5' d='M40 110c6-4 14-4 20 0'/>"),
+    'fairy': mir(f"<path {K} stroke-width='2.5' d='M60 112C30 112 10 92 10 60S28 10 50 6'/>" + ''.join(f"<ellipse {W} cx='{x}' cy='{y}' rx='5' ry='2.5' transform='rotate({r} {x} {y})'/>" for x, y, r in [(14, 88, -50), (9, 66, -80), (12, 44, -110), (24, 22, -140), (40, 10, -160)]) + f"<circle {W} cx='60' cy='6' r='4'/>"),
+    'medieval': mir(f"<path {W} d='M60 2h-10v9c0 7 10 12 10 12z'/><path {K} stroke-width='3' d='M8 8l26 26M6 16l8-8'/><path {W} d='M60 103h-30l5 6-5 6h30z'/>"),
+    'steampunk': gear(10, 9, 6.5, 3, '#fff').replace("d='M", "transform='translate(0 -50)' d='M") + mir(f"<rect {W} x='4' y='48' width='9' height='24' rx='2'/><circle {W} cx='8.5' cy='60' r='6'/><path {K} stroke-width='3' d='M13 54h6M13 66h6'/>") + gear(8, 8, 5.5, 2.5, '#fff').replace("d='M", "transform='translate(0 50)' d='M"),
+    'greek': mir(''.join(f"<ellipse {W} cx='{60 + 50 * math.cos(math.radians(a))}' cy='{60 + 50 * math.sin(math.radians(a))}' rx='6' ry='2.6' transform='rotate({a + 60} {60 + 50 * math.cos(math.radians(a))} {60 + 50 * math.sin(math.radians(a))})'/>" for a in range(110, 245, 18)) + f"<path {K} stroke-width='2.5' d='M48 6h12v6h-6v-3'/><path {W} d='M60 106l-8 8h8z'/>"),
+    'egypt': mir(f"<circle {W} cx='60' cy='10' r='6'/><path {W} d='M54 10C40 2 22 4 8 14c12-2 22-2 30 2-8 0-16 2-24 6 14-4 28-4 40-6z'/><ellipse {W} cx='60' cy='108' rx='7' ry='9'/><path {K} stroke-width='2.5' d='M53 104l-6-3M53 110l-6 3'/>"),
+    'viking': mir(f"<path {W} d='M50 14C38 14 28 8 26 0c6 6 14 8 24 6z'/><path {K} stroke-width='3' d='M10 30l24 30M8 34c-2-8 4-12 8-10'/><path {K} stroke-width='2.5' d='M50 108c4-6 16-6 20 0-4 6-16 6-20 0z'/>"),
+    'pirate': mir(f"<circle {W} cx='60' cy='9' r='8'/><path {W} d='M54 16h12v5h-12z'/><path {K} stroke-width='3' d='M10 16c10 6 22 22 26 36M8 22l6-8'/><path {K} stroke-width='3' d='M60 100v16M52 112c4 4 12 4 16 0M54 104h12'/>"),
+    'outrun': mir(f"<path {W} d='M60 2L40 14 6 12l36 10 18-6z'/><path {W} d='M38 104h44v3h-44zM42 109h36v3h-36zM46 114h28v2.5h-28z'/>"),
+    'arcade': mir(f"<path {W} shape-rendering='crispEdges' d='M44 4h4v4h4v-4h4v4h4v-4h4v8h-20zM44 12h16v4h-16zM4 52h8v4h4v-4h8v8h-4v4h-4v4h-4v-4h-4v-4h-4zM40 108h20v6h-20z'/>"),
+    'classical': mir(f"<circle {W} cx='60' cy='8' r='5'/><path {K} stroke-width='2.5' d='M50 9c-6-6-14-2-12 4 1 4 6 4 6 0M8 56c-4-10 6-16 12-10 4 4 0 10-4 8M8 64c-4 10 6 16 12 10 4-4 0-10-4-8M44 110c8-4 12-4 16-2'/>"),
+    'artdeco': mir(''.join(f"<path {W} d='M60 16 L{60 + 28 * math.cos(math.radians(a - 2))} {16 - 28 * math.sin(math.radians(a - 2))} L{60 + 28 * math.cos(math.radians(a + 2))} {16 - 28 * math.sin(math.radians(a + 2))}z'/>" for a in range(95, 170, 15)) + f"<path {W} d='M4 46h4v28h-4zM10 50h3v20h-3zM15 54h2v12h-2zM44 104l16 10v-4l-12-8z'/>"),
+    'gothic': mir(f"<path {W} d='M60 0C56 8 52 12 52 20h8z'/><path {W} d='M14 40C6 44 2 54 4 62c4-4 8-4 10 0 2-4 6-4 8-2-2-8 0-16-8-20z'/><path {W} d='M30 8l4 8-7-3zM10 26l8 3-6 5zM56 104l4 12 4-12z'/>"),
+    'baroque': mir(f"<path {W} d='M48 14l2-10 5 6 5-8v12z'/><path {K} stroke-width='2.5' d='M10 40c-8 4-8 16 0 18 6 2 8-6 2-8M10 80c-8-4-8-16 0-18M42 108c6 6 12 6 18 4M30 14c-6 2-8 8-4 10'/>"),
+    'mythical': mir(f"<path {W} d='M30 30C14 22 4 30 2 44c6-6 12-6 14-2-6 2-10 8-10 14 6-6 12-6 16-2-4 4-6 10-4 16 6-10 14-16 22-18z'/><path {W} d='M52 14C46 10 44 4 46 0c2 6 8 8 12 8z'/><path {W} d='M60 118c-6-4-8-10-4-16 2 4 4 4 4 0 0 4 2 4 4 0 4 6 2 12-4 16z'/>"),
+    'cosmic': f"<ellipse {K} stroke-width='2' cx='60' cy='60' rx='58' ry='20' transform='rotate(-25 60 60)'/><circle {W} cx='108' cy='38' r='5'/><circle {W} cx='14' cy='84' r='3.5'/>" + f"<path {W} d='M60 0l3 7 7 3-7 3-3 7-3-7-7-3 7-3z'/><path {W} d='M60 104l2 6 6 2-6 2-2 6-2-6-6-2 6-2z'/>",
+}
+PREST = "\n/* prestige crests: each interface's ornament for level-only rings */\n" + ''.join(f"html[data-skin={k}]{{--pcrest:{svg(v, '0 0 120 120')}}}\n" for k, v in PCREST.items())
+
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')
