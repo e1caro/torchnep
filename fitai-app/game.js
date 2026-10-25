@@ -72,7 +72,7 @@ const PERKS = [
   ['coin2', 20, 'Coin Boost II', '+20% coins from every workout', 'coins'], ['xp3', 24, 'XP Boost III', '+15% XP from every workout', 'upgrade'],
   ['spin3', 30, 'Triple spin', 'Three free daily spins', 'slot'], ['coin3', 35, 'Coin Boost III', '+30% coins from every workout', 'coins'], ['xp4', 42, 'XP Boost IV', '+20% XP from every workout', 'upgrade'],
 ];
-const THEMES = [['hud', 'Cyber HUD', 0, '#22e4ff', '#ffb020'], ['ember', 'Ember', 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 120, '#00e5ff', '#ff2bd6'], ['sakura', 'Sakura', 140, '#ff7eb6', '#ffd1e8'], ['frost', 'Frostbite', 160, '#7cc6ff', '#e0f4ff'],
+const THEMES = [['hud', 'Basic', 0, '#8b92a3', '#eceef3'], ['ember', 'Ember', 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 120, '#00e5ff', '#ff2bd6'], ['sakura', 'Sakura', 140, '#ff7eb6', '#ffd1e8'], ['frost', 'Frostbite', 160, '#7cc6ff', '#e0f4ff'],
   ['toxic', 'Toxic', 200, '#8dff3a', '#e6ff5a'], ['ocean', 'Deep Ocean', 240, '#2ee6d6', '#3a8dff'], ['royal', 'Royal', 300, '#a66bff', '#ffd166'], ['retro', 'Arcade', 400, '#ff3d7f', '#ffe14d'],
   ['lava', 'Lava Flow', 420, '#ff4b1f', '#ffd000'], ['matrix', 'Mainframe', 520, '#2bff88', '#b7ffd8'], ['gold', 'Golden Hour', 700, '#ffd34d', '#fff1a8'], ['aurora', 'Aurora', 800, '#5cffc8', '#b46bff'],
   ['hologram', 'Hologram', 180, '#7df9ff', '#e8fdff'], ['stealth', 'Stealth Ops', 220, '#9fb3c8', '#3ddc97'], ['redalert', 'Red Alert', 350, '#ff2b3d', '#ffb020'], ['synthwave', 'Synthwave', 450, '#ff3cc7', '#7b5cff'], ['nightcity', 'Night City', 600, '#fcee0a', '#00f0ff']];
@@ -145,7 +145,8 @@ const QT = [
   { id: 'sets', t: 'Complete 12 sets', n: 12, m: 'sets', xp: 60, ico: 'biceps' },
   { id: 'guide', t: 'Study 2 exercise guides', n: 2, m: 'guides', xp: 30, ico: 'book' },
   { id: 'weigh', t: 'Log your weight', n: 1, m: 'weigh', xp: 25, ico: 'scale' },
-  { id: 'min', t: 'Train for 25 minutes', n: 25, m: 'minutes', xp: 60, ico: 'stopwatch' },
+  // about two thirds of your usual session (workout minutes are estimated from the exercises you finish)
+  { id: 'min', get n() { return Math.max(15, Math.round((S.profile?.minutes || 45) * .65 / 5) * 5); }, get t() { return `Train for ${this.n} minutes`; }, m: 'minutes', xp: 60, ico: 'stopwatch' },
   { id: 'dungeon', t: 'Clear a dungeon', n: 1, m: 'dungeons', xp: 100, ico: 'gate', needLv: 2 },
   { id: 'water', t: 'Drink 8 glasses of water', n: 8, m: 'water', xp: 40, ico: 'water' },
   { id: 'sleep', t: 'Sleep 7 hours or more', n: 7, m: 'sleep', xp: 40, ico: 'sleep' },
@@ -445,7 +446,7 @@ function setSkin(k) {
   const was = document.documentElement.dataset.skin;
   document.documentElement.dataset.skin = k;
   if (was !== k) curRefresh(); // each interface has its own money (i18n.js)
-  // themes recolour an interface's accents; the default Cyber HUD theme keeps each interface's own colours
+  // themes recolour an interface's accents; the default Basic theme keeps each interface's own colours
   document.documentElement.toggleAttribute('data-tint', k !== 'hud' && (G.theme || 'hud') !== 'hud');
   let l = document.getElementById('skinfont');
   if (SKIN_FONTS[k]) { if (!l) { l = document.createElement('link'); l.id = 'skinfont'; l.rel = 'stylesheet'; document.head.appendChild(l); } l.href = `https://fonts.googleapis.com/css2?family=${SKIN_FONTS[k]}&display=swap`; }

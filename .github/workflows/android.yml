@@ -1,0 +1,82 @@
+name: android
+
+# Builds the FitQuest Android app (android/, with fitai-app packed inside).
+# - On pull requests that touch the app: builds the APK as a check, downloadable from the run's artifacts.
+# - Run by hand (Actions > android > Run workflow, or asked from Claude): builds and publishes a release
+#   "FitQuest 1.N" (tag app-N) with the APK attached. The app checks these releases and offers the update.
+# Tags are app-N, never v*, so they don't start the PyPI publish workflow; releases are not marked "latest".
+
+on:
+  pull_request:
+    branches: [master]
+    paths: ["android/**", "fitai-app/**", ".github/workflows/android.yml"]
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "What's new in this update"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Pack the web app into the APK
+        run: |
+          mkdir -p android/app/src/main/assets/www
+          rsync -a --delete --exclude tools --exclude '__pycache__' --exclude README.md fitai-app/ android/app/src/main/assets/www/
+
+      # The signing key is the repository secret FITQUEST_KEYSTORE (the keystore, base64). Every release must use it,
+      # so each APK installs over the previous one and keeps the data. Pull request checks without it use a throwaway key.
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.FITQUEST_KEYSTORE }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > android/fitquest.jks
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "::error::Add the repository secret FITQUEST_KEYSTORE before publishing a release."; exit 1
+          else
+            keytool -genkeypair -keystore android/fitquest.jks -alias fitquest -keyalg RSA -keysize 2048 -validity 1 \
+              -storepass fitquest -keypass fitquest -dname "CN=FitQuest check"
+          fi
+
+      - name: Build
+        run: gradle -p android assembleRelease -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon
+
+      - name: Name the APK
+        run: cp android/app/build/outputs/apk/release/app-release.apk FitQuest-1.${{ github.run_number }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FitQuest-1.${{ github.run_number }}
+          path: FitQuest-1.${{ github.run_number }}.apk
+
+      - name: Publish the release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: app-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: FitQuest 1.${{ github.run_number }}
+          body: ${{ github.event.inputs.notes || 'New version of FitQuest.' }}
+          files: FitQuest-1.${{ github.run_number }}.apk
+          make_latest: false

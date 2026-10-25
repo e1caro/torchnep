@@ -61,22 +61,22 @@ html[data-skin=clean] h2.sec::after{{opacity:0}}
 html[data-skin=clean] .lbl{{font-size:13px;font-weight:600;color:var(--mut)}}
 html[data-skin=clean] {P}{{background:var(--card);border:1px solid var(--line);box-shadow:none;border-radius:var(--r)}}
 html[data-skin=clean] {P}::before,html[data-skin=clean] {P}::after{{display:none}}
-html[data-skin=clean] .btn{{background:{MA};color:#fff;box-shadow:none;font-weight:600;font-size:15px;border-radius:12px}}
+html[data-skin=clean] .btn{{background:var(--acc);color:var(--on);box-shadow:none;font-weight:600;font-size:15px;border-radius:12px}}
 html[data-skin=clean] .btn.sm{{font-size:13px;border-radius:10px}}
 html[data-skin=clean] .btn.ghost{{background:var(--card2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}}
 html[data-skin=clean] :is(.btn.gold,.btn.chestbtn){{background:#f2c14e;color:#1d1503}}
 html[data-skin=clean] .btn::before,html[data-skin=clean] .btn::after{{display:none}}
 html[data-skin=clean] .chip{{background:var(--card2);border:1px solid var(--line);color:var(--fg);border-radius:999px;font-weight:500}}
-html[data-skin=clean] :is(.seg a.on,.dpill.on,.chip.on){{background:{MA};color:#fff;border-color:{MA}}}
+html[data-skin=clean] :is(.seg a.on,.dpill.on,.chip.on){{background:var(--acc);color:var(--on);border-color:var(--acc)}}
 html[data-skin=clean] .seg{{background:var(--card2);border:0;border-radius:12px;padding:3px}}
 html[data-skin=clean] .seg a{{font-size:13px;font-weight:600;border-radius:10px}}
 html[data-skin=clean] :is(.xpbar,.qbar,.prog,.hp){{box-shadow:none;height:6px}}
-html[data-skin=clean] .xpbar i,html[data-skin=clean] :is(.qbar,.prog,.rkbar) i{{background:{MA}}}
+html[data-skin=clean] .xpbar i,html[data-skin=clean] :is(.qbar,.prog,.rkbar) i{{background:var(--acc)}}
 html[data-skin=clean] .hp i{{background:linear-gradient(90deg,#ff6b6b,#ffb86b)}}
-html[data-skin=clean] nav#tabs{{background:#0e1014f2;border-top:1px solid var(--line)}}
+html[data-skin=clean] nav#tabs{{background:color-mix(in srgb,var(--bg) 95%,transparent);border-top:1px solid var(--line)}}
 html[data-skin=clean] nav#tabs::before,html[data-skin=clean] nav#tabs::after{{display:none}}
 html[data-skin=clean] nav#tabs a{{font-weight:500;letter-spacing:0;text-transform:none}}
-html[data-skin=clean] nav#tabs a.on{{background:none;box-shadow:none;color:{MA}}}
+html[data-skin=clean] nav#tabs a.on{{background:none;box-shadow:none;color:var(--acc)}}
 html[data-skin=clean] nav#tabs a.on::before,html[data-skin=clean] nav#tabs a.on::after{{display:none}}
 html[data-skin=clean] :is(.qi,.dgi,.mi){{background:var(--card2);border:0;box-shadow:none;border-radius:12px}}
 html[data-skin=clean] :is(input,select,textarea){{background:var(--card2);border:1px solid var(--line);border-radius:10px;box-shadow:none}}
@@ -639,7 +639,7 @@ body.focus #trybar{bottom:calc(16px + env(safe-area-inset-bottom))}
 """
 
 # ---------------------------------------------------------------- themes recolour interfaces
-# With any theme except the default Cyber HUD, an interface's accents (frames, ornaments, buttons, tabs, bars, markers)
+# With any theme except the default Basic, an interface's accents (frames, ornaments, buttons, tabs, bars, markers)
 # take the theme's two colours; its scenery keeps its own. Theme colours are read from game.js so they stay in sync.
 THEMES = re.findall(r"\['(\w+)', '[^']+', \d+, '(#[0-9a-fA-F]{6})', '(#[0-9a-fA-F]{6})'\]", (HERE.parent / 'game.js').read_text())
 T = 'html[data-tint][data-skin]'

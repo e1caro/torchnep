@@ -236,7 +236,7 @@ i18nPat(/^(\d+(?:\.\d+)?) (egg|slice|banana|apple|avocado|tortilla|scoop)(s?)$/,
 
 // ---------- HUD redesign: new looks ----------
 i18nAdd({
-  'Cyber HUD': 'Cyber HUD', Hologram: 'Holograma', 'Stealth Ops': 'Operación sigilo', 'Red Alert': 'Alerta roja', Synthwave: 'Synthwave', 'Night City': 'Night City',
+  Basic: 'Básico', Hologram: 'Holograma', 'Stealth Ops': 'Operación sigilo', 'Red Alert': 'Alerta roja', Synthwave: 'Synthwave', 'Night City': 'Night City',
   'Segment ring': 'Anillo de segmentos', 'Gauge ring': 'Anillo indicador', 'Reticle ring': 'Anillo de mira', 'Gear ring': 'Anillo de engranaje', 'Hex frame': 'Marco hexagonal',
   'Orbit ring': 'Anillo orbital', 'Radar ring': 'Anillo de radar', 'Glitch ring': 'Anillo glitch',
   'Scanlines banner': 'Banner de líneas de escaneo', 'Lattice banner': 'Banner de celosía', 'Circuit board banner': 'Banner de circuito', 'Radar sweep banner': 'Banner de radar',
@@ -257,9 +257,7 @@ i18nAdd({ 'Mythical Realm': 'Reino mítico', 'Classical Elegance': 'Elegancia cl
   Olympus: 'Olimpo', 'Ancient Egypt': 'Antiguo Egipto', 'Viking Saga': 'Saga vikinga', 'Pirate Seas': 'Mares piratas', 'Outrun 80s': 'Outrun años 80', 'Arcade 8-bit': 'Arcade 8 bits' });
 i18nAdd({ 'Themes recolour the Sci-fi HUD interface.': 'Los temas cambian los colores de la interfaz HUD de ciencia ficción.', 'uses its own colours.': 'usa sus propios colores.',
   'Theme saved. You will see it with the Sci-fi HUD interface.': 'Tema guardado. Lo verás con la interfaz HUD de ciencia ficción.' });
-i18nPat(/^(.+) Themes recolour the Sci-fi HUD interface\. (.+) uses its own colours\.$/, (e, n) => `${e} Los temas cambian los colores de la interfaz HUD de ciencia ficción. ${tr(n)} usa sus propios colores.`);
 i18nAdd({ 'Something to claim': 'Hay algo para reclamar' });
-i18nPat(/^(.+) Themes recolour (.+) too\. Choose Cyber HUD to see its original colours\.$/, (e, n) => `${e} Los temas también cambian los colores de ${tr(n)}. Elige Cyber HUD para ver sus colores originales.`);
 i18nAdd({ '1 person': '1 persona', 'light serving': 'ración ligera', 'hearty serving': 'ración abundante', 'standard serving': 'ración normal',
   'One serving per meal falls short of your target.': 'Una ración por comida se queda corta para tu objetivo.', 'Choose {n} meals a day': 'Elige {n} comidas al día', 'to eat enough.': 'para comer suficiente.' });
 i18nAdd({ 'How hungry are you?': '¿Cuánta hambre tienes?', 'Not very hungry': 'Poca hambre', 'Normal hunger': 'Normal', Hungry: 'Con hambre', 'Very hungry': 'Mucha hambre',
@@ -337,3 +335,5 @@ i18nAdd({ "Servings are {n}% smaller because you often aren't very hungry.": 'La
 i18nAdd({ '{n} hits left': 'Quedan {n} golpes', '{n} hit left': 'Queda {n} golpe', Shop: 'Tienda', Overview: 'Resumen', Levels: 'Niveles', Badges: 'Insignias', Train: 'Entrenar' });
 i18nAdd({ 'Levels {n}–{n}': 'Niveles {n}–{n}' });
 i18nAdd({ 'in the Shop': 'en la Tienda' });
+i18nAdd({ Update: 'Actualizar', Check: 'Buscar', 'You have the latest version': 'Tienes la última versión', 'No connection': 'Sin conexión', 'App {n}': 'App {n}' });
+i18nPat(/^(FitQuest [\d.]+) is ready$/, n => `${n} está lista`);

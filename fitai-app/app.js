@@ -702,7 +702,8 @@ function settings() {
   <div id="setmusic"></div>
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
-  <div class="mut setfoot"><span>FitQuest version 122</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
+  <div class="mut setfoot"><span>FitQuest version 126</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -715,6 +716,31 @@ function settings() {
   };
 }
 
+// ---------- Android app ----------
+// Inside the APK the browser name ends in "FitQuestApp/<version code>". New versions are GitHub releases tagged app-N
+// (built by .github/workflows/android.yml); when one is newer, a bar offers the download.
+const APP_CODE = +((navigator.userAgent.match(/FitQuestApp\/(\d+)/) || [])[1] || 0);
+let APP_NEW = null;
+async function appUpdate(manual) {
+  if (!APP_CODE) return;
+  try {
+    const rs = await (await fetch('https://api.github.com/repos/e1caro/torchnep/releases?per_page=30')).json();
+    const top = rs.map(r => ({ r, n: +((r.tag_name.match(/^app-(\d+)$/) || [])[1] || 0) })).filter(x => x.n && !x.r.draft).sort((a, b) => b.n - a.n)[0];
+    const apk = top?.r.assets.find(a => a.name.endsWith('.apk'));
+    APP_NEW = top && top.n > APP_CODE && apk ? { name: top.r.name, url: apk.browser_download_url, notes: top.r.body || '' } : null;
+  } catch { if (manual) toast('No connection'); return; }
+  if (manual) toast(APP_NEW ? `${APP_NEW.name} is ready` : 'You have the latest version');
+  updateBar();
+  if (location.hash === '#/settings') route();
+}
+function updateBar() {
+  let bar = document.getElementById('updbar');
+  if (!APP_NEW || session || document.body.classList.contains('focus')) { bar?.remove(); return; } // a workout's bar takes the spot
+  if (!bar) { bar = document.createElement('a'); bar.id = 'updbar'; document.body.appendChild(bar); }
+  bar.href = APP_NEW.url;
+  bar.innerHTML = `${ic('up', 16)} <span class="grow">${esc(APP_NEW.name)}</span><b>Update</b>`;
+}
+
 // ---------- router ----------
 const routes = { plan: planView, library, progress, me, settings, workout: workoutView, exercise: exerciseView, start: a => onboarding(a === 'edit') };
 let lastRoute = '';
@@ -725,12 +751,14 @@ function route() {
   const tab = name === 'rewards' ? (arg === 'shop' ? 'shop' : 'progress') : { dungeons: 'plan', profile: 'me', settings: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', routine: 'plan', sport: 'home', earn: 'home', bets: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
   document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
+  document.body.classList.toggle('fitpage', name === 'home'); // Today fits the screen: no scrolling
   // a change on the same page (equip, buy, sell, a setting...) redraws it where you were; a new page starts at the top
   const same = location.hash === lastRoute, y = window.scrollY;
   lastRoute = location.hash;
   (routes[name] || home)(arg);
   if (name === 'progress' && typeof rwSeg === 'function' && view.querySelector('h1')) view.insertAdjacentHTML('afterbegin', rwSeg('stats')); // Progress: stats, levels, badges
   if (same) window.scrollTo(0, y); else if (name !== 'exercise') window.scrollTo(0, 0);
+  if (typeof updateBar === 'function') updateBar();
 }
 window.addEventListener('hashchange', route);
 
@@ -789,7 +817,7 @@ new MutationObserver(() => { if (!compactQ) compactQ = requestAnimationFrame(() 
 
 try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // the Synergym gym pass was removed
 (async function init() {
-  if ('serviceWorker' in navigator) {
+  if ('serviceWorker' in navigator && !APP_CODE) { // the Android app carries its files inside, no service worker
     // New versions apply on their own: check when the app comes back to the screen, and reload once the new worker takes over.
     const hadSW = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.register('sw.js').then(reg => {
@@ -805,5 +833,5 @@ try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // th
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }
   EX.forEach(e => { BY[e.id] = e; });
   initGame();
-  route(); resumeBar();
+  route(); resumeBar(); appUpdate();
 })();

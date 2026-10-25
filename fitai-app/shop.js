@@ -91,9 +91,7 @@ function preview(i) {
     : `<div class="bnp bn-${i.key}"></div>`;
 }
 // a mini card drawn in that panel style
-// themes recolour the Sci-fi HUD; other interfaces keep their own colours
-const themeNote = () => { const k = G.skin || 'clean'; if (k === 'hud') return ''; const it = ITEMS.find(i => i.type === 'skin' && i.key === k);
-  return `<div class="mut themenote">${it.emo} Themes recolour ${esc(it.name)} too. Choose Cyber HUD to see its original colours.</div>`; };
+const themeNote = () => ''; // no note needed: the "Basic" theme's name says it keeps each interface's own colours
 const skinPrev = i => `<div class="skp" data-sk="${i.key}">${i.emo}</div>`;
 const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></div>`;
 function tile(i) {
