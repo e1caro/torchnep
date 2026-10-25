@@ -17,7 +17,10 @@ const G = Object.assign({
   sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '', ciStreak: 0, spun: '', spins: 0, waterGoalDays: 0, perfectDays: 0, sleepGood: 0, wk: null,
 }, load('game', {}));
 let LAST = null; // result of the latest workout, shown on the victory screen
-const commit = () => save('game', G);
+// Looks being tried on (one per kind, for a minute): G holds the tried look while it lasts so every screen shows it,
+// and saving always writes the look you really wear
+const TRY = {}; // kind -> { key, end, real }
+const commit = () => save('game', Object.keys(TRY).length ? { ...G, ...Object.fromEntries(Object.entries(TRY).map(([t, v]) => [t, v.real])) } : G);
 const lvl = () => levelOf(G.xp);
 const title = () => {
   const a = ACH.find(x => x.id === G.title);
@@ -511,7 +514,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 108</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 109</div>`;
 }
 
 function initGame() {

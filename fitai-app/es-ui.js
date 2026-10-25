@@ -315,3 +315,4 @@ i18nAdd({ 'Ember sparks': 'Chispas de brasa', 'Frost crown': 'Corona de escarcha
 i18nAdd({ 'Shop opened': 'Tienda abierta', Shop: 'Tienda', 'open in the Shop': 'a la venta en la Tienda', 'Profile pictures': 'Fotos de perfil', Banners: 'Banners', Rings: 'Anillos', 'App themes': 'Temas', 'Panel styles': 'Estilos de panel', Interfaces: 'Interfaces',
   'You can buy these from level {n}. Until then they can still come out of chests.': 'Podrás comprarlos desde el nivel {n}. Mientras tanto pueden salir en los cofres.' });
 i18nPat(/^(.+) can be bought from level (\d+)\.$/, (a, b) => `${tr(a)} se pueden comprar desde el nivel ${b}.`);
+i18nAdd({ 'End all': 'Terminar todas', 'Try 1 min': 'Probar 1 min', 'Trying · end': 'Probando · terminar' });

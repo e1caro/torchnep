@@ -828,14 +828,16 @@ html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,co
 # ---------------------------------------------------------------- prestige crests
 # Level-only prestige rings wear an ornament around the avatar, like game profile borders: a crest on top, wings or
 # scrolls on the sides and a plate below, drawn by each interface (art in crest_art.py). Two masks per interface: the
-# metal (shapes with engraved cuts), coloured by the ring's metal, and the gems, coloured by the ring's gem.
+# metal, a fine outline coloured by the ring's metal, and small gems in the ring's gem colour.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from crest_art import build as crest_build  # noqa: E402
 
 
 def crest_metal(shapes, cuts):
-    m = f"<mask id='c'><rect width='120' height='120' fill='#fff'/><g fill='none' stroke='#000' stroke-width='1.3' stroke-linecap='round'>{cuts}</g></mask>"
-    return f"<defs>{m}</defs><g fill='#fff' mask='url(#c)'>{shapes}</g>"
+    """minimal line art: only a fine outline of each piece (the engraving cuts are left out)"""
+    for w in ("3", "4", "4.5"):
+        shapes = shapes.replace(f"fill='none' stroke='#fff' stroke-width='{w}'", "fill='none' stroke='#fff' stroke-width='1.4'")
+    return f"<g fill='none' stroke='#fff' stroke-width='1.3' stroke-linejoin='round'>{shapes}</g>"
 
 
 PREST = "\n/* prestige crests: each interface's ornament for level-only rings (metal and gems) */\n" + ''.join(

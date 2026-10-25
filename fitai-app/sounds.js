@@ -97,4 +97,4 @@ sfx = function (kind) {
 };
 
 // hear an interface while trying it in the shop
-if (typeof trySkin === 'function') { const _sndTry = trySkin; window.trySkin = trySkin = function (k) { _sndTry(k); setTimeout(() => sfx('level'), 150); }; }
+if (typeof tryLook === 'function') { const _sndTry = window.tryLook; window.tryLook = id => { _sndTry(id); if (item(id).type === 'skin') setTimeout(() => sfx('level'), 150); }; }

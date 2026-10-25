@@ -8,7 +8,7 @@
   const TABS = () => [...document.querySelectorAll('#tabs a')];
   const curTab = () => TABS().findIndex(a => a.classList.contains('on'));
   let s = null;
-  const blocked = el => document.body.classList.contains('focus') || document.querySelector('#recap, #modal:not([hidden]), .bx, #trybar')
+  const blocked = el => document.body.classList.contains('focus') || document.querySelector('#recap, #modal:not([hidden]), .bx') || el.closest('#trybar')
     || el.closest('input, textarea, select, iframe, .bettabs, .days, .wheel, [data-noswipe]')
     || [...(function* up(n) { for (; n && n !== view; n = n.parentElement) yield n; })(el)].some(n => n.scrollWidth > n.clientWidth + 4 && /auto|scroll/.test(getComputedStyle(n).overflowX));
 

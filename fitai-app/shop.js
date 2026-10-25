@@ -92,10 +92,11 @@ const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></d
 function tile(i) {
   const own = has(i);
   const sellB = i.cost ? `<button class="btn sm ghost sellb" onclick="sell('${i.id}')">Sell · ${gi('coin', 'cn')} ${sellPrice(i)}</button>` : '';
-  const act = own ? (equipped(i) ? `<b class="eq">Equipped</b>${sellB}` : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>${sellB}`)
+  const act = own ? (equipped(i) && !TRY[i.type] ? `<b class="eq">Equipped</b>${sellB}` : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>${sellB}`)
     : !shopOpen(i.type) ? `<span class="btn sm ghost lockb">${gi('lock')} Level ${SHOP_LV[i.type]}</span>`
     : `<button class="btn sm ${G.coins >= i.cost ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${i.cost}</button>`;
-  const tryb = i.type === 'skin' && !own ? `<button class="btn sm ghost" onclick="trySkin('${i.key}')">Try</button>` : '';
+  const trying = TRY[i.type]?.key === i.key;
+  const tryb = own ? '' : trying ? `<button class="btn sm ghost on" onclick="endTry('${i.type}')">Trying · end</button>` : `<button class="btn sm ghost" onclick="tryLook('${i.id}')">Try 1 min</button>`;
   return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${tryb}${act}</div>`;
 }
 function shopView() {
@@ -170,23 +171,38 @@ function profileView(sub) {
   <button class="btn" onclick="location.hash='#/start/edit'">Edit body data and training plan</button>
   <p class="mut">${GI_CREDIT}</p>`;
 }
-// preview an interface for one minute anywhere in the app, with a countdown bar
+// Try any look of the shop for one minute, even one you can't buy yet: one per kind at a time (a picture, a ring, a
+// banner, a panel style, a theme and an interface can all be tried together). A bar shows each one with its countdown.
 let tryT = null;
-window.endTry = () => { clearInterval(tryT); tryT = null; document.getElementById('trybar')?.remove(); setSkin(G.skin || 'hud'); };
-window.trySkin = k => {
-  if (tryT) clearInterval(tryT);
-  setSkin(k);
-  const it = ITEMS.find(i => i.type === 'skin' && i.key === k), end = Date.now() + 60000;
-  let bar = document.getElementById('trybar');
-  if (!bar) { bar = document.createElement('div'); bar.id = 'trybar'; document.body.appendChild(bar); }
-  const draw = () => {
-    const left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
-    if (!left || (G.skin || 'hud') === k || document.documentElement.dataset.skin !== k) { endTry(); return; }
-    bar.innerHTML = `<span>${it.emo} ${esc(tr(it.name))} · ${tr('Preview')} 0:${String(left).padStart(2, '0')}</span><button class="btn sm" onclick="endTry()">${tr('End')}</button>`;
-  };
-  draw(); tryT = setInterval(draw, 1000);
-  toast('Preview for one minute. Look around the app!');
+const TRY_ICO = { avatar: 'user', frame: 'frame', banner: 'banner', panel: 'frame', theme: 'palette', skin: 'palette' };
+function endTryKind(t) { if (!TRY[t]) return; G[t] = TRY[t].real; delete TRY[t]; }
+window.endTry = t => {
+  if (t) endTryKind(t); else Object.keys(TRY).forEach(endTryKind);
+  applyTheme(); drawTry(); route();
 };
+function drawTry() {
+  const now = Date.now();
+  let ended = false;
+  for (const [t, v] of Object.entries(TRY)) if (now >= v.end || G[t] !== v.key) { if (G[t] === v.key) endTryKind(t); else delete TRY[t]; ended = true; }
+  if (ended) { applyTheme(); route(); }
+  let bar = document.getElementById('trybar');
+  if (!Object.keys(TRY).length) { bar?.remove(); clearInterval(tryT); tryT = null; return; }
+  if (!bar) { bar = document.createElement('div'); bar.id = 'trybar'; document.body.appendChild(bar); }
+  bar.innerHTML = Object.entries(TRY).map(([t, v]) => { const it = ITEMS.find(i => i.type === t && i.key === v.key), left = Math.max(0, Math.ceil((v.end - now) / 1000));
+    return `<span class="trc">${it.type === 'skin' ? it.emo : gi(TRY_ICO[t])} ${esc(tr(it.name.replace(/ panels$| banner$/, '')))} 0:${String(left).padStart(2, '0')}<button class="trx" onclick="endTry('${t}')" aria-label="End">✕</button></span>`; }).join('')
+    + (Object.keys(TRY).length > 1 ? `<button class="btn sm" onclick="endTry()">${tr('End all')}</button>` : '');
+}
+window.tryLook = id => {
+  const i = item(id), t = i.type, first = !Object.keys(TRY).length;
+  TRY[t] = { key: i.key, end: Date.now() + 60000, real: TRY[t] ? TRY[t].real : G[t] };
+  G[t] = i.key; applyTheme(); route(); drawTry();
+  if (!tryT) tryT = setInterval(drawTry, 1000);
+  if (first) toast('Preview for one minute. Look around the app!');
+};
+window.trySkin = k => tryLook(ITEMS.find(i => i.type === 'skin' && i.key === k).id);
+// wearing a look for real ends the try of that kind
+const _equipTry = window.equip;
+window.equip = id => { const i = item(id); if (TRY[i.type]) { G[i.type] = TRY[i.type].real; delete TRY[i.type]; drawTry(); } _equipTry(id); };
 window.equipTitle = id => { G.title = id; commit(); route(); };
 
 Object.assign(routes, { rewards, profile: profileView });
