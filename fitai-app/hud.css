@@ -1030,3 +1030,6 @@ html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /
 @keyframes demofade{0%,18%{opacity:0}42%,68%{opacity:1}92%,100%{opacity:0}}
 @keyframes demozoom{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
 @media(prefers-reduced-motion:reduce){.demo.anim img{animation:none!important}}
+.exhead{align-items:flex-start;gap:8px}.exhead h1{margin-right:auto}
+#rest .swl{width:min(420px,100%);max-height:60vh;overflow:auto;display:grid;gap:8px;text-align:left}
+#rest .swl .card{width:100%;margin:0;font:inherit;color:inherit;text-align:left}

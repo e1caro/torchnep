@@ -535,24 +535,24 @@ const saveSess = () => save('session', session);
 session = load('session', null);
 // "10 min" -> 600, "30s" -> 30; null for reps
 const timedSecs = reps => { const r = String(reps), m = r.match(/^(\d+)\s*min/), sec = r.match(/^(\d+)\s*s/); return m ? +m[1] * 60 : sec ? +sec[1] : null; };
-// how long the done part of an exercise takes (same estimate as the plan's), in seconds
-function doneSecs(x) {
-  const n = x.sets.filter(t => t.done).length, ts = timedSecs(x.reps), rest = +x.rest || 0;
-  if (!n) return 0;
-  if (ts && ts >= 60) return n * ts + 60;
-  if (ts) return n * (ts + rest) - rest + 30;
-  return n * (50 + rest) - rest + 150;
+// Time trained: when a workout starts, each exercise gets its share of the session's minutes (by how long it takes
+// compared with the others). At the end, every exercise done counts its share (in part if only some sets were done).
+const exShare = x => x.secs || exSecs({ sets: x.plan || x.sets.length, reps: x.reps, rest: +x.rest || 0 });
+function estMinutes(ss) {
+  const all = ss.ex.reduce((a, x) => a + exShare(x), 0) || 1;
+  const total = ss.mins || (WARMUP + all) / 60;
+  const done = ss.ex.reduce((a, x) => a + exShare(x) * Math.min(1, x.sets.filter(t => t.done).length / (x.plan || x.sets.length)), 0);
+  return Math.max(1, Math.round(total * done / all));
 }
-const estMinutes = ss => Math.max(1, Math.round((WARMUP + ss.ex.reduce((a, x) => a + doneSecs(x), 0)) / 60));
 function startSession(name, items, extra = {}) {
   if (session) { toast('Finish or discard the workout in progress first'); location.hash = '#/workout'; return; }
-  session = { t0: Date.now(), cur: 0, name, ...extra, ex: items.map(it => ({ id: it.id, reps: it.reps, rest: it.rest, plan: it.sets, sets: Array.from({ length: it.sets }, () => ({ w: '', r: '', done: false })) })) };
+  session = { t0: Date.now(), cur: 0, name, ...extra, ex: items.map(it => ({ id: it.id, reps: it.reps, rest: it.rest, plan: it.sets, secs: exSecs(it), sets: Array.from({ length: it.sets }, () => ({ w: '', r: '', done: false })) })) };
   const last = {}; S.history.forEach(h => h.ex.forEach(x => { last[x.id] = x.sets.find(s => s.w) || last[x.id]; }));
   session.ex.forEach(x => { const l = last[x.id]; if (l) { x.last = l; x.sets.forEach(s => { s.w = l.w; }); } });
   saveSess();
   location.hash = '#/workout';
 }
-window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items, { di }); };
+window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items, { di, mins: dayMinutes(di) }); };
 
 const MEDAL_NAME = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
 const medal = t => t ? `<span class="medal m${t}">${MEDAL_NAME[t]}</span>` : '';
@@ -564,7 +564,7 @@ function workoutView() {
   <div class="mut">${esc(session.name)}</div><div class="xpchip">+${xpNow} XP</div></div>
   <div class="row between"><span>${medal(tier)}</span><span class="mut">Exercise ${session.cur + 1} of ${n}</span></div>
   <div class="prog"><i style="width:${(session.cur + 1) / n * 100}%"></i></div>
-  <h1>${esc(e.n)}</h1>${demo(e)}
+  <div class="row between exhead"><h1>${esc(e.n)}</h1>${similar(x).length ? `<button class="icon" aria-label="Swap for a similar exercise" onclick="swapPick()">${ic('swap', 20)}</button>` : ''}</div>${demo(e)}
   <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last && !timed ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
   ${run ? `<div class="card wtimer"><div class="mut">Set ${run.set + 1}</div><div class="t" id="wt">--:--</div><button class="btn ghost sm" onclick="stopTimer()">Stop</button></div>` : ''}
   <table class="sets"><tr class="mut"><th>Set</th>${timed ? '<th></th>' : '<th>kg</th><th>Reps</th>'}<th></th></tr>
@@ -608,6 +608,22 @@ function tickTimer() {
   };
   draw(); timers.push(setInterval(draw, 500));
 }
+// swap the exercise on screen for a similar one: same main muscle and kind, equipment you have, not already in the workout
+function similar(x) {
+  const cur = BY[x.id], have = equipSet(S.profile);
+  return cur ? EX.filter(e => e.m[0] === cur.m[0] && e.c === cur.c && e.id !== cur.id && allowed(e, S.profile, have) && !session.ex.some(q => q.id === e.id)) : [];
+}
+window.swapPick = () => {
+  const c = similar(session.ex[session.cur]).sort((a, b) => (a.l === 'beginner' ? 0 : 1) - (b.l === 'beginner' ? 0 : 1)).slice(0, 6), b = $('#rest'); b.hidden = false;
+  b.innerHTML = `<h2>Similar exercises</h2><div class="swl">${c.map(e => `<button class="card row li" onclick="swapTo('${e.id}')">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${e.e}</div></div></button>`).join('')}</div>
+  <button class="btn ghost" onclick="$('#rest').hidden=true">Cancel</button>`;
+};
+window.swapTo = id => {
+  const x = session.ex[session.cur], last = S.history.flatMap(h => h.ex.filter(q => q.id === id)).at(-1)?.sets.find(s => s.w);
+  x.id = id; x.last = last; x.sets = x.sets.map(() => ({ w: last ? last.w : '', r: '', done: false }));
+  if (session.timer?.ex === session.cur) session.timer = null;
+  $('#rest').hidden = true; saveSess(); sfx('tick'); workoutView();
+};
 window.setVal = (i, k, v) => { session.ex[session.cur].sets[i][k] = v; saveSess(); };
 window.addSet = () => { const x = session.ex[session.cur]; x.sets.push({ w: x.sets.at(-1)?.w || '', r: '', done: false }); saveSess(); workoutView(); };
 window.nav = d => { session.cur += d; saveSess(); workoutView(); window.scrollTo(0, 0); };
@@ -713,7 +729,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 142</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 143</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();

@@ -343,3 +343,4 @@ i18nAdd({ "Today's deals": 'Ofertas de hoy', Boosts: 'Potenciadores', Common: 'C
 i18nAdd({ '{n} planned': '{n} planificadas', 'New week': 'Nueva semana', Preferences: 'Preferencias', '{n} / {n} kcal': '{n} / {n} kcal' });
 i18nAdd({ Chest: 'Pecho', Back: 'Atrás', Shoulders: 'Hombros', Arms: 'Brazos', Legs: 'Piernas', Glutes: 'Glúteos', Core: 'Core', Neck: 'Cuello', Exercises: 'Ejercicios', 'Search {n} exercises': 'Buscar entre {n} ejercicios', 'All equipment': 'Todo el material' });
 i18nAdd({ 'Show the move': 'Ver el movimiento' });
+i18nAdd({ 'Swap for a similar exercise': 'Cambiar por un ejercicio similar', 'Similar exercises': 'Ejercicios similares' });
