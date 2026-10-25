@@ -11,6 +11,7 @@
   --cut:12px;--b:14px;
 }
 html[data-theme=hud]{--bg:#03080f;--glow:#062a3a;--acc:#22e4ff;--acc2:#ffb020}
+html[data-theme=ember]{--bg:#0e0705;--glow:#3d1608;--acc:#ff6a3d;--acc2:#ffb347}
 html[data-theme=hologram]{--bg:#020a10;--glow:#0a3a4a;--acc:#7df9ff;--acc2:#e8fdff}
 html[data-theme=stealth]{--bg:#06090c;--glow:#18222c;--acc:#9fb3c8;--acc2:#3ddc97}
 html[data-theme=redalert]{--bg:#0c0405;--glow:#3a0a0e;--acc:#ff2b3d;--acc2:#ffb020}
@@ -629,3 +630,7 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 .clubst b{font-size:1.45em}
 /* sideways swipes between sections belong to the app (swipe.js), not to the browser; vertical scrolling stays native */
 #view{touch-action:pan-y}
+/* names under the panel styles and themes you own */
+.pick:has(small){display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;aspect-ratio:auto;min-height:84px}
+.pick:has(small) .pnp{height:auto;width:100%;flex:1;min-height:38px}
+.pick small{font-size:10px;line-height:1.1;opacity:.85;text-align:center;letter-spacing:.03em}

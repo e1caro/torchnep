@@ -277,3 +277,4 @@ i18nAdd({ 'Time today': 'Tiempo hoy', 'Back to your usual time': 'Vuelves a tu t
   'Next workout · ~{n} min': 'Próximo entrenamiento · ~{n} min', 'Training options': 'Opciones de entrenamiento', '· {n} days · {n} min': '· {n} días · {n} min', '· {n} days · {n} h': '· {n} días · {n} h', '· {n} days · {n} h {n}': '· {n} días · {n} h {n}',
   'Extra work on': 'Trabajo extra en', 'Save and rebuild plan': 'Guardar y rehacer el plan', 'Tap any option to change it. Your history, levels and rewards stay.': 'Toca cualquier opción para cambiarla. Tu historial, niveles y recompensas se mantienen.',
   'Plan rebuilt with your new options': 'Plan rehecho con tus nuevas opciones', 'Edit body data': 'Editar datos corporales' });
+i18nAdd({ Chamfered: 'Biselado', Classic: 'Clásico', Brackets: 'Corchetes', Octagon: 'Octógono', Notch: 'Muesca', 'Double line': 'Doble línea', Circuit: 'Circuito' });
