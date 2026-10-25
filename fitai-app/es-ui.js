@@ -278,3 +278,4 @@ i18nAdd({ 'Time today': 'Tiempo hoy', 'Back to your usual time': 'Vuelves a tu t
   'Extra work on': 'Trabajo extra en', 'Save and rebuild plan': 'Guardar y rehacer el plan', 'Tap any option to change it. Your history, levels and rewards stay.': 'Toca cualquier opción para cambiarla. Tu historial, niveles y recompensas se mantienen.',
   'Plan rebuilt with your new options': 'Plan rehecho con tus nuevas opciones', 'Edit body data': 'Editar datos corporales' });
 i18nAdd({ Chamfered: 'Biselado', Classic: 'Clásico', Brackets: 'Corchetes', Octagon: 'Octógono', Notch: 'Muesca', 'Double line': 'Doble línea', Circuit: 'Circuito' });
+i18nPat(/^You are using it, so you will switch back to (.+)\.$/, a => `Lo llevas puesto, así que volverás a ${tr(a)}.`);
