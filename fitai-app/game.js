@@ -371,12 +371,26 @@ window.claimBoss = () => {
 const SHOP_LV = { avatar: 2, banner: 3, frame: 4, theme: 5, panel: 7, skin: 10 };
 const SHOP_NAME = { avatar: 'Profile pictures', banner: 'Banners', frame: 'Rings', theme: 'App themes', panel: 'Panel styles', skin: 'Interfaces' };
 const shopOpen = t => lvl() >= (SHOP_LV[t] || 1);
+// Daily deals: three looks you don't own yet, 30% off until midnight, the same for the whole day.
+const DEAL_OFF = .3;
+let DEALS_C = null;
+function deals() {
+  const key = dayId() + '|' + G.owned.length + '|' + lvl();
+  if (DEALS_C?.key === key) return DEALS_C.list;
+  const pool = ITEMS.filter(i => i.shop && i.cost > 0 && !has(i) && shopOpen(i.type)).sort((a, b) => hash(dayId() + a.id) - hash(dayId() + b.id));
+  const out = [];
+  for (const i of pool) { if (out.length === 3) break; if (!out.some(o => o.type === i.type)) out.push(i); } // three different kinds
+  return out;
+}
+const isDeal = i => deals().some(d => d.id === i.id);
+const priceOf = i => isDeal(i) ? Math.round(i.cost * (1 - DEAL_OFF)) : i.cost;
 window.buy = id => {
   const i = item(id);
   if (!i.shop) { toast(`${i.name} unlocks at level ${i.lv}.`); return; }
   if (!shopOpen(i.type)) { toast(`${SHOP_NAME[i.type]} can be bought from level ${SHOP_LV[i.type]}.`); return; }
-  if (has(i) || G.coins < i.cost) { toast(has(i) ? 'Already yours.' : `Need ${i.cost - G.coins} more coins.`); return; }
-  G.coins -= i.cost; G.owned.push(id); commit(); sfx('claim'); toast(`Unlocked ${i.name}`); checkAch(); route();
+  const price = priceOf(i);
+  if (has(i) || G.coins < price) { toast(has(i) ? 'Already yours.' : `Need ${price - G.coins} more coins.`); return; }
+  G.coins -= price; G.owned.push(id); (G.paid || (G.paid = {}))[id] = price; commit(); sfx('claim'); toast(`Unlocked ${i.name}`); checkAch(); route();
 };
 window.equip = id => {
   const i = item(id); if (!has(i)) return;

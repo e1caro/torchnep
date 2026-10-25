@@ -975,3 +975,36 @@ body.fitpage .orbs{min-height:0}
 .pod.empty .shine,.pod.empty .pav{animation:none}
 @media(prefers-reduced-motion:reduce){.pod,.pod *,.podium::before{animation:none!important}}
 html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /* open shapes: the sweep would cross empty air */
+/* shop: deals, tabs and item cards with rarity */
+.shophead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dealhead{display:flex;align-items:center;justify-content:space-between}
+.dealhead .mut{display:inline-flex;align-items:center;gap:4px;font-size:12px}
+.deals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.deal{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 6px 10px;border-radius:var(--r,14px);cursor:pointer;color:var(--fg);font:inherit;
+  background:radial-gradient(120% 80% at 50% 0,color-mix(in srgb,var(--rc) 28%,var(--card)),var(--card));border:1px solid color-mix(in srgb,var(--rc) 55%,var(--line));
+  box-shadow:0 0 18px -6px var(--rc);overflow:hidden}
+.deal::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,#0000 30%,#ffffff22 45%,#0000 60%);transform:translateX(-100%);animation:podshine 4.5s ease-in-out infinite}
+.deal b{font-size:12px;line-height:1.2;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deal .off{position:absolute;top:6px;right:-26px;transform:rotate(35deg);background:#ff4d6d;color:#fff;font:800 10px var(--body);padding:2px 26px}
+.deal .dprice{display:inline-flex;align-items:center;gap:3px;font:700 13px var(--body)}
+.deal s,.sw s{opacity:.55;font-weight:500;font-size:.85em}
+.deal :is(.pv,.swc,.bnp,.pnp,.skp,.av){transform:scale(.8)}
+.shoptabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:4px -16px 12px;padding:2px 16px 6px}
+.shoptabs::-webkit-scrollbar{display:none}
+.stab{flex:none;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:74px;padding:10px 8px;border-radius:var(--r,12px);background:var(--card);border:1px solid var(--line);color:var(--mut);font:600 11px var(--body);cursor:pointer}
+.stab .gi{font-size:22px}
+.stab.on{color:var(--fg);border-color:var(--acc);background:color-mix(in srgb,var(--acc) 14%,var(--card));box-shadow:0 0 14px -6px var(--acc)}
+.stab .lk{position:absolute;top:4px;right:6px;font-size:11px;opacity:.8}
+.lockcard{display:flex;align-items:center;gap:12px;margin-bottom:10px}.lockcard .gi{font-size:26px}
+.shopgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.shopgrid.wide{grid-template-columns:1fr}
+@media(min-width:380px){.shopgrid:not(.wide){grid-template-columns:repeat(3,1fr)}}
+.sw{position:relative;--rc:#8b92a3;border-color:color-mix(in srgb,var(--rc) 45%,var(--line))!important;background:linear-gradient(180deg,color-mix(in srgb,var(--rc) 14%,var(--card)),var(--card))}
+.sw .rar{align-self:flex-start;font:700 9px var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--rc)}
+.sw.own{opacity:.9}
+:is(.sw,.deal).r-common{--rc:#8b92a3}:is(.sw,.deal).r-rare{--rc:#4da3ff}:is(.sw,.deal).r-epic{--rc:#b26bff}:is(.sw,.deal).r-legendary{--rc:#ffb020}
+.sw.r-legendary{box-shadow:0 0 16px -6px var(--rc)}
+.boostrow{margin-bottom:8px}
+.sw .swact{display:flex;flex-wrap:wrap;gap:6px;width:100%;margin-top:4px}
+.sw .swact .btn{flex:1 1 auto;min-width:0;margin:0;padding:7px 6px;font-size:12px}
+.sw .swact .eq{flex:1 1 100%;text-align:center}
