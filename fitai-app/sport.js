@@ -304,7 +304,7 @@ const NOTE = {
   W: { SPD: TT('Your pace decided it.', 'Tu ritmo lo decidió.'), PWR: TT('Your power decided it.', 'Tu potencia lo decidió.'), STA: TT('Your stamina decided it.', 'Tu resistencia lo decidió.'), AGI: TT('Your agility decided it.', 'Tu agilidad lo decidió.'), STR: TT('Your strength decided it.', 'Tu fuerza lo decidió.'), CORE: TT('Your balance decided it.', 'Tu equilibrio lo decidió.') },
   L: { SPD: TT('Lack of pace cost you. Train speed!', 'La falta de ritmo te costó caro. ¡Entrena velocidad!'), PWR: TT('Lack of power cost you. Train power!', 'La falta de potencia te costó caro. ¡Entrena potencia!'), STA: TT('You ran out of stamina. Train it!', 'Te quedaste sin resistencia. ¡Entrénala!'), AGI: TT('Lack of agility cost you. Train it!', 'La falta de agilidad te costó caro. ¡Entrénala!'), STR: TT('Lack of strength cost you. Train it!', 'La falta de fuerza te costó caro. ¡Entrénala!'), CORE: TT('Your balance let you down. Train your core!', 'Tu equilibrio te falló. ¡Entrena el core!') },
 };
-const MATCH_REW = { W: [200, 70, 80], D: [80, 30, 40], L: [40, 12, 30] };
+const MATCH_REW = { W: [200, 53, 80], D: [80, 23, 40], L: [40, 9, 30] };
 function winChance(key) {
   const role = roleOf(key), sport = key.split('/')[0], ovr = ovrOf(role), opp = opponentFor(key, ovr);
   const diff = (ovr - opp.ovr) / 50, extra = .04 * (Math.max(2, weekDrills(sport)) - 2);

@@ -25,7 +25,7 @@ function bubble(id, i, big) {
 function ciStreakNow() {
   const st = Math.max(1, ciInfo().st), today = G.checkin === dayId(), day = ((st - 1) % 7) + 1;
   const n = today ? st + 1 : st, k = Math.min(n - 1, 6); // the next check-in still to make
-  return { today, done: today ? day : day - 1, next: { xp: 10 + 2 * k, coins: 15 + 5 * k, chest: n % 7 === 0 } };
+  return { today, done: today ? day : day - 1, next: { xp: 10 + 2 * k, coins: Math.round((8 + 3 * k) * .75), chest: n % 7 === 0 } };
 }
 function streakCard() {
   const s = ciStreakNow(), el = document.createElement('section');
