@@ -61,7 +61,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
-        web.saveInstanceState(out);
+        web.saveState(out);
     }
 
     @Override
