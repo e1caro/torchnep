@@ -674,3 +674,10 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 /* tapping words selects nothing (and starts no web search); fields where you type still work */
 body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+/* the bets, last in the Earn circle, fold away */
+.betfold{padding:10px 12px;margin-top:10px}
+.betfold>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}
+.betfold>summary::-webkit-details-marker{display:none}
+.betfold>summary h2.sec{margin:0;flex:1}
+.betfold>summary::after{content:"▾";color:var(--acc);transition:transform .2s}
+.betfold[open]>summary::after{transform:rotate(180deg)}

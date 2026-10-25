@@ -666,10 +666,16 @@ function foldSections() {
     if (h !== title) h.remove();
     if (body.some(el => el.querySelector?.('.quest.ok button, .chestbtn, button[onclick*="claim"]') || el.matches?.('.quest.ok'))) sum.insertAdjacentHTML('beforeend', '<i class="foldnew" aria-label="Something to claim">!</i>');
     d.appendChild(sum); body.forEach(el => d.appendChild(el));
-    d.open = key in foldState ? foldState[key] : body.some(el => el.matches?.('.next'));
-    d.addEventListener('toggle', () => { foldState[key] = d.open; try { localStorage.setItem('fc.fold', JSON.stringify(foldState)); } catch { /* storage blocked */ } });
+    const focus = typeof SHOP_FOCUS === 'string' && name === 'rewards' ? SHOP_FOCUS : null; // "more in the Shop" from one kind of look
+    d.open = focus ? title.dataset.t === focus : key in foldState ? foldState[key] : body.some(el => el.matches?.('.next'));
+    if (focus && d.open) { d.skipSave = true; requestAnimationFrame(() => d.scrollIntoView({ block: 'start' })); } // a one-off view: not remembered
+    d.addEventListener('toggle', () => {
+      // in the shop, opening one kind of look folds the others
+      if (d.open && name === 'rewards' && location.hash.split('/')[2] === 'shop') view.querySelectorAll(':scope > details.fold[open]').forEach(o => { if (o !== d) o.open = false; });
+      if (d.skipSave) { d.skipSave = false; return; } foldState[key] = d.open; try { localStorage.setItem('fc.fold', JSON.stringify(foldState)); } catch { /* storage blocked */ } });
     let after = d; loose.forEach(b => { after.after(b); after = b; });
   });
+  if (name === 'rewards' && typeof SHOP_FOCUS === 'string' && heads.length) SHOP_FOCUS = null;
 }
 let compactQ = 0;
 new MutationObserver(() => { if (!compactQ) compactQ = requestAnimationFrame(() => { compactQ = 0; compactText(); foldSections(); }); }).observe(view, { childList: true, subtree: true });

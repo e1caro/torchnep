@@ -22,7 +22,7 @@ const daysLeft = () => Math.max(1, Math.ceil((weekEnd() - Date.now()) / DAY)); /
 // Bet periods: 7 days or one month counted from the day you bet (today is day 1), not calendar weeks or months.
 // There are no one-day bets.
 const plusMonth = t => { const d = new Date(t), m = new Date(d.getFullYear(), d.getMonth() + 1, d.getDate()); if (m.getDate() !== d.getDate()) m.setDate(0); return m.getTime(); };
-const rollWin = (per, start) => ({ from: start, to: (per === 'week' ? start + 7 * DAY : plusMonth(start)) - 1 });
+const rollWin = (per, start) => { const d = new Date(start); return { from: start, to: (per === 'week' ? new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7).getTime() : plusMonth(start)) - 1 }; };
 function periods() {
   const ds = dayStart();
   return [
@@ -87,7 +87,9 @@ const waterToday = () => { ensureDay(); return !!G.today.waterGoal; };
 // XP at the start of each day the app was opened (to count XP earned in a window)
 BT.xpLog = BT.xpLog || {};
 const logXp = () => { const k = dayStart(); if (BT.xpLog[k] === undefined) { BT.xpLog[k] = G.xp; for (const t in BT.xpLog) if (+t < Date.now() - 70 * DAY) delete BT.xpLog[t]; commit(); } };
-const xpIn = a => { const ks = Object.keys(BT.xpLog).map(Number).filter(t => t >= a).sort((x, y) => x - y); return ks.length ? G.xp - BT.xpLog[ks[0]] : 0; };
+// XP earned from `a` (a day start) until `b` (or now): the XP logged at the start of the first day after b, or the XP now
+const xpIn = (a, b = Infinity) => { const ks = Object.keys(BT.xpLog).map(Number).sort((x, y) => x - y), k0 = ks.find(t => t >= a);
+  if (k0 === undefined) return 0; const k1 = ks.find(t => t > b); return (k1 === undefined ? G.xp : BT.xpLog[k1]) - BT.xpLog[k0]; };
 const prToday = () => prIn(dayStart(), dayEnd());
 // muscle groups, volume, time of day
 const MG = { legs: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors'], chest: ['chest'], back: ['lats', 'middle back', 'lower back', 'traps'], shoulders: ['shoulders'], arms: ['biceps', 'triceps', 'forearms'], core: ['abdominals'] };
@@ -329,13 +331,13 @@ function legDone(l) {
   if (id === 'd-pr') return prIn(a, b);
   if (id === 'd-sleep') return G.today?.day === l.day && G.today.sleep >= 7;
   if (id === 'd-meals') return G.today?.day === l.day && (G.today.meals || 0) >= 3;
-  if (id === 'd-xp') return xpIn(a) >= 300;
+  if (id === 'd-xp') return xpIn(a, b) >= 300;
   if (k === 'sets') return setsIn(a, b) >= l.need;
   if (k === 'days') return daysIn(a, b) >= l.need;
-  if (k === 'xp') return xpIn(a) >= l.need;
+  if (k === 'xp') return xpIn(a, b) >= l.need;
   if (k === 'boss') return trainsIn(a, b) >= l.need;
-  if (k === 'lvl') return lvl() >= l.need;
-  if (k === 'streak') return streak() >= l.need;
+  if (k === 'lvl') return lvl() >= l.n; // n is the level (need is 0 there, only to hide the progress line)
+  if (k === 'streak') return streak() >= l.n;
   if (k === 'meals') return weekId() === weekId(a) && mealsEaten() >= l.need;
   if (k === 'match' || k === 'nolose') { const m = SP.roles?.[l.key]?.match; return m?.week === weekId(a) && (m.res === 'W' || (k === 'nolose' && m.res === 'D')); }
   if (id === 'd-long') return countIn(a, b, h => h.dur >= 45) >= 1;
@@ -379,16 +381,25 @@ function slipOdds(legs) {
   return { raw, related, muscles, mgx, total: Math.min(BET_COMBO_MAX, Math.max(1, Math.round(raw * mgx * .85 ** related * 100) / 100)) };
 }
 
+// Streak and level picks used to be checked against 0, so they came true at once. Picks of that kind already
+// marked won in open bets are checked again with the right goal.
+for (const b of BT.open) for (const l of b.legs) if ((l.kind === 'streak' || l.kind === 'lvl') && l.st === 'won' && !legDone(l)) delete l.st;
+
 // ---------- settle open bets ----------
+// goals checked against your state right now rather than dated records; they settle the moment they come true
+// (every way to reach them runs in the app, which settles bets right away), so after the window they are lost
+const NOW_GOALS = ['lvl', 'streak', 'badge', 'ovr'];
 let settling = false;
 function settleBets(quiet) {
   if (settling || !BT.open.length) return;
+  logXp(); // a new day's XP mark first, so XP goals that ended yesterday stop counting there
   settling = true;
   const now = Date.now(); let changed = false;
   for (const b of [...BT.open]) {
     for (const l of b.legs) {
       if (l.st) continue;
-      if (legDone(l)) { l.st = 'won'; changed = true; } else if (now > l.to || legFailed(l)) { l.st = 'lost'; changed = true; }
+      const late = now > l.to && NOW_GOALS.includes(l.kind); // checked after the window: the state now says nothing about then
+      if (!late && legDone(l)) { l.st = 'won'; changed = true; } else if (now > l.to || legFailed(l)) { l.st = 'lost'; changed = true; }
     }
     const lost = b.legs.some(l => l.st === 'lost'), won = b.legs.every(l => l.st === 'won');
     if (!lost && !won) continue;
@@ -500,6 +511,11 @@ function betsView() {
   const fmt = t => new Date(t).toLocaleDateString(LANG, { weekday: 'short', day: 'numeric', month: 'short' });
   const note = `From today to ${fmt(per.to)}, counted from the day you bet.`;
   view.innerHTML = `${hud()}<button class="btn sm ghost back" onclick="location.hash='#/earn'">${ic('back', 18)} Back</button><h1>Bets</h1>
+  <h2 class="sec">My bets</h2>
+  ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
+  ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}</details>` : ''}
+  <div class="mut" style="text-align:center;margin-top:10px">Balance from bets: ${BT.net >= 0 ? '+' : '−'}${Math.abs(BT.net)} coins</div>
+  <h2 class="sec">New bet</h2>
   <details class="card howto"><summary>How bets work</summary><ol>
     <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the number is the total odds your bet would have with that goal added.</li>
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
@@ -522,10 +538,7 @@ function betsView() {
   <div class="chips bettabs">${PER_TABS.map(([k, t]) => `<button class="chip ${betTab === k ? 'on' : ''}" onclick="betTabSet('${k}')">${t}</button>`).join('')}</div>
   <div class="mut">${note}</div>
   ${list.length ? CATS.map(([c, name]) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<h3 class="betcat">${name}</h3>${c === 'muscle' ? mgHint(MG_X[betTab]) : ''}${xs.map(row).join('')}` : ''; }).join('') : `<p class="mut">Nothing to bet on here right now.</p>`}
-  <h2 class="sec">My bets</h2>
-  ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
-  ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}</details>` : ''}
-  <div class="mut" style="text-align:center;margin-top:10px">Balance from bets: ${BT.net >= 0 ? '+' : '−'}${Math.abs(BT.net)} coins</div>`;
+`;
 }
 
 // ---------- hooks ----------
