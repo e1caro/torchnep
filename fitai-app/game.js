@@ -419,7 +419,9 @@ window.toggleSound = () => { G.sound = !G.sound; commit(); if (G.sound) sfx('tic
 
 // show an interface (also used by the shop's Try button) and load its fonts
 function setSkin(k) {
+  const was = document.documentElement.dataset.skin;
   document.documentElement.dataset.skin = k;
+  if (was !== k) curRefresh(); // each interface has its own money (i18n.js)
   // themes recolour an interface's accents; the default Cyber HUD theme keeps each interface's own colours
   document.documentElement.toggleAttribute('data-tint', k !== 'hud' && (G.theme || 'hud') !== 'hud');
   let l = document.getElementById('skinfont');
@@ -514,7 +516,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 112</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 113</div>`;
 }
 
 function initGame() {

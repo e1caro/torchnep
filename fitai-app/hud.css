@@ -813,3 +813,23 @@ html[data-theme=olympus]{--bg:#070c16;--glow:#1d2c48;--acc:#f5e6b8;--acc2:#7fd4f
 .ri>div.mut{grid-column:2/-1;margin:1px 0 0;font-size:.85em;line-height:1.3}
 .ri .trychip{margin-left:6px;white-space:nowrap}
 .ri .icoav{margin:0}
+
+/* each interface has its own money and money icon (tools/currency_icons.py; names in i18n.js) */
+html[data-skin=hud] .gi.cn{--m:url(icons/gi/cur-hud.svg)!important}
+html[data-skin=chinese] .gi.cn{--m:url(icons/gi/cur-chinese.svg)!important}
+html[data-skin=japanese] .gi.cn{--m:url(icons/gi/cur-japanese.svg)!important}
+html[data-skin=fairy] .gi.cn{--m:url(icons/gi/cur-fairy.svg)!important}
+html[data-skin=medieval] .gi.cn{--m:url(icons/gi/cur-medieval.svg)!important}
+html[data-skin=steampunk] .gi.cn{--m:url(icons/gi/cur-steampunk.svg)!important}
+html[data-skin=greek] .gi.cn{--m:url(icons/gi/cur-greek.svg)!important}
+html[data-skin=egypt] .gi.cn{--m:url(icons/gi/cur-egypt.svg)!important}
+html[data-skin=viking] .gi.cn{--m:url(icons/gi/cur-viking.svg)!important}
+html[data-skin=pirate] .gi.cn{--m:url(icons/gi/cur-pirate.svg)!important}
+html[data-skin=outrun] .gi.cn{--m:url(icons/gi/cur-outrun.svg)!important}
+html[data-skin=arcade] .gi.cn{--m:url(icons/gi/cur-arcade.svg)!important}
+html[data-skin=classical] .gi.cn{--m:url(icons/gi/cur-classical.svg)!important}
+html[data-skin=artdeco] .gi.cn{--m:url(icons/gi/cur-artdeco.svg)!important}
+html[data-skin=gothic] .gi.cn{--m:url(icons/gi/cur-gothic.svg)!important}
+html[data-skin=baroque] .gi.cn{--m:url(icons/gi/cur-baroque.svg)!important}
+html[data-skin=mythical] .gi.cn{--m:url(icons/gi/cur-mythical.svg)!important}
+html[data-skin=cosmic] .gi.cn{--m:url(icons/gi/cur-cosmic.svg)!important}
