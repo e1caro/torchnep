@@ -7,7 +7,7 @@ const rtSave = () => save('routines', RT);
 const rtGet = id => RT.find(r => r.id === id);
 const rtDefault = e => ({ id: e.id, sets: 3, reps: e.c === 'stretching' || e.f === 'static' ? '30s' : '10', rest: e.c === 'stretching' ? 15 : 60 });
 const RESTS = [0, 15, 30, 45, 60, 90, 120, 180];
-let rtQ = { q: '', m: '' }, rtDel = null;
+let rtQ = { q: '', m: '', mine: true }, rtDel = null;
 
 window.newRoutine = (firstEx) => {
   const r = { id: 'r' + Date.now().toString(36), name: tr(`My routine ${RT.length + 1}`), items: firstEx && BY[firstEx] ? [rtDefault(BY[firstEx])] : [], created: Date.now() };
@@ -38,6 +38,7 @@ function routineView(id) {
   <div class="mut">Reps can be a number like 10 or a time like 30s.</div>
   <h2 class="sec">Add exercises</h2>
   <input class="search" id="rt-q" placeholder="Search ${EX.length} exercises" value="${esc(rtQ.q)}">
+  <div class="chips">${mineChip(rtQ.mine, 'rtQ.mine=!rtQ.mine;this.classList.toggle(\'on\');rtResults(rtCur())')}</div>
   <select id="rt-m" style="margin:8px 0"><option value="">All muscles</option>${optList([...new Set(EX.flatMap(e => e.m))], rtQ.m)}</select>
   <div id="rt-res"></div>
   <button class="btn ghost" style="margin-top:16px" onclick="rtDelete('${r.id}')">${rtDel === r.id ? 'Tap again to delete' : 'Delete routine'}</button>`;
@@ -48,7 +49,7 @@ function routineView(id) {
 }
 function rtResults(r) {
   const box = $('#rt-res'); if (!box) return;
-  const list = EX.filter(e => (!rtQ.q || exKey(e).includes(fold(rtQ.q))) && (!rtQ.m || e.m.includes(rtQ.m)));
+  const list = EX.filter(e => (!rtQ.q || exKey(e).includes(fold(rtQ.q))) && (!rtQ.m || e.m.includes(rtQ.m)) && (!rtQ.mine || haveEq(e)));
   box.innerHTML = list.slice(0, 30).map(e => `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${e.m[0]} · ${e.e}</div></div></a>
     ${r.items.some(it => it.id === e.id) ? `<span class="chk">✓</span>` : `<button class="icon" aria-label="Add exercise" onclick="rtAdd('${r.id}','${e.id}')">${ic('plus', 18)}</button>`}</div>`).join('')
     + (list.length > 30 ? `<div class="mut">Showing the first 30. Refine your search.</div>` : list.length ? '' : '<div class="mut">No exercises found.</div>');

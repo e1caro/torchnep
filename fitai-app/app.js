@@ -512,7 +512,10 @@ window.swapEx = (di, ii) => {
   it.id = c[Math.floor(Math.random() * c.length)].id; save('plan', S.plan); if (tod) save('today', S.today); planView();
 };
 
-let libF = { q: '', m: '', e: '', g: '' };
+let libF = { q: '', m: '', e: '', g: '', mine: true };
+// only exercises you can do with the equipment in your profile
+const haveEq = e => !S.profile || equipSet(S.profile).has(e.e);
+const mineChip = (on, fn) => `<button class="chip ${on ? 'on' : ''} minechip" onclick="${fn}">${ic('check', 14)} My equipment</button>`;
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const exKey = e => fold(typeof tr === 'function' && tr(e.n) !== e.n ? e.n + ' ' + tr(e.n) : e.n); // search in English and in the app language
 // Filter options keep the English value; only the label gets translated, so filtering works in any language.
@@ -522,14 +525,15 @@ let libN = 60;
 // The exercise library: first the muscle groups, each drawn on the body; then that group's exercises (or a search).
 function library() {
   const grp = MGROUPS.find(g => g[0] === libF.g);
-  const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!grp || e.m.some(m => grp[2].includes(m))) && (!libF.e || e.e === libF.e));
+  const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!grp || e.m.some(m => grp[2].includes(m))) && (!libF.e || e.e === libF.e) && (!libF.mine || haveEq(e)));
   const head = `<button class="btn sm ghost back" onclick="${grp ? "libF.g='';libN=60;library()" : 'history.back()'}">${ic('back', 18)} Back</button>
-  <h1>${grp ? grp[1] : 'Exercises'}</h1><input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">`;
+  <h1>${grp ? grp[1] : 'Exercises'}</h1><input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">
+  <div class="chips">${mineChip(libF.mine, 'libF.mine=!libF.mine;libN=60;library()')}</div>`;
   if (!grp && !libF.q) {
-    view.innerHTML = `${head}<div class="mgrid">${MGROUPS.map(([k, name, ms]) => `<button class="mgroup" onclick="libF.g='${k}';libN=60;library()">${bodyMap(ms, [], 'auto')}<b>${name}</b><span class="mut">${EX.filter(e => e.m.some(m => ms.includes(m))).length}</span></button>`).join('')}</div>`;
+    view.innerHTML = `${head}<div class="mgrid">${MGROUPS.map(([k, name, ms]) => `<button class="mgroup" onclick="libF.g='${k}';libN=60;library()">${bodyMap(ms, [], 'auto')}<b>${name}</b><span class="mut">${EX.filter(e => e.m.some(m => ms.includes(m)) && (!libF.mine || haveEq(e))).length}</span></button>`).join('')}</div>`;
   } else {
     view.innerHTML = `${head}
-    <select id="fe" style="margin:8px 0"><option value="">All equipment</option>${optList([...new Set(EX.map(e => e.e))], libF.e)}</select>
+    <select id="fe" style="margin:8px 0"><option value="">All equipment</option>${optList([...new Set(EX.filter(e => !libF.mine || haveEq(e)).map(e => e.e))], libF.e)}</select>
     ${list.slice(0, libN).map(e => `<a class="card row li" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${e.e}</div></div></a>`).join('')}
     ${list.length > libN ? `<button class="btn ghost" onclick="libN += 60; library()">Show more (${list.length - libN})</button>` : ''}`;
     $('#fe').onchange = ev => { libF.e = ev.target.value; libN = 60; library(); };
@@ -649,7 +653,7 @@ window.quitWorkout = () => {
   const b = $('#rest'); b.hidden = false;
   b.innerHTML = '<h2>Discard this workout?</h2><div class="row"><button class="btn ghost" id="no">Keep going</button><button class="btn" id="yes">Discard</button></div>';
   $('#no').onclick = () => { b.hidden = true; };
-  $('#yes').onclick = () => { b.hidden = true; session = null; saveSess(); location.hash = '#/home'; };
+  $('#yes').onclick = () => { b.hidden = true; session = null; saveSess(); location.hash = '#/home'; resumeBar(); };
 };
 window.doneSet = i => {
   const x = session.ex[session.cur], s = x.sets[i], before = exXp(x).tier;
@@ -689,9 +693,14 @@ function resumeBar() {
   let bar = document.getElementById('resume');
   const show = session && location.hash !== '#/workout' && location.hash !== '#/victory';
   if (!show) { bar?.remove(); return; }
-  if (!bar) { bar = document.createElement('button'); bar.id = 'resume'; bar.onclick = () => { location.hash = '#/workout'; }; document.body.appendChild(bar); }
+  if (!bar) {
+    bar = document.createElement('div'); bar.id = 'resume'; bar.setAttribute('role', 'button'); bar.tabIndex = 0;
+    bar.onclick = ev => { if (ev.target.closest('.rquit')) { ev.stopPropagation(); quitWorkout(); } else location.hash = '#/workout'; };
+    document.body.appendChild(bar);
+  }
   const doneN = session.ex.filter(x => x.sets.every(s => s.done)).length;
-  bar.innerHTML = `${ic('play', 16)} <span class="grow">${esc(session.name)}</span><span>${doneN}/${session.ex.length}</span>`;
+  bar.innerHTML = `${ic('play', 16)} <span class="grow">${esc(session.name)}</span><span>${doneN}/${session.ex.length}</span>
+    <button class="rquit" aria-label="Discard workout">${ic('close', 16)}</button>`;
 }
 window.addEventListener('hashchange', resumeBar);
 // a timed set that ends while you are on another screen still ticks itself off
@@ -747,7 +756,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 148</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 149</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
