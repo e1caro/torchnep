@@ -157,3 +157,5 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 ## Tabs
 
 Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badges) and Hero. The reward road shows the next levels with only the workouts, level-only looks and perks they unlock (coins, chests and recipes come every level; shop sections show their own lock in the Shop). Nothing is shown twice: the hero card is on Today and Hero only, stats live in Progress, and the Shop, Bets and Earn screens show just your coins. The rest up to 50 are folded. Screens keep text to a minimum: numbers, names and buttons, with explanations only under "How it works".
+
+- **Today fits the screen:** it doesn't scroll; the circles size themselves to the free space. Themes also recolour the tab bar.

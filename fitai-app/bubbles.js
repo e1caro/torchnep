@@ -96,7 +96,7 @@ function layoutOrbs() {
   const orbs = view.querySelector('.orbs');
   if (!orbs) return;
   const navH = document.querySelector('nav#tabs')?.offsetHeight || 80, top = orbs.getBoundingClientRect().top + scrollY;
-  const W = orbs.clientWidth, H = Math.max(470, innerHeight - top - navH - 6);
+  const W = orbs.clientWidth, H = Math.max(360, innerHeight - top - navH - 6); // fills the screen exactly (Today doesn't scroll)
   const big = orbs.querySelector('.bub.big'), sats = [...orbs.querySelectorAll('.bub:not(.big)')], n = sats.length, LBL = 24;
   orbs.style.height = `${H}px`;
   const E = 1.12; // ring ornaments reach a bit past each circle; neighbours' ornaments may touch, circles may not
