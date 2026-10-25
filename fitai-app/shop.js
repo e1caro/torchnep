@@ -57,6 +57,7 @@ window.sell = id => {
 };
 
 // ---------- Levels ----------
+const LOOKS = ['avatar', 'frame', 'banner', 'theme', 'panel', 'skin']; // kinds of look that can be tried on
 function levelsView() {
   const L = lvl(), max = 50; // the whole road, so every level reward can be seen ahead
   const next = ITEMS.filter(i => !i.shop && i.lv > L).sort((a, b) => a.lv - b.lv)[0], perks = ITEMS.filter(i => i.type === 'perk' && has(i));
@@ -69,7 +70,7 @@ function levelsView() {
     return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
     ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
     ${Object.entries(SHOP_LV).filter(([, l]) => l === n).map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">open in the Shop</span></div>`).join('')}
-    ${its.map(i => `<div class="ri">${ICO(i)} ${esc(i.name)} <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
+    ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')" title="Tap to try it for a minute"` : ''}>${ICO(i)} ${esc(i.name)} <span class="mut">${KIND[i.type]}</span>${LOOKS.includes(i.type) && !has(i) ? `<span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -145,7 +146,7 @@ function looksView(t) {
   <div class="mut">${mine.length} owned · tap one to use it</div>${t === 'theme' ? themeNote() : ''}
   <div class="pgrid ${wide}">${mine.map(i => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name.replace(/ panels$| banner$/, ''))}</small></button>`).join('')}</div>
   ${(lockd => lockd.length ? `<h2 class="sec">Level rewards</h2><div class="mut">Only earned by levelling up: they can't be bought or found in chests.</div>
-    <div class="pgrid ${wide}">${lockd.map(i => `<div class="pick locked" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name)}<br>${gi('lock')} level ${i.lv}</small></div>`).join('')}</div>` : '')(ITEMS.filter(i => i.type === t && i.excl && !has(i)).sort((x, y) => x.lv - y.lv))}
+    <div class="pgrid ${wide}">${lockd.map(i => `<div class="pick locked" role="button" onclick="tryLook('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name)}<br>${gi('lock')} level ${i.lv}</small></div>`).join('')}</div>` : '')(ITEMS.filter(i => i.type === t && i.excl && !has(i)).sort((x, y) => x.lv - y.lv))}
   ${more ? `<button class="btn ghost sm moreb" onclick="shopAt('${t}')">${more} more in the Shop</button>` : ''}`;
 }
 function profileView(sub) {

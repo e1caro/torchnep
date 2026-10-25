@@ -799,3 +799,10 @@ html[data-theme=olympus]{--bg:#070c16;--glow:#1d2c48;--acc:#f5e6b8;--acc2:#7fd4f
 #trybar .trc .gi{font-size:15px}
 #trybar .trx{border:0;background:none;color:var(--acc);font-size:13px;padding:0 2px;cursor:pointer}
 #trybar .btn{margin-left:auto}
+/* level-reward looks on the reward road and level-up screen: icon-sized, and tap to try */
+.ri .icoav,.unl .icoav{zoom:.55;width:34px;height:34px;margin:0 4px}
+.ri .icobn,.unl .icobn{width:30px;height:16px;border-radius:4px}
+.ri .icosw,.unl .icosw{width:18px;height:18px}
+.ri.trytap{cursor:pointer}
+.trychip{margin-left:6px;padding:1px 7px;border:1px solid var(--line2);border-radius:10px;font-size:.7em;font-weight:600;color:var(--acc);vertical-align:middle}
+.pick.locked{cursor:pointer}

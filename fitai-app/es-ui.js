@@ -316,3 +316,4 @@ i18nAdd({ 'Shop opened': 'Tienda abierta', Shop: 'Tienda', 'open in the Shop': '
   'You can buy these from level {n}. Until then they can still come out of chests.': 'Podrás comprarlos desde el nivel {n}. Mientras tanto pueden salir en los cofres.' });
 i18nPat(/^(.+) can be bought from level (\d+)\.$/, (a, b) => `${tr(a)} se pueden comprar desde el nivel ${b}.`);
 i18nAdd({ 'End all': 'Terminar todas', 'Try 1 min': 'Probar 1 min', 'Trying · end': 'Probando · terminar' });
+i18nAdd({ Try: 'Probar', Trying: 'Probando', 'Tap to try it for a minute': 'Tócalo para probarlo un minuto' });
