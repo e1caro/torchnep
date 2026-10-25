@@ -413,7 +413,7 @@ function hud() {
 function home() {
   if (needProfile()) return;
   ensureDay(); flushLevelUp();
-  const p = S.profile, a = analyze({ ...p, weight: curWeight() }), di = nextDayIdx(), d = S.plan.days[di], first = BY[d.items[0].id];
+  const p = S.profile, a = analyze({ ...p, weight: curWeight() }), di = nextDayIdx(), d = dayFor(di), first = BY[d.items[0].id];
   const done = G.quests.claimed.length, hits = Math.min(weekCount(), p.days), bossDone = hits >= p.days, [bn, be] = BOSSES[hash(weekId()) % BOSSES.length];
   view.innerHTML = `${hud()}
   <div class="row between sec2"><h2>Daily quests</h2><span class="mut">${done}/${G.quests.list.length} claimed</span></div>
@@ -436,7 +436,7 @@ function home() {
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
   <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min · +${d.items.reduce((s, i) => s + i.sets, 0) * 10 + 100} XP</div><h2>${esc(d.name.split(' · ')[1])}</h2>
-    ${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
+    ${timeChips(di)}${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
   <h2 class="sec">Fuel</h2>
   <div class="grid4"><div class="stat"><b>${a.kcal}</b><span>kcal / day</span></div><div class="stat"><b>${a.protein}g</b><span>protein</span></div>
   <div class="stat"><b>${a.carbs}g</b><span>carbs</span></div><div class="stat"><b>${a.fat}g</b><span>fat</span></div></div>
@@ -476,7 +476,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 83</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 84</div>`;
 }
 
 function initGame() {

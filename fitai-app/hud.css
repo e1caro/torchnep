@@ -609,3 +609,10 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 .cfm .row{padding:4px 0}
 .cfmb{gap:10px}.cfmb .btn{flex:1}
 .card.sw .sellb{font-size:.78em;opacity:.85;margin-top:4px}
+/* time for today's workout, training options */
+.todaytime{margin:8px 0 10px}
+.todaytime .chips{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-top:4px}
+.todaytime .chips::-webkit-scrollbar{display:none}
+.todaytime .chip{flex:none;padding:6px 10px;font-size:.85em}
+.optcard .chips{margin-bottom:4px}
+.optbtns{gap:10px;margin-top:12px}.optbtns .btn{flex:1}

@@ -78,6 +78,10 @@ Sessions last 30 minutes to 2 hours (30, 45, 60, 75, 90 or 120). The "Cardio and
 
 Each strength exercise is timed at about 50 s per set plus its rest and 2.5 minutes to set up; warm-up, cardio and stretching are counted first and strength exercises fill the rest, going round the day's muscles again on long sessions. Short sessions that still run over shorten what is on auto, then take a set off. Older plans are trimmed to fit once.
 
+**Time today:** some days there is more or less time at the gym. The next workout (on Today and on the Plan) has a row of times; picking one fits that workout to it for today only: it keeps the day's exercises and drops or adds strength exercises for the same muscles, and resizes cardio and stretching left on auto. Tomorrow it goes back to your usual time.
+
+**Training options:** a card on the Plan screen with the answers from the start (goal, experience, days, session time, equipment, focus and limits). Change any of them and "Save and rebuild plan" makes a new plan, without going through the questionnaire again; history, levels and rewards stay. "Edit body data" opens the full profile.
+
 ## Weekly summary and coach
 
 - **Weekly summary:** a story of the week, with full-screen slides that advance on their own or with a tap, animated numbers and bars, and comparisons with the week before. It covers workouts, minutes, kilos, sets and reps, the muscles worked, new records, the best workout, the training days and streak, XP, the boss, and a week grade (C to A+, or a golden S with confetti for an exceptional week: more workouts than the goal plus a new record or more kilos than the week before), and you can share it. It opens by itself the first time you use the app in a new week. Progress shows the week inline (training days, workouts against the goal, minutes, kilos, records and a grade, compared with the same point of last week) with buttons to play this week or last week as a story.
