@@ -5,7 +5,7 @@
 
 const BT = (G.bets = Object.assign({ open: [], done: [], won: 0, lost: 0, net: 0, best: 0 }, G.bets || {}));
 let slip = [], stake = 25;
-const BET_MIN = 5, BET_MAX = 300, BET_OPEN = 8, LEGS_MAX = 6, BET_COMBO_MAX = 20;
+const BET_MIN = 10, BET_MAX = 300, STAKE_CAP = { week: 30, month: 100 }, BET_OPEN = 8, LEGS_MAX = 6, BET_COMBO_MAX = 20;
 // Muscle picks pay 1.00 each (you will train something); combining muscles of the same day, week or month multiplies the bet by these odds.
 // over a week or a month you end up training most muscles anyway, so their combos pay much less than today's
 const MG_X = { day: [1, 1, 1.25, 1.6, 2.1, 2.8, 3.6], week: [1, 1, 1.1, 1.2, 1.3, 1.45, 1.6], month: [1, 1, 1.05, 1.1, 1.15, 1.25, 1.35] };
@@ -439,8 +439,8 @@ function renewBet(b, quiet) {
     return { ...l, ...w, base, st: undefined, o: oddsFor(l.kind, l.n, p, l.per, l.grp), day: dayId(w.from), t: l.roll ? l.t : undefined };
   });
   legs.forEach(l => { delete l.st; l.t = l.roll ? l.t : legTitle(l); });
-  const nb = { id: 'b' + now.toString(36) + Math.random().toString(36).slice(2, 5), t: now, stake: b.stake, odds: slipOdds(legs).total, legs, repeat: b.repeat, round: (b.round || 1) + 1 };
-  G.coins -= b.stake; BT.open.push(nb); BT.placed = (BT.placed || 0) + 1;
+  const nb = { id: 'b' + now.toString(36) + Math.random().toString(36).slice(2, 5), t: now, stake: Math.min(b.stake, stakeCap(legs)), odds: slipOdds(legs).total, legs, repeat: b.repeat, round: (b.round || 1) + 1 };
+  G.coins -= nb.stake; BT.open.push(nb); BT.placed = (BT.placed || 0) + 1;
   if (!quiet) toast(b.repeat === 'week' ? 'Bet repeated for the next 7 days' : b.repeat === 'month' ? 'Bet repeated for the next month' : 'Bet repeated for the next day');
 }
 window.betNoRepeat = id => { const b = BT.open.find(x => x.id === id); if (b) { delete b.repeat; commit(); toast('It will not repeat.'); betsView(); } };
@@ -465,13 +465,16 @@ window.betPick = id => {
   if (r.clash) toast('One workout would win both picks, so they cannot be combined.');
   slip = r.legs; sfx('tick'); betsView();
 };
-window.betStake = v => { stake = Math.round(Math.min(BET_MAX, Math.max(BET_MIN, +v || BET_MIN))); betsView(); };
+// the most you can stake: 30 coins on a 7-day bet, 100 on a one-month bet (a bet with any 7-day pick counts as 7 days)
+const stakeCap = legs => (legs.length && legs.every(l => l.per === 'month') ? STAKE_CAP.month : STAKE_CAP.week);
+window.betStake = v => { stake = Math.round(Math.min(stakeCap(slip), Math.max(BET_MIN, +v || BET_MIN))); betsView(); };
 window.betClear = () => { slip = []; betsView(); };
 window.betTabSet = k => { betTab = k; betsView(); };
 window.placeBet = () => {
   if (!slip.length) return;
   if (BT.open.length >= BET_OPEN) { toast(`You can have ${BET_OPEN} open bets at a time.`); return; }
   if (stake > G.coins) { toast('Not enough coins.'); return; }
+  if (stake > stakeCap(slip)) { stake = stakeCap(slip); toast(`Up to ${stake} coins on this bet.`); betsView(); return; }
   const live = markets(), legs = slip.map(s => live.find(m => m.id === s.id)).filter(Boolean);
   if (legs.length !== slip.length) { toast('Some picks are no longer available.'); slip = legs; betsView(); return; }
   const now = Date.now(), so = slipOdds(legs);
@@ -504,7 +507,7 @@ function betsView() {
   ensureDay(); settleBets();
   const ms = markets(), on = new Set(slip.map(l => l.id));
   slip = slip.filter(l => ms.some(m => m.id === l.id));
-  const so = slipOdds(slip), maxStake = Math.min(BET_MAX, G.coins);
+  const so = slipOdds(slip), maxStake = Math.min(stakeCap(slip), G.coins);
   stake = Math.max(BET_MIN, Math.min(stake, Math.max(BET_MIN, maxStake)));
   const row = m => `<button class="mkt ${on.has(m.id) ? 'on' : ''}" onclick="betPick('${m.id}')"><span class="qi">${gi(m.ico)}</span><span class="grow"><span class="mt">${m.t}</span>${m.need && m.show !== false ? `<span class="mut">${Math.min(m.prog, m.need)}/${m.need} so far</span>` : ''}</span>${oddCell(m, on.has(m.id))}</button>`;
   const list = ms.filter(m => m.tab === betTab), per = periods().find(P => P.k === betTab);
@@ -523,13 +526,13 @@ function betsView() {
     <li>Bets last 7 days or a month, counted from the day you bet (today is the first day), whatever the day of the week. There are no one-day bets. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
     <li>Muscle picks pay 1.00 alone, because you will train something, and a bit more for muscles you rarely train. Combine several muscles of the same bet to raise the odds: in 7 days up to ×1.6, in a month up to ×1.35.</li>
     <li>Tick Repeat to place the same bet again, for the next 7 days or month, when it ends. Stop it from My bets whenever you like.</li>
-    <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back), training once a week or month never pays, and a month pays less than 7 days. Stakes go from ${BET_MIN} to ${BET_MAX} coins, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
+    <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back), training once a week or month never pays, and a month pays less than 7 days. Stakes go from ${BET_MIN} coins up to ${STAKE_CAP.week} on a 7-day bet and ${STAKE_CAP.month} on a one-month bet, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
   ${slip.length ? `<section class="card slip"><div class="row between"><h3>${slip.length > 1 ? `Combined bet · ${slip.length} picks` : 'Single bet'}</h3><button class="icon" aria-label="Clear slip" onclick="betClear()">${ic('close', 18)}</button></div>
     ${slip.map(l => `<div class="row betleg"><span class="grow">${l.t}</span><span class="mut">${l.o.toFixed(2)}</span></div>`).join('')}
     ${so.muscles > 1 ? `<div class="mut">Muscle combo: ${so.muscles} muscles ×${so.mgx.toFixed(2)}</div>` : ''}
     ${so.related ? `<div class="mut">Related training picks: odds ×${(.85 ** so.related).toFixed(2)}</div>` : ''}
     <div class="row between"><span>Total odds</span><span class="odd big">${so.total.toFixed(2)}</span></div>
-    <div class="lbl">Stake</div><div class="chips">${[10, 25, 50, 100, 200].filter(v => v <= maxStake).map(v => `<button class="chip ${stake === v ? 'on' : ''}" onclick="betStake(${v})">${v}</button>`).join('')}${maxStake >= BET_MIN ? `<button class="chip ${stake === maxStake ? 'on' : ''}" onclick="betStake(${maxStake})">Max</button>` : ''}</div>
+    <div class="lbl">Stake</div><div class="row stakein"><input id="stakeIn" type="number" inputmode="numeric" min="${BET_MIN}" max="${maxStake}" step="1" value="${stake}" onchange="betStake(this.value)" onkeydown="if(event.key==='Enter')this.blur()" aria-label="Coins to stake"><span class="mut">${BET_MIN}–${stakeCap(slip)} coins</span></div><div class="chips">${[10, 20, 25, 50, 75].filter(v => v <= maxStake).map(v => `<button class="chip ${stake === v ? 'on' : ''}" onclick="betStake(${v})">${v}</button>`).join('')}${maxStake >= BET_MIN ? `<button class="chip ${stake === maxStake ? 'on' : ''}" onclick="betStake(${maxStake})">Max</button>` : ''}</div>
     ${repeatPer(slip) ? `<label class="row rep"><input type="checkbox" ${slipRepeat ? 'checked' : ''} onchange="betRepeat()"><span class="grow">Repeat when it ends</span></label><div class="mut">When it ends, the same bet is placed for the next ${repeatPer(slip) === 'week' ? '7 days' : 'month'} with the same stake.</div>` : slip.length > 1 ? '<div class="mut">Only bets whose picks are all 7-day or all one-month picks can repeat.</div>' : ''}
     <div class="row between pay"><span>Possible win</span><b>${gi('coin', 'cn')} ${Math.round(stake * so.total)}</b></div>
     <button class="btn chestbtn" ${G.coins >= stake && G.coins >= BET_MIN && BT.open.length < BET_OPEN ? '' : 'disabled'} onclick="placeBet()">${gi('ticket')} Place bet · ${stake} coins</button>

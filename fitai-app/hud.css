@@ -681,3 +681,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:tex
 .betfold>summary h2.sec{margin:0;flex:1}
 .betfold>summary::after{content:"▾";color:var(--acc);transition:transform .2s}
 .betfold[open]>summary::after{transform:rotate(180deg)}
+/* type how many coins to stake */
+.stakein{gap:10px;align-items:center;margin-bottom:6px}
+.stakein input{width:110px;font-size:1.1em;text-align:center}

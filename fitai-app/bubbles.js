@@ -53,6 +53,12 @@ function bubbleHome() {
   view.querySelectorAll(':scope > button[onclick*="#/earn"], :scope > button[onclick*="#/bets"]').forEach(n => n.remove());
   // the daily check-in and the chests share one bubble; it stays even when both are done
   groups.loot.unshift(streakCard());
+  if (G.gifts) { // level rewards from before the update, waiting to be collected
+    const el = document.createElement('section'); el.className = 'card gifts';
+    el.innerHTML = `<div class="row"><span class="giftico">${gi('chest-gold', 'hero')}</span><div class="grow"><h3>Level rewards</h3><div class="mut">Your levels now give a silver chest each and a golden one every 5th. Here are the ones you had earned.</div>
+      <b>${G.gifts.silver} × ${gi('chest-silver')} · ${G.gifts.gold} × ${gi('chest-gold')}</b></div></div><button class="btn gold" onclick="collectGifts()">Collect</button>`;
+    groups.loot.unshift(el);
+  }
   Object.keys(groups).forEach(k => { groups[k] = groups[k].filter(Boolean); if (!groups[k].some(n => !n.matches('h2.sec,.sec2'))) delete groups[k]; });
 
   // what each bubble shows: a value, a progress ring (0..1) and a "!" when something is ready to claim
@@ -61,7 +67,7 @@ function bubbleHome() {
   BUB_INFO = {
     train: { p: hits / p.days, v: `${hits}/${p.days}`, name: next?.querySelector('h2')?.textContent },
     quests: { p: qd / qn, v: `${qd}/${qn}`, bad: !!view.querySelector(':scope > .quest.ok:not(.cl)') || !!boss?.querySelector('button') },
-    loot: (({ done }) => ({ p: done / 7, v: G.chests.length ? `×${G.chests.length}` : `${done}/7`, bad: G.checkin !== dayId() || G.chests.length > 0 }))(ciStreakNow()),
+    loot: (({ done }) => ({ p: done / 7, v: G.chests.length ? `×${G.chests.length}` : `${done}/7`, bad: G.checkin !== dayId() || G.chests.length > 0 || !!G.gifts }))(ciStreakNow()),
     meals: (([a, b]) => (b ? { p: a / b, v: `${a}/${b}` } : { v: g4?.querySelector('b')?.textContent }))(num(meals?.querySelector('.mut'))),
     academy: { v: groups.academy?.[0].querySelector('.pc-mini b')?.textContent ?? null },
     earn: { bad: typeof spinsLeft === 'function' && spinsLeft() > 0, v: typeof BT === 'object' && BT.open.length ? `${BT.open.length}` : null },

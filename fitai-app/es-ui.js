@@ -281,3 +281,20 @@ i18nAdd({ Chamfered: 'Biselado', Classic: 'Clásico', Brackets: 'Corchetes', Oct
 i18nPat(/^You are using it, so you will switch back to (.+)\.$/, a => `Lo llevas puesto, así que volverás a ${tr(a)}.`);
 i18nAdd({ 'Your look': 'Tu aspecto', 'Change · {n}': 'Cambiar · {n}', '{n} owned · tap one to use it': '{n} en propiedad · toca uno para usarlo' });
 i18nAdd({ 'New bet': 'Nueva apuesta' });
+i18nAdd({ Demigod: 'Semidiós', Immortal: 'Inmortal', Olympian: 'Olímpico', 'Triple spin': 'Triple tirada', 'Three free daily spins': 'Tres tiradas gratis al día', 'Three free spins a day': 'Tres tiradas gratis al día',
+  'Coin Boost III': 'Impulso de monedas III', '+{n}% coins from every workout': '+{n}% de monedas en cada entrenamiento', 'XP Boost IV': 'Impulso de XP IV', '+{n}% XP from every workout': '+{n}% de XP en cada entrenamiento',
+  'Iron Labyrinth': 'Laberinto de hierro', 'Abyss of Abs': 'Abismo abdominal', 'Valkyrie Sprint': 'Carrera de la valquiria', 'Anvil of Arms': 'Yunque de brazos', 'Hydra Supersets': 'Superseries de la hidra',
+  "Dragon's Den": 'Guarida del dragón', 'Colossus Climb': 'Escalada del coloso', Pantheon: 'Panteón',
+  'Eight heavy compound lifts around the whole body, {n} × {n}.': 'Ocho ejercicios compuestos pesados para todo el cuerpo, {n} × {n}.',
+  'Eight core exercises, {n} × {n}, short rests. The deep end.': 'Ocho ejercicios de core, {n} × {n}, descansos cortos. Lo más profundo.',
+  'Ten fast bodyweight moves, {n} s each, three rounds. No equipment.': 'Diez movimientos rápidos con tu peso, {n} s cada uno, tres rondas. Sin material.',
+  'Biceps, triceps and forearms, five sets each, forged slowly.': 'Bíceps, tríceps y antebrazos, cinco series cada uno, forjados despacio.',
+  'Twelve exercises back to back, {n} × {n}, twenty seconds of rest.': 'Doce ejercicios seguidos, {n} × {n}, veinte segundos de descanso.',
+  'Six heavy lifts, {n} × {n}, three-minute rests. Quadruple-ish XP.': 'Seis levantamientos pesados, {n} × {n}, descansos de tres minutos. Casi el cuádruple de XP.',
+  'Ten exercises for legs and back, {n} × {n}. The mountain does not move; you do.': 'Diez ejercicios de pierna y espalda, {n} × {n}. La montaña no se mueve; tú sí.',
+  'Sixteen exercises, every muscle, {n} × {n}. The last trial. Five times the XP.': 'Dieciséis ejercicios, todos los músculos, {n} × {n}. La última prueba. Cinco veces la XP.' });
+i18nAdd({ 'Up to {n} coins on this bet.': 'Hasta {n} monedas en esta apuesta.', 'Level rewards': 'Premios de nivel',
+  'Your levels now give a silver chest each and a golden one every 5th. Here are the ones you had earned.': 'Ahora cada nivel da un cofre de plata y cada 5 niveles también uno dorado. Aquí tienes los que ya te habías ganado.',
+  '{n} chests added to your loot': '{n} cofres añadidos a tu botín',
+  'Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay {n} (you only get your coins back), training once a week or month never pays, and a month pays less than {n} days. Stakes go from {n} coins up to {n} on a {n}-day bet and {n} on a one-month bet, with up to {n} open bets. Only game coins, never real money.': 'Las cuotas salen de tus últimas cuatro semanas: lo que consigues pocas veces paga más, lo fácil paga {n} (solo recuperas tus monedas), entrenar una vez a la semana o al mes nunca paga, y un mes paga menos que {n} días. Se apuesta desde {n} monedas hasta {n} en una apuesta de {n} días y {n} en una de un mes, con hasta {n} apuestas abiertas. Solo monedas del juego, nunca dinero real.' });
+i18nAdd({ '{n}–{n} coins': '{n}–{n} monedas', 'Coins to stake': 'Monedas a apostar' });
