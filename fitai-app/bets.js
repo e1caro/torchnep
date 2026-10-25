@@ -511,6 +511,11 @@ function betsView() {
   const fmt = t => new Date(t).toLocaleDateString(LANG, { weekday: 'short', day: 'numeric', month: 'short' });
   const note = `From today to ${fmt(per.to)}, counted from the day you bet.`;
   view.innerHTML = `${hud()}<button class="btn sm ghost back" onclick="location.hash='#/earn'">${ic('back', 18)} Back</button><h1>Bets</h1>
+  <h2 class="sec">My bets</h2>
+  ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
+  ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}</details>` : ''}
+  <div class="mut" style="text-align:center;margin-top:10px">Balance from bets: ${BT.net >= 0 ? '+' : '−'}${Math.abs(BT.net)} coins</div>
+  <h2 class="sec">New bet</h2>
   <details class="card howto"><summary>How bets work</summary><ol>
     <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the number is the total odds your bet would have with that goal added.</li>
     <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
@@ -533,10 +538,7 @@ function betsView() {
   <div class="chips bettabs">${PER_TABS.map(([k, t]) => `<button class="chip ${betTab === k ? 'on' : ''}" onclick="betTabSet('${k}')">${t}</button>`).join('')}</div>
   <div class="mut">${note}</div>
   ${list.length ? CATS.map(([c, name]) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<h3 class="betcat">${name}</h3>${c === 'muscle' ? mgHint(MG_X[betTab]) : ''}${xs.map(row).join('')}` : ''; }).join('') : `<p class="mut">Nothing to bet on here right now.</p>`}
-  <h2 class="sec">My bets</h2>
-  ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
-  ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}</details>` : ''}
-  <div class="mut" style="text-align:center;margin-top:10px">Balance from bets: ${BT.net >= 0 ? '+' : '−'}${Math.abs(BT.net)} coins</div>`;
+`;
 }
 
 // ---------- hooks ----------
