@@ -485,7 +485,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 98</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 99</div>`;
 }
 
 function initGame() {
@@ -502,8 +502,21 @@ function initGame() {
   }
   // the HUD redesign: everyone starts once on the Cyber HUD look (bought themes stay owned and can be equipped again)
   if (!G.hudLook2) { G.hudLook2 = 1; G.theme = 'hud'; G.skin = 'hud'; G.panel = 'chamfer'; }
+  // level rewards are now a silver chest every level and a golden one too every 5th: players who levelled up before get
+  // the chests they missed, to collect from Loot (before, levels 5, 15, 25... gave a silver chest and 10, 20, 30... a golden one)
+  if (!G.lvGift) {
+    G.lvGift = 1; let sv = 0, gd = 0;
+    for (let k = 2; k <= lvl(); k++) { sv += k % 5 === 0 && k % 10 !== 0 ? 0 : 1; gd += k % 5 === 0 && k % 10 !== 0 ? 1 : 0; }
+    if (sv + gd) G.gifts = { silver: sv, gold: gd };
+  }
   ensureDay(); applyTheme(); commit();
 }
+window.collectGifts = () => {
+  const g = G.gifts; if (!g) return;
+  for (let i = 0; i < g.silver; i++) G.chests.push('silver');
+  for (let i = 0; i < g.gold; i++) G.chests.push('gold');
+  G.gifts = null; commit(); sfx('level'); confetti(); toast(`${g.silver + g.gold} chests added to your loot`); route();
+};
 // Version 3 split rewards: levels give workouts, meals and perks; coins buy looks. Keep everything players already had.
 function migrateGame() {
   if (G.ver >= 3) return;
