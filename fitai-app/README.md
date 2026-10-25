@@ -159,3 +159,11 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badges) and Hero. The reward road shows the next levels with only the workouts, level-only looks and perks they unlock (coins, chests and recipes come every level; shop sections show their own lock in the Shop). Nothing is shown twice: the hero card is on Today and Hero only, stats live in Progress, and the Shop, Bets and Earn screens show just your coins. The rest up to 50 are folded. Screens keep text to a minimum: numbers, names and buttons, with explanations only under "How it works".
 
 - **Today fits the screen:** it doesn't scroll; the circles size themselves to the free space. Themes also recolour the tab bar.
+
+## Android app (APK)
+
+`android/` wraps the app as an Android app: the web files are packed inside the APK and shown full screen, so it works offline and keeps its data on the phone. The icon is a quest scroll carrying a blue dumbbell, on a dark tile in the Minimal look (also used by the web app; drawn by `tools/make_icons.js`).
+
+- **Releases:** the `android` workflow (Actions > android > Run workflow) builds the APK and publishes it as a GitHub release "FitQuest 1.N" (tag `app-N`) with the APK attached. Pull requests that touch the app build the APK as a check.
+- **Updates:** the app checks those releases when it opens; when a newer one exists, a bar (and Settings) offers "Update", which downloads the new APK. It installs over the old one and keeps your data, because every release is signed with the same key, kept as the repository secret `FITQUEST_KEYSTORE` (never in the code).
+- **First install:** open the release page on the phone, download the APK and allow installing from your browser when Android asks.
