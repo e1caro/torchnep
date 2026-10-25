@@ -150,19 +150,20 @@ function finalizeDay(d) {
 }
 
 // Makes sure a day's meals cover the energy and protein the training needs: when one serving per meal falls short,
-// training snacks are added (protein-rich ones when protein is short), and only then do servings grow, up to ×1.35.
-const PFUEL = 1.35;
+// one training snack is added (a protein-rich one when protein is short; swap it from its recipe page), and only then
+// do servings grow, up to ×1.5.
+const PFUEL = 1.5;
 const dayK = d => d.items.reduce((s, it) => s + nutIt(it).kcal * it.k, 0), dayP = d => d.items.reduce((s, it) => s + nutIt(it).p * it.k, 0);
 function fuelDay(d) {
   const a = target();
   d.items = d.items.filter(it => !it.fuel || it.eaten); // training snacks are planned again
   finalizeDay(d);
   const used = new Set(d.items.map(x => x.rid));
-  for (let n = 0; n < (M.set.meals <= 3 ? 4 : 3) && dayK(d) < a.kcal * .95; n++) {
+  for (let n = d.items.some(it => it.fuel) ? 1 : 0; n < 1 && dayK(d) < a.kcal * .95; n++) { // none if one was already eaten
     const miss = a.kcal - dayK(d), protShort = dayP(d) < a.protein * .9, { pool } = candidates('s', 99, used);
     if (!pool.length) break;
     const score = r => { const nu = nutFast(r); return fitScore(r, Math.min(miss, nu.kcal * PMAX), a) + (protShort ? nu.p * 4 / nu.kcal * 6 : 0) - (used.has(r.id) ? 3 : 0); };
-    const r = pool.reduce((x, y) => score(y) > score(x) ? y : x), k = portion(r, Math.min(miss, nutFast(r).kcal * PMAX));
+    const r = pool.reduce((x, y) => score(y) > score(x) ? y : x), k = portion(r, Math.min(miss, nutFast(r).kcal * 2));
     d.items.push({ slot: 'Training snack', kind: 's', share: nutFast(r).kcal * k / a.kcal, rid: r.id, k, eaten: false, fuel: true });
     used.add(r.id);
   }
@@ -172,8 +173,11 @@ function fuelDay(d) {
     if (!sn || d.items.length <= 3) break;
     d.items.splice(sn[1], 1); finalizeDay(d);
   }
-  const tot = dayK(d);
-  if (tot < a.kcal * .97) { const f = a.kcal / tot; d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, PFUEL) * 20) / 20; }); }
+  // still short: grow the servings still to eat (the training snack up to a double one), a few rounds as some hit their cap
+  for (let round = 0; round < 4 && dayK(d) < a.kcal * .97; round++) {
+    const f = a.kcal / dayK(d);
+    d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, it.fuel ? 2 : PFUEL) * 20) / 20; });
+  }
   return d;
 }
 
@@ -214,7 +218,7 @@ function buildWeek() {
   }
   // polish the best few random weeks by swapping single meals, then keep the best result
   const best = trials.sort((x, y) => y.j - x.j).slice(0, 4).map(t => refine(t.days)).reduce((x, y) => weekScore(y) > weekScore(x) ? y : x);
-  M.plan = { week: weekId(), v: 3, days: addChefPicks(best).map(fuelDay), kcal: target().kcal, prot: target().protein };
+  M.plan = { week: weekId(), v: 3, fuel1: 1, days: addChefPicks(best).map(fuelDay), kcal: target().kcal, prot: target().protein };
   M.shop = []; mealSave();
 }
 const weekIngredients = () => new Set(M.plan.days.flatMap(d => d.items.flatMap(it => RBY[it.rid].ing.map(g => g[0])))).size;
@@ -227,7 +231,8 @@ function ensureMeals() {
   if (!M.plan || M.plan.week !== weekId() || M.plan.v !== 3) buildWeek(); // v3: one serving per person
   // the training plan or your weight changed what you need: fit today and the days ahead again
   const a = target();
-  if (M.plan.kcal !== a.kcal || M.plan.prot !== a.protein) {
+  if (M.plan.kcal !== a.kcal || M.plan.prot !== a.protein || !M.plan.fuel1) { // fuel1: one training snack a day at most
+    M.plan.fuel1 = 1;
     M.plan.days.forEach((d, i) => { if (i >= todayIdx()) fuelDay(d); });
     M.plan.kcal = a.kcal; M.plan.prot = a.protein; mealSave();
   }
