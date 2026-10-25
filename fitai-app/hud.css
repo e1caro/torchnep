@@ -916,3 +916,13 @@ body.fitpage .orbs{min-height:0}
 .frow .rank{width:20px;text-align:center;color:var(--mut);font-variant-numeric:tabular-nums}
 .frow.me{border-color:var(--acc)}
 .frow .lvtag{font:600 13px var(--body);color:var(--acc)}
+/* profile at a glance (Hero and friends) */
+.pstats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.pstat{display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,12px);text-align:center}
+.pstat .gi{font-size:22px;color:var(--acc)}
+.pstat b{font:700 20px var(--disp);color:var(--fg)}
+.pstat span{font-size:11px;color:var(--mut);line-height:1.2}
+.pbadges{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.pbadge{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 4px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,12px);text-align:center}
+.pbadge .gi{font-size:26px}
+.pbadge span{font-size:10.5px;color:var(--mut);line-height:1.2}

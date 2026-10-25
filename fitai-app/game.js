@@ -541,7 +541,7 @@ function victory() {
 }
 
 function heroCard() { // stats live in Progress
-  return `${hud()}
+  return `${hud()}${typeof profileShow === 'function' ? profileShow(profileSummary()) : ''}
   ${looksBlock()}
   <button class="btn ghost" onclick="location.hash='#/settings'">${ic('gear', 18)} Settings</button>`;
 }

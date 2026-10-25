@@ -506,7 +506,7 @@ function sportRow() {
 const _spHome = home;
 home = function () { _spHome(); const hud = view.querySelector('.hud'); if (hud && S.profile) { seedStats(); hud.insertAdjacentHTML('afterend', sportRow()); } };
 const _spMe = me;
-me = function () { _spMe(); if (SP.cur && S.profile) { seedStats(); view.querySelector('.hud')?.insertAdjacentHTML('afterend', clubCard(SP.cur)); } };
+me = function () { _spMe(); if (SP.cur && S.profile) seedStats(); }; // Hero shows badges and progress (profile.js); the club lives in the Academy
 Object.assign(routes, { home, me, sport: sportView });
 
 if (typeof i18nAdd === 'function') {

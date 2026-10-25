@@ -41,12 +41,8 @@ function applyData(d) {
   Object.keys(localStorage).filter(k => k.startsWith('fc.') && !SYNC_SKIP.includes(k)).forEach(k => localStorage.removeItem(k));
   Object.entries(d || {}).forEach(([k, v]) => { if (k.startsWith('fc.') && !SYNC_SKIP.includes(k)) localStorage.setItem(k, v); });
 }
-// what friends see: a summary of your profile, never your body data or history
-function publicProfile() {
-  const sp = typeof SP === 'object' && SP.cur && typeof roleOf === 'function' ? (r => r && { sport: SP.cur, ovr: ovrOf(r), pos: r.name, club: clubName() })(roleOf(SP.cur)) : null;
-  return { name: S.profile?.name || '', lvl: lvl(), xp: G.xp, title: title(), avatar: G.avatar, frame: G.frame, banner: G.banner, skin: G.skin,
-    workouts: S.history.length, minutes: S.history.reduce((a, h) => a + (h.dur || 0), 0), kg: Math.round(totalVol()), streak: streak(), badges: G.ach.length, sp };
-}
+// what friends see: the same profile summary as Hero (profile.js), never body data or history
+const publicProfile = () => profileSummary();
 let pushT = null;
 window.cloudDirty = () => {
   if (!SB_ON || !CL.uid) return;
@@ -185,9 +181,7 @@ async function friendView(id) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
   <section class="pcard pmini bn-${esc(p.banner || 'plain')}"><div class="av fr-${esc(p.frame || 'none')}" style="--p:1"><span>${gi(p.avatar || 'user', 'hero')}</span><i class="lv">${p.lvl || 1}</i></div>
     <div class="grow"><div class="hn" translate="no">${esc(p.name || f.username)}</div><div class="mut">${esc(p.title || '')}</div></div></section>
-  <div class="grid3"><div class="stat"><b>${p.workouts || 0}</b><span>workouts</span></div><div class="stat"><b>${p.minutes || 0}</b><span>minutes</span></div><div class="stat"><b>${p.streak || 0}</b><span>day streak</span></div></div>
-  <div class="grid3"><div class="stat"><b>${(p.kg || 0).toLocaleString()}</b><span>kg lifted</span></div><div class="stat"><b>${p.badges || 0}</b><span>badges</span></div><div class="stat"><b>${p.sp ? p.sp.ovr : '–'}</b><span>OVR</span></div></div>
-  ${p.sp ? `<section class="card"><b translate="no">${esc(p.sp.club || '')}</b><div class="mut">${esc(p.sp.pos || '')}</div></section>` : ''}
+  ${profileShow(p, false)}
   <button class="btn ghost" onclick="removeFriend('${f.id}')">Remove friend</button>`;
 }
 
