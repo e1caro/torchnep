@@ -297,11 +297,36 @@ function songCard() {
     <details class="spprefs"><summary>Change genres</summary><div class="chips">${SP_GENRES.map(([g, n]) => `<button class="chip ${SPF.genres.includes(g) ? 'on' : ''}" onclick="spGenre('${g}')">${n}</button>`).join('')}</div></details></section>`;
 }
 
+// Without a linked account: the same random pick of songs for the workout, as a list to play song by song.
+window.spFreeList = () => {
+  const g = spPlGenre(), goal = dayMinutes(nextDayIdx()) * 60, pool = [...(SP_SONGS[g] || SP_SONGS.rock)].sort(() => Math.random() - .5);
+  const songs = []; let t = 0;
+  for (const [n, a] of pool) { if (t >= goal) break; songs.push([n, a]); t += (SPF.durs[`${n}|${a}`] || 210000) / 1000; }
+  SPF.free = { g, songs, min: Math.round(t / 60) }; spoSave(); sfx('tick'); spRefreshView();
+};
+// the songs' own links once known (search otherwise)
+const spSongLink = (n, a) => (knownId(n, a) ? spTrackUrl(knownId(n, a)) : spSearch(`${n} ${a}`));
+// linking your own Spotify: Spotify lets one developer app link only 5 accounts, so each person makes their own (free)
+const spSetup = () => `<details class="spprefs"${spCid() ? '' : ''}><summary>Link my Spotify</summary>
+  <ol class="how spsteps"><li>Open <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener">developer.spotify.com/dashboard</a> and sign in.</li>
+    <li>Create app: any name, choose Web API, and add this Redirect URI:<div class="spuri" translate="no">${esc(SP_WEB)}</div></li>
+    <li>Copy its Client ID and paste it here.</li></ol>
+  <input id="spcid" placeholder="Client ID" autocomplete="off" spellcheck="false" translate="no" value="${esc(SPF.cid)}">
+  <button class="btn" onclick="spSetCid()">Save</button>
+  <div class="mut">Spotify asks for Premium for this.</div></details>`;
+
 function musicCard() {
-  if (!spOn()) return '';
   const pl = SPF.pl, g = spPlGenre(), mins = dayMinutes(nextDayIdx());
   const chips = `<div class="chips spgen">${SP_GENRES.map(([k, n]) => `<button class="chip ${k === g ? 'on' : ''}" onclick="spSetPlGenre('${k}')">${n}</button>`).join('')}</div>`;
   if (SP_BUSY) return `<section class="card music"><h3>${spLogo} Workout playlist</h3><div class="mut sppulse">Making your playlist…</div></section>`;
+  if (!spOn()) {
+    const fr = SPF.free && SPF.free.g === g ? SPF.free : null;
+    return `<section class="card music"><div class="row between"><h3>${spLogo} Workout playlist</h3>${fr ? `<span class="mut">${fr.songs.length} songs · ${fr.min} min</span>` : ''}</div>
+    ${chips}
+    ${fr ? `<ol class="splist" translate="no">${fr.songs.map(([n, a]) => `<li><a href="${spSongLink(n, a)}" target="_blank" rel="noopener"><b>${esc(n)}</b><span>${esc(a)}</span></a></li>`).join('')}</ol>` : ''}
+    <button class="btn ${fr ? 'ghost sm' : 'spbtn'}" onclick="spFreeList()">${fr ? 'New list' : `${spLogo} Make a ${mins} min list`}</button>
+    ${spCid() ? `<button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button>` : spSetup()}</section>`;
+  }
   return `<section class="card music"><div class="row between"><h3>${spLogo} Workout playlist</h3>${pl ? `<span class="mut">${pl.songs.length} songs · ${pl.min} min</span>` : ''}</div>
     ${chips}
     ${pl ? `<a class="btn spbtn" href="${esc(pl.url)}" target="_blank" rel="noopener">${spLogo} Play in Spotify</a>` : ''}
@@ -310,11 +335,7 @@ function musicCard() {
 
 function musicSettings() {
   const acct = !spCid()
-    ? `<details class="spprefs"><summary>Link your Spotify account (advanced)</summary>
-      <div class="mut">For playlists made from your own songs. Spotify lets an app link only up to 5 accounts, chosen by its owner. Create a free app at developer.spotify.com (choose Web API, needs Premium), add this redirect URI, add your account under User Management, and paste the app's Client ID here.</div>
-      <div class="spuri" translate="no">${esc(spRedirect())}</div>
-      <input id="spcid" placeholder="Client ID" autocomplete="off" spellcheck="false" translate="no">
-      <button class="btn" onclick="spSetCid()">Save</button></details>`
+    ? spSetup()
     : spOn() ? `<div class="mut">Linked as <b translate="no">${esc(SPF.user?.name || '')}</b>. Each workout gets its own playlist on Today › Train.</div>
       <button class="btn ghost" onclick="spDisconnect()">Unlink Spotify</button>`
     : `<button class="btn spbtn" onclick="spConnect()">${spLogo} Link Spotify</button>`;
