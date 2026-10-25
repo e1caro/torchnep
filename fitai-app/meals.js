@@ -33,7 +33,22 @@ RECIPES.forEach(r => {
   const kcal = nutOf(r).kcal, cap = SERVE_CAP[r.meal];
   if (kcal > cap) r.ing = r.ing.map(([k, g]) => [k, Math.max(5, Math.round(g * cap / kcal / 5) * 5)]);
 });
-const target = () => analyze({ ...S.profile, weight: curWeight() });
+const appetiteNote = () => { const f = appetite(); return f === 1 ? '' : `<div class="mut">${f < 1 ? `Servings are ${Math.round((1 - f) * 100)}% smaller because you often aren't very hungry.` : `Servings are ${Math.round((f - 1) * 100)}% bigger because you are often hungry.`}</div>`; };
+// Appetite: every time you pick how hungry you are for a meal, the app notes how that compares with the planned serving.
+// When you often eat less (or more) than planned, the meal plan's calories follow, more the more often, from 20% less to
+// 10% more; protein stays.
+const appetite = () => {
+  const v = Object.values(M.app || {});
+  if (v.length < 3) return 1;
+  const mean = v.reduce((a, x) => a + x, 0) / v.length;
+  return Math.round(clamp(1 + (mean - 1) * Math.min(1, v.length / 8), .8, 1.1) * 20) / 20; // the more often, the closer to it
+};
+const target = () => {
+  const a = analyze({ ...S.profile, weight: curWeight() }), f = appetite();
+  if (f === 1) return a;
+  const kcal = Math.round(a.kcal * f), rest = Math.max(0, kcal - a.protein * 4), old = Math.max(1, a.kcal - a.protein * 4); // protein stays, carbs and fat shrink
+  return { ...a, kcal, carbs: Math.round(a.carbs * rest / old), fat: Math.round(a.fat * rest / old) };
+};
 
 function recipeOk(r, set = M.set, ignoreCuisine = false) {
   const fl = flagsOf(r), ban = DIET_BAN[set.diet] + set.avoid.map(a => AVOID[a][1]).join(''), cu = set.cuisines || [];
@@ -150,19 +165,20 @@ function finalizeDay(d) {
 }
 
 // Makes sure a day's meals cover the energy and protein the training needs: when one serving per meal falls short,
-// training snacks are added (protein-rich ones when protein is short), and only then do servings grow, up to ×1.35.
-const PFUEL = 1.35;
+// one training snack is added (a protein-rich one when protein is short; swap it from its recipe page), and only then
+// do servings grow, up to ×1.5.
+const PFUEL = 1.5;
 const dayK = d => d.items.reduce((s, it) => s + nutIt(it).kcal * it.k, 0), dayP = d => d.items.reduce((s, it) => s + nutIt(it).p * it.k, 0);
 function fuelDay(d) {
   const a = target();
   d.items = d.items.filter(it => !it.fuel || it.eaten); // training snacks are planned again
   finalizeDay(d);
   const used = new Set(d.items.map(x => x.rid));
-  for (let n = 0; n < (M.set.meals <= 3 ? 4 : 3) && dayK(d) < a.kcal * .95; n++) {
+  for (let n = d.items.some(it => it.fuel) ? 1 : 0; n < 1 && dayK(d) < a.kcal * .95; n++) { // none if one was already eaten
     const miss = a.kcal - dayK(d), protShort = dayP(d) < a.protein * .9, { pool } = candidates('s', 99, used);
     if (!pool.length) break;
     const score = r => { const nu = nutFast(r); return fitScore(r, Math.min(miss, nu.kcal * PMAX), a) + (protShort ? nu.p * 4 / nu.kcal * 6 : 0) - (used.has(r.id) ? 3 : 0); };
-    const r = pool.reduce((x, y) => score(y) > score(x) ? y : x), k = portion(r, Math.min(miss, nutFast(r).kcal * PMAX));
+    const r = pool.reduce((x, y) => score(y) > score(x) ? y : x), k = portion(r, Math.min(miss, nutFast(r).kcal * 2));
     d.items.push({ slot: 'Training snack', kind: 's', share: nutFast(r).kcal * k / a.kcal, rid: r.id, k, eaten: false, fuel: true });
     used.add(r.id);
   }
@@ -172,8 +188,11 @@ function fuelDay(d) {
     if (!sn || d.items.length <= 3) break;
     d.items.splice(sn[1], 1); finalizeDay(d);
   }
-  const tot = dayK(d);
-  if (tot < a.kcal * .97) { const f = a.kcal / tot; d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, PFUEL) * 20) / 20; }); }
+  // still short: grow the servings still to eat (the training snack up to a double one), a few rounds as some hit their cap
+  for (let round = 0; round < 4 && dayK(d) < a.kcal * .97; round++) {
+    const f = a.kcal / dayK(d);
+    d.items.forEach(it => { if (!it.eaten && !it.userK) it.k = Math.round(clamp(it.k * f, PMIN, it.fuel ? 2 : PFUEL) * 20) / 20; });
+  }
   return d;
 }
 
@@ -214,7 +233,7 @@ function buildWeek() {
   }
   // polish the best few random weeks by swapping single meals, then keep the best result
   const best = trials.sort((x, y) => y.j - x.j).slice(0, 4).map(t => refine(t.days)).reduce((x, y) => weekScore(y) > weekScore(x) ? y : x);
-  M.plan = { week: weekId(), v: 3, days: addChefPicks(best).map(fuelDay), kcal: target().kcal, prot: target().protein };
+  M.plan = { week: weekId(), v: 3, fuel1: 1, days: addChefPicks(best).map(fuelDay), kcal: target().kcal, prot: target().protein };
   M.shop = []; mealSave();
 }
 const weekIngredients = () => new Set(M.plan.days.flatMap(d => d.items.flatMap(it => RBY[it.rid].ing.map(g => g[0])))).size;
@@ -227,7 +246,8 @@ function ensureMeals() {
   if (!M.plan || M.plan.week !== weekId() || M.plan.v !== 3) buildWeek(); // v3: one serving per person
   // the training plan or your weight changed what you need: fit today and the days ahead again
   const a = target();
-  if (M.plan.kcal !== a.kcal || M.plan.prot !== a.protein) {
+  if (M.plan.kcal !== a.kcal || M.plan.prot !== a.protein || !M.plan.fuel1) { // fuel1: one training snack a day at most
+    M.plan.fuel1 = 1;
     M.plan.days.forEach((d, i) => { if (i >= todayIdx()) fuelDay(d); });
     M.plan.kcal = a.kcal; M.plan.prot = a.protein; mealSave();
   }
@@ -264,7 +284,7 @@ function mealSetup() {
   const draft = { ...st, style: st.style || 'none', variety: st.variety || 'simple', avoid: [...st.avoid], cuisines: [...(st.cuisines || [])], times: [...st.times] };
   const wd = draft.times[0], we = draft.times[5];
   const ch = (key, opts, sel, multi) => `<div class="chips" data-k="${key}" ${multi ? 'data-multi="1"' : ''}>${opts.map(([v, l]) => `<button type="button" class="chip ${(multi ? sel.includes(v) : String(sel) === String(v)) ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your plan targets about ${target().kcal} kcal and ${target().protein} g protein a day.</p>
+  view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your plan targets about ${target().kcal} kcal and ${target().protein} g protein a day.</p>${appetiteNote()}
   <div class="lbl">Diet</div>${ch('diet', Object.entries(DIETS), draft.diet)}
   <div class="lbl">Avoid</div>${ch('avoid', Object.entries(AVOID).map(([k, v]) => [k, v[0]]), draft.avoid, true)}
   <div class="lbl">Meals per day</div>${ch('meals', [[3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], draft.meals)}
@@ -302,7 +322,7 @@ function mealsView(arg) {
   if (mDay === null) mDay = todayIdx();
   const a = target(), d = M.plan.days[mDay], t = dayTotals(d);
   const bar = (lbl, v, goal, cls) => `<div class="mbar"><span>${lbl}</span><div class="qbar ${cls}"><i style="width:${clamp(v / goal * 100, 0, 100)}%"></i></div><b>${Math.round(v)}/${goal} g</b></div>`;
-  view.innerHTML = `${seg('meals')}<h1>Meal plan</h1>
+  view.innerHTML = `${seg('meals')}<h1>Meal plan</h1>${appetiteNote()}
   <div class="days">${DAYN.map((n, i) => `<button class="dpill ${i === mDay ? 'on' : ''} ${i === todayIdx() ? 'td' : ''}" onclick="mealDay(${i})"><span>${n}</span><i>${M.plan.days[i].items.every(x => x.eaten) ? '✓' : ''}</i></button>`).join('')}</div>
   <section class="card"><div class="row between"><h3>${Math.round(t.kcal)} kcal planned</h3><span class="mut">target ${a.kcal}</span></div>
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div><div class="mut">${Math.round(t.eat)} kcal eaten so far</div>
@@ -332,7 +352,11 @@ window.setCook = (di, t) => {
 const HUNGER = [['Not very hungry', .75], ['Normal hunger', 1], ['Hungry', 1.25], ['Very hungry', 1.5]];
 window.setPortion = (di, ii, k) => {
   const it = M.plan?.days[+di]?.items[+ii]; if (!it) return;
-  it.k = Math.round(clamp(k, .5, 2) * 20) / 20; it.userK = 1; mealSave(); sfx('tick'); recipeView();
+  if (!it.userK) it.planK = it.k;
+  it.k = Math.round(clamp(k, .5, 2) * 20) / 20; it.userK = 1;
+  // remember the last 12 choices (one per meal), as how much you ate against a plan without the appetite adjustment
+  M.app = Object.fromEntries([...Object.entries(M.app || {}).filter(([key]) => key !== `${M.plan.week}:${di}:${ii}`), [`${M.plan.week}:${di}:${ii}`, Math.round(it.k / (it.planK || 1) * appetite() * 100) / 100]].slice(-12));
+  mealSave(); sfx('tick'); recipeView();
 };
 function recipeView() {
   const [, , di, ii] = location.hash.split('/'), d = M.plan?.days[+di], it = d?.items[+ii];

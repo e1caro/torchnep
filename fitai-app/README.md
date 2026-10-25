@@ -152,3 +152,4 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 - **Muscle bets** count a workout for a muscle group only when that group has the most sets in it.
 - **Sliders** set days, session time, today's time, cardio and stretching minutes and cooking time.
 - **Today's meals** is one line per meal (tap to open its recipe); the one for the time of day is highlighted and eaten ones are ticked.
+- **Appetite:** each "How hungry are you?" choice on a recipe is remembered (the last 12 meals). When you often pick less food than planned, the meal plan's calories go down, more the more often, up to 20% (or up to 10% more when you are often hungry); protein stays the same. The meal plan says when servings are adjusted.
