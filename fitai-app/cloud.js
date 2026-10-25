@@ -134,10 +134,33 @@ function accountView() {
 window.cloudSyncNow = () => cloudPush().then(() => { toast('Synced'); route(); }).catch(e => toast(e.message));
 
 // friends: a section on Hero, and each friend's profile
-let FRIENDS = null;
+// Adding a friend sends a request: it shows up in the other player's Friends tab, and once they accept, each is the
+// other's friend. In the table a row (me, them) means "I want us to be friends"; both rows means friends.
+let FRIENDS = null, FR_IN = [], FR_OUT = [];
 async function loadFriends() {
-  const rows = await sbFetch(`/rest/v1/friends?user_id=eq.${CL.uid}&select=friend_id,profiles(id,username,public)`);
-  FRIENDS = rows.map(r => r.profiles).filter(Boolean);
+  const rows = await sbFetch(`/rest/v1/friends?or=(user_id.eq.${CL.uid},friend_id.eq.${CL.uid})&select=user_id,friend_id`);
+  const out = new Set(rows.filter(r => r.user_id === CL.uid).map(r => r.friend_id)), inc = new Set(rows.filter(r => r.friend_id === CL.uid).map(r => r.user_id));
+  const ids = [...new Set([...out, ...inc])];
+  const ps = ids.length ? await sbFetch(`/rest/v1/profiles?id=in.(${ids.join(',')})&select=id,username,public`) : [];
+  const by = Object.fromEntries(ps.map(p => [p.id, p]));
+  FRIENDS = [...out].filter(id => inc.has(id) && by[id]).map(id => by[id]);
+  FR_IN = [...inc].filter(id => !out.has(id) && by[id]).map(id => by[id]);
+  FR_OUT = [...out].filter(id => !inc.has(id) && by[id]).map(id => by[id]);
+  frBadge();
+}
+// the number of requests waiting, on the Friends tab
+function frBadge() {
+  const a = document.querySelector('nav#tabs a[data-t="friends"]'); if (!a) return;
+  let b = a.querySelector('.nbadge');
+  if (!FR_IN.length) { b?.remove(); return; }
+  if (!b) { b = document.createElement('i'); b.className = 'nbadge'; a.append(b); }
+  b.textContent = FR_IN.length;
+}
+// look for new requests now and then while the app is open
+if (SB_ON) {
+  const poll = () => { if (CL.uid && document.visibilityState === 'visible') loadFriends().then(() => { if (location.hash === '#/friends' && FR_IN.length) route(); }).catch(() => { }); };
+  setTimeout(poll, 2500); setInterval(poll, 60e3);
+  document.addEventListener('visibilitychange', poll);
 }
 // The Friends tab: add a friend with their code, and a ranking of you and your friends by level (then XP).
 let FR_AT = 0; // when the list was last fetched
@@ -152,9 +175,13 @@ function friendsView() {
   const row = (f, i) => { const p = f.public || {}; return `<button class="lookt frow ${f.me ? 'me' : ''}" ${f.me ? '' : `onclick="location.hash='#/friend/${f.id}'"`}>
     <b class="rank">${i + 1}</b><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
     <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small>${f.me ? 'You' : esc(p.title || '')}</small></span><span class="lvtag">Lv ${p.lvl || 1}</span></button>`; };
-  view.innerHTML = `<h1>Friends</h1>${podium(all)}
+  const reqs = FR_IN.map(f => { const p = f.public || {}; return `<div class="card row freq"><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
+    <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small class="mut">wants to be your friend</small></span>
+    <button class="btn sm" onclick="acceptFriend('${f.id}')">Accept</button><button class="icon" aria-label="Decline" onclick="declineFriend('${f.id}')">✕</button></div>`; }).join('');
+  view.innerHTML = `<h1>Friends</h1>${reqs ? `<h2 class="sec">Requests</h2>${reqs}` : ''}${podium(all)}
   <div class="row"><input id="fr-code" placeholder="Friend's code" maxlength="6" autocapitalize="characters" spellcheck="false"><button class="btn sm" onclick="addFriend()">Add</button></div>
   <div class="mut">Your code: <b translate="no">${esc(CL.code || '')}</b></div>
+  ${FR_OUT.length ? `<div class="mut">Waiting for: <b translate="no">${FR_OUT.map(f => esc(f.public?.name || f.username)).join(', ')}</b></div>` : ''}
   <h2 class="sec">Ranking</h2><div class="friends">${all.map(row).join('')}</div>`;
   if (Date.now() - FR_AT > 30e3) { FR_AT = Date.now(); loadFriends().then(() => { if (location.hash === '#/friends') route(); }).catch(() => { FRIENDS = FRIENDS || []; }); }
 }
@@ -185,11 +212,17 @@ window.addFriend = async () => {
     const [p] = await sbFetch(`/rest/v1/profiles?code=eq.${code}&select=id`);
     if (!p) { toast('No player with that code'); return; }
     await sbFetch('/rest/v1/friends', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates' }, body: JSON.stringify({ user_id: CL.uid, friend_id: p.id }) });
-    await loadFriends(); FR_AT = Date.now(); toast('Friend added'); sfx('claim'); route();
+    await loadFriends(); FR_AT = Date.now(); toast(FRIENDS.some(f => f.id === p.id) ? 'Friend added' : 'Request sent'); sfx('claim'); route();
   } catch (e) { toast(e.message); }
 };
+window.acceptFriend = async id => {
+  try { await sbFetch('/rest/v1/friends', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates' }, body: JSON.stringify({ user_id: CL.uid, friend_id: id }) }); await loadFriends(); FR_AT = Date.now(); toast('Friend added'); sfx('claim'); route(); } catch (e) { toast(e.message); }
+};
+// declining or removing clears both directions
+const unfriend = id => Promise.all([sbFetch(`/rest/v1/friends?user_id=eq.${CL.uid}&friend_id=eq.${id}`, { method: 'DELETE' }), sbFetch(`/rest/v1/friends?user_id=eq.${id}&friend_id=eq.${CL.uid}`, { method: 'DELETE' })]);
+window.declineFriend = async id => { try { await unfriend(id); await loadFriends(); FR_AT = Date.now(); route(); } catch (e) { toast(e.message); } };
 window.removeFriend = async id => {
-  try { await sbFetch(`/rest/v1/friends?user_id=eq.${CL.uid}&friend_id=eq.${id}`, { method: 'DELETE' }); await loadFriends(); FR_AT = Date.now(); location.hash = '#/friends'; } catch (e) { toast(e.message); }
+  try { await unfriend(id); await loadFriends(); FR_AT = Date.now(); location.hash = '#/friends'; } catch (e) { toast(e.message); }
 };
 async function friendView(id) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button><div class="mut">…</div>`;
@@ -221,6 +254,7 @@ if (typeof i18nAdd === 'function') {
     Friends: 'Amigos', 'Sign in to add friends': 'Entra para añadir amigos', "Friend's code": 'Código de tu amigo', Add: 'Añadir', 'Your code:': 'Tu código:',
     'Codes have 6 letters and numbers': 'Los códigos tienen 6 letras y números', "That's your own code": 'Ese es tu propio código', 'No player with that code': 'No hay ningún jugador con ese código',
     'Friend added': 'Amigo añadido', '{0} is now #{1}': '{0} pasa al puesto {1}', 'Sign in to add friends and see their profiles.': 'Entra para añadir amigos y ver sus perfiles.', Ranking: 'Ranking', You: 'Tú', 'Lv {n}': 'Nv {n}', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
+    Requests: 'Solicitudes', 'wants to be your friend': 'quiere ser tu amigo', Accept: 'Aceptar', Decline: 'Rechazar', 'Request sent': 'Solicitud enviada', 'Waiting for:': 'Esperando a:',
     'Turn off e-mail confirmation in Supabase (see tools/supabase.sql)': 'Desactiva la confirmación por e-mail en Supabase (mira tools/supabase.sql)',
   });
 }

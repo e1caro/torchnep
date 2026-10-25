@@ -43,5 +43,12 @@ create policy "players update their profile" on public.profiles for update to au
 drop policy if exists "players own their save" on public.saves;
 create policy "players own their save" on public.saves for all to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
+-- Friend requests: a row (me, them) is my request; both rows means friends. Each player sees and can remove the rows
+-- about them (so requests reach the other player and either one can end the friendship), but only adds their own.
 drop policy if exists "players own their friend list" on public.friends;
-create policy "players own their friend list" on public.friends for all to authenticated using (auth.uid() = user_id) with check (auth.uid() = user_id);
+drop policy if exists "players see rows about them" on public.friends;
+create policy "players see rows about them" on public.friends for select to authenticated using (auth.uid() = user_id or auth.uid() = friend_id);
+drop policy if exists "players add their own rows" on public.friends;
+create policy "players add their own rows" on public.friends for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists "players remove rows about them" on public.friends;
+create policy "players remove rows about them" on public.friends for delete to authenticated using (auth.uid() = user_id or auth.uid() = friend_id);
