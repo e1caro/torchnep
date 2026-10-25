@@ -21,6 +21,36 @@ window.buyBoost = id => {
   G.coins -= b.cost; b.act(); commit(); sfx('claim'); toast(`${b.name} bought`); route();
 };
 
+// ---------- confirm before spending, and selling back ----------
+// every purchase asks first; owned looks can be sold back for 80% of their price
+const SELL = .8, sellPrice = i => Math.round(i.cost * SELL);
+function askCoins(title, pic, name, delta, yes, fn) {
+  modal(`<div class="avbig">${pic}</div><div class="lvup">${title}</div><h2>${esc(name)}</h2>
+  <div class="cfm"><div class="row between"><span>${delta < 0 ? 'Price' : 'You get'}</span><b>${gi('coin', 'cn')} ${Math.abs(delta)}</b></div>
+  <div class="row between"><span>Your coins after</span><b>${gi('coin', 'cn')} ${G.coins + delta}</b></div></div>
+  <div class="row cfmb"><button class="btn ghost" data-close>Cancel</button><button class="btn ${delta < 0 ? 'gold' : ''}" id="cfmyes">${yes}</button></div>`);
+  $('#cfmyes').onclick = () => { $('#modal').hidden = true; fn(); };
+}
+const itemPic = i => i.type === 'skin' ? `<i class="emo">${i.emo}</i>` : ICO(i);
+const _buyNow = window.buy, _boostNow = window.buyBoost;
+window.buy = id => {
+  const i = item(id);
+  if (!i.shop || has(i) || G.coins < i.cost) return _buyNow(id); // the usual messages
+  askCoins(`Buy this ${KIND[i.type].toLowerCase()}?`, itemPic(i), i.name, -i.cost, 'Buy', () => _buyNow(id));
+};
+window.buyBoost = id => {
+  const b = BOOSTS.find(x => x.id === id);
+  if (G.coins < b.cost) return _boostNow(id);
+  askCoins('Buy this?', gi(b.ico, 'hero'), b.name, -b.cost, 'Buy', () => _boostNow(id));
+};
+window.sell = id => {
+  const i = item(id);
+  if (!has(i) || !i.shop || !i.cost || equipped(i)) return;
+  askCoins(`Sell this ${KIND[i.type].toLowerCase()}?`, itemPic(i), i.name, sellPrice(i), 'Sell', () => {
+    G.owned = G.owned.filter(x => x !== id); G.coins += sellPrice(i); commit(); sfx('claim'); toast(`Sold for ${sellPrice(i)} coins`); route();
+  });
+};
+
 // ---------- Levels ----------
 function levelsView() {
   const L = lvl(), max = Math.min(30, Math.max(L + 8, 14));
@@ -55,7 +85,7 @@ const skinPrev = i => `<div class="skp" data-sk="${i.key}">${i.emo}</div>`;
 const panelPrev = k => `<div class="pnp" data-pn="${k}"><i></i><b></b><b></b></div>`;
 function tile(i) {
   const own = has(i);
-  const act = own ? (equipped(i) ? '<b class="eq">Equipped</b>' : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>`)
+  const act = own ? (equipped(i) ? '<b class="eq">Equipped</b>' : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button><button class="btn sm ghost sellb" onclick="sell('${i.id}')">Sell · ${gi('coin', 'cn')} ${sellPrice(i)}</button>`)
     : `<button class="btn sm ${G.coins >= i.cost ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${i.cost}</button>`;
   const tryb = i.type === 'skin' && !own ? `<button class="btn sm ghost" onclick="trySkin('${i.key}')">Try</button>` : '';
   return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${tryb}${act}</div>`;
@@ -64,7 +94,7 @@ function shopView() {
   const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
   return `${hud()}${rwSeg('shop')}${chestBtn()}
-  <p class="mut">Coins buy looks and boosts. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
+  <p class="mut">Coins buy looks and boosts, and looks you own sell back for 80% of their price. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
   <h2 class="sec">Interfaces · ${owned('skin')}/${by('skin').length}</h2><p class="mut">A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.</p><div class="grid2">${by('skin').map(tile).join('')}</div>
   <h2 class="sec">Boosts and chests</h2>
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>

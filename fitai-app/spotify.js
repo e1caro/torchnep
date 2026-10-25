@@ -280,7 +280,7 @@ window.spSongNext = () => { SPF.songRot = (SPF.songRot || 0) + 1; spoSave(); sfx
 const spSearch = (q, tab = '') => `https://open.spotify.com/search/${encodeURIComponent(q)}${tab}`;
 // ---------- the song itself on Spotify ----------
 // To open the song (not a search) its Spotify id is needed. With a linked account Spotify's own search gives it;
-// otherwise Apple's public music search finds the song and Songlink (song.link) turns it into its Spotify link.
+// otherwise MusicBrainz (open music data) finds the recording and its link to Spotify.
 // Found ids are kept, so each song is looked up once. If anything fails, the button falls back to Spotify's search.
 SPF.ids = SPF.ids || {};
 // ids found ahead of time for the whole song list (data/song_ids.json, made by tools/resolve_song_ids.py)
@@ -291,16 +291,6 @@ fetch('data/song_ids.json').then(r => r.json()).then(j => {
   if (id) document.querySelectorAll('.songday a.spplay').forEach(a => { a.href = spTrackUrl(id); });
 }).catch(() => { /* not made yet, or offline */ });
 const knownId = (t, a) => SPF.ids[`${t}|${a}`] || SONG_IDS[`${t}|${a}`];
-function jsonp(url) {
-  return new Promise((ok, no) => {
-    const cb = 'fqjp' + Math.random().toString(36).slice(2), sc = document.createElement('script');
-    const done = () => { delete window[cb]; sc.remove(); clearTimeout(t); };
-    const t = setTimeout(() => { done(); no(new Error('timeout')); }, 8000);
-    window[cb] = d => { done(); ok(d); };
-    sc.onerror = () => { done(); no(new Error('network')); };
-    sc.src = `${url}&callback=${cb}`; document.head.append(sc);
-  });
-}
 const SP_LOOKING = {};
 async function spTrackId(t, a) {
   const key = `${t}|${a}`;
@@ -312,12 +302,13 @@ async function spTrackId(t, a) {
     if (spOn()) { // linked account: Spotify's own search
       try { id = (await spApi(`/search?type=track&limit=1&q=${encodeURIComponent(`track:${t} artist:${who}`)}`)).tracks.items[0]?.id; } catch { /* try the other way */ }
     }
-    if (!id) {
-      const it = await jsonp(`https://itunes.apple.com/search?term=${encodeURIComponent(`${t} ${who}`)}&entity=song&limit=1`);
-      const url = it.results?.[0]?.trackViewUrl;
-      if (url) {
-        const sl = await (await fetch(`https://api.song.link/v1-alpha.1/links?url=${encodeURIComponent(url)}&songIfSingle=true`)).json();
-        id = (sl.linksByPlatform?.spotify?.url || '').match(/track\/([A-Za-z0-9]{22})/)?.[1] || null;
+    if (!id) { // MusicBrainz: the recording, then its links
+      const mb = 'https://musicbrainz.org/ws/2', q = `recording:"${t.replace(/"/g, '')}" AND artist:"${who.replace(/"/g, '')}"`;
+      const recs = ((await (await fetch(`${mb}/recording?fmt=json&limit=5&query=${encodeURIComponent(q)}`)).json()).recordings || []).filter(r => r.score >= 85);
+      for (const r of recs.slice(0, 3)) {
+        const d = await (await fetch(`${mb}/recording/${r.id}?inc=url-rels&fmt=json`)).json();
+        id = (d.relations || []).map(x => (x.url?.resource || '').match(/open\.spotify\.com\/track\/([A-Za-z0-9]{22})/)?.[1]).find(Boolean) || null;
+        if (id) break;
       }
     }
     if (id) { SPF.ids[key] = id; spoSave(); }
