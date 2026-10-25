@@ -118,7 +118,6 @@ const S_ = t => `<span>${t}</span>`;
 const COACH_PICK = {}; // bet id -> the pick the coach talks about this time
 function coachLines() {
   const out = [], now = Date.now(), end = new Date().setHours(23, 59, 59, 999), name = esc(S.profile?.name || '');
-  const hr = new Date().getHours(), hi = hr < 13 ? 'Good morning' : hr < 20 ? 'Good afternoon' : 'Good evening';
   const trainedToday = S.history.some(h => new Date(h.t).toDateString() === new Date().toDateString());
   // a weekly summary waiting
   if (new Date().getDay() === 1 && weekStats(weekStart() - WEEK).n) out.push({ p: 1, h: `${S_('Your weekly summary is ready.')} <button class="chip on" onclick="event.stopPropagation();openRecap('last')">${S_('See it')}</button>` });
@@ -149,7 +148,7 @@ function coachLines() {
   const tips = ['Small steps every day add up.', 'Strong today, stronger tomorrow.', 'You never regret a workout.', 'Discipline beats motivation.', 'Progress, not perfection.'];
   out.push({ p: 9, h: S_(tips[new Date().getDate() % tips.length]) });
   out.sort((a, b) => a.p - b.p);
-  if (name) out[0].h = `${S_(hi)}, ${B(S.profile.name)}. ${out[0].h}`;
+  // no greeting: the line goes straight to what needs doing
   return out;
 }
 function coachCard() {

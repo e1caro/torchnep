@@ -12,8 +12,9 @@ const hash = s => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>>
 const TITLES = [[1, 'Rookie'], [3, 'Iron Will'], [5, 'Challenger'], [8, 'Warrior'], [12, 'Champion'], [18, 'Legend'], [25, 'Titan'], [32, 'Demigod'], [40, 'Immortal'], [50, 'Olympian']];
 
 // ---------- state ----------
+const FRESH = !localStorage.getItem('fc.game'); // a new player, before anything is saved
 const G = Object.assign({
-  xp: 0, coins: 0, owned: [], theme: 'hud', panel: 'chamfer', skin: 'hud', avatar: 'glove', banner: 'plain', boostUntil: 0, extraSpins: 0, ver: 0, ach: [], bosses: 0, questsDone: 0,
+  xp: 0, coins: 0, owned: [], theme: 'hud', panel: 'chamfer', skin: 'clean', avatar: 'glove', banner: 'plain', boostUntil: 0, extraSpins: 0, ver: 0, ach: [], bosses: 0, questsDone: 0,
   sound: true, checkin: '', today: null, quests: null, bossClaimed: '', pend: null, chests: [], chestsOpened: 0, frame: 'none', title: '', ciStreak: 0, spun: '', spins: 0, waterGoalDays: 0, perfectDays: 0, sleepGood: 0, wk: null,
 }, load('game', {}));
 let LAST = null; // result of the latest workout, shown on the victory screen
@@ -87,11 +88,11 @@ const BANNERS = [['plain', 'Plain', 0], ['grid', 'Blueprint', 80], ['stripes', '
   ['scan', 'Scanlines', 90], ['hexgrid', 'Lattice', 140], ['circuit', 'Circuit board', 180], ['radar', 'Radar sweep', 220], ['data', 'Data stream', 260], ['hazard', 'Hazard', 280]];
 // panel styles: the shape of every card in the app
 // whole interfaces: each changes the palette, fonts, frames, buttons and background (fonts load only when in use)
-const SKINS = [['hud', 'Sci-fi HUD', 0, '🛰️'], ['chinese', 'Imperial China', 1000, '🏮'], ['japanese', 'Zen Japan', 1000, '⛩️'], ['fairy', 'Fairy Tale Forest', 1250, '🌳'], ['medieval', 'Medieval Castle', 1250, '🏰'], ['steampunk', 'Steampunk Works', 1500, '⚙️'],
+const SKINS = [['clean', 'Minimal', 0, '◽'], ['hud', 'Sci-fi HUD', 1000, '🛰️'], ['chinese', 'Imperial China', 1000, '🏮'], ['japanese', 'Zen Japan', 1000, '⛩️'], ['fairy', 'Fairy Tale Forest', 1250, '🌳'], ['medieval', 'Medieval Castle', 1250, '🏰'], ['steampunk', 'Steampunk Works', 1500, '⚙️'],
   ['greek', 'Olympus', 1250, '🏛️'], ['egypt', 'Ancient Egypt', 1250, '🏜️'], ['viking', 'Viking Saga', 1400, '🪓'], ['pirate', 'Pirate Seas', 1400, '🏴‍☠️'], ['outrun', 'Outrun 80s', 1600, '🌆'], ['arcade', 'Arcade 8-bit', 1750, '👾'],
   ['classical', 'Classical Elegance', 1250, '🥂'], ['artdeco', 'Art Deco', 1400, '🎷'], ['gothic', 'Gothic Cathedral', 1500, '🕯️'], ['baroque', 'Baroque Palace', 1600, '👑'],
   ['mythical', 'Mythical Realm', 1750, '🐉'], ['cosmic', 'Cosmic Voyage', 1750, '🪐']];
-const SKIN_FONTS = { chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japanese: 'Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700',
+const SKIN_FONTS = { clean: 'Inter:wght@400;500;600;700', chinese: 'ZCOOL+XiaoWei&family=Lora:wght@400;600;700', japanese: 'Shippori+Mincho:wght@600;800&family=Zen+Kaku+Gothic+New:wght@400;700',
   fairy: 'IM+Fell+English+SC&family=Lora:wght@400;600;700', medieval: 'MedievalSharp&family=EB+Garamond:wght@400;600;700', steampunk: 'Rye&family=Special+Elite&family=Lora:wght@400;600;700',
   greek: 'Cinzel:wght@500;700;900&family=Cormorant+Garamond:wght@500;600;700', egypt: 'Cinzel+Decorative:wght@700;900&family=Lora:wght@400;600;700',
   viking: 'Metamorphous&family=Alegreya:wght@400;600;700', pirate: 'Pirata+One&family=IM+Fell+English&family=Lora:wght@400;600',
@@ -452,7 +453,7 @@ function setSkin(k) {
 function applyTheme() {
   document.documentElement.dataset.theme = G.theme;
   document.documentElement.dataset.panel = G.panel || 'chamfer';
-  setSkin(G.skin || 'hud');
+  setSkin(G.skin || 'clean');
   const m = document.querySelector('meta[name=theme-color]');
   if (m) m.content = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#0b0d12';
 }
@@ -468,7 +469,7 @@ function hud() {
   const L = lvl(), a = totalXp(L), b = totalXp(L + 1), pct = (G.xp - a) / (b - a);
   return `<div class="hud tap bn-${G.banner}" onclick="location.hash='#/profile'" role="button" aria-label="Change your looks"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
   <div class="grow"><div class="hn">${esc(S.profile?.name || 'Player')}</div><div class="mut">${title()}${boostOn() ? ' · <b style="color:var(--ok)">2× XP</b>' : ''}</div>
-  <div class="xpbar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div><div class="xpt">${G.xp - a} / ${b - a} XP to level ${L + 1}</div></div>
+  <div class="xpbar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div><div class="xpt">${G.xp - a} / ${b - a} XP</div></div>
   <div class="coins">${gi('coin', 'cn')} <b>${G.coins}</b></div></div>`;
 }
 
@@ -493,11 +494,11 @@ function home() {
   <h2 class="sec">Weekly boss</h2>
   <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${gi(be, 'hero')}</div><div class="grow"><h3>${bn}</h3>
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
-    <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left. Every workout deals damage.`}</div>
+    <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left`}</div>
     ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 160</button>` : ''}</div></section>
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
-  <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min · +${d.items.reduce((s, i) => s + i.sets, 0) * 10 + 100} XP</div><h2>${esc(d.name.split(' · ')[1])}</h2>
+  <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min</div><h2>${esc(d.name.split(' · ')[1])}</h2>
     ${timeChips(di)}${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
   <h2 class="sec">Fuel</h2>
   <div class="grid4"><div class="stat"><b>${a.kcal}</b><span>kcal / day</span></div><div class="stat"><b>${a.protein}g</b><span>protein</span></div>
@@ -514,7 +515,7 @@ function dungeons() {
   const row = ([id, d]) => {
     const ok = has(item(id)), miss = d.need && !S.profile.equipment.includes(d.need);
     return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3>
-      ${ok ? `<div class="mut">${d.desc}</div>` : ''}<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
+<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
       ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
   };
   view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>
@@ -538,9 +539,8 @@ function victory() {
   $('#col').onclick = () => { LAST = null; flushLevelUp(() => { location.hash = '#/home'; }); if (!G.pend && location.hash === '#/victory') location.hash = '#/home'; };
 }
 
-function heroCard() {
-  const vol = totalVol(), mins = S.history.reduce((a, h) => a + h.dur, 0);
-  return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>kg lifted</span></div><div class="stat"><b>${mins}</b><span>minutes</span></div><div class="stat"><b>${S.history.length}</b><span>workouts</span></div></div>
+function heroCard() { // stats live in Progress
+  return `${hud()}
   ${looksBlock()}
   <button class="btn ghost" onclick="location.hash='#/settings'">${ic('gear', 18)} Settings</button>`;
 }
@@ -558,7 +558,11 @@ function initGame() {
     if (!Number.isFinite(G.coins)) G.coins = Math.round(est / 6);
   }
   // the HUD redesign: everyone starts once on the Cyber HUD look (bought themes stay owned and can be equipped again)
+  if (FRESH) { G.hudLook2 = 1; G.clean1 = 1; }
   if (!G.hudLook2) { G.hudLook2 = 1; G.theme = 'hud'; G.skin = 'hud'; G.panel = 'chamfer'; }
+  // Minimal became the free interface and the Sci-fi HUD went to the shop: players from before keep the HUD as theirs,
+  // and those wearing it switch to Minimal (the HUD is one tap away in Hero > Interface)
+  if (!G.clean1) { G.clean1 = 1; if (!G.owned.includes('sk-hud')) G.owned.push('sk-hud'); if (G.skin === 'hud') G.skin = 'clean'; }
   // level rewards are now a silver chest every level and a golden one too every 5th: players who levelled up before get
   // the chests they missed, to collect from Loot (before, levels 5, 15, 25... gave a silver chest and 10, 20, 30... a golden one)
   if (!G.lvGift) {

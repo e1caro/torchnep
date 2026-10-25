@@ -518,9 +518,9 @@ function betsView() {
   slip = slip.filter(l => ms.some(m => m.id === l.id));
   const so = slipOdds(slip), maxStake = Math.min(stakeCap(slip), G.coins);
   stake = Math.max(BET_MIN, Math.min(stake, Math.max(BET_MIN, maxStake)));
-  const row = m => `<button class="mkt ${on.has(m.id) ? 'on' : ''}" onclick="betPick('${m.id}')"><span class="qi">${gi(m.ico)}</span><span class="grow"><span class="mt">${m.t}</span>${m.need && m.show !== false ? `<span class="mut">${Math.min(m.prog, m.need)}/${m.need} so far</span>` : ''}</span>${oddCell(m, on.has(m.id))}</button>`;
+  const row = m => `<button class="mkt ${on.has(m.id) ? 'on' : ''}" onclick="betPick('${m.id}')"><span class="qi">${gi(m.ico)}</span><span class="grow"><span class="mt">${m.t}</span>${m.need && m.show !== false ? `<span class="mut">${Math.min(m.prog, m.need)}/${m.need}</span>` : ''}</span>${oddCell(m, on.has(m.id))}</button>`;
   const list = ms.filter(m => m.tab === betTab);
-  view.innerHTML = `${hud()}<button class="btn sm ghost back" onclick="location.hash='#/earn'">${ic('back', 18)} Back</button><h1>Bets</h1>
+  view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/earn'">${ic('back', 18)} Back</button><div class="row between"><h1>Bets</h1>${coinTag()}</div>
   <h2 class="sec">My bets</h2>
   ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
   ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}<div class="mut" style="text-align:center;margin-top:10px">Balance from bets: ${BT.net >= 0 ? '+' : '−'}${Math.abs(BT.net)} coins</div></details>` : ''}

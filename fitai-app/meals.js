@@ -277,7 +277,7 @@ function fmtAmt(k, g, up = false) {
 }
 
 // ---------- views ----------
-const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Training</a><a class="${on === 'dun' ? 'on' : ''}" href="#/dungeons">Dungeons</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
+const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Train</a><a class="${on === 'dun' ? 'on' : ''}" href="#/dungeons">Dungeons</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
 
 function mealSetup() {
   const st = M.set || { diet: 'any', avoid: [], meals: 4, variety: 'simple', style: 'none', cuisines: [], times: [30, 30, 30, 30, 30, 60, 60] };

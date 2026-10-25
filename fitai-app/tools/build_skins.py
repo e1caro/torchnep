@@ -40,6 +40,54 @@ def skin(key, css):
 
 P = ':is(.card,.quest,.mkt,.hud,.mbox,.opt,.stat)'  # every panel
 
+# ---------------------------------------------------------------- Minimal (the free interface)
+# A calm, ordinary app look: soft dark greys, one blue accent, rounded cards, Inter, no ornaments or animations.
+MA, MA2 = '#6c8cff', '#9db2ff'
+skin('Minimal', f"""
+html[data-skin=clean]{{
+  --bg:#0e1014;--glow:#161a22;--acc:{MA};--acc2:{MA2};--fg:#eceef3;--mut:#8b92a3;--on:#ffffff;--r:14px;
+  --card:#161920;--card2:#1d212a;--line:#262b35;--line2:#343b48;
+  --disp:'Inter',system-ui,-apple-system,sans-serif;--body:'Inter',system-ui,-apple-system,sans-serif;--mono:'Inter',system-ui,sans-serif;
+  --clip:none;--pshadow:none;--deco:none;--rep:no-repeat;--orn:none;--orn-h:0}}
+html[data-skin=clean] body{{background:var(--bg);font-weight:400}}
+html[data-skin=clean] body::before,html[data-skin=clean] body::after{{display:none}}
+html[data-skin=clean] *{{text-shadow:none!important}}
+html[data-skin=clean] :is(h1,h2,h3,.hn,.lbl,.chip,.seg a,.dpill,.btn,.btn.sm,summary,.qt,.xpt,.stat span,.mt){{text-transform:none;letter-spacing:0}}
+html[data-skin=clean] h1{{font-weight:700;font-size:28px;line-height:1.15}}
+html[data-skin=clean] h3{{font-weight:600;font-size:16px}}
+html[data-skin=clean] h2.sec{{font-size:13px;font-weight:600;color:var(--mut);margin:22px 0 8px}}
+html[data-skin=clean] h2.sec::before{{display:none}}
+html[data-skin=clean] h2.sec::after{{opacity:0}}
+html[data-skin=clean] .lbl{{font-size:13px;font-weight:600;color:var(--mut)}}
+html[data-skin=clean] {P}{{background:var(--card);border:1px solid var(--line);box-shadow:none;border-radius:var(--r)}}
+html[data-skin=clean] {P}::before,html[data-skin=clean] {P}::after{{display:none}}
+html[data-skin=clean] .btn{{background:{MA};color:#fff;box-shadow:none;font-weight:600;font-size:15px;border-radius:12px}}
+html[data-skin=clean] .btn.sm{{font-size:13px;border-radius:10px}}
+html[data-skin=clean] .btn.ghost{{background:var(--card2);color:var(--fg);box-shadow:inset 0 0 0 1px var(--line)}}
+html[data-skin=clean] :is(.btn.gold,.btn.chestbtn){{background:#f2c14e;color:#1d1503}}
+html[data-skin=clean] .btn::before,html[data-skin=clean] .btn::after{{display:none}}
+html[data-skin=clean] .chip{{background:var(--card2);border:1px solid var(--line);color:var(--fg);border-radius:999px;font-weight:500}}
+html[data-skin=clean] :is(.seg a.on,.dpill.on,.chip.on){{background:{MA};color:#fff;border-color:{MA}}}
+html[data-skin=clean] .seg{{background:var(--card2);border:0;border-radius:12px;padding:3px}}
+html[data-skin=clean] .seg a{{font-size:13px;font-weight:600;border-radius:10px}}
+html[data-skin=clean] :is(.xpbar,.qbar,.prog,.hp){{box-shadow:none;height:6px}}
+html[data-skin=clean] .xpbar i,html[data-skin=clean] :is(.qbar,.prog,.rkbar) i{{background:{MA}}}
+html[data-skin=clean] .hp i{{background:linear-gradient(90deg,#ff6b6b,#ffb86b)}}
+html[data-skin=clean] nav#tabs{{background:#0e1014f2;border-top:1px solid var(--line)}}
+html[data-skin=clean] nav#tabs::before,html[data-skin=clean] nav#tabs::after{{display:none}}
+html[data-skin=clean] nav#tabs a{{font-weight:500;letter-spacing:0;text-transform:none}}
+html[data-skin=clean] nav#tabs a.on{{background:none;box-shadow:none;color:{MA}}}
+html[data-skin=clean] nav#tabs a.on::before,html[data-skin=clean] nav#tabs a.on::after{{display:none}}
+html[data-skin=clean] :is(.qi,.dgi,.mi){{background:var(--card2);border:0;box-shadow:none;border-radius:12px}}
+html[data-skin=clean] :is(input,select,textarea){{background:var(--card2);border:1px solid var(--line);border-radius:10px;box-shadow:none}}
+html[data-skin=clean] .coins{{background:var(--card2);border:1px solid var(--line);color:var(--fg);border-radius:999px}}
+html[data-skin=clean] .orb{{background:var(--card);box-shadow:none}}
+html[data-skin=clean] .bub{{animation:none}}
+html[data-skin=clean] .orbit{{display:none}}
+html[data-skin=clean] .oi .gi{{filter:none;background:var(--acc)}}
+html[data-skin=clean] .big .ov{{color:var(--fg)}}
+""")
+
 # ---------------------------------------------------------------- Imperial China
 GOLD, RED = '#d9ad45', '#e8433a'
 cn_corner = (f"<g fill='none' stroke='{GOLD}' stroke-width='2'><path d='M2 38V2h36'/><path d='M7 31V7h24'/><path d='M12 25V12h13v9h-7v-4h3'/></g>"
@@ -733,6 +781,7 @@ def pixel_ring(r1, r2, cell, col):
 
 C = "cx='60' cy='60'"
 RINGS = {
+    'clean': svg(f"<circle {C} r='55' fill='none' stroke='#fff' stroke-width='2.5'/>", '0 0 120 120'),
     'hud': svg(f"<circle {C} r='50' fill='none' stroke='#fff' stroke-opacity='.5' stroke-width='1'/>"
                + each(60, lambda a: rot(a, "<path d='M60 2v5' stroke='#fff' stroke-width='1.4'/>"))
                + each(4, lambda a: rot(a, "<path d='M60 1v11' stroke='#fff' stroke-width='3'/>"))
@@ -789,6 +838,7 @@ BUB += """@keyframes bsway{from{rotate:-7deg}to{rotate:7deg}}
 @keyframes bflick{0%,100%{filter:brightness(1) drop-shadow(0 0 3px var(--gc))}30%{filter:brightness(1.25) drop-shadow(0 0 8px var(--gc))}55%{filter:brightness(.95) drop-shadow(0 0 4px var(--gc))}80%{filter:brightness(1.15) drop-shadow(0 0 7px var(--gc))}}
 @keyframes bneon{0%,100%{opacity:1}92%{opacity:1}94%{opacity:.45}96%{opacity:1}97%{opacity:.6}}
 html[data-skin=hud] :is(.orb,.bxi)::before{background:conic-gradient(from 0deg,var(--acc),var(--acc2),var(--acc));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat;animation:bspin 40s linear infinite,bglow 3s ease-in-out infinite}
+html[data-skin=clean] :is(.orb,.bxi)::before{background:var(--line2);-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat;animation:none}
 html[data-skin=chinese] :is(.orb,.bxi)::before{--gc:#ffcf5a;animation:bspin 60s linear infinite,bglow 3.5s ease-in-out infinite}
 html[data-skin=japanese] :is(.orb,.bxi)::before{--gc:#ff6a4f;animation:bspin 40s linear infinite,bglow 4s ease-in-out infinite}
 html[data-skin=fairy] :is(.orb,.bxi)::before{--gc:#ffe27a;animation:bsway 4.5s ease-in-out infinite alternate,bglow 2.6s ease-in-out infinite}

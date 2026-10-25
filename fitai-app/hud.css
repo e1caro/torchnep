@@ -886,3 +886,18 @@ body.focus #resume{display:none}
 .mrow.now+.mrow{border-top-color:transparent}
 .mrow.done{opacity:.5}
 .mrow .chk{color:var(--ok)}
+/* tabs inside a screen: equal columns, names always readable */
+.seg{display:grid;grid-auto-columns:1fr;grid-auto-flow:column;gap:2px}
+.seg a{min-width:0;padding:10px 4px;font-size:11px;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+h2.sec .secst{margin-left:auto;padding-left:10px;font:600 12px var(--body);letter-spacing:0;text-transform:none;color:var(--mut);white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
+.todaytime{display:block}
+.todaytime .sld{flex-direction:row}
+.todaytime .sld output{min-width:64px}
+/* sliders for times and amounts */
+.sld{display:flex;align-items:center;gap:12px;margin:6px 0 10px}
+.sld input{flex:1 1 auto;width:auto;min-width:0;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2)) 0 0/var(--p,50%) 100% no-repeat,var(--line);outline:none;border:0;padding:0;box-shadow:none}
+.sld input::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--fg);border:3px solid var(--acc);box-shadow:0 0 10px color-mix(in srgb,var(--acc) 60%,transparent);cursor:pointer}
+.sld input::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--fg);border:3px solid var(--acc);cursor:pointer}
+.sld output{min-width:96px;text-align:right;font:600 14px var(--body);color:var(--fg)}
+.todaytime .sld{margin:4px 0 8px}
+.sld input{clip-path:none!important;border-radius:3px!important;height:6px!important;min-height:0!important;box-shadow:none!important}
