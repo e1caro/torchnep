@@ -214,6 +214,7 @@ function flushLevelUp(after) {
   const bonus = Array.from({ length: to - from }, (_, k) => 20 + 5 * (from + 1 + k)).reduce((a, b) => a + b, 0);
   G.pend = null; commit(); sfx('level'); confetti();
   modal(`<div class="lvup">LEVEL UP</div><div class="bignum">${to}</div><div class="mut">${title()}</div>
+    ${(o => o.length ? `<h3>Shop opened</h3>${o.map(([t]) => `<div class="unl">${gi('palette', 'hero')} <b>${SHOP_NAME[t]}</b><span class="mut">Shop</span></div>`).join('')}` : '')(Object.entries(SHOP_LV).filter(([, l]) => l > from && l <= to))}
     ${unlocked.length ? `<h3>Unlocked</h3>${unlocked.map(i => `<div class="unl">${ICO(i)} <b>${esc(i.name)}${i.desc ? `<span class="mut" style="display:block;font-weight:400">${esc(i.desc)}</span>` : ''}</b><span class="mut">${KIND[i.type]}</span></div>`).join('')}` : ''}
     <div class="unl">${gi('coin', 'cn')} <b>+${bonus} coins</b></div>${(n => `<div class="unl">${gi('chest-silver', 'hero')} <b>${to - from} × Silver chest</b><span class="mut">Open it in Loot</span></div>${n ? `<div class="unl">${gi('chest-gold', 'hero')} <b>${n} × Golden chest</b><span class="mut">Open it in Loot</span></div>` : ''}`)([...Array(to - from)].filter((_, k) => (from + 1 + k) % 5 === 0).length)}<button class="btn" data-close>Awesome</button>`, after);
 }
@@ -340,9 +341,14 @@ window.claimBoss = () => {
   if (G.bossClaimed === weekId() || weekCount() < S.profile.days) return;
   G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(0, 160); sfx('claim'); checkAch(); flushLevelUp(home);
 };
+// The shop opens kind by kind over the first levels: at level 1 nothing can be bought yet
+const SHOP_LV = { avatar: 2, banner: 3, frame: 4, theme: 5, panel: 7, skin: 10 };
+const SHOP_NAME = { avatar: 'Profile pictures', banner: 'Banners', frame: 'Rings', theme: 'App themes', panel: 'Panel styles', skin: 'Interfaces' };
+const shopOpen = t => lvl() >= (SHOP_LV[t] || 1);
 window.buy = id => {
   const i = item(id);
   if (!i.shop) { toast(`${i.name} unlocks at level ${i.lv}.`); return; }
+  if (!shopOpen(i.type)) { toast(`${SHOP_NAME[i.type]} can be bought from level ${SHOP_LV[i.type]}.`); return; }
   if (has(i) || G.coins < i.cost) { toast(has(i) ? 'Already yours.' : `Need ${i.cost - G.coins} more coins.`); return; }
   G.coins -= i.cost; G.owned.push(id); commit(); sfx('claim'); toast(`Unlocked ${i.name}`); checkAch(); route();
 };
@@ -505,7 +511,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 107</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 108</div>`;
 }
 
 function initGame() {

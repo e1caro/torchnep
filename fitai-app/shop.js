@@ -68,6 +68,7 @@ function levelsView() {
     const its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1);
     return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
     ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
+    ${Object.entries(SHOP_LV).filter(([, l]) => l === n).map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">open in the Shop</span></div>`).join('')}
     ${its.map(i => `<div class="ri">${ICO(i)} ${esc(i.name)} <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
   }).join('')}</div>`;
 }
@@ -92,6 +93,7 @@ function tile(i) {
   const own = has(i);
   const sellB = i.cost ? `<button class="btn sm ghost sellb" onclick="sell('${i.id}')">Sell · ${gi('coin', 'cn')} ${sellPrice(i)}</button>` : '';
   const act = own ? (equipped(i) ? `<b class="eq">Equipped</b>${sellB}` : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>${sellB}`)
+    : !shopOpen(i.type) ? `<span class="btn sm ghost lockb">${gi('lock')} Level ${SHOP_LV[i.type]}</span>`
     : `<button class="btn sm ${G.coins >= i.cost ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${i.cost}</button>`;
   const tryb = i.type === 'skin' && !own ? `<button class="btn sm ghost" onclick="trySkin('${i.key}')">Try</button>` : '';
   return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${tryb}${act}</div>`;
@@ -107,7 +109,7 @@ function shopView() {
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
     <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
   ${Object.entries(sec).sort((x, y) => by(x[0])[0].cost - by(y[0])[0].cost).map(([t, [name, grid, intro]]) => // cheapest kind of look first
-    `<h2 class="sec" data-t="${t}">${name} · ${owned(t)}/${by(t).length}</h2>${intro}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
+    `<h2 class="sec" data-t="${t}">${name} · ${shopOpen(t) ? `${owned(t)}/${by(t).length}` : `${gi('lock')} level ${SHOP_LV[t]}`}</h2>${shopOpen(t) ? intro : `<p class="mut lockn">${gi('lock')} You can buy these from level ${SHOP_LV[t]}. Until then they can still come out of chests.</p>`}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
 }
 
 // ---------- Badges ----------

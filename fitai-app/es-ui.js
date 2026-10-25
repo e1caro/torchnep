@@ -312,3 +312,6 @@ i18nPat(/^(.+) · level (\d+)$/, (a, b) => `${tr(a)} · nivel ${b}`);
 i18nAdd({ 'level {n}': 'nivel {n}' });
 i18nAdd({ '{n} × Silver chest': '{n} × Cofre de plata', '{n} × Golden chest': '{n} × Cofre dorado', 'Open it in Loot': 'Ábrelo en Botín' });
 i18nAdd({ 'Ember sparks': 'Chispas de brasa', 'Frost crown': 'Corona de escarcha', 'Arcane runes': 'Runas arcanas', 'Storm caller': 'Invocador de tormentas', 'Void rift': 'Grieta del vacío', 'Celestial halo': 'Halo celestial' });
+i18nAdd({ 'Shop opened': 'Tienda abierta', Shop: 'Tienda', 'open in the Shop': 'a la venta en la Tienda', 'Profile pictures': 'Fotos de perfil', Banners: 'Banners', Rings: 'Anillos', 'App themes': 'Temas', 'Panel styles': 'Estilos de panel', Interfaces: 'Interfaces',
+  'You can buy these from level {n}. Until then they can still come out of chests.': 'Podrás comprarlos desde el nivel {n}. Mientras tanto pueden salir en los cofres.' });
+i18nPat(/^(.+) can be bought from level (\d+)\.$/, (a, b) => `${tr(a)} se pueden comprar desde el nivel ${b}.`);

@@ -764,10 +764,16 @@ html[data-theme=olympus]{--bg:#070c16;--glow:#1d2c48;--acc:#f5e6b8;--acc2:#7fd4f
 .fr-phoenix{--c:#ffd000;--c2:#ff4500}.fr-phoenix>.fx{animation:fxrise 1.4s ease-out infinite}.fr-phoenix>.fx2{animation:fxrise 1.4s ease-out .7s infinite}
 .fr-aura{--c:#fff1a8;--c2:#7fd4ff}.fr-aura>.fx{animation:fxorbit 8s linear infinite,fxtw 1.8s ease-in-out infinite}.fr-aura>.fx2{animation:fxback 6s linear infinite,fxtw 1.4s ease-in-out .6s infinite}
 /* ---------- prestige crests: an ornament around level-only rings, drawn by the interface, coloured by the ring ---------- */
-.av>.pc{position:absolute;inset:-38%;pointer-events:none;z-index:3;background:var(--pm,linear-gradient(135deg,#fff1a8,#e2b23c,#8a5a10,#fff1a8));background-size:250% 250%;
-  -webkit-mask:var(--pcrest) center/100% 100% no-repeat;mask:var(--pcrest) center/100% 100% no-repeat;animation:pcsheen 5s linear infinite}
+.av>.pc{position:absolute;inset:-38%;pointer-events:none;z-index:3;filter:drop-shadow(0 1px 1px #000d) drop-shadow(0 0 5px var(--pglow,#ffd34d55))}
+.av>.pc::before,.av>.pc::after{content:"";position:absolute;inset:0;-webkit-mask-size:100% 100%;mask-size:100% 100%;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat}
+/* the metal: the ring's colours with a moving sheen, engraved by the interface's drawing */
+.av>.pc::before{background:var(--pm,linear-gradient(135deg,#fff1a8,#e2b23c,#8a5a10,#fff1a8));background-size:250% 250%;-webkit-mask-image:var(--pcrest);mask-image:var(--pcrest);animation:pcsheen 5s linear infinite}
+/* the gems: the ring's gem colour, lit from the top */
+.av>.pc::after{background:linear-gradient(160deg,#fff 0%,var(--pgemc,#ff4d5a) 32%,color-mix(in srgb,var(--pgemc,#ff4d5a) 45%,#000) 100%);-webkit-mask-image:var(--pgem);mask-image:var(--pgem);animation:gemglint 3s ease-in-out infinite}
 @keyframes pcsheen{to{background-position:250% 250%}}
-@media (prefers-reduced-motion:reduce){.av>.pc{animation:none}}
+@keyframes gemglint{50%{filter:brightness(1.35)}}
+@media (prefers-reduced-motion:reduce){.av>.pc::before,.av>.pc::after{animation:none}}
+.icoav>.pc{display:none}
 .fr-lbronze{--pm:linear-gradient(135deg,#f0b27a,#a0582a,#5e2e12,#f0b27a,#a0582a)}
 .fr-lsilver{--pm:linear-gradient(135deg,#ffffff,#b8c2cc,#69737d,#ffffff,#b8c2cc)}
 .fr-lgold{--pm:linear-gradient(135deg,#fff1a8,#e2b23c,#8a5a10,#fff1a8,#e2b23c)}
@@ -780,3 +786,10 @@ html[data-theme=olympus]{--bg:#070c16;--glow:#1d2c48;--acc:#f5e6b8;--acc2:#7fd4f
 .fr-celestial{--pm:linear-gradient(135deg,#ffffff,#ffe58a,#c99520,#ffffff,#ffe58a)}
 .fr-phoenix{--pm:linear-gradient(135deg,#fff2a0,#ffb000,#ff2a00,#fff2a0,#ff6a00)}
 .fr-aura{--pm:linear-gradient(135deg,#ffffff,#fff1a8,#7fd4ff,#b46bff,#fff1a8)}
+.lockb{opacity:.7;cursor:default;display:inline-flex;align-items:center;gap:4px}
+.lockn{display:flex;align-items:center;gap:6px}
+
+/* gem colour and glow of each level-only ring's crest */
+.fr-lbronze{--pgemc:#ff5a3a;--pglow:#cd7f3255}.fr-lsilver{--pgemc:#4da3ff;--pglow:#dfe8f255}.fr-lgold{--pgemc:#e0303c;--pglow:#ffd34d66}.fr-plat{--pgemc:#7fd4ff;--pglow:#bfe8ff66}
+.fr-sparks{--pgemc:#ffd000;--pglow:#ff6a0066}.fr-frost{--pgemc:#e0f8ff;--pglow:#9fdcff77}.fr-arcane{--pgemc:#ff7eff;--pglow:#b46bff77}.fr-storm{--pgemc:#bff0ff;--pglow:#7fd4ff66}
+.fr-void{--pgemc:#ff4dd2;--pglow:#a64dff77}.fr-celestial{--pgemc:#7fd4ff;--pglow:#ffe58a88}.fr-phoenix{--pgemc:#fff2a0;--pglow:#ff6a0088}.fr-aura{--pgemc:#b46bff;--pglow:#fff1a888}
