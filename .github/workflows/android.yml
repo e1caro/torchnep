@@ -3,7 +3,8 @@ name: android
 # Builds the FitQuest Android app (android/, with fitai-app packed inside).
 # - On pull requests that touch the app: builds the APK as a check, downloadable from the run's artifacts.
 # - Run by hand (Actions > android > Run workflow, or asked from Claude): builds and publishes a release
-#   "FitQuest 1.N" (tag app-N) with the APK attached. The app checks these releases and offers the update.
+#   "FitQuest 1.N" (tag app-N) with the APK, web.zip (the web app) and shell-S (the native version it needs).
+#   Installed apps download web.zip by themselves; only a higher shell-S asks to reinstall the APK.
 # Tags are app-N, never v*, so they don't start the PyPI publish workflow; releases are not marked "latest".
 
 on:
@@ -62,8 +63,12 @@ jobs:
       - name: Build
         run: gradle -p android assembleRelease -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon
 
-      - name: Name the APK
-        run: cp android/app/build/outputs/apk/release/app-release.apk FitQuest-1.${{ github.run_number }}.apk
+      - name: Name the APK, pack the web app for in-app updates
+        run: |
+          cp android/app/build/outputs/apk/release/app-release.apk FitQuest-1.${{ github.run_number }}.apk
+          (cd android/app/src/main/assets/www && zip -qr "$GITHUB_WORKSPACE/web.zip" .)
+          # the native version this web app needs: older apps don't take it and ask to reinstall instead
+          touch "shell-$(grep '^fitquestShell=' android/gradle.properties | cut -d= -f2)"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -78,5 +83,8 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: FitQuest 1.${{ github.run_number }}
           body: ${{ github.event.inputs.notes || 'New version of FitQuest.' }}
-          files: FitQuest-1.${{ github.run_number }}.apk
+          files: |
+            FitQuest-1.${{ github.run_number }}.apk
+            web.zip
+            shell-*
           make_latest: false

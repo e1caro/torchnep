@@ -913,3 +913,6 @@ body.fitpage .orbs{min-height:0}
 .lookt.frow{flex-direction:row;justify-content:flex-start;gap:12px;padding:10px 12px;text-align:left}
 .frow .grow{display:flex;flex-direction:column}
 .frow small{color:var(--mut)}
+.frow .rank{width:20px;text-align:center;color:var(--mut);font-variant-numeric:tabular-nums}
+.frow.me{border-color:var(--acc)}
+.frow .lvtag{font:600 13px var(--body);color:var(--acc)}
