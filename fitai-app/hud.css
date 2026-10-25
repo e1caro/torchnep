@@ -1035,3 +1035,7 @@ html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /
 #rest .swl .card{width:100%;margin:0;font:inherit;color:inherit;text-align:left}
 .splist li a{display:block;color:inherit;text-decoration:none}
 .spsteps{margin:6px 0 8px}.spsteps a{color:var(--acc)}
+/* friend requests waiting: a count on the Friends tab */
+nav#tabs a{position:relative}
+nav#tabs .nbadge{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff4d5e;color:#fff;font:700 11px/18px var(--body);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--bg)}
+.freq{align-items:center;gap:10px}.freq small{display:block}
