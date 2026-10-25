@@ -171,14 +171,11 @@ function earn() {
   const wq = WQ.filter(q => !q.need || q.need());
   view.innerHTML = `${hud()}<h1>Ways to earn</h1>
   <section class="card"><div class="row between"><h3>Daily spin</h3><span class="mut">${canSpin ? `${spinsLeft()} spin${spinsLeft() > 1 ? 's' : ''} ready` : 'Come back tomorrow'}</span></div>
-  <p class="mut">${perk('spin3') ? 'Three free spins a day' : perk('spin2') ? 'Two free spins a day' : 'One free spin a day'}: coins, XP or even a chest. More spins are sold in the Shop.</p>
   <button class="btn ${canSpin ? 'chestbtn' : 'ghost'}" ${canSpin ? '' : 'disabled'} onclick="spin()">${gi('slot')} ${canSpin ? 'Spin now' : 'Spun today'}</button></section>
   <section class="card"><div class="row between"><h3>Water</h3><span class="mut">${t.water || 0}/${goal} glasses</span></div>
   <div class="qbar kc"><i style="width:${clamp((t.water || 0) / goal * 100, 0, 100)}%"></i></div>
-  <p class="mut">+3 XP per glass (250 ml), +20 XP when you hit your goal.</p>
   <div class="row"><button class="btn ghost" onclick="addWater(-1)">−</button><button class="btn" onclick="addWater(1)">${gi('water')} Add a glass</button></div></section>
   <section class="card"><div class="row between"><h3>Sleep</h3><span class="mut">${t.sleep ? t.sleep + ' h logged' : 'Not logged'}</span></div>
-  <p class="mut">How long did you sleep last night? 7 hours or more earns +20 XP.</p>
   <div class="chips">${[5, 6, 7, 8, 9].map(h => `<button class="chip ${t.sleep === h ? 'on' : ''}" onclick="logSleep(${h})">${h} h${h === 9 ? '+' : ''}</button>`).join('')}</div></section>
   <h2 class="sec">Weekly quests</h2>
   ${wq.map(q => { const v = Math.min(q.n, q.v()), ok = v >= q.n, cl = w.claimed.includes(q.id);

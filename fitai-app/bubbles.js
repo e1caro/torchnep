@@ -33,7 +33,7 @@ function streakCard() {
   el.innerHTML = `<div class="row between"><h3>Check-in streak</h3><span class="mut">Day ${s.done} of 7</span></div>
     <div class="ckdots">${[...Array(7)].map((_, i) => `<i class="${i < s.done ? 'on' : ''}">${i === 6 ? gi('chest-silver', 'hero') : i + 1}</i>`).join('')}</div>
     ${s.today ? `<div class="row between"><span class="mut">Done for today. Tomorrow</span><b>${gi('coin', 'cn')} ${s.next.coins + coinsFor(s.next.xp)}${s.next.chest ? ` · ${gi('chest-silver')}` : ''}</b></div>`
-    : '<div class="mut">Check in today to keep your streak.</div>'}`;
+    : ''}`;
   return el;
 }
 

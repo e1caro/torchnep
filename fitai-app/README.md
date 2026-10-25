@@ -49,7 +49,7 @@ Local test: `python3 -m http.server -d fitai-app 8000`.
 
 ## Swipe between sections
 
-Swipe left or right to move between the tab bar's sections (Today, Plan, Rewards, Stats, Hero); the page follows the finger and the next section slides in (`swipe.js`). Swipes inside sideways scrollers or text fields, with a Today panel, the weekly summary or a dialog open, during a workout, or from the screen edges are left alone.
+Swipe left or right to move between the tab bar's sections (Today, Plan, Shop, Progress, Hero); the page follows the finger and the next section slides in (`swipe.js`). Swipes inside sideways scrollers or text fields, with a Today panel, the weekly summary or a dialog open, during a workout, or from the screen edges are left alone.
 
 ## Today as circles
 
@@ -153,3 +153,7 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 - **Sliders** set days, session time, today's time, cardio and stretching minutes and cooking time.
 - **Today's meals** is one line per meal (tap to open its recipe); the one for the time of day is highlighted and eaten ones are ticked.
 - **Appetite:** each "How hungry are you?" choice on a recipe is remembered (the last 12 meals). When you often pick less food than planned, the meal plan's calories go down, more the more often, up to 20% (or up to 10% more when you are often hungry); protein stays the same. The meal plan says when servings are adjusted.
+
+## Tabs
+
+Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badges) and Hero. The reward road shows the next levels; the rest up to 50 are folded. Screens keep text to a minimum: numbers, names and buttons, with explanations only under "How it works".

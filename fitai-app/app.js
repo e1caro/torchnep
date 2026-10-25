@@ -72,6 +72,7 @@ const ICONS = {
   dungeon: 'M4 20V8l3 2V5l3 2 2-3 2 3 3-2v5l3-2v12zM10 20v-5h4v5',
   gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1',
   play: 'M7 5v14l12-7z',
+  bag: 'M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2',
   gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C11 3.5 7 3.5 7 6.5M12 7c1-3.5 5-3.5 5-.5',
 };
 const ic = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -297,7 +298,7 @@ window.setTodayTime = (di, m) => {
   else { S.today = { date: dayKey(Date.now()), di, minutes: m, plan: S.plan.created, items: fitDay(di, m) }; toast(`Today's workout fitted to ${sessionLabel(m)}`); }
   save('today', S.today); sfx('tick'); route();
 };
-const timeChips = di => `<div class="todaytime" onclick="event.stopPropagation()"><span class="mut">Time today</span>${slider('today', SESSIONS.map(m => [m, sessionLabel(m)]), dayMinutes(di), `setTodayTime(${di},+sldVal(this))`)}</div>`;
+const timeChips = di => `<div class="todaytime" onclick="event.stopPropagation()">${slider('today', SESSIONS.map(m => [m, sessionLabel(m)]), dayMinutes(di), `setTodayTime(${di},+sldVal(this))`)}</div>`;
 
 // ---------- history helpers ----------
 const dayKey = t => new Date(t).toDateString();
@@ -701,7 +702,7 @@ function settings() {
   <div id="setmusic"></div>
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
-  <div class="mut setfoot"><span>FitQuest version 118</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 119</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -721,13 +722,14 @@ function route() {
   timers.forEach(clearInterval); timers = [];
   const [, name = 'home', arg] = (location.hash || '#/home').split('/');
   if (name !== 'start') wiz = null;
-  const tab = { dungeons: 'plan', profile: 'me', settings: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', routine: 'plan', sport: 'home', earn: 'home', bets: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
+  const tab = name === 'rewards' ? (arg === 'shop' ? 'shop' : 'progress') : { dungeons: 'plan', profile: 'me', settings: 'me', exercise: 'plan', library: 'plan', meals: 'plan', recipe: 'plan', shop: 'plan', routine: 'plan', sport: 'home', earn: 'home', bets: 'home', workout: 'home', victory: 'home', start: 'me' }[name] || name;
   document.querySelectorAll('#tabs a').forEach(a => a.classList.toggle('on', a.dataset.t === tab));
   document.body.classList.toggle('focus', ['workout', 'start', 'victory'].includes(name));
   // a change on the same page (equip, buy, sell, a setting...) redraws it where you were; a new page starts at the top
   const same = location.hash === lastRoute, y = window.scrollY;
   lastRoute = location.hash;
   (routes[name] || home)(arg);
+  if (name === 'progress' && typeof rwSeg === 'function' && view.querySelector('h1')) view.insertAdjacentHTML('afterbegin', rwSeg('stats')); // Progress: stats, levels, badges
   if (same) window.scrollTo(0, y); else if (name !== 'exercise') window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', route);
@@ -752,11 +754,11 @@ function compactText() {
 }
 // Cleaner screens: each section (a "sec" heading and what follows it) folds into a dropdown on the busy screens.
 // Buttons that sit between sections (check-in, open chest, more ways to earn) stay visible.
-const FOLD_ROUTES = ['earn', 'progress', 'rewards']; // Today uses bubbles instead (bubbles.js)
+const FOLD_ROUTES = ['earn', 'progress', 'rewards/shop']; // Today uses bubbles instead (bubbles.js)
 const foldState = (() => { try { return JSON.parse(localStorage.getItem('fc.fold')) || {}; } catch { return {}; } })();
 function foldSections() {
   const name = (location.hash || '#/home').split('/')[1] || 'home';
-  if (!FOLD_ROUTES.includes(name) || view.querySelector(':scope > details.fold')) return;
+  if (!(FOLD_ROUTES.includes(name) || FOLD_ROUTES.includes(name + '/' + (location.hash.split('/')[2] || ''))) || view.querySelector(':scope > details.fold')) return;
   const isHead = el => el.matches('h2.sec, .sec2');
   const heads = [...view.children].filter(isHead);
   heads.forEach((h, idx) => {

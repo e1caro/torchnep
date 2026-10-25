@@ -468,7 +468,7 @@ function hud() {
   const L = lvl(), a = totalXp(L), b = totalXp(L + 1), pct = (G.xp - a) / (b - a);
   return `<div class="hud tap bn-${G.banner}" onclick="location.hash='#/profile'" role="button" aria-label="Change your looks"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
   <div class="grow"><div class="hn">${esc(S.profile?.name || 'Player')}</div><div class="mut">${title()}${boostOn() ? ' · <b style="color:var(--ok)">2× XP</b>' : ''}</div>
-  <div class="xpbar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div><div class="xpt">${G.xp - a} / ${b - a} XP to level ${L + 1}</div></div>
+  <div class="xpbar"><i style="width:${(pct * 100).toFixed(1)}%"></i></div><div class="xpt">${G.xp - a} / ${b - a} XP</div></div>
   <div class="coins">${gi('coin', 'cn')} <b>${G.coins}</b></div></div>`;
 }
 
@@ -493,11 +493,11 @@ function home() {
   <h2 class="sec">Weekly boss</h2>
   <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${gi(be, 'hero')}</div><div class="grow"><h3>${bn}</h3>
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
-    <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left. Every workout deals damage.`}</div>
+    <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left`}</div>
     ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 160</button>` : ''}</div></section>
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
-  <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min · +${d.items.reduce((s, i) => s + i.sets, 0) * 10 + 100} XP</div><h2>${esc(d.name.split(' · ')[1])}</h2>
+  <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min</div><h2>${esc(d.name.split(' · ')[1])}</h2>
     ${timeChips(di)}${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
   <h2 class="sec">Fuel</h2>
   <div class="grid4"><div class="stat"><b>${a.kcal}</b><span>kcal / day</span></div><div class="stat"><b>${a.protein}g</b><span>protein</span></div>
@@ -514,7 +514,7 @@ function dungeons() {
   const row = ([id, d]) => {
     const ok = has(item(id)), miss = d.need && !S.profile.equipment.includes(d.need);
     return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3>
-      ${ok ? `<div class="mut">${d.desc}</div>` : ''}<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
+<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
       ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
   };
   view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>

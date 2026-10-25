@@ -3,8 +3,9 @@
 //  Levels: automatic unlocks (meals, workouts, perks).   Shop: coin purchases (looks and boosts).   Badges: achievements.
 // Runs after game.js and shares its globals.
 
-const RW_TABS = [['levels', 'Levels'], ['shop', 'Shop'], ['badges', 'Badges']];
-const rwSeg = on => `<div class="seg">${RW_TABS.map(([k, l]) => `<a class="${on === k ? 'on' : ''}" href="#/rewards/${k}">${l}</a>`).join('')}</div>`;
+// Stats, levels and badges are the three tabs of Progress; the shop is a tab of its own.
+const RW_TABS = [['stats', 'Overview', '#/progress'], ['levels', 'Levels', '#/rewards/levels'], ['badges', 'Badges', '#/rewards/badges']];
+const rwSeg = on => `<div class="seg">${RW_TABS.map(([k, l, h]) => `<a class="${on === k ? 'on' : ''}" href="${h}">${l}</a>`).join('')}</div>`;
 const chestBtn = () => G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${gi(CHEST[G.chests[0]][1])} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : '';
 
 // ---------- coin shop: boosts and chests ----------
@@ -58,20 +59,24 @@ window.sell = id => {
 
 // ---------- Levels ----------
 const LOOKS = ['avatar', 'frame', 'banner', 'theme', 'panel', 'skin']; // kinds of look that can be tried on
+// one level of the reward road
+function roadRow(n) {
+  const L = lvl();
+  const its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1);
+  return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
+  ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
+  ${Object.entries(SHOP_LV).filter(([, l]) => l === n).map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">open in the Shop</span></div>`).join('')}
+  ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')" title="Tap to try it for a minute"` : ''}>${ICO(i)} <span class="rn">${esc(i.name)}${LOOKS.includes(i.type) && !has(i) ? ` <span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}</span> <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
+}
+const roadRows = (a, b) => Array.from({ length: b - a + 1 }, (_, k) => roadRow(a + k)).join('');
 function levelsView() {
-  const L = lvl(), max = 50; // the whole road, so every level reward can be seen ahead
+  const L = lvl(), max = 50; // the next levels; the rest of the road (up to 50) is folded
   const next = ITEMS.filter(i => !i.shop && i.lv > L).sort((a, b) => a.lv - b.lv)[0], perks = ITEMS.filter(i => i.type === 'perk' && has(i));
-  return `${hud()}${rwSeg('levels')}${chestBtn()}
-  <p class="mut">Levels unlock new <b>meals</b>, <b>workouts</b> and <b>perks</b>. Coins are spent in the Shop on looks and boosts.</p>
+  return `${rwSeg('levels')}${hud()}${chestBtn()}
   ${next ? `<section class="card row"><div class="dgi">${ICO(next)}</div><div class="grow"><div class="mut">Next unlock · level ${next.lv}</div><h3>${esc(next.name)}</h3><div class="mut">${KIND[next.type]} · ${(totalXp(next.lv) - G.xp).toLocaleString(dateLocale())} XP to go</div></div></section>` : ''}
   ${perks.length ? `<h2 class="sec">Active perks</h2><div class="card">${perks.map(p => `<div class="row" style="padding:7px 0"><span style="font-size:26px">${gi(p.ico, 'hero')}</span><div><b>${esc(p.name)}</b><div class="mut">${esc(p.desc)}</div></div></div>`).join('')}</div>` : ''}
-  <h2 class="sec">Reward road</h2><div class="road">${Array.from({ length: max }, (_, k) => k + 1).map(n => {
-    const its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1);
-    return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
-    ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
-    ${Object.entries(SHOP_LV).filter(([, l]) => l === n).map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">open in the Shop</span></div>`).join('')}
-    ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')" title="Tap to try it for a minute"` : ''}>${ICO(i)} <span class="rn">${esc(i.name)}${LOOKS.includes(i.type) && !has(i) ? ` <span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}</span> <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
-  }).join('')}</div>`;
+  <h2 class="sec">Reward road</h2><div class="road">${roadRows(L, Math.min(max, L + 5))}</div>
+  ${L + 5 < max ? `<details class="fold"><summary><h2 class="sec">Levels ${L + 6}–${max}</h2></summary><div class="road">${roadRows(L + 6, max)}</div></details>` : ''}`;
 }
 
 // ---------- Shop ----------
@@ -103,20 +108,19 @@ function tile(i) {
 function shopView() {
   const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
-  const sec = { skin: ['Interfaces', 'grid2', '<p class="mut">A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.</p>'],
+  const sec = { skin: ['Interfaces', 'grid2', ''],
     avatar: ['Profile pictures', 'grid3', ''], frame: ['Rings', 'grid3', ''], banner: ['Banners', 'grid2', ''], panel: ['Panel styles', 'grid2', ''], theme: ['App themes', 'grid2', themeNote()] };
-  return `${hud()}${rwSeg('shop')}${chestBtn()}
-  <p class="mut">Coins buy looks and boosts, and looks you own sell back for 80% of their price. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
+  return `${hud()}<h1>Shop</h1>${chestBtn()}
   <h2 class="sec">Boosts and chests</h2>
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
     <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
   ${Object.entries(sec).sort((x, y) => by(x[0])[0].cost - by(y[0])[0].cost).map(([t, [name, grid, intro]]) => // cheapest kind of look first
-    `<h2 class="sec" data-t="${t}">${name} · ${shopOpen(t) ? `${owned(t)}/${by(t).length}` : `${gi('lock')} level ${SHOP_LV[t]}`}</h2>${shopOpen(t) ? intro : `<p class="mut lockn">${gi('lock')} You can buy these from level ${SHOP_LV[t]}. Until then they can still come out of chests.</p>`}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
+    `<h2 class="sec" data-t="${t}">${name}<span class="secst">${shopOpen(t) ? `${owned(t)}/${by(t).length}` : `${gi('lock')} ${SHOP_LV[t]}`}</span></h2>${shopOpen(t) ? intro : ''}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
 }
 
 // ---------- Badges ----------
 function badgesView() {
-  return `${hud()}${rwSeg('badges')}<h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>
+  return `${rwSeg('badges')}${hud()}<h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>
   ${ACH.map(a => { const got = G.ach.includes(a.id); return `<div class="card row ${got ? '' : 'locked'}"><div class="avbig sm">${got ? gi(a.i, 'hero') : gi('lock')}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}${a.t ? ` · title: ${a.t}` : ''}</div></div><span class="mut">${gi('coin', 'cn')} ${coinsFor(a.xp)}</span></div>`; }).join('')}`;
 }
 
