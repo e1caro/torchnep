@@ -125,23 +125,37 @@ function rewards(sub) {
 
 // ---------- Profile editor ----------
 window.saveName = () => { S.profile.name = $('#pname').value.trim().slice(0, 20); save('profile', S.profile); toast('Name saved'); route(); };
-function profileView() {
+// The looks of one kind you own, to pick the one to wear (the profile only shows what you wear).
+const COS = [
+  ['avatar', 'Profile picture', '', i => gi(i.key, 'hero')],
+  ['frame', 'Ring', '', i => `<div class="av fr-${i.key}" style="--p:.6;width:40px;height:40px"><span>${gi(G.avatar, 'hero')}</span></div>`],
+  ['banner', 'Banner', 'wide', i => `<span class="bnp bn-${i.key}"></span>`],
+  ['skin', 'Interface', 'wide', i => skinPrev(i)],
+  ['panel', 'Panel style', 'wide', i => panelPrev(i.key)],
+  ['theme', 'Theme', '', i => `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>`],
+];
+function looksView(t) {
+  const c = COS.find(x => x[0] === t); if (!c) { location.hash = '#/profile'; return; }
+  const [, name, wide, prev] = c, mine = ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost), more = ITEMS.filter(i => i.type === t && !has(i)).length;
+  view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/profile'">${ic('back', 18)} Back</button><h1>${name}</h1>
+  <div class="mut">${mine.length} owned · tap one to use it</div>${t === 'theme' ? themeNote() : ''}
+  <div class="pgrid ${wide}">${mine.map(i => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name.replace(/ panels$| banner$/, ''))}</small></button>`).join('')}</div>
+  ${more ? `<a class="btn ghost sm moreb" href="#/rewards/shop">${more} more in the Shop</a>` : ''}`;
+}
+function profileView(sub) {
   if (needProfile()) return;
+  if (sub) return looksView(sub);
   const p = S.profile, L = lvl(), a = totalXp(L), b = totalXp(L + 1), pct = (G.xp - a) / (b - a);
   const mine = t => ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost);
-  const more = t => { const n = ITEMS.filter(i => i.type === t && !has(i)).length; return n ? `<a class="btn ghost sm moreb" href="#/rewards/shop">${n} more in the Shop</a>` : ''; };
-  const pick = (i, inner) => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}" title="${esc(i.name)}">${inner}</button>`;
   const titles = ACH.filter(x => x.t && G.ach.includes(x.id));
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
   <section class="pcard bn-${G.banner}"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
     <div class="hn" style="font-size:32px">${esc(p.name || 'Player')}</div><div class="mut">${title()} · level ${L}</div></section>
   <label class="fld"><span>Name</span><div class="row"><input id="pname" value="${esc(p.name || '')}" maxlength="20" autocomplete="nickname"><button class="btn sm" onclick="saveName()">Save</button></div></label>
-  <h2 class="sec">Profile picture</h2><div class="pgrid">${mine('avatar').map(i => pick(i, gi(i.key, 'hero'))).join('')}</div>${more('avatar')}
-  <h2 class="sec">Ring</h2><div class="pgrid">${mine('frame').map(i => pick(i, `<div class="av fr-${i.key}" style="--p:.6;width:40px;height:40px"><span>${gi(G.avatar, 'hero')}</span></div>`)).join('')}</div>${more('frame')}
-  <h2 class="sec">Banner</h2><div class="pgrid wide">${mine('banner').map(i => pick(i, `<span class="bnp bn-${i.key}"></span>`)).join('')}</div>${more('banner')}
-  <h2 class="sec">Interface</h2><div class="pgrid wide">${mine('skin').map(i => pick(i, skinPrev(i))).join('')}</div>${more('skin')}
-  <h2 class="sec">Panel style</h2><div class="pgrid wide">${mine('panel').map(i => pick(i, panelPrev(i.key) + `<small>${esc(i.name.replace(/ panels$/, ''))}</small>`)).join('')}</div>${more('panel')}
-  <h2 class="sec">Theme</h2>${themeNote()}<div class="pgrid">${mine('theme').map(i => pick(i, `<span class="swc round" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span><small>${esc(i.name)}</small>`)).join('')}</div>${more('theme')}
+  <h2 class="sec">Your look</h2>
+  ${COS.map(([t, name, , prev]) => { const on = ITEMS.find(i => i.type === t && equipped(i)), n = mine(t).length;
+    return `<section class="card tap row lookrow" onclick="location.hash='#/profile/${t}'"><div class="lookprev">${on ? prev(on) : ''}</div>
+      <div class="grow"><div class="mut">${name}</div><b>${on ? esc(on.name.replace(/ panels$| banner$/, '')) : ''}</b></div><span class="chip">Change · ${n}</span></section>`; }).join('')}
   <h2 class="sec">Title</h2><div class="chips"><button class="chip ${G.title ? '' : 'on'}" onclick="equipTitle('')">${TITLES.filter(t => t[0] <= L).at(-1)[1]} · by level</button>
     ${titles.map(x => `<button class="chip ${G.title === x.id ? 'on' : ''}" onclick="equipTitle('${x.id}')">${x.t}</button>`).join('')}</div>
   <div class="mut">More titles come from badges.</div>

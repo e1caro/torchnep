@@ -279,3 +279,4 @@ i18nAdd({ 'Time today': 'Tiempo hoy', 'Back to your usual time': 'Vuelves a tu t
   'Plan rebuilt with your new options': 'Plan rehecho con tus nuevas opciones', 'Edit body data': 'Editar datos corporales' });
 i18nAdd({ Chamfered: 'Biselado', Classic: 'Clásico', Brackets: 'Corchetes', Octagon: 'Octógono', Notch: 'Muesca', 'Double line': 'Doble línea', Circuit: 'Circuito' });
 i18nPat(/^You are using it, so you will switch back to (.+)\.$/, a => `Lo llevas puesto, así que volverás a ${tr(a)}.`);
+i18nAdd({ 'Your look': 'Tu aspecto', 'Change · {n}': 'Cambiar · {n}', '{n} owned · tap one to use it': '{n} en propiedad · toca uno para usarlo' });
