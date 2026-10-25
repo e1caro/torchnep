@@ -616,3 +616,16 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 .todaytime .chip{flex:none;padding:6px 10px;font-size:.85em}
 .optcard .chips{margin-bottom:4px}
 .optbtns{gap:10px;margin-top:12px}.optbtns .btn{flex:1}
+/* club crest on the Hero screen */
+.club{padding:10px 12px}
+.club .row{gap:12px;align-items:center}
+.club .crest{width:64px;height:68px;flex:none;filter:drop-shadow(0 2px 6px #0008)}
+.club .cro{fill:var(--fg);paint-order:stroke;stroke:#0008;stroke-width:3px}
+.club .crp{letter-spacing:.08em;fill:var(--acc2)}
+.club h3{margin:1px 0 0;font-size:1.05em}
+.club .mut{font-size:.8em}
+.clubst{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;margin-top:5px;font-size:.62em;letter-spacing:.04em;opacity:.9}
+.clubst span{display:flex;flex-direction:column;align-items:center;line-height:1.1}
+.clubst b{font-size:1.45em}
+/* sideways swipes between sections belong to the app (swipe.js), not to the browser; vertical scrolling stays native */
+#view{touch-action:pan-y}
