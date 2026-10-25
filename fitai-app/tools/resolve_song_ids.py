@@ -5,10 +5,13 @@ The app opens the song of the day straight in Spotify with these ids. Spotify on
 (and Songlink closed its free API), so the ids come from open music data: first Wikidata, which stores the Spotify
 track id of many songs (property P2207) and answers a whole batch in one query, then MusicBrainz, whose recordings
 often link to Spotify. Songs found by neither keep opening Spotify's search in the app.
-Run by .github/workflows/song-ids.yml; songs already in the file are skipped, so it can be re-run.
+With a Spotify app's keys (SPOTIFY_CLIENT_ID and SPOTIFY_CLIENT_SECRET, saved as repository secrets), Spotify's own
+search is asked first and finds almost every song. Run by .github/workflows/song-ids.yml; songs already in the file are skipped, so it can be re-run.
 MusicBrainz allows one request a second, so a full run takes about an hour.
 """
+import base64
 import json
+import os
 import re
 import sys
 import time
@@ -119,6 +122,33 @@ def musicbrainz(t, a):
     return None
 
 
+SP_TOKEN = ['']
+
+
+def spotify(t, a):
+    """Spotify's own search, when the repository has a Spotify app's keys (client credentials: no user account involved)."""
+    cid, sec = os.environ.get('SPOTIFY_CLIENT_ID'), os.environ.get('SPOTIFY_CLIENT_SECRET')
+    if not (cid and sec):
+        return None
+    if not SP_TOKEN[0]:
+        tok = get('https://accounts.spotify.com/api/token', data=b'grant_type=client_credentials',
+                  headers={'Authorization': 'Basic ' + base64.b64encode(f'{cid}:{sec}'.encode()).decode(), 'Content-Type': 'application/x-www-form-urlencoded'})
+        SP_TOKEN[0] = (tok or {}).get('access_token', '')
+        if not SP_TOKEN[0]:
+            print(f'  spotify keys rejected: {LAST_ERR[0]}', flush=True)
+            os.environ.pop('SPOTIFY_CLIENT_ID', None)
+            return None
+    for q in (f'track:{t} artist:{lead(a)}', f'{t} {lead(a)}'):
+        res = get('https://api.spotify.com/v1/search?' + urllib.parse.urlencode({'q': q, 'type': 'track', 'limit': 5, 'market': 'US'}),
+                  headers={'Authorization': 'Bearer ' + SP_TOKEN[0]})
+        items = (res or {}).get('tracks', {}).get('items', [])
+        hit = next((i for i in items if same_artist(a, ' '.join(x['name'] for x in i.get('artists', []))) and norm(t)[:6] in norm(i['name'])), None) \
+            or next((i for i in items if same_artist(a, ' '.join(x['name'] for x in i.get('artists', [])))), None)
+        if hit:
+            return hit['id']
+    return None
+
+
 def save(ids):
     OUT.write_text(json.dumps(ids, ensure_ascii=False, indent=0, sort_keys=True) + '\n')
 
@@ -142,6 +172,19 @@ def main():
     ids = json.loads(OUT.read_text()) if OUT.exists() else {}
     todo = [(t, a) for t, a in songs() if f'{t}|{a}' not in ids]
     print(f'{len(ids)} known, {len(todo)} to find', flush=True)
+    if os.environ.get('SPOTIFY_CLIENT_ID'):  # Spotify's own search first, when the keys are there
+        sp = 0
+        for n, (t, a) in enumerate(todo, 1):
+            sid = spotify(t, a)
+            if sid:
+                ids[f'{t}|{a}'] = sid
+                sp += 1
+            if n % 100 == 0:
+                save(ids)
+            time.sleep(.15)
+        save(ids)
+        print(f'spotify: {sp} ids', flush=True)
+        todo = [(t, a) for t, a in todo if f'{t}|{a}' not in ids]
     wd = wikidata(todo)
     ids.update(wd)
     save(ids)
