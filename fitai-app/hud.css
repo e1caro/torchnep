@@ -666,3 +666,11 @@ html[data-skin=arcade] #recap .rgrade.s{font-size:100px}
 .lookprev .gi{font-size:30px}.lookprev .bnp,.lookprev .pnp,.lookprev .skp{width:76px;height:40px}
 .lookprev .swc{width:34px;height:34px}
 .lookrow b{font-size:.95em}
+/* the profile header on the Change-your-look page: compact */
+.pcard.pmini{display:flex;flex-direction:row;align-items:center;gap:14px;padding:12px 14px;min-height:0;text-align:left}
+.pcard.pmini .av{width:64px;height:64px;margin:0;flex:none}
+.pcard.pmini .av span .gi{font-size:30px}
+.pcard.pmini .hn{font-size:22px!important;margin:0}
+/* tapping words selects nothing (and starts no web search); fields where you type still work */
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
