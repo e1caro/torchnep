@@ -1,7 +1,7 @@
 name: song-ids-probe
 
 # A one-minute check that the song id resolver can reach its services from GitHub's runners:
-# looks up 12 songs and prints each step. Writes nothing.
+# looks up 20 songs and prints each step. Writes nothing.
 
 on:
   push:
@@ -19,4 +19,4 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - run: python3 fitai-app/tools/resolve_song_ids.py --probe 12
+      - run: python3 fitai-app/tools/resolve_song_ids.py --probe 20
