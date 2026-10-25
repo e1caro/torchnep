@@ -12,11 +12,11 @@ function wkState() {
 // ---------- weekly quests ----------
 const mealsEaten = () => M.plan?.week === weekId() ? M.plan.days.reduce((s, d) => s + d.items.filter(i => i.eaten).length, 0) : 0;
 const WQ = [
-  { id: 'w-train', t: 'Train 4 times this week', ico: 'lifter', n: 4, v: () => S.history.filter(h => h.t >= weekStart()).length, xp: 200, coins: 60 },
-  { id: 'w-dungeon', t: 'Clear 2 dungeons', ico: 'gate', n: 2, v: () => S.history.filter(h => h.t >= weekStart() && h.dungeon).length, xp: 250, coins: 80, chest: 'wood', need: () => lvl() >= 2 },
-  { id: 'w-meals', t: 'Eat 15 planned meals', ico: 'cutlery', n: 15, v: mealsEaten, xp: 200, coins: 60, need: () => !!M.set },
-  { id: 'w-water', t: 'Hit your water goal on 4 days', ico: 'water', n: 4, v: () => wkState().waterDays, xp: 150, coins: 50 },
-  { id: 'w-weigh', t: 'Log your weight twice', ico: 'scale', n: 2, v: () => S.weights.filter(x => x.t >= weekStart()).length, xp: 100, coins: 30 },
+  { id: 'w-train', t: 'Train 4 times this week', ico: 'lifter', n: 4, v: () => S.history.filter(h => h.t >= weekStart()).length, xp: 200, coins: 30 },
+  { id: 'w-dungeon', t: 'Clear 2 dungeons', ico: 'gate', n: 2, v: () => S.history.filter(h => h.t >= weekStart() && h.dungeon).length, xp: 250, coins: 40, chest: 'wood', need: () => lvl() >= 2 },
+  { id: 'w-meals', t: 'Eat 15 planned meals', ico: 'cutlery', n: 15, v: mealsEaten, xp: 200, coins: 30, need: () => !!M.set },
+  { id: 'w-water', t: 'Hit your water goal on 4 days', ico: 'water', n: 4, v: () => wkState().waterDays, xp: 150, coins: 25 },
+  { id: 'w-weigh', t: 'Log your weight twice', ico: 'scale', n: 2, v: () => S.weights.filter(x => x.t >= weekStart()).length, xp: 100, coins: 15 },
 ];
 window.claimWeekly = id => {
   const q = WQ.find(x => x.id === id), w = wkState();
@@ -42,7 +42,7 @@ window.logSleep = h => {
 };
 
 // ---------- daily spin ----------
-const SPIN = [[30, 'coins', 10], [25, 'coins', 30], [8, 'coins', 60], [20, 'coins', 20], [10, 'coins', 45], [6, 'chest', 'wood'], [1, 'chest', 'silver']]; // coins and chests only: XP comes from looking after yourself
+const SPIN = [[30, 'coins', 5], [25, 'coins', 15], [8, 'coins', 30], [20, 'coins', 10], [10, 'coins', 20], [6, 'chest', 'wood'], [1, 'chest', 'silver']]; // coins and chests only: XP comes from looking after yourself
 const spinsToday = () => G.spinDay?.d === dayId() ? G.spinDay.n : 0;
 const freeSpins = () => (perk('spin3') ? 3 : perk('spin2') ? 2 : 1) - spinsToday();
 const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
