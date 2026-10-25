@@ -945,3 +945,33 @@ body.fitpage .orbs{min-height:0}
 .pod.me .pn{color:var(--acc)}
 .pod.up{animation:podup .9s cubic-bezier(.3,1.6,.5,1) both}
 @keyframes podup{0%{transform:translateY(24px);opacity:.4}100%{transform:none;opacity:1}}
+/* podium: light, metal rings, sparkles and an entrance */
+.podium{position:relative;padding-top:8px;isolation:isolate}
+.podium::before{content:"";position:absolute;left:50%;top:-10px;width:70%;height:115%;transform:translateX(-50%);z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 50% 60% at 50% 30%,color-mix(in srgb,var(--pod1,#e8c45a) 30%,transparent),#0000 70%);animation:podlight 4s ease-in-out infinite alternate}
+.podium::after{content:"";position:absolute;left:4%;right:4%;bottom:-8px;height:16px;z-index:-1;border-radius:50%;background:radial-gradient(closest-side,#000a,#0000)}
+@keyframes podlight{from{opacity:.55}to{opacity:1}}
+.pod{position:relative;animation:podrise .7s cubic-bezier(.2,1.3,.4,1) both}
+.pod.p2{animation-delay:.12s}.pod.p1{animation-delay:.3s}.pod.p3{animation-delay:0s}
+@keyframes podrise{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+.pod .blk{box-shadow:inset 0 1px 0 #ffffff33,0 10px 18px -8px #000c}
+.pod .blk b{position:relative;z-index:1;text-shadow:0 2px 0 #0006,0 0 12px color-mix(in srgb,var(--pod) 60%,transparent)}
+.pod.p1 .blk b{font-size:32px}
+.pod .pav{border-radius:50%;box-shadow:0 0 0 3px var(--ring,#b9c2cf),0 0 14px color-mix(in srgb,var(--ring,#b9c2cf) 60%,transparent)}
+.pod.p1 .pav{--ring:#f5c84b}.pod.p2 .pav{--ring:#c9d3df}.pod.p3 .pav{--ring:#d08a4e}
+.pod.p1 .pav{animation:podglow 2.4s ease-in-out infinite}
+@keyframes podglow{50%{box-shadow:0 0 0 3px var(--ring),0 0 26px var(--ring)}}
+.pod.p1::before{display:block;animation:podbob 2.6s ease-in-out infinite;filter:drop-shadow(0 2px 6px #0008)}
+@keyframes podbob{50%{transform:translateY(-4px) rotate(-4deg)}}
+/* a light sweeping across each step */
+.pod .blk .shine{position:absolute;inset:0;overflow:hidden;border-radius:inherit;pointer-events:none;z-index:0}
+.pod .blk .shine i{position:absolute;top:-20%;bottom:-20%;width:40%;left:-60%;background:linear-gradient(100deg,#0000,var(--podshine,#ffffff55),#0000);transform:skewX(-18deg);animation:podshine 3.8s ease-in-out infinite}
+.pod.p2 .blk .shine i{animation-delay:1.2s}.pod.p3 .blk .shine i{animation-delay:2.1s}
+@keyframes podshine{0%,55%{left:-60%}85%,100%{left:130%}}
+/* sparkles round the winner */
+.pod .spk{position:absolute;color:var(--ring2,#ffe68a);font-style:normal;font-size:12px;pointer-events:none;animation:podspk 2.2s ease-in-out infinite;text-shadow:0 0 6px currentColor}
+.pod .spk.s1{left:8%;top:22%}.pod .spk.s2{right:6%;top:12%;font-size:10px;animation-delay:.7s}.pod .spk.s3{right:16%;top:44%;font-size:9px;animation-delay:1.4s}
+@keyframes podspk{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:1;transform:scale(1.1) rotate(20deg)}}
+.pod.empty .shine,.pod.empty .pav{animation:none}
+@media(prefers-reduced-motion:reduce){.pod,.pod *,.podium::before{animation:none!important}}
+html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /* open shapes: the sweep would cross empty air */

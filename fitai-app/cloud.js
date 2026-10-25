@@ -169,11 +169,12 @@ function podium(all) {
     try { localStorage.setItem('fc.podium', JSON.stringify({ ids, n: all.length })); } catch { /* storage blocked */ }
     top.forEach((f, i) => { if (moved.has(f.id)) toast(T('{0} is now #{1}', f.public?.name || f.username || '', i + 1)); });
   }
-  const step = (f, place) => { if (!f) return `<div class="pod p${place} empty"><div class="pav">?</div><div class="blk"><b>${place}</b></div></div>`;
+  const shine = '<i class="shine"><i></i></i>', sparks = '<i class="spk s1">✦</i><i class="spk s2">✧</i><i class="spk s3">✦</i>';
+  const step = (f, place) => { if (!f) return `<div class="pod p${place} empty"><div class="pav">?</div><div class="blk">${shine}<b>${place}</b></div></div>`;
     const p = f.public || {};
     return `<div class="pod p${place}${moved.has(f.id) ? ' up' : ''}${f.me ? ' me' : ''}" ${f.me ? '' : `onclick="location.hash='#/friend/${f.id}'"`}>
       <div class="pav av fr-${esc(p.frame || 'none')}" style="--p:1"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
-      <div class="pn" translate="no">${esc(p.name || f.username || '')}</div><div class="pl">Lv ${p.lvl || 1}</div><div class="blk"><b>${place}</b></div></div>`; };
+      ${place === 1 ? sparks : ''}<div class="pn" translate="no">${esc(p.name || f.username || '')}</div><div class="pl">Lv ${p.lvl || 1}</div><div class="blk">${shine}<b>${place}</b></div></div>`; };
   return `<div class="podium">${step(top[1], 2)}${step(top[0], 1)}${step(top[2], 3)}</div>`;
 }
 window.addFriend = async () => {
