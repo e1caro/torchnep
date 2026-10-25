@@ -334,8 +334,8 @@ function legDone(l) {
   if (k === 'days') return daysIn(a, b) >= l.need;
   if (k === 'xp') return xpIn(a) >= l.need;
   if (k === 'boss') return trainsIn(a, b) >= l.need;
-  if (k === 'lvl') return lvl() >= l.need;
-  if (k === 'streak') return streak() >= l.need;
+  if (k === 'lvl') return lvl() >= l.n; // n is the level (need is 0 there, only to hide the progress line)
+  if (k === 'streak') return streak() >= l.n;
   if (k === 'meals') return weekId() === weekId(a) && mealsEaten() >= l.need;
   if (k === 'match' || k === 'nolose') { const m = SP.roles?.[l.key]?.match; return m?.week === weekId(a) && (m.res === 'W' || (k === 'nolose' && m.res === 'D')); }
   if (id === 'd-long') return countIn(a, b, h => h.dur >= 45) >= 1;
@@ -378,6 +378,10 @@ function slipOdds(legs) {
   const muscles = legs.filter(isMg).length, mgx = Object.entries(win).reduce((a, [k, n]) => a * (MG_X[k.split(':')[0]][n] || 1), 1);
   return { raw, related, muscles, mgx, total: Math.min(BET_COMBO_MAX, Math.max(1, Math.round(raw * mgx * .85 ** related * 100) / 100)) };
 }
+
+// Streak and level picks used to be checked against 0, so they came true at once. Picks of that kind already
+// marked won in open bets are checked again with the right goal.
+for (const b of BT.open) for (const l of b.legs) if ((l.kind === 'streak' || l.kind === 'lvl') && l.st === 'won' && !legDone(l)) delete l.st;
 
 // ---------- settle open bets ----------
 let settling = false;
