@@ -24,7 +24,7 @@ window.buyBoost = id => {
 
 // ---------- confirm before spending, and selling back ----------
 // every purchase asks first; owned looks can be sold back for 80% of their price
-const SELL = .8, sellPrice = i => Math.round(i.cost * SELL);
+const SELL = .8, sellPrice = i => Math.round((G.paid?.[i.id] ?? i.cost) * SELL); // 80% of what you paid (a deal sells for less)
 const SELL_DEF = { theme: 'hud', panel: 'chamfer', skin: 'clean', avatar: 'glove', banner: 'plain', frame: 'none' }; // the free look of each kind
 function askCoins(title, pic, name, delta, yes, fn, note = '') {
   modal(`<div class="avbig">${pic}</div><div class="lvup">${title}</div><h2>${esc(name)}</h2>
@@ -37,8 +37,8 @@ const itemPic = i => i.type === 'skin' ? `<i class="emo">${i.emo}</i>` : ICO(i);
 const _buyNow = window.buy, _boostNow = window.buyBoost;
 window.buy = id => {
   const i = item(id);
-  if (!i.shop || has(i) || G.coins < i.cost) return _buyNow(id); // the usual messages
-  askCoins(`Buy this ${KIND[i.type].toLowerCase()}?`, itemPic(i), i.name, -i.cost, 'Buy', () => _buyNow(id));
+  if (!i.shop || has(i) || G.coins < priceOf(i)) return _buyNow(id); // the usual messages
+  askCoins(`Buy this ${KIND[i.type].toLowerCase()}?`, itemPic(i), i.name, -priceOf(i), 'Buy', () => _buyNow(id));
 };
 window.buyBoost = id => {
   const b = BOOSTS.find(x => x.id === id);
@@ -51,9 +51,9 @@ window.sell = id => {
   // selling what you are wearing puts the free look of that kind back on
   const on = equipped(i), def = ITEMS.find(x => x.type === i.type && x.key === SELL_DEF[i.type]);
   askCoins(`Sell this ${KIND[i.type].toLowerCase()}?`, itemPic(i), i.name, sellPrice(i), 'Sell', () => {
-    G.owned = G.owned.filter(x => x !== id); G.coins += sellPrice(i);
+    const got = sellPrice(i); G.owned = G.owned.filter(x => x !== id); G.coins += got; if (G.paid) delete G.paid[id];
     if (on) { G[i.type] = SELL_DEF[i.type]; applyTheme(); }
-    commit(); sfx('claim'); toast(`Sold for ${sellPrice(i)} coins`); route();
+    commit(); sfx('claim'); toast(`Sold for ${got} coins`); route();
   }, on ? `You are using it, so you will switch back to ${def ? def.name : 'the default look'}.` : '');
 };
 
@@ -99,24 +99,35 @@ function tile(i) {
   const sellB = i.cost ? `<button class="btn sm ghost sellb" onclick="sell('${i.id}')">Sell · ${gi('coin', 'cn')} ${sellPrice(i)}</button>` : '';
   const act = own ? (equipped(i) && !TRY[i.type] ? `<b class="eq">Equipped</b>${sellB}` : `<button class="btn sm ghost" onclick="equip('${i.id}')">Equip</button>${sellB}`)
     : !shopOpen(i.type) ? `<span class="btn sm ghost lockb">${gi('lock')} Level ${SHOP_LV[i.type]}</span>`
-    : `<button class="btn sm ${G.coins >= i.cost ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${i.cost}</button>`;
+    : `<button class="btn sm ${G.coins >= priceOf(i) ? 'gold' : 'ghost'}" onclick="buy('${i.id}')">${gi('coin', 'cn')} ${priceOf(i)}${isDeal(i) ? ` <s>${i.cost}</s>` : ''}</button>`;
   const trying = TRY[i.type]?.key === i.key;
-  const tryb = own ? '' : trying ? `<button class="btn sm ghost on" onclick="endTry('${i.type}')">Trying · end</button>` : `<button class="btn sm ghost" onclick="tryLook('${i.id}')">Try 1 min</button>`;
-  return `<div class="card sw">${preview(i)}<b>${esc(i.name)}</b>${tryb}${act}</div>`;
+  const tryb = own ? '' : trying ? `<button class="btn sm ghost on" onclick="endTry('${i.type}')">Trying · end</button>` : `<button class="btn sm ghost tryb" onclick="tryLook('${i.id}')">Try</button>`;
+  const [, rk, rn] = rarityOf(i);
+  return `<div class="card sw r-${rk}${own ? ' own' : ''}"><span class="rar">${rn}</span>${preview(i)}<b>${esc(i.name)}</b><div class="swact">${tryb}${act}</div></div>`;
 }
+// The shop: today's three deals, then one kind of item at a time (tabs), shown as cards with a rarity by price.
+let SHOP_TAB = (() => { try { return JSON.parse(localStorage.getItem('fc.shoptab')) || 'avatar'; } catch { return 'avatar'; } })();
+window.shopTab = t => { SHOP_TAB = t; try { localStorage.setItem('fc.shoptab', JSON.stringify(t)); } catch { /* storage blocked */ } route(); };
+const RARITY = [[900, 'legendary', 'Legendary'], [400, 'epic', 'Epic'], [150, 'rare', 'Rare'], [0, 'common', 'Common']];
+const rarityOf = i => RARITY.find(([min]) => i.cost >= min);
+const SHOP_TABS = [['avatar', 'user'], ['frame', 'frame'], ['banner', 'banner'], ['theme', 'palette'], ['panel', 'frame'], ['skin', 'temple'], ['boost', 'upgrade']];
 function shopView() {
-  const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost), owned = t => by(t).filter(has).length;
-  const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
-  const sec = { skin: ['Interfaces', 'grid2', ''],
-    avatar: ['Profile pictures', 'grid3', ''], frame: ['Rings', 'grid3', ''], banner: ['Banners', 'grid2', ''], panel: ['Panel styles', 'grid2', ''], theme: ['App themes', 'grid2', themeNote()] };
-  return `<div class="row between"><h1>Shop</h1>${coinTag()}</div>
-  <h2 class="sec">Boosts and chests</h2>
-  ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
-    <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
-  ${Object.entries(sec).sort((x, y) => by(x[0])[0].cost - by(y[0])[0].cost).map(([t, [name, grid, intro]]) => // cheapest kind of look first
-    `<h2 class="sec" data-t="${t}">${name}<span class="secst">${shopOpen(t) ? `${owned(t)}/${by(t).length}` : `${gi('lock')} ${SHOP_LV[t]}`}</span></h2>${shopOpen(t) ? intro : ''}<div class="${grid}">${by(t).map(tile).join('')}</div>`).join('')}`;
+  const by = t => ITEMS.filter(i => i.type === t && i.cost > 0).sort((a, b) => a.cost - b.cost);
+  const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5), left = new Date().setHours(24, 0, 0, 0) - Date.now();
+  const tab = SHOP_TABS.some(([t]) => t === SHOP_TAB) ? SHOP_TAB : 'avatar';
+  const ds = deals();
+  const deal = i => `<button class="deal r-${rarityOf(i)[1]}" onclick="buy('${i.id}')"><span class="off">−${Math.round(DEAL_OFF * 100)}%</span>${preview(i)}<b>${esc(i.name.replace(/ panels$| banner$/, ''))}</b>
+    <span class="dprice"><s>${i.cost}</s> ${gi('coin', 'cn')} ${priceOf(i)}</span></button>`;
+  const body = tab === 'boost'
+    ? BOOSTS.map(b => `<div class="card row boostrow"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
+      <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')
+    : `${shopOpen(tab) ? (tab === 'theme' ? themeNote() : '') : `<div class="card lockcard">${gi('lock', 'hero')}<div><b>Opens at level ${SHOP_LV[tab]}</b><div class="mut">Try any of them for a minute meanwhile.</div></div></div>`}
+      <div class="shopgrid ${['skin', 'banner', 'panel'].includes(tab) ? 'wide' : ''}">${by(tab).map(tile).join('')}</div>`;
+  return `<div class="shophead"><div><h1>Shop</h1></div>${coinTag()}</div>
+  ${ds.length ? `<div class="dealhead"><h2 class="sec">Today's deals</h2><span class="mut">${gi('stopwatch')} ${Math.floor(left / 36e5)}h ${Math.floor(left / 6e4) % 60}m</span></div><div class="deals">${ds.map(deal).join('')}</div>` : ''}
+  <div class="shoptabs" data-noswipe>${SHOP_TABS.map(([t, ico]) => `<button class="stab ${t === tab ? 'on' : ''}" onclick="shopTab('${t}')">${gi(ico)}<span>${t === 'boost' ? 'Boosts' : SHOP_NAME[t]}</span>${t !== 'boost' && !shopOpen(t) ? `<i class="lk">${gi('lock')}</i>` : ''}</button>`).join('')}</div>
+  ${body}`;
 }
-
 // ---------- Badges ----------
 function badgesView() {
   return `${rwSeg('badges')}<h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>
@@ -132,7 +143,7 @@ function rewards(sub) {
 window.saveName = () => { S.profile.name = $('#pname').value.trim().slice(0, 20); save('profile', S.profile); toast('Name saved'); route(); };
 // open the shop on just one kind of look (the other sections stay folded, and can still be opened)
 let SHOP_FOCUS = null;
-window.shopAt = t => { SHOP_FOCUS = t; location.hash = '#/rewards/shop'; };
+window.shopAt = t => { SHOP_FOCUS = t; SHOP_TAB = t; location.hash = '#/rewards/shop'; };
 // The looks of one kind you own, to pick the one to wear (the profile only shows what you wear).
 const COS = [
   ['avatar', 'Profile picture', '', i => gi(i.key, 'hero')],

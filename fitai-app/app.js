@@ -708,7 +708,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 134</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 135</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -790,7 +790,7 @@ function compactText() {
 }
 // Cleaner screens: each section (a "sec" heading and what follows it) folds into a dropdown on the busy screens.
 // Buttons that sit between sections (check-in, open chest, more ways to earn) stay visible.
-const FOLD_ROUTES = ['earn', 'progress', 'rewards/shop']; // Today uses bubbles instead (bubbles.js)
+const FOLD_ROUTES = ['earn', 'progress']; // Today uses bubbles instead (bubbles.js)
 const foldState = (() => { try { return JSON.parse(localStorage.getItem('fc.fold')) || {}; } catch { return {}; } })();
 function foldSections() {
   const name = (location.hash || '#/home').split('/')[1] || 'home';
