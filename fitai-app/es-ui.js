@@ -337,3 +337,5 @@ i18nAdd({ 'Levels {n}–{n}': 'Niveles {n}–{n}' });
 i18nAdd({ 'in the Shop': 'en la Tienda' });
 i18nAdd({ Update: 'Actualizar', Check: 'Buscar', 'You have the latest version': 'Tienes la última versión', 'No connection': 'Sin conexión', 'App {n}': 'App {n}' });
 i18nPat(/^(FitQuest [\d.]+) is ready$/, n => `${n} está lista`);
+i18nAdd({ 'a silver chest (golden every {n}th), meals, workouts, perks and level-only looks': 'un cofre de plata (dorado cada {n}), comidas, entrenamientos, mejoras y aspectos exclusivos de nivel', 'titles for your profile': 'títulos para tu perfil', 'Badge unlocked': 'Insignia desbloqueada' });
+i18nPat(/^Badge unlocked: (.+)$/, n => `Insignia desbloqueada: ${tr(n)}`);
