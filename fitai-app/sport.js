@@ -346,13 +346,36 @@ const CREST_OF = { hud: 'hex', chinese: 'round', japanese: 'round', fairy: 'baro
   pirate: 'heater', outrun: 'hex', arcade: 'pixel', classical: 'oval', artdeco: 'deco', gothic: 'heater', baroque: 'baroque', mythical: 'baroque', cosmic: 'hex' };
 const TIER_METAL = { bronze: ['#f0b27a', '#a0582a', '#5e2e12'], silver: ['#ffffff', '#b8c2cc', '#69737d'], gold: ['#fff1a8', '#e2b23c', '#8a5a10'], icon: ['#e9d7ff', '#9b6bff', '#2ee6d6'] };
 const TIER_NAME = { bronze: TT('Bronze', 'Bronce'), silver: TT('Silver', 'Plata'), gold: TT('Gold', 'Oro'), icon: TT('Icon', 'Icono') };
-function clubName(key) {
-  const n = (S.profile.name || 'Player').split(' ')[0], av = ITEMS.find(i => i.type === 'avatar' && i.key === G.avatar), h = hash(n + key);
-  const mascot = av ? av.name.split(' ').at(-1) : 'Lions', many = /s$/.test(mascot) ? mascot : /x$|ch$|sh$/.test(mascot) ? mascot + 'es' : mascot + 's';
-  const es = typeof LANG === 'string' && LANG.startsWith('es');
-  const forms = es ? [`Real ${n}`, `Atlético ${n}`, `${n} CF`, `Deportivo ${n}`, `Sporting ${n}`, `Racing ${n}`] : [`${n} United`, `Real ${n}`, `${n} FC`, `Athletic ${n}`, `${n} City`, `Sporting ${n}`];
-  return h % 3 === 0 ? `${n} ${many}` : forms[h % forms.length];
+// Your club: an invented name, made once and kept. "Sign for another club" offers new ones, or you write your own.
+const CLUB_A = ['Val', 'Mont', 'Bri', 'Nor', 'Cas', 'Ald', 'Riv', 'Sol', 'Mar', 'Tor', 'Bel', 'Port', 'Vil', 'Fal', 'Ost', 'Lun', 'Cor', 'Dun', 'Ser', 'Alt'];
+const CLUB_B = ['doria', 'ecruz', 'aluna', 'vale', 'tara', 'mere', 'ena', 'brook', 'ova', 'haven', 'ia', 'ford', 'ena', 'iza', 'ara', 'mont', 'ales', 'wick', 'ano', 'era'];
+const CLUB_ES = [n => `Real ${n}`, n => `Atlético ${n}`, n => `Deportivo ${n}`, n => `Club ${n}`, n => `Unión ${n}`, n => `Racing de ${n}`, n => `${n} CF`, n => `Sporting ${n}`, n => `Olímpico ${n}`, n => `Juventud ${n}`];
+const CLUB_EN = [n => `${n} United`, n => `${n} City`, n => `${n} FC`, n => `Athletic ${n}`, n => `${n} Rovers`, n => `${n} Wanderers`, n => `Real ${n}`, n => `Sporting ${n}`, n => `${n} Athletic`, n => `${n} Albion`];
+const MASCOTS = { es: ['Leones', 'Lobos', 'Halcones', 'Toros', 'Tiburones', 'Dragones', 'Linces', 'Águilas'], en: ['Lions', 'Wolves', 'Hawks', 'Bulls', 'Sharks', 'Dragons', 'Lynx', 'Eagles'] };
+function newClubName(r = Math.random) {
+  const es = typeof LANG === 'string' && LANG.startsWith('es'), pick = a => a[Math.floor(r() * a.length)];
+  const place = pick(CLUB_A) + pick(CLUB_B);
+  if (r() < .18) return es ? `${pick(MASCOTS.es)} de ${place}` : `${place} ${pick(MASCOTS.en)}`;
+  return pick(es ? CLUB_ES : CLUB_EN)(place);
 }
+function clubName() {
+  if (!SP.club) { SP.club = newClubName(rng(hash((S.profile?.name || '') + Date.now()))); spSave(); }
+  return SP.club;
+}
+window.signClub = () => {
+  const offers = [newClubName(), newClubName(), newClubName()];
+  modal(`<div class="lvup">${TT('Transfer window', 'Mercado de fichajes')}</div><h2>${TT('Sign for another club', 'Fichar por otro club')}</h2>
+    <div class="mut">${TT('Now at', 'Ahora en')} <b translate="no">${esc(clubName())}</b>. ${TT('Your rating, attributes and record come with you.', 'Tu valoración, atributos y balance se vienen contigo.')}</div>
+    <div class="offers">${offers.map(o => `<button class="btn ghost offer" data-club="${esc(o)}"><span translate="no">${esc(o)}</span><small>${TT('Sign', 'Fichar')}</small></button>`).join('')}</div>
+    <button class="btn ghost sm" id="moreoffers">${TT('Other offers', 'Otras ofertas')}</button>
+    <div class="lbl">${TT('Or found your own club', 'O funda tu propio club')}</div><div class="row"><input id="ownclub" maxlength="28" placeholder="${TT('Club name', 'Nombre del club')}"><button class="btn sm" id="ownok">${TT('Sign', 'Fichar')}</button></div>
+    <button class="btn ghost" data-close>${TT('Stay', 'Quedarme')}</button>`);
+  const sign = n => { n = String(n || '').trim().slice(0, 28); if (!n) return; SP.club = n; spSave(); $('#modal').hidden = true; sfx('claim'); toast(`${TT('Welcome to', 'Bienvenido a')} ${n}!`); route(); };
+  document.querySelectorAll('#modal .offer').forEach(b => b.onclick = () => sign(b.dataset.club));
+  $('#moreoffers').onclick = () => { $('#modal').hidden = true; signClub(); };
+  $('#ownok').onclick = () => sign($('#ownclub').value);
+};
+
 function crestSvg(ovr, pos) {
   const tier = cardClass(ovr), [m1, m2, m3] = TIER_METAL[tier], shape = CREST[CREST_OF[document.documentElement.dataset.skin] || 'hex'];
   return `<svg class="crest" viewBox="0 0 100 106" aria-hidden="true"><defs>
@@ -364,10 +387,26 @@ function crestSvg(ovr, pos) {
     <path d="${shape}" fill="none" stroke="url(#crm)" stroke-width="6"/><path d="${shape}" fill="none" style="stroke:var(--line2)" stroke-width="1" transform="translate(50 53) scale(.86) translate(-50 -53)"/>
     <text x="50" y="76" text-anchor="middle" font-size="34" font-weight="800" class="cro">${ovr}</text><text x="50" y="93" text-anchor="middle" font-size="13" font-weight="700" class="crp">${esc(pos)}</text></svg>`;
 }
+// The Academy's main card: a player's technical sheet (ficha técnica), drawn as a normal panel of the interface.
+function techSheet(key) {
+  const role = roleOf(key), sport = SPORTS[key.split('/')[0]], ovr = ovrOf(role), tier = cardClass(ovr), rs = roleState(key), lv = sportLevel(rs.sxp);
+  const top = SATTRS.slice().sort((x, y) => role.w[y] - role.w[x]).slice(0, 2), played = rs.w + rs.d + rs.l;
+  const row = (k, v) => `<div class="fr"><span>${k}</span><b>${v}</b></div>`;
+  return `<section class="card ficha"><div class="fh">${crestSvg(ovr, role.pos)}<div class="grow">
+      <div class="lbl">${TT('Technical sheet', 'Ficha técnica')}</div><h2 translate="no">${esc(S.profile.name || 'Player')}</h2>
+      <div class="mut"><span translate="no">${esc(clubName())}</span> · ${sport.ico} ${role.name}</div></div></div>
+    <div class="fgrid">${row(TT('Rating', 'Valoración'), `${ovr} OVR`)}${row(TT('Category', 'Categoría'), `<i class="metal m-${tier}"></i>${TIER_NAME[tier]}`)}
+      ${row(TT('Career', 'Carrera'), careerTier(ovr))}${row(TT('Career level', 'Nivel de carrera'), lv)}
+      ${row(TT('Matches', 'Partidos'), played)}${row(TT('W · D · L', 'V · E · D'), `${rs.w} · ${rs.d} · ${rs.l}`)}</div>
+    <div class="lbl">${TT('Attributes', 'Atributos')}</div>
+    <div class="fattr">${SATTRS.map(k => `<div class="fa ${top.includes(k) ? 'key' : ''}"><span>${ATTR[k][0]}${top.includes(k) ? ' ★' : ''}</span><i><u style="width:${statVal(k)}%"></u></i><b>${statVal(k)}</b></div>`).join('')}</div>
+    <div class="mut fnote">★ ${TT('Key attributes for your position', 'Atributos clave de tu posición')}</div>
+    <button class="btn ghost sm signbtn" onclick="signClub()">${TT('Sign for another club', 'Fichar por otro club')}</button></section>`;
+}
 function clubCard(key) {
   const role = roleOf(key), sport = SPORTS[key.split('/')[0]], ovr = ovrOf(role), tier = cardClass(ovr), rs = roleState(key);
   return `<section class="card tap club" onclick="location.hash='#/sport'"><div class="row">${crestSvg(ovr, role.pos)}
-    <div class="grow"><div class="mut">${sport.ico} ${role.name} · ${TIER_NAME[tier]}</div><h3 translate="no">${esc(clubName(key))}</h3>
+    <div class="grow"><div class="mut">${sport.ico} ${role.name} · ${TIER_NAME[tier]}</div><h3 translate="no">${esc(clubName())}</h3>
     <div class="mut">${careerTier(ovr)} · ${rs.w}-${rs.d}-${rs.l}</div>
     <div class="clubst">${SATTRS.map(k => `<span><b style="color:${ATTR[k][1]}">${statVal(k)}</b>${k}</span>`).join('')}</div></div></div></section>`;
 }
@@ -420,7 +459,7 @@ function sportView(arg) {
   const key = SP.cur, role = roleOf(key), sport = key.split('/')[0], rs = roleState(key), lv = sportLevel(rs.sxp), a = sportLvXp(lv), b = sportLvXp(lv + 1), ovr = ovrOf(role);
   const wk = weekDrills(sport), m = rs.match?.week === weekId() ? rs.match : null, opp = opponentFor(key, ovr);
   const resTxt = { W: TT('Victory', 'Victoria'), D: TT('Draw', 'Empate'), L: TT('Defeat', 'Derrota') };
-  view.innerHTML = `<h1>Sports Academy</h1>${playerCard(key)}${academyGuide(false)}
+  view.innerHTML = `<h1>Sports Academy</h1>${techSheet(key)}${academyGuide(false)}
   <section class="card"><div class="row between"><b>Career level ${lv}</b><span class="mut">${rs.sxp - a} / ${b - a} career XP</span></div><div class="xpbar"><i style="width:${(rs.sxp - a) / (b - a) * 100}%"></i></div>
   ${(nu => nu >= 0 ? `<div class="mut" style="margin-top:6px">Career level ${DRILL_LV[nu]} unlocks</div><b>${role.drills[nu].name}</b>` : '')(DRILL_LV.findIndex(v => v > lv))}
   <div class="row" style="margin-top:10px"><button class="btn sm ghost" onclick="changeRole()">Change position</button><button class="btn sm ghost" onclick="changeSport()">Change sport</button></div></section>
