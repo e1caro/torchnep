@@ -128,7 +128,7 @@ window.saveName = () => { S.profile.name = $('#pname').value.trim().slice(0, 20)
 // The looks of one kind you own, to pick the one to wear (the profile only shows what you wear).
 const COS = [
   ['avatar', 'Profile picture', '', i => gi(i.key, 'hero')],
-  ['frame', 'Ring', '', i => `<div class="av fr-${i.key}" style="--p:.6;width:40px;height:40px"><span>${gi(G.avatar, 'hero')}</span></div>`],
+  ['frame', 'Ring', '', i => `<div class="av fr-${i.key}" style="--p:.6;width:40px;height:40px"><span></span></div>`], // just the ring (the shop shows it with your picture)
   ['banner', 'Banner', 'wide', i => `<span class="bnp bn-${i.key}"></span>`],
   ['skin', 'Interface', 'wide', i => skinPrev(i)],
   ['panel', 'Panel style', 'wide', i => panelPrev(i.key)],
@@ -149,8 +149,8 @@ function profileView(sub) {
   const mine = t => ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost);
   const titles = ACH.filter(x => x.t && G.ach.includes(x.id));
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
-  <section class="pcard bn-${G.banner}"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
-    <div class="hn" style="font-size:32px">${esc(p.name || 'Player')}</div><div class="mut">${title()} · level ${L}</div></section>
+  <section class="pcard pmini bn-${G.banner}"><div class="av fr-${G.frame}" style="--p:${pct.toFixed(3)}"><span>${gi(G.avatar, 'hero')}</span><i class="lv">${L}</i></div>
+    <div class="grow"><div class="hn">${esc(p.name || 'Player')}</div><div class="mut">${title()} · level ${L}</div></div></section>
   <label class="fld"><span>Name</span><div class="row"><input id="pname" value="${esc(p.name || '')}" maxlength="20" autocomplete="nickname"><button class="btn sm" onclick="saveName()">Save</button></div></label>
   <h2 class="sec">Your look</h2>
   ${COS.map(([t, name, , prev]) => { const on = ITEMS.find(i => i.type === t && equipped(i)), n = mine(t).length;
