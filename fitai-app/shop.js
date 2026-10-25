@@ -101,15 +101,15 @@ function shopView() {
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
   return `${hud()}${rwSeg('shop')}${chestBtn()}
   <p class="mut">Coins buy looks and boosts, and looks you own sell back for 80% of their price. Earn them from workouts, quests, chests and the daily spin. <a href="#/earn" style="color:var(--acc2)">All the ways to earn</a>.</p>
-  <h2 class="sec">Interfaces · ${owned('skin')}/${by('skin').length}</h2><p class="mut">A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.</p><div class="grid2">${by('skin').map(tile).join('')}</div>
+  <h2 class="sec" data-t="skin">Interfaces · ${owned('skin')}/${by('skin').length}</h2><p class="mut">A whole new look for the app: frames, fonts, colours and background. Tap Try to preview one.</p><div class="grid2">${by('skin').map(tile).join('')}</div>
   <h2 class="sec">Boosts and chests</h2>
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
     <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
-  <h2 class="sec">Profile pictures · ${owned('avatar')}/${by('avatar').length}</h2><div class="grid3">${by('avatar').map(tile).join('')}</div>
-  <h2 class="sec">Rings · ${owned('frame')}/${by('frame').length}</h2><div class="grid3">${by('frame').map(tile).join('')}</div>
-  <h2 class="sec">Banners · ${owned('banner')}/${by('banner').length}</h2><div class="grid2">${by('banner').map(tile).join('')}</div>
-  <h2 class="sec">Panel styles · ${owned('panel')}/${by('panel').length}</h2><div class="grid2">${by('panel').map(tile).join('')}</div>
-  <h2 class="sec">App themes · ${owned('theme')}/${by('theme').length}</h2>${themeNote()}<div class="grid2">${by('theme').map(tile).join('')}</div>`;
+  <h2 class="sec" data-t="avatar">Profile pictures · ${owned('avatar')}/${by('avatar').length}</h2><div class="grid3">${by('avatar').map(tile).join('')}</div>
+  <h2 class="sec" data-t="frame">Rings · ${owned('frame')}/${by('frame').length}</h2><div class="grid3">${by('frame').map(tile).join('')}</div>
+  <h2 class="sec" data-t="banner">Banners · ${owned('banner')}/${by('banner').length}</h2><div class="grid2">${by('banner').map(tile).join('')}</div>
+  <h2 class="sec" data-t="panel">Panel styles · ${owned('panel')}/${by('panel').length}</h2><div class="grid2">${by('panel').map(tile).join('')}</div>
+  <h2 class="sec" data-t="theme">App themes · ${owned('theme')}/${by('theme').length}</h2>${themeNote()}<div class="grid2">${by('theme').map(tile).join('')}</div>`;
 }
 
 // ---------- Badges ----------
@@ -125,6 +125,9 @@ function rewards(sub) {
 
 // ---------- Profile editor ----------
 window.saveName = () => { S.profile.name = $('#pname').value.trim().slice(0, 20); save('profile', S.profile); toast('Name saved'); route(); };
+// open the shop on just one kind of look (the other sections stay folded, and can still be opened)
+let SHOP_FOCUS = null;
+window.shopAt = t => { SHOP_FOCUS = t; location.hash = '#/rewards/shop'; };
 // The looks of one kind you own, to pick the one to wear (the profile only shows what you wear).
 const COS = [
   ['avatar', 'Profile picture', '', i => gi(i.key, 'hero')],
@@ -140,7 +143,7 @@ function looksView(t) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/profile'">${ic('back', 18)} Back</button><h1>${name}</h1>
   <div class="mut">${mine.length} owned · tap one to use it</div>${t === 'theme' ? themeNote() : ''}
   <div class="pgrid ${wide}">${mine.map(i => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name.replace(/ panels$| banner$/, ''))}</small></button>`).join('')}</div>
-  ${more ? `<a class="btn ghost sm moreb" href="#/rewards/shop">${more} more in the Shop</a>` : ''}`;
+  ${more ? `<button class="btn ghost sm moreb" onclick="shopAt('${t}')">${more} more in the Shop</button>` : ''}`;
 }
 function profileView(sub) {
   if (needProfile()) return;
