@@ -487,10 +487,15 @@ function hud() {
   <div class="coins">${gi('coin', 'cn')} <b>${G.coins}</b></div></div>`;
 }
 
+// With your own routines in the plan, Train lets you pick which workout to do today (the plan's next one by default).
+let PICK_DI = null;
+const ownPlan = () => S.plan.days.some(d => d.routine);
+const pickDi = () => (ownPlan() && PICK_DI !== null && PICK_DI < S.plan.days.length ? PICK_DI : nextDayIdx());
+window.pickTrain = i => { PICK_DI = i; sfx('tick'); route(); };
 function home() {
   if (needProfile()) return;
   ensureDay(); flushLevelUp();
-  const p = S.profile, a = analyze({ ...p, weight: curWeight() }), di = nextDayIdx(), d = dayFor(di), first = BY[d.items[0].id];
+  const p = S.profile, a = analyze({ ...p, weight: curWeight() }), di = pickDi(), d = dayFor(di), first = d.items[0] && BY[d.items[0].id];
   const done = G.quests.claimed.length, hits = Math.min(weekCount(), p.days), bossDone = hits >= p.days, [bn, be] = BOSSES[hash(weekId()) % BOSSES.length];
   view.innerHTML = `${hud()}
   <div class="row between sec2"><h2>Daily quests</h2><span class="mut">${done}/${G.quests.list.length} claimed</span></div>
@@ -512,8 +517,9 @@ function home() {
     ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 100</button>` : ''}</div></section>
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
-  <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min</div><h2>${esc(d.name.split(' · ')[1])}</h2>
-    ${timeChips(di)}${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
+  <section class="card next">${ownPlan() ? `<div class="chips pickday">${S.plan.days.map((x, i) => `<button class="chip ${i === di ? 'on' : ''}" onclick="pickTrain(${i})">${esc(dayFor(i).name.split(' · ').pop())}</button>`).join('')}</div>` : ''}
+    <div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min</div><h2>${esc(d.name.split(' · ').pop())}</h2>
+    ${d.routine ? '' : timeChips(di)}${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
   <h2 class="sec">Fuel</h2>
   <div class="grid4"><div class="stat"><b>${a.kcal}</b><span>kcal / day</span></div><div class="stat"><b>${a.protein}g</b><span>protein</span></div>
   <div class="stat"><b>${a.carbs}g</b><span>carbs</span></div><div class="stat"><b>${a.fat}g</b><span>fat</span></div></div>
@@ -637,3 +643,5 @@ function addFx() {
 }
 let fxQ = 0;
 new MutationObserver(() => { if (!fxQ) fxQ = requestAnimationFrame(() => { fxQ = 0; addFx(); }); }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+// once a workout starts, Train goes back to suggesting the plan's next one
+{ const _sw = window.startWorkout; window.startWorkout = di => { PICK_DI = null; _sw(di); }; }
