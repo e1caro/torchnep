@@ -593,23 +593,97 @@ body.focus #trybar{bottom:calc(16px + env(safe-area-inset-bottom))}
 THEMES = re.findall(r"\['(\w+)', '[^']+', \d+, '(#[0-9a-fA-F]{6})', '(#[0-9a-fA-F]{6})'\]", (HERE.parent / 'game.js').read_text())
 T = 'html[data-tint][data-skin]'
 TINT = "\n/* ==========================================================================\n   Themes recolour the interfaces (html[data-tint])\n   ========================================================================== */\n"
-TINT += ''.join(f"html[data-tint][data-theme={k}]{{--acc:{a};--acc2:{b}}}\n" for k, a, b in THEMES if k != 'hud')
-TINT += f"""{T}{{--line:color-mix(in srgb,var(--acc) 40%,transparent);--line2:color-mix(in srgb,var(--acc) 75%,transparent);
-  --card:color-mix(in srgb,var(--acc) 7%,var(--bg));--card2:color-mix(in srgb,var(--acc) 13%,var(--bg));--on:#0b0d12;
-  --pshadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px var(--line),inset 0 0 30px #0006}}
-{T} {P}{{background-image:none}}
-{T} {P}::before{{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--deco);mask:var(--deco);-webkit-mask-repeat:var(--rep,no-repeat);mask-repeat:var(--rep,no-repeat)}}
+
+
+# Each theme is fitted to each interface's own colour scheme (worked out in OKLCH, a perceptual colour space):
+# the theme's two colours lead, the interface's second colour turns to the theme's hue as the detail colour (so
+# gold and red stay a pair, just in the theme's colours), the complement of the main colour marks small details,
+# and lighter and darker shades make the gradients. Background and glow take the theme's hue too, kept as dark.
+def _lin(c):
+    return c / 12.92 if c <= .04045 else ((c + .055) / 1.055) ** 2.4
+
+
+def _gam(c):
+    return 12.92 * c if c <= .0031308 else 1.055 * c ** (1 / 2.4) - .055
+
+
+def to_lch(h):
+    r, g, b = (_lin(int(h[i:i + 2], 16) / 255) for i in (1, 3, 5))
+    l_ = (.4122214708 * r + .5363325363 * g + .0514459929 * b) ** (1 / 3)
+    m_ = (.2119034982 * r + .6806995451 * g + .1073969566 * b) ** (1 / 3)
+    s_ = (.0883024619 * r + .2817188376 * g + .6299787005 * b) ** (1 / 3)
+    L = .2104542553 * l_ + .7936177850 * m_ - .0040720468 * s_
+    A = 1.9779984951 * l_ - 2.4285922050 * m_ + .4505937099 * s_
+    B = .0259040371 * l_ + .7827717662 * m_ - .8086757660 * s_
+    return L, math.hypot(A, B), math.degrees(math.atan2(B, A)) % 360
+
+
+def _rgb(L, C, H):
+    A, B = C * math.cos(math.radians(H)), C * math.sin(math.radians(H))
+    l_, m_, s_ = L + .3963377774 * A + .2158037573 * B, L - .1055613458 * A - .0638541728 * B, L - .0894841775 * A - 1.2914855480 * B
+    l, m, s3 = l_ ** 3, m_ ** 3, s_ ** 3
+    return (4.0767416621 * l - 3.3077115913 * m + .2309699292 * s3, -1.2684380046 * l + 2.6097574011 * m - .3413193965 * s3,
+            -.0041960863 * l - .7034186147 * m + 1.7076147010 * s3)
+
+
+def from_lch(L, C, H):
+    L = min(1, max(0, L))
+    while C > 0 and not all(-1e-4 <= v <= 1 + 1e-4 for v in _rgb(L, C, H)):
+        C -= .005  # out of the screen's colours: less saturated until it fits
+    return '#' + ''.join(f'{round(min(1, max(0, _gam(max(0, v)))) * 255):02x}' for v in _rgb(L, max(C, 0), H))
+
+
+def shade(h, dl, dc=0):
+    L, C, H = to_lch(h)
+    return from_lch(L + dl, max(0, C + dc), H)
+
+
+SKIN_COL = {k: dict(re.findall(r'--(bg|glow|acc|acc2):(#[0-9a-fA-F]{6})', body)) for k, body in
+            re.findall(r'html\[data-skin=(\w+)\]\{([^}]*--acc:#[^}]*)\}', ''.join(SKINS))}
+
+
+def ink(h):  # text on a coloured button: dark on light colours, light on dark ones
+    return '#0b0d12' if to_lch(h)[0] > .62 else '#fff8ee'
+
+
+def palette(sk, a, b):
+    c = SKIN_COL[sk]
+    La, Ca, Ha = to_lch(a)
+    d = Ha - to_lch(c['acc'])[2]  # how far the theme turns the interface's main colour
+    def turn(h, keep=0):
+        L, C, H = to_lch(h)
+        return from_lch(L, C, H + d) if not keep else from_lch(L, C * .5 + to_lch(a)[1] * .1, H + d)
+    L2, C2, _ = to_lch(c['acc2'])
+    det = from_lch(max(.55, L2), max(.09, min(C2, .2)), to_lch(c['acc2'])[2] + d)  # the interface's 2nd colour, in the theme's hue
+    if abs(((to_lch(det)[2] - Ha + 180) % 360) - 180) < 25 and abs(to_lch(det)[0] - La) < .08:
+        det = from_lch(La - .12, max(.08, Ca * .8), Ha + 40)  # too close to the main colour: a neighbouring hue instead
+    comp = from_lch(min(.85, max(.62, La)), max(.1, min(Ca, .18)), Ha + 180)
+    v = {'acc': a, 'acc2': b, 'acc3': det, 'comp': comp, 'accL': shade(a, .12, -.02), 'accD': shade(a, -.2), 'acc2L': shade(b, .1), 'acc2D': shade(b, -.18),
+         'glow': turn(c['glow']), 'bg': from_lch(to_lch(c['bg'])[0], to_lch(c['bg'])[1] * .7 + .012, Ha), 'ink': ink(a), 'ink2': ink(b)}
+    return ';'.join(f'--{k}:{x}' for k, x in v.items())
+TINT += ''.join(f"html[data-tint][data-skin={sk}][data-theme={k}]{{{palette(sk, a, b)}}}\n" for sk in SKIN_COL for k, a, b in THEMES if k != 'hud')
+TINT += f"""{T}{{--line:color-mix(in srgb,var(--acc) 34%,color-mix(in srgb,var(--acc3) 30%,transparent));--line2:color-mix(in srgb,var(--acc) 62%,color-mix(in srgb,var(--acc3) 70%,transparent));
+  --card:color-mix(in srgb,var(--glow) 32%,var(--bg));--card2:color-mix(in srgb,var(--glow) 55%,var(--bg));--on:var(--ink);
+  --pshadow:inset 0 0 0 3px var(--card),inset 0 0 0 4px var(--line),inset 0 0 30px #0006,inset 0 1px 18px color-mix(in srgb,var(--acc3) 14%,transparent)}}
+{T} {P}{{background-image:linear-gradient(160deg,color-mix(in srgb,var(--acc) 7%,transparent),#0000 40%,color-mix(in srgb,var(--acc3) 6%,transparent))}}
+{T} {P}::before{{background:linear-gradient(135deg,var(--accL),var(--acc) 28%,var(--acc3) 58%,var(--acc2) 82%,var(--accL));-webkit-mask:var(--deco);mask:var(--deco);-webkit-mask-repeat:var(--rep,no-repeat);mask-repeat:var(--rep,no-repeat)}}
 html[data-tint][data-skin=arcade] {P}::before{{display:none}}
 /* pirate rope frames keep their own rope colours with any theme */
 html[data-tint][data-skin=pirate] {P}::before{{background:var(--deco);-webkit-mask:none;mask:none}}
-html[data-tint][data-skin=arcade]{{--pshadow:inset 0 0 0 3px var(--acc),inset 0 0 0 6px var(--card),inset 0 0 0 7px var(--line)}}
-{T} h1::after{{background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-mask:var(--orn) 0 50%/100% 100% no-repeat;mask:var(--orn) 0 50%/100% 100% no-repeat}}
-{T} .btn,{T} .btn.sm{{background:linear-gradient(180deg,color-mix(in srgb,var(--acc) 70%,#fff),var(--acc) 55%,color-mix(in srgb,var(--acc) 75%,#000));color:#0b0d12;box-shadow:inset 0 0 0 1px #fff4,inset 0 -3px 0 #0004}}
-{T} .btn.ghost{{background:var(--card);color:var(--acc);box-shadow:inset 0 0 0 1px var(--line2)}}
-{T} :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,color-mix(in srgb,var(--acc2) 70%,#fff),var(--acc2));color:#0b0d12}}
-{T} :is(.seg a.on,.dpill.on,.chip.on){{background:var(--acc);color:#0b0d12;border-color:var(--acc)}}
-{T} .xpbar i{{background:linear-gradient(90deg,var(--acc),var(--acc2));box-shadow:none}}
-{T} h2.sec::before{{background:var(--acc2);color:var(--acc2);box-shadow:none}}
+html[data-tint][data-skin=arcade]{{--pshadow:inset 0 0 0 3px var(--acc),inset 0 0 0 6px var(--card),inset 0 0 0 7px var(--acc3)}}
+{T} h1::after{{background:linear-gradient(90deg,var(--acc3),var(--acc) 30%,var(--accL) 50%,var(--acc) 70%,var(--acc3));-webkit-mask:var(--orn) 0 50%/100% 100% no-repeat;mask:var(--orn) 0 50%/100% 100% no-repeat}}
+{T} .btn,{T} .btn.sm{{background:linear-gradient(180deg,var(--accL),var(--acc) 48%,var(--accD));color:var(--ink);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc3) 55%,#fff3),inset 0 -3px 0 #0005,0 2px 10px color-mix(in srgb,var(--acc) 25%,transparent)}}
+{T} .btn.ghost{{background:linear-gradient(180deg,var(--card2),var(--card));color:var(--accL);box-shadow:inset 0 0 0 1px var(--line2)}}
+{T} :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,var(--acc2L),var(--acc2) 50%,var(--acc2D));color:var(--ink2);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 50%,transparent),inset 0 -3px 0 #0005}}
+{T} :is(.seg a.on,.dpill.on,.chip.on){{background:linear-gradient(135deg,var(--accL),var(--acc) 55%,color-mix(in oklab,var(--acc) 55%,var(--acc3)));color:var(--ink);border-color:var(--acc3)}}
+{T} .chip:not(.on){{border-color:color-mix(in srgb,var(--acc3) 35%,var(--line))}}
+{T} .xpbar i{{background:linear-gradient(90deg,var(--acc3),var(--acc) 55%,var(--accL));box-shadow:0 0 8px color-mix(in srgb,var(--acc) 45%,transparent)}}
+{T} :is(.qbar,.hp) i{{background:linear-gradient(90deg,var(--acc),var(--acc2))}}
+{T} h2.sec::before{{background:var(--comp);color:var(--comp);box-shadow:0 0 6px color-mix(in srgb,var(--comp) 60%,transparent)}}
+{T} h2.sec::after{{background:linear-gradient(90deg,var(--acc3),transparent)}}
+{T} :is(.lv,.coins b,.odd){{color:var(--accL)}}
+{T} .hud .av .lv{{background:linear-gradient(135deg,var(--acc2L),var(--acc2D));color:var(--ink2)}}
+{T} .mut b,{T} .stat b{{color:var(--acc2L)}}
 html[data-tint]:is([data-skin=egypt],[data-skin=pirate]) h2.sec::before{{width:10px;height:10px;transform:rotate(45deg)}}
 html[data-tint][data-skin=chinese] body::after,html[data-tint][data-skin=japanese] body::after{{filter:none}}
 """
@@ -742,9 +816,9 @@ html[data-skin=arcade] :is(.ov,.bl){font-size:10px}html[data-skin=arcade] .bub.b
 html[data-skin=arcade] .bx{clip-path:none!important;opacity:0;transform:scale(.4);transition:opacity .3s steps(4),transform .3s steps(4)}
 html[data-skin=arcade] .bx.open{opacity:1;transform:none}
 """
-BUB += f"""{T} .orb::before{{background:linear-gradient(135deg,var(--acc),var(--acc2));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat}}
+BUB += f"""{T} .orb::before{{background:conic-gradient(from 200deg,var(--accL),var(--acc),var(--acc3),var(--acc2),color-mix(in oklab,var(--comp) 35%,var(--acc2)),var(--accL));-webkit-mask:var(--bring) center/100% 100% no-repeat;mask:var(--bring) center/100% 100% no-repeat}}
 html[data-tint][data-skin=pirate] .orb::before{{background:var(--bring) center/100% 100% no-repeat;-webkit-mask:none;mask:none}}
-html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,var(--card2),var(--card))}}
+html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,color-mix(in srgb,var(--glow) 80%,var(--acc) 10%),var(--card) 70%),var(--bg)}}
 """
 
 OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW)
