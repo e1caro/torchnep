@@ -50,7 +50,8 @@ function form() {
   const exw = H.reduce((a, h) => a + h.ex.length, 0) / n || 5;
   const mg = Object.fromEntries(Object.keys(MG).map(g => [g, H.length ? frac(h => hitsGroup(h, g)) : .35]));
   const recentW = S.weights.filter(w => w.t >= since).length;
-  return { perWeek, dgPerWeek, mins: Math.max(15, mins), sets: Math.max(4, sets), xpw: Math.max(150, sets * 10 + 100) * 1.15, kgw, repw: Math.max(30, repw), exw, mg,
+  return { perWeek, dgPerWeek, mins: Math.max(15, mins), sets: Math.max(4, sets), xpw: Math.max(80, exw * 15 + 40) * 1.15, // about what a workout pays: each exercise by its medal, plus the clear bonus
+    kgw, repw: Math.max(30, repw), exw, mg,
     long: Math.max(.05, frac(h => h.dur >= 60)), morn: Math.max(.05, frac(h => hourOf(h) < 9)), eve: Math.max(.05, frac(h => hourOf(h) >= 20)),
     drills: Math.max(.5, S.history.filter(h => h.t >= since && h.sport).length / 4), weigh: Math.max(.5, recentW / 4) };
 }
@@ -93,7 +94,15 @@ const xpIn = (a, b = Infinity) => { const ks = Object.keys(BT.xpLog).map(Number)
 const prToday = () => prIn(dayStart(), dayEnd());
 // muscle groups, volume, time of day
 const MG = { legs: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors'], chest: ['chest'], back: ['lats', 'middle back', 'lower back', 'traps'], shoulders: ['shoulders'], arms: ['biceps', 'triceps', 'forearms'], core: ['abdominals'] };
-const hitsGroup = (h, g) => h.ex.some(x => MG[g].includes(BY[x.id]?.m[0]));
+// A workout trains a muscle group when that group has the most sets in it (ties count for each); cardio and stretching
+// don't count, so a full-body day with one curl is not an arms day.
+const mainGroups = h => {
+  const n = {};
+  h.ex.forEach(x => { const e = BY[x.id]; if (!e || ['cardio', 'stretching'].includes(e.c)) return; const g = Object.keys(MG).find(k => MG[k].includes(e.m[0])); if (g) n[g] = (n[g] || 0) + x.sets.length; });
+  const top = Math.max(0, ...Object.values(n));
+  return top ? Object.keys(n).filter(g => n[g] === top) : [];
+};
+const hitsGroup = (h, g) => mainGroups(h).includes(g);
 const mgIn = (g, a, b) => S.history.filter(h => inWin(h, a, b) && hitsGroup(h, g)).length;
 const sumSets = (a, b, fn) => S.history.filter(h => inWin(h, a, b)).reduce((s, h) => s + h.ex.reduce((x, e) => x + e.sets.reduce((y, st) => y + fn(st), 0), 0), 0);
 const kgIn = (a, b) => Math.round(sumSets(a, b, st => (st.w || 0) * (st.r || 0)));

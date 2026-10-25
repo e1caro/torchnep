@@ -273,8 +273,8 @@ function mealSetup() {
   <div class="mut" id="sdesc">${STYLE_DESC[draft.style]}</div>
   <div class="lbl">Cuisine</div>${ch('cuisines', Object.entries(CUISINES).map(([k, v]) => [k, `${CUISINE_ICO[k]} ${v}`]), draft.cuisines, true)}
   <div class="lbl">Variety</div>${ch('variety', Object.entries(VARIETY).map(([k, v]) => [k, v.name]), draft.variety || 'simple')}<div class="mut" id="vdesc">${VARIETY[draft.variety || 'simple'].desc}</div>
-  <div class="lbl">Time to cook on weekdays</div>${ch('wd', Object.entries(COOK), wd)}
-  <div class="lbl">Time to cook on weekends</div>${ch('we', Object.entries(COOK), we)}
+  <div class="lbl">Time to cook on weekdays</div>${slider('wd', Object.entries(COOK), wd)}
+  <div class="lbl">Time to cook on weekends</div>${slider('we', Object.entries(COOK), we)}
   </details>
   <div id="fnote" class="err" style="min-height:0"></div>
   <button class="btn" id="mgo">Build my meal plan</button>`;
@@ -286,6 +286,7 @@ function mealSetup() {
     if (k === 'diet') draft.diet = v; else if (k === 'style') { draft.style = v; $('#sdesc').textContent = STYLE_DESC[v]; } else if (k === 'variety') { draft.variety = v; $('#vdesc').textContent = VARIETY[v].desc; } else if (k === 'meals') draft.meals = +v;
     else draft.times = draft.times.map((t, i) => (k === 'wd' ? i < 5 : i >= 5) ? +v : t);
   }));
+  view.querySelectorAll('.sld input').forEach(el => el.addEventListener('change', () => { const k = el.parentElement.dataset.k, v = +sldVal(el); draft.times = draft.times.map((t, i) => (k === 'wd' ? i < 5 : i >= 5) ? v : t); }));
   const note = () => { $('#fnote').innerHTML = filterNotes(draft).map(esc).join('<br>'); };
   view.querySelectorAll('.chips').forEach(b => b.addEventListener('click', () => setTimeout(note))); note();
   $('#mgo').onclick = () => {
@@ -425,13 +426,23 @@ function groceryView() {
   $('#cp').onclick = async () => { try { await navigator.clipboard.writeText(text); toast('List copied'); } catch { toast('Copy is blocked on this device.'); } };
 }
 
+// The meal that fits the time of day best (still to eat, closest to its usual hour), then all of today's meals to open any recipe.
+const MEAL_HOUR = { b: 8, l: 14, d: 21 };
+function mealHours(d) {
+  const hs = d.items.map(it => it.fuel ? 18 : MEAL_HOUR[it.kind] ?? null);
+  return hs.map((h, i) => h ?? ((hs.slice(0, i).reverse().find(x => x != null) ?? 8) + (hs.slice(i + 1).find(x => x != null) ?? 22)) / 2);
+}
 function mealsCard() {
   if (M.set) ensureMeals();
   if (!M.set || !M.plan || M.plan.week !== weekId()) return `<section class="card tap row" onclick="location.hash='#/meals'"><div class="dgi">${gi('cutlery')}</div><div class="grow"><h3>Meal plan</h3><div class="mut">Set your diet and cooking time to get a week of recipes that hit your calories.</div></div></section>`;
-  const d = M.plan.days[todayIdx()], t = dayTotals(d), nxt = d.items.findIndex(x => !x.eaten), a = target();
-  return `<section class="card tap" onclick="location.hash='#/${nxt < 0 ? 'meals' : 'recipe/' + todayIdx() + '/' + nxt}'"><div class="row between"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>
+  const di = todayIdx(), d = M.plan.days[di], t = dayTotals(d), a = target(), hrs = mealHours(d), now = new Date().getHours() + new Date().getMinutes() / 60;
+  const left = d.items.map((it, i) => i).filter(i => !d.items[i].eaten);
+  const pick = left.length ? left.reduce((b2, i) => Math.abs(hrs[i] - now) < Math.abs(hrs[b2] - now) ? i : b2, left[0]) : -1;
+  const it = pick >= 0 ? d.items[pick] : null, r = it && RBY[it.rid];
+  return `<section class="card mealsnow"><div class="row between"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div>
-  <div class="mut">${nxt < 0 ? 'All meals done. Nice.' : `Next: ${d.items[nxt].slot} · ${esc(RBY[d.items[nxt].rid].name)} · ${RBY[d.items[nxt].rid].time} min`}</div></section>`;
+  ${r ? `<a class="row mealnow" href="#/recipe/${di}/${pick}"><span class="mi">${r.ico}</span><span class="grow"><span class="mut">${it.slot} · ${r.time} min</span><b>${esc(r.name)}</b></span>${ic('back', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</a>` : '<div class="mut">All meals done. Nice.</div>'}
+  <div class="mealchips">${d.items.map((x, i) => i === pick ? '' : `<a class="chip ${x.eaten ? 'on' : ''}" href="#/recipe/${di}/${i}">${x.eaten ? '✓ ' : ''}${x.slot}</a>`).join('')}<a class="chip" href="#/meals">Week</a></div></section>`;
 }
 
 // ---------- hooks into existing screens ----------

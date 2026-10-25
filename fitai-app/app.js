@@ -71,6 +71,7 @@ const ICONS = {
   edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6',
   dungeon: 'M4 20V8l3 2V5l3 2 2-3 2 3 3-2v5l3-2v12zM10 20v-5h4v5',
   gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1',
+  play: 'M7 5v14l12-7z',
   gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C11 3.5 7 3.5 7 6.5M12 7c1-3.5 5-3.5 5-.5',
 };
 const ic = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
@@ -296,7 +297,7 @@ window.setTodayTime = (di, m) => {
   else { S.today = { date: dayKey(Date.now()), di, minutes: m, plan: S.plan.created, items: fitDay(di, m) }; toast(`Today's workout fitted to ${sessionLabel(m)}`); }
   save('today', S.today); sfx('tick'); route();
 };
-const timeChips = di => `<div class="todaytime"><span class="mut">Time today</span><div class="chips" data-noswipe>${SESSIONS.map(m => `<button class="chip ${dayMinutes(di) === m ? 'on' : ''}" onclick="event.stopPropagation();setTodayTime(${di},${m})">${sessionLabel(m)}</button>`).join('')}</div></div>`;
+const timeChips = di => `<div class="todaytime" onclick="event.stopPropagation()"><span class="mut">Time today</span>${slider('today', SESSIONS.map(m => [m, sessionLabel(m)]), dayMinutes(di), `setTodayTime(${di},+sldVal(this))`)}</div>`;
 
 // ---------- history helpers ----------
 const dayKey = t => new Date(t).toDateString();
@@ -341,6 +342,14 @@ const STEPS = ['About you', 'Your goal', 'Training', 'Focus & limits'];
 function chips(key, opts, sel, multi) {
   return `<div class="chips" data-k="${key}" ${multi ? 'data-multi="1"' : ''}>${opts.map(([v, l]) => `<button type="button" class="chip ${(multi ? sel.includes(v) : String(sel) === String(v)) ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>`;
 }
+// A slider over a list of choices ([value, label] pairs) instead of a row of buttons. The chosen label shows next to it.
+// Pass an onchange snippet, or read it with sldVal() from a "change" listener (data-k names the setting).
+function slider(key, opts, sel, onchange = '', attrs = '') {
+  const i = Math.max(0, opts.findIndex(([v]) => String(v) === String(sel)));
+  return `<div class="sld" data-k="${key}" data-noswipe ${attrs}><input type="range" min="0" max="${opts.length - 1}" step="1" value="${i}" style="--p:${opts.length > 1 ? i / (opts.length - 1) * 100 : 100}%" aria-label="${key}" data-opts="${esc(JSON.stringify(opts))}" ${onchange ? `onchange="${onchange}"` : ''} onclick="event.stopPropagation()"><output>${opts[i][1]}</output></div>`;
+}
+const sldVal = el => JSON.parse(el.dataset.opts)[el.value][0];
+document.addEventListener('input', ev => { const el = ev.target; if (el.matches?.('.sld input')) { el.nextElementSibling.textContent = JSON.parse(el.dataset.opts)[el.value][1]; el.style.setProperty('--p', `${el.value / Math.max(1, el.max) * 100}%`); } });
 const num = (id, label, val, unit, extra = '') => `<label class="fld"><span>${label}</span><div class="inp"><input id="${id}" type="number" inputmode="decimal" value="${val}" ${extra}><em>${unit}</em></div></label>`;
 
 function onboarding(edit) {
@@ -356,12 +365,12 @@ function onboarding(edit) {
     () => `<div class="lbl">Main objective</div><div class="opts" data-k="goal">${Object.entries(GOALS).map(([k, [t, d]]) => `<button type="button" class="opt ${p.goal === k ? 'on' : ''}" data-v="${k}"><b>${t}</b><span>${d}</span></button>`).join('')}</div>
       ${num('f-target', 'Target weight (optional)', p.target, 'kg', 'min="30" max="250" step="0.1"')}`,
     () => `<div class="lbl">Experience</div>${chips('level', LEVELS.map(l => [l, cap(l)]), p.level)}
-      <div class="lbl">Days per week</div>${chips('days', [2, 3, 4, 5, 6].map(d => [d, d]), p.days)}
-      <div class="lbl">Time per session</div>${chips('minutes', SESSIONS.map(m => [m, sessionLabel(m)]), p.minutes)}
+      <div class="lbl">Days per week</div>${slider('days', [2, 3, 4, 5, 6].map(d => [d, `${d} days`]), p.days)}
+      <div class="lbl">Time per session</div>${slider('minutes', SESSIONS.map(m => [m, sessionLabel(m)]), p.minutes)}
       <div class="lbl">Cardio</div>${chips('cardio', [['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']], cardioPos(p))}
       <div class="lbl">Cardio type</div>${chips('cardioType', CARDIO_TYPES.map(([k, l]) => [k, l]), p.cardioType || 'auto')}
-      <div class="lbl">Cardio minutes</div>${chips('cardioMin', CARDIO_MINS.map(m => [m, m === 'auto' ? 'Auto' : `${m} min`]), p.cardioMin || 'auto')}
-      <div class="lbl">Stretching minutes</div>${chips('stretchMin', STRETCH_MINS.map(m => [m, m === 'auto' ? 'Auto' : `${m} min`]), p.stretchMin || 'auto')}
+      <div class="lbl">Cardio minutes</div>${slider('cardioMin', CARDIO_MINS.map(m => [m, m === 'auto' ? 'Auto' : `${m} min`]), p.cardioMin || 'auto')}
+      <div class="lbl">Stretching minutes</div>${slider('stretchMin', STRETCH_MINS.map(m => [m, m === 'auto' ? 'Auto' : `${m} min`]), p.stretchMin || 'auto')}
       <div class="lbl">Equipment you can use</div>${chips('equipment', Object.entries(EQUIP), p.equipment, true)}`,
     () => `<div class="lbl">Want extra work on something?</div>${chips('focus', Object.entries(FOCUS).map(([k, v]) => [k, v[0]]), p.focus, true)}
       <div class="lbl">Anything that hurts or limits you?</div>${chips('limits', Object.entries(LIMITS).map(([k, v]) => [k, v[0]]), p.limits, true)}
@@ -381,6 +390,7 @@ function onboarding(edit) {
       box.querySelectorAll('[data-v]').forEach(x => x.classList.toggle('on', x === c));
     }
   }));
+  view.querySelectorAll('.sld input').forEach(el => el.addEventListener('change', () => { const k = el.parentElement.dataset.k, v = sldVal(el); p[k] = ['days', 'minutes'].includes(k) ? +v : String(v); }));
   const read = () => {
     const g = id => $('#' + id)?.value;
     if (s === 0) { p.name = g('f-name').trim(); p.age = +g('f-age') || ''; p.height = +g('f-height') || ''; p.weight = +g('f-weight') || ''; }
@@ -430,15 +440,18 @@ function optionsCard(p) {
   return `<details class="card optcard" ${S.optOpen ? 'open' : ''} ontoggle="S.optOpen=this.open"><summary>Training options <span class="mut">· ${p.days} days · ${sessionLabel(p.minutes)}</span></summary>
     <div class="lbl">Main objective</div>${ch('goal', Object.entries(GOALS).map(([k, [t]]) => [k, t]), e.goal)}
     <div class="lbl">Experience</div>${ch('level', LEVELS.map(l => [l, cap(l)]), e.level)}
-    <div class="lbl">Days per week</div>${ch('days', [2, 3, 4, 5, 6].map(d => [d, d]), e.days)}
-    <div class="lbl">Time per session</div>${ch('minutes', SESSIONS.map(m => [m, sessionLabel(m)]), e.minutes)}
+    <div class="lbl">Days per week</div>${slider('days', [2, 3, 4, 5, 6].map(d => [d, `${d} days`]), e.days, '', 'data-pe="1"')}
+    <div class="lbl">Time per session</div>${slider('minutes', SESSIONS.map(m => [m, sessionLabel(m)]), e.minutes, '', 'data-pe="1"')}
     <div class="lbl">Equipment you can use</div>${ch('equipment', Object.entries(EQUIP), e.equipment, true)}
     <div class="lbl">Extra work on</div>${ch('focus', Object.entries(FOCUS).map(([k, v]) => [k, v[0]]), e.focus, true)}
     <div class="lbl">Anything that hurts or limits you?</div>${ch('limits', Object.entries(LIMITS).map(([k, v]) => [k, v[0]]), e.limits, true)}
     ${PE ? '<div class="row optbtns"><button class="btn ghost" onclick="PE=null;planView()">Cancel</button><button class="btn" onclick="saveOpts()">Save and rebuild plan</button></div>' : '<div class="mut">Tap any option to change it. Your history, levels and rewards stay.</div>'}</details>`;
 }
 function bindOpts() {
-  view.querySelectorAll('[data-pe]').forEach(box => box.addEventListener('click', ev => {
+  view.querySelectorAll('.sld[data-pe] input').forEach(el => el.addEventListener('change', () => {
+    PE = PE || JSON.parse(JSON.stringify(S.profile)); PE[el.parentElement.dataset.k] = +sldVal(el); S.optOpen = true; planView();
+  }));
+  view.querySelectorAll('.chips[data-pe]').forEach(box => box.addEventListener('click', ev => {
     const c = ev.target.closest('[data-v]'); if (!c) return;
     PE = PE || JSON.parse(JSON.stringify(S.profile));
     const k = box.dataset.k, v = c.dataset.v;
@@ -460,8 +473,8 @@ function cardioCard(p) {
   return `<details class="card cardiocard" ${S.cardioOpen ? 'open' : ''} ontoggle="S.cardioOpen=this.open"><summary>Cardio and stretching <span class="mut">· ${on ? `${cardioMin(p)} min` : 'no cardio'} · ${stretchMin(p)} min</span></summary>
     <div class="lbl">Cardio</div>${row('cardio', [['none', 'No cardio'], ['start', 'At the start'], ['end', 'At the end']], cardioPos(p))}
     ${on ? `<div class="lbl">Type</div>${row('cardioType', CARDIO_TYPES.map(([k, l]) => [k, l]), p.cardioType || 'auto')}
-    <div class="lbl">Cardio minutes</div>${row('cardioMin', CARDIO_MINS.map(m => [m, m === 'auto' ? `Auto (${cardioAuto(p)})` : `${m} min`]), p.cardioMin || 'auto')}` : ''}
-    <div class="lbl">Stretching minutes</div>${row('stretchMin', STRETCH_MINS.map(m => [m, m === 'auto' ? `Auto (${stretchAuto(p)})` : `${m} min`]), p.stretchMin || 'auto')}
+    <div class="lbl">Cardio minutes</div>${slider('cardioMin', CARDIO_MINS.map(m => [m, m === 'auto' ? `Auto (${cardioAuto(p)})` : `${m} min`]), p.cardioMin || 'auto', "setPlanOpt('cardioMin',String(sldVal(this)))")}` : ''}
+    <div class="lbl">Stretching minutes</div>${slider('stretchMin', STRETCH_MINS.map(m => [m, m === 'auto' ? `Auto (${stretchAuto(p)})` : `${m} min`]), p.stretchMin || 'auto', "setPlanOpt('stretchMin',String(sldVal(this)))")}
     <div class="mut">Stretches are picked for the muscles each day works.</div></details>`;
 }
 window.setPlanOpt = (k, v) => { S.cardioOpen = true; S.profile[k] = v; save('profile', S.profile); regen(); };
@@ -506,55 +519,109 @@ function exerciseView(id) {
 }
 
 // ---------- workout ----------
+// The workout in progress is saved after every change, so it survives other screens, other apps and a closed app,
+// until it is finished or discarded.
+const saveSess = () => save('session', session);
+session = load('session', null);
+// "10 min" -> 600, "30s" -> 30; null for reps
+const timedSecs = reps => { const r = String(reps), m = r.match(/^(\d+)\s*min/), sec = r.match(/^(\d+)\s*s/); return m ? +m[1] * 60 : sec ? +sec[1] : null; };
+// how long the done part of an exercise takes (same estimate as the plan's), in seconds
+function doneSecs(x) {
+  const n = x.sets.filter(t => t.done).length, ts = timedSecs(x.reps), rest = +x.rest || 0;
+  if (!n) return 0;
+  if (ts && ts >= 60) return n * ts + 60;
+  if (ts) return n * (ts + rest) - rest + 30;
+  return n * (50 + rest) - rest + 150;
+}
+const estMinutes = ss => Math.max(1, Math.round((WARMUP + ss.ex.reduce((a, x) => a + doneSecs(x), 0)) / 60));
 function startSession(name, items, extra = {}) {
-  session = { t0: Date.now(), cur: 0, name, ...extra, ex: items.map(it => ({ id: it.id, reps: it.reps, rest: it.rest, sets: Array.from({ length: it.sets }, () => ({ w: '', r: '', done: false })) })) };
+  if (session) { toast('Finish or discard the workout in progress first'); location.hash = '#/workout'; return; }
+  session = { t0: Date.now(), cur: 0, name, ...extra, ex: items.map(it => ({ id: it.id, reps: it.reps, rest: it.rest, plan: it.sets, sets: Array.from({ length: it.sets }, () => ({ w: '', r: '', done: false })) })) };
   const last = {}; S.history.forEach(h => h.ex.forEach(x => { last[x.id] = x.sets.find(s => s.w) || last[x.id]; }));
   session.ex.forEach(x => { const l = last[x.id]; if (l) { x.last = l; x.sets.forEach(s => { s.w = l.w; }); } });
+  saveSess();
   location.hash = '#/workout';
 }
 window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items, { di }); };
 
+const MEDAL_NAME = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
+const medal = t => t ? `<span class="medal m${t}">${MEDAL_NAME[t]}</span>` : '';
 function workoutView() {
   if (!session) { location.hash = '#/home'; return; }
-  const x = session.ex[session.cur], e = BY[x.id], n = session.ex.length, timed = isNaN(parseInt(x.reps)) || /min|s$/.test(x.reps);
-  view.innerHTML = `<div class="row between"><button class="icon" aria-label="Quit" onclick="quitWorkout()">${ic('close', 20)}</button>
-  <div class="mut">${esc(session.name)}</div><div class="xpchip">+${session.ex.reduce((a, q) => a + q.sets.filter(t => t.done).length, 0) * 10} XP</div></div>
-  <div class="mut" style="text-align:right">Exercise ${session.cur + 1} of ${n}</div>
+  const x = session.ex[session.cur], e = BY[x.id], n = session.ex.length, ts = timedSecs(x.reps), timed = ts !== null || isNaN(parseInt(x.reps));
+  const xpNow = session.ex.reduce((a, q) => a + exXp(q).xp, 0), tier = exXp(x).tier, run = session.timer && session.timer.ex === session.cur ? session.timer : null;
+  view.innerHTML = `<div class="row between"><button class="icon" aria-label="Leave the workout for now" onclick="location.hash='#/home'">${ic('back', 20)}</button>
+  <div class="mut">${esc(session.name)}</div><div class="xpchip">+${xpNow} XP</div></div>
+  <div class="row between"><span>${medal(tier)}</span><span class="mut">Exercise ${session.cur + 1} of ${n}</span></div>
   <div class="prog"><i style="width:${(session.cur + 1) / n * 100}%"></i></div>
   <h1>${esc(e.n)}</h1>${demo(e)}
-  <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
-  <table class="sets"><tr class="mut"><th>Set</th>${timed ? '' : '<th>kg</th><th>Reps</th>'}<th></th></tr>
+  <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last && !timed ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
+  ${run ? `<div class="card wtimer"><div class="mut">Set ${run.set + 1}</div><div class="t" id="wt">--:--</div><button class="btn ghost sm" onclick="stopTimer()">Stop</button></div>` : ''}
+  <table class="sets"><tr class="mut"><th>Set</th>${timed ? '<th></th>' : '<th>kg</th><th>Reps</th>'}<th></th></tr>
   ${x.sets.map((s, i) => `<tr class="${s.done ? 'done' : ''}"><td>${i + 1}</td>
-  ${timed ? '' : `<td><input type="number" inputmode="decimal" value="${s.w}" aria-label="Weight set ${i + 1}" onchange="setVal(${i},'w',this.value)"></td>
+  ${timed ? `<td>${ts && !s.done && !run ? `<button class="btn sm" onclick="startTimer(${i})">${ic('play', 14)} ${fmtSecs(ts)}</button>` : ''}</td>` : `<td><input type="number" inputmode="decimal" value="${s.w}" aria-label="Weight set ${i + 1}" onchange="setVal(${i},'w',this.value)"></td>
   <td><input type="number" inputmode="numeric" value="${s.r}" placeholder="${esc(x.reps)}" aria-label="Reps set ${i + 1}" onchange="setVal(${i},'r',this.value)"></td>`}
   <td><button class="ck ${s.done ? 'on' : ''}" aria-label="Complete set ${i + 1}" onclick="doneSet(${i})">${s.done ? ic('check', 20) : ''}</button></td></tr>`).join('')}</table>
   ${timed ? '' : `<button class="btn sm ghost" onclick="addSet()">${ic('plus', 16)} Add set</button>`}
   <div class="row" style="margin-top:16px"><button class="btn ghost" ${session.cur ? '' : 'disabled'} onclick="nav(-1)">Previous</button>
   ${session.cur < n - 1 ? '<button class="btn" onclick="nav(1)">Next</button>' : '<button class="btn gold" onclick="finish()">Finish</button>'}</div>
-  <details class="card"><summary>Instructions</summary><ol class="how">${e.i.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>`;
+  <details class="card"><summary>Instructions</summary><ol class="how">${e.i.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>
+  <button class="btn ghost sm" onclick="quitWorkout()">Discard workout</button>`;
   startLoops();
+  if (run) tickTimer();
 }
-window.setVal = (i, k, v) => { session.ex[session.cur].sets[i][k] = v; };
-window.addSet = () => { const x = session.ex[session.cur]; x.sets.push({ w: x.sets.at(-1)?.w || '', r: '', done: false }); workoutView(); };
-window.nav = d => { session.cur += d; workoutView(); window.scrollTo(0, 0); };
+const fmtSecs = t => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
+// Timed exercises (cardio, holds, stretches): a countdown per set that ticks the set off by itself when it ends.
+// It keeps its end time in the saved workout, so it carries on while you are on another screen or app.
+window.startTimer = i => {
+  const x = session.ex[session.cur];
+  session.timer = { ex: session.cur, set: i, end: Date.now() + timedSecs(x.reps) * 1000 };
+  saveSess(); sfx('tick'); workoutView();
+};
+window.stopTimer = () => { session.timer = null; saveSess(); workoutView(); };
+function timerDone() {
+  const tm = session?.timer; if (!tm || Date.now() < tm.end) return false;
+  const x = session.ex[tm.ex], s = x?.sets[tm.set];
+  session.timer = null;
+  if (s && !s.done) { s.done = true; s.r = String(parseInt(x.reps) || ''); }
+  saveSess();
+  return true;
+}
+function tickTimer() {
+  const draw = () => {
+    if (timerDone()) {
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]); sfx('claim');
+      if (location.hash === '#/workout') { workoutView(); const x = session.ex[session.cur]; if (x.rest && x.sets.some(t => !t.done)) rest(x.rest); }
+      return;
+    }
+    const el = $('#wt'); if (el && session?.timer) el.textContent = fmtSecs(Math.ceil((session.timer.end - Date.now()) / 1000));
+  };
+  draw(); timers.push(setInterval(draw, 500));
+}
+window.setVal = (i, k, v) => { session.ex[session.cur].sets[i][k] = v; saveSess(); };
+window.addSet = () => { const x = session.ex[session.cur]; x.sets.push({ w: x.sets.at(-1)?.w || '', r: '', done: false }); saveSess(); workoutView(); };
+window.nav = d => { session.cur += d; saveSess(); workoutView(); window.scrollTo(0, 0); };
 window.quitWorkout = () => {
   const b = $('#rest'); b.hidden = false;
   b.innerHTML = '<h2>Discard this workout?</h2><div class="row"><button class="btn ghost" id="no">Keep going</button><button class="btn" id="yes">Discard</button></div>';
   $('#no').onclick = () => { b.hidden = true; };
-  $('#yes').onclick = () => { b.hidden = true; session = null; location.hash = '#/home'; };
+  $('#yes').onclick = () => { b.hidden = true; session = null; saveSess(); location.hash = '#/home'; };
 };
 window.doneSet = i => {
-  const x = session.ex[session.cur], s = x.sets[i];
+  const x = session.ex[session.cur], s = x.sets[i], before = exXp(x).tier;
   s.done = !s.done;
   if (s.done && !s.r) s.r = String(parseInt(x.reps) || '');
+  if (session.timer && session.timer.ex === session.cur && session.timer.set === i) session.timer = null;
+  saveSess();
   workoutView();
-  if (s.done) { sfx('tick'); floatXp('+10 XP'); }
-  if (s.done && x.rest) rest(x.rest);
+  const after = exXp(x).tier;
+  if (s.done) { sfx('tick'); if (after > before) floatXp(MEDAL_NAME[after]); }
+  if (s.done && x.rest && x.sets.some(t => !t.done)) rest(x.rest);
 };
 function rest(sec) {
   const box = $('#rest'); let t = sec; box.hidden = false;
   const draw = () => {
-    box.innerHTML = `<div class="mut">Rest</div><div class="t">${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}</div>
+    box.innerHTML = `<div class="mut">Rest</div><div class="t">${fmtSecs(t)}</div>
     <div class="row"><button class="btn ghost" id="m">−15s</button><button class="btn ghost" id="p">+15s</button></div><button class="btn" id="sk">Skip</button>`;
     $('#m').onclick = () => { t = Math.max(1, t - 15); draw(); }; $('#p').onclick = () => { t += 15; draw(); }; $('#sk').onclick = end;
   };
@@ -562,14 +629,31 @@ function rest(sec) {
   const iv = setInterval(() => { if (--t <= 0) end(); else draw(); }, 1000); draw();
 }
 window.finish = () => {
-  const ex = session.ex.map(x => ({ id: x.id, sets: x.sets.filter(s => s.done).map(s => ({ w: +s.w || 0, r: +s.r || 0 })) })).filter(x => x.sets.length);
+  timerDone();
+  const done = session.ex.filter(x => x.sets.some(s => s.done));
+  const ex = done.map(x => ({ id: x.id, reps: x.reps, plan: x.plan || x.sets.length, tier: exXp(x).tier, sets: x.sets.filter(s => s.done).map(s => ({ w: +s.w || 0, r: +s.r || 0 })) }));
   if (ex.length) {
-    const h = { t: Date.now(), name: session.name, dur: Math.max(1, Math.round((Date.now() - session.t0) / 60000)), ex };
+    // the time is estimated from what was done (the same estimate as the plan's), not the clock
+    const h = { t: Date.now(), name: session.name, dur: estMinutes(session), ex, xpEx: session.ex.reduce((a, x) => a + exXp(x).xp, 0) };
     if (session.dungeon) h.dungeon = session.dungeon;
     S.history.push(h); save('history', S.history); gameWorkout(h);
   }
-  session = null; location.hash = ex.length ? '#/victory' : '#/home';
+  session = null; saveSess(); location.hash = ex.length ? '#/victory' : '#/home';
 };
+// a bar on every other screen while a workout is in progress
+function resumeBar() {
+  let bar = document.getElementById('resume');
+  const show = session && location.hash !== '#/workout' && location.hash !== '#/victory';
+  if (!show) { bar?.remove(); return; }
+  if (!bar) { bar = document.createElement('button'); bar.id = 'resume'; bar.onclick = () => { location.hash = '#/workout'; }; document.body.appendChild(bar); }
+  const doneN = session.ex.filter(x => x.sets.every(s => s.done)).length;
+  bar.innerHTML = `${ic('play', 16)} <span class="grow">${esc(session.name)}</span><span>${doneN}/${session.ex.length}</span>`;
+}
+window.addEventListener('hashchange', resumeBar);
+// a timed set that ends while you are on another screen still ticks itself off
+setInterval(() => {
+  if (session?.timer && location.hash !== '#/workout' && timerDone()) { if (navigator.vibrate) navigator.vibrate([200, 100, 200]); sfx('claim'); toast('Timed set done'); resumeBar(); }
+}, 1000);
 
 // ---------- progress ----------
 function progress() {
@@ -617,7 +701,7 @@ function settings() {
   <div id="setmusic"></div>
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
-  <div class="mut setfoot"><span>FitQuest version 114</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 115</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -719,5 +803,5 @@ try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // th
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }
   EX.forEach(e => { BY[e.id] = e; });
   initGame();
-  route();
+  route(); resumeBar();
 })();

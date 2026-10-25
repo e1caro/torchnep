@@ -142,3 +142,13 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 - **Dungeons** shows the ones you can enter and the next to unlock; the rest stay folded.
 - **Bets**: each kind of goal is a dropdown, and "How bets work" sits at the end.
 - **Meal setup** asks for diet, foods to avoid and meals per day; the rest is under "More options".
+
+## Workouts
+
+- **Kept until you finish:** the workout in progress is saved after every change. Leave it for another screen or app (or close the app) and a bar brings you back; it ends only with Finish or Discard.
+- **Timers:** timed exercises (cardio, holds, stretches) have a countdown per set that ticks the set off by itself, even while you are elsewhere.
+- **XP per exercise:** each exercise pays once, by a medal (bronze, silver, gold, platinum) from the sets and reps you did against the plan, with platinum for beating the target reps or your best weight. Lifting pays most and stretching far less; a cleared workout adds 40 XP.
+- **Workout time** is estimated from the exercises you completed (the same estimate the plan uses), not the clock, so time quests and bets match what you did.
+- **Muscle bets** count a workout for a muscle group only when that group has the most sets in it.
+- **Sliders** set days, session time, today's time, cardio and stretching minutes and cooking time.
+- **Today's meals** shows the meal for the time of day first, with every other meal of the day one tap away.

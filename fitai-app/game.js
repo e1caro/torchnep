@@ -67,7 +67,7 @@ const PERKS = [
   ['xp1', 4, 'XP Boost I', '+5% XP from every workout', 'upgrade'], ['coin1', 6, 'Coin Boost I', '+10% coins from every workout', 'coins'],
   ['quest4', 8, 'Fourth quest', 'A fourth daily quest every day', 'scroll'], ['spin2', 10, 'Double spin', 'Two free daily spins', 'slot'],
   ['shield', 12, 'Rest-day shield', 'Your streak survives one missed day', 'shield'], ['boss', 14, 'Boss hunter', 'The weekly boss drops a golden chest', 'golem'],
-  ['xp2', 16, 'XP Boost II', '+10% XP from every workout', 'upgrade'], ['rec', 18, 'Record breaker', 'New personal records are worth 80 XP', 'medal'],
+  ['xp2', 16, 'XP Boost II', '+10% XP from every workout', 'upgrade'], ['rec', 18, 'Record breaker', 'New personal records are worth 40 XP', 'medal'],
   ['coin2', 20, 'Coin Boost II', '+20% coins from every workout', 'coins'], ['xp3', 24, 'XP Boost III', '+15% XP from every workout', 'upgrade'],
   ['spin3', 30, 'Triple spin', 'Three free daily spins', 'slot'], ['coin3', 35, 'Coin Boost III', '+30% coins from every workout', 'coins'], ['xp4', 42, 'XP Boost IV', '+20% XP from every workout', 'upgrade'],
 ];
@@ -262,17 +262,39 @@ function checkAch() {
 }
 
 // ---------- hooks called by app.js ----------
+// Workout XP: each exercise pays once, by how hard it is and how well it went.
+// Medal: bronze for a start, silver for most of it, gold for every planned set at the target reps (or time),
+// platinum for more reps than the target or more weight than ever. Stretching pays far less than lifting.
+const EX_XP = { strength: 20, powerlifting: 22, 'olympic weightlifting': 22, strongman: 22, plyometrics: 16, cardio: 14, stretching: 4 };
+const TIER_X = [0, .4, .7, 1, 1.3];
+let BEST_W = null; // the heaviest weight ever done per exercise, before the workout in progress
+const bestW = id => { if (!BEST_W) { BEST_W = {}; S.history.forEach(h => h.ex.forEach(x => x.sets.forEach(t => { if (t.w > (BEST_W[x.id] || 0)) BEST_W[x.id] = t.w; }))); } return BEST_W[id] || 0; };
+function exXp(x) {
+  const done = x.sets.filter(t => t.done), plan = x.plan || x.sets.length, e = BY[x.id];
+  if (!done.length) return { tier: 0, xp: 0 };
+  const target = timedSecs(x.reps) === null ? parseInt(x.reps) : null;
+  let score;
+  if (target) score = done.reduce((a, t) => a + Math.min(1.5, (+t.r || target) / target), 0) / plan; // sets × reps against the plan
+  else score = Math.min(1, done.length / plan);
+  const heavier = target && bestW(x.id) > 0 && Math.max(...done.map(t => +t.w || 0)) > bestW(x.id);
+  const tier = score >= 1.15 || (heavier && score >= .9) ? 4 : score >= .95 ? 3 : score >= .5 ? 2 : 1;
+  return { tier, xp: Math.round((EX_XP[e?.c] ?? 18) * TIER_X[tier]) };
+}
 function gameWorkout(h) {
   ensureDay();
+  BEST_W = null;
   const prev = {};
   S.history.slice(0, -1).forEach(w => w.ex.forEach(x => { prev[x.id] = Math.max(prev[x.id] || 0, ...x.sets.map(s => s.w)); }));
   const sets = h.ex.reduce((a, x) => a + x.sets.length, 0);
   const prs = h.ex.filter(x => prev[x.id] > 0 && Math.max(...x.sets.map(s => s.w)) > prev[x.id]).length;
   const dg = h.dungeon ? DUNGEONS[h.dungeon] : null, st = streak(), feat = dg && featuredId() === h.dungeon;
-  const xpP = xpPerk(), coinP = coinPerk(), boost = boostOn(), recXp = perk('rec') ? 80 : 40;
+  const xpP = xpPerk(), coinP = coinPerk(), boost = boostOn(), recXp = perk('rec') ? 40 : 20;
   const sm = 1 + Math.min(0.5, (st - 1) * 0.05), mult = (dg?.mult || 1) * sm * (feat ? 1.5 : 1) * (1 + xpP) * (boost ? 2 : 1);
-  const base = sets * 10 + 100 + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 6 * (1 + coinP));
-  const lines = [[`${sets} sets × 10`, sets * 10], ['Workout cleared', 100]];
+  const exXpSum = h.xpEx ?? 0, bonus = 40;
+  const base = exXpSum + bonus + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 6 * (1 + coinP));
+  const lines = [];
+  [4, 3, 2, 1].forEach(t => { const n = h.ex.filter(x => x.tier === t).length; if (n) lines.push([`${n} × ${MEDAL_NAME[t]}`, null]); });
+  lines.push(['Exercises', exXpSum], ['Workout cleared', bonus]);
   if (prs) lines.push([`${prs} new record${prs > 1 ? 's' : ''} × ${recXp}`, prs * recXp]);
   if (dg) lines.push([`${dg.name} ×${dg.mult}`, null]);
   if (feat) lines.push(['Dungeon of the day ×1.5', null]);

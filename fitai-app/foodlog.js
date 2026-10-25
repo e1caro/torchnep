@@ -199,7 +199,7 @@ const fmtK = n => Math.round(n).toLocaleString(LANG === 'es' ? 'es-ES' : 'en-GB'
 const _flHome = home;
 home = function () {
   _flHome();
-  const anchor = view.querySelector(':scope > section.card[onclick*="#/meals"], :scope > section.card[onclick*="#/recipe"]');
+  const anchor = view.querySelector(':scope > section.card.mealsnow, :scope > section.card[onclick*="#/meals"]');
   if (anchor) anchor.insertAdjacentHTML('afterend', foodCard());
 };
 const _flMeals = mealsView;
