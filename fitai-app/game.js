@@ -9,7 +9,7 @@ const levelOf = xp => { let L = 1; while (xp >= totalXp(L + 1)) L++; return L; }
 const dayId = (t = Date.now()) => { const d = new Date(t); return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`; };
 const weekId = (t = Date.now()) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return dayId(d); };
 const hash = s => [...String(s)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
-const TITLES = [[1, 'Rookie'], [3, 'Iron Will'], [5, 'Challenger'], [8, 'Warrior'], [12, 'Champion'], [18, 'Legend'], [25, 'Titan']];
+const TITLES = [[1, 'Rookie'], [3, 'Iron Will'], [5, 'Challenger'], [8, 'Warrior'], [12, 'Champion'], [18, 'Legend'], [25, 'Titan'], [32, 'Demigod'], [40, 'Immortal'], [50, 'Olympian']];
 
 // ---------- state ----------
 const G = Object.assign({
@@ -50,6 +50,14 @@ const DUNGEONS = {
   'd-upper': { ico: 'strong', name: 'Upper-Body Annihilation', lv: 18, mult: 2, desc: 'Ten exercises for chest, back, shoulders and arms. Double XP.', sets: 3, reps: '10', rest: 60, groups: [['chest'], ['chest'], ['lats'], ['lats'], ['shoulders'], ['shoulders'], ['biceps'], ['biceps'], ['triceps'], ['triceps']] },
   'd-lower': { ico: 'shoe', name: 'Lower-Body Apocalypse', lv: 22, mult: 2.2, desc: 'Quads, hamstrings, glutes and calves, plus abs to finish.', sets: 4, reps: '10', rest: 90, groups: [['quadriceps'], ['quadriceps'], ['hamstrings'], ['hamstrings'], ['glutes'], ['glutes'], ['calves'], ['abdominals']] },
   'd-marathon': { ico: 'infinity', name: 'Endless Marathon', lv: 25, mult: 2.5, desc: 'Fourteen exercises, two sets each, almost no rest.', sets: 2, reps: '12', rest: 30, groups: rep(null, 14) },
+  'd-labyrinth': { ico: 'gate', name: 'Iron Labyrinth', lv: 30, mult: 3, desc: 'Eight heavy compound lifts around the whole body, 4 × 8.', sets: 4, reps: '8', rest: 90, groups: [['quadriceps'], ['chest'], ['lats'], ['hamstrings'], ['shoulders'], ['middle back'], ['glutes'], ['triceps']] },
+  'd-abyss': { ico: 'kraken', name: 'Abyss of Abs', lv: 32, mult: 2.5, desc: 'Eight core exercises, 3 × 20, short rests. The deep end.', sets: 3, reps: '20', rest: 30, groups: [...rep(['abdominals'], 6), ['lower back'], ['abdominals', 'lower back']] },
+  'd-valkyrie': { ico: 'viking', name: 'Valkyrie Sprint', lv: 34, mult: 2.8, desc: 'Ten fast bodyweight moves, 45 s each, three rounds. No equipment.', sets: 3, reps: '45s', rest: 15, bw: true, groups: rep(null, 10) },
+  'd-anvil': { ico: 'anvil', name: 'Anvil of Arms', lv: 36, mult: 2.8, desc: 'Biceps, triceps and forearms, five sets each, forged slowly.', sets: 5, reps: '10', rest: 50, groups: [...rep(['biceps'], 3), ...rep(['triceps'], 3), ['forearms'], ['forearms']] },
+  'd-hydra': { ico: 'scorpion', name: 'Hydra Supersets', lv: 38, mult: 3.2, desc: 'Twelve exercises back to back, 3 × 12, twenty seconds of rest.', sets: 3, reps: '12', rest: 20, groups: [['chest'], ['lats'], ['quadriceps'], ['shoulders'], ['hamstrings'], ['biceps'], ['triceps'], ['glutes'], ['middle back'], ['calves'], ['abdominals'], ['traps']] },
+  'd-dragon': { ico: 'dragon', name: "Dragon's Den", lv: 40, mult: 3.8, expert: true, cats: ['powerlifting', 'olympic weightlifting', 'strength'], desc: 'Six heavy lifts, 5 × 5, three-minute rests. Quadruple-ish XP.', sets: 5, reps: '5', rest: 180, groups: [['quadriceps'], ['chest'], ['lats'], ['hamstrings'], ['shoulders'], ['glutes']] },
+  'd-colossus': { ico: 'mountain', name: 'Colossus Climb', lv: 45, mult: 4.2, desc: 'Ten exercises for legs and back, 4 × 8. The mountain does not move; you do.', sets: 4, reps: '8', rest: 75, groups: [['quadriceps'], ['quadriceps'], ['hamstrings'], ['hamstrings'], ['glutes'], ['calves'], ['lats'], ['lats'], ['middle back'], ['lower back']] },
+  'd-pantheon': { ico: 'spartan', name: 'Pantheon', lv: 50, mult: 5, desc: 'Sixteen exercises, every muscle, 3 × 10. The last trial. Five times the XP.', sets: 3, reps: '10', rest: 45, groups: [['chest'], ['chest'], ['lats'], ['lats'], ['quadriceps'], ['quadriceps'], ['hamstrings'], ['glutes'], ['shoulders'], ['shoulders'], ['biceps'], ['triceps'], ['middle back'], ['traps'], ['calves'], ['abdominals']] },
   'd-olymp': { ico: 'laurel', name: 'Olympian Gauntlet', lv: 28, mult: 3.5, need: 'barbell', expert: true, cats: ['powerlifting', 'olympic weightlifting', 'strength'], desc: 'Heavy barbell work, 5 × 3, three-minute rests. Needs a barbell.', sets: 5, reps: '3', rest: 180, groups: [['quadriceps'], ['hamstrings'], ['chest'], ['lats'], ['shoulders'], ['traps']] },
 };
 const PERKS = [
@@ -58,6 +66,7 @@ const PERKS = [
   ['shield', 12, 'Rest-day shield', 'Your streak survives one missed day', 'shield'], ['boss', 14, 'Boss hunter', 'The weekly boss drops a golden chest', 'golem'],
   ['xp2', 16, 'XP Boost II', '+10% XP from every workout', 'upgrade'], ['rec', 18, 'Record breaker', 'New personal records are worth 80 XP', 'medal'],
   ['coin2', 20, 'Coin Boost II', '+20% coins from every workout', 'coins'], ['xp3', 24, 'XP Boost III', '+15% XP from every workout', 'upgrade'],
+  ['spin3', 30, 'Triple spin', 'Three free daily spins', 'slot'], ['coin3', 35, 'Coin Boost III', '+30% coins from every workout', 'coins'], ['xp4', 42, 'XP Boost IV', '+20% XP from every workout', 'upgrade'],
 ];
 const THEMES = [['hud', 'Cyber HUD', 0, '#22e4ff', '#ffb020'], ['ember', 'Ember', 0, '#ff6a3d', '#ffb347'], ['neon', 'Neon City', 120, '#00e5ff', '#ff2bd6'], ['sakura', 'Sakura', 140, '#ff7eb6', '#ffd1e8'], ['frost', 'Frostbite', 160, '#7cc6ff', '#e0f4ff'],
   ['toxic', 'Toxic', 200, '#8dff3a', '#e6ff5a'], ['ocean', 'Deep Ocean', 240, '#2ee6d6', '#3a8dff'], ['royal', 'Royal', 300, '#a66bff', '#ffd166'], ['retro', 'Arcade', 400, '#ff3d7f', '#ffe14d'],
@@ -103,8 +112,8 @@ const item = id => ITEMS.find(i => i.id === id);
 // Shop items are owned once bought (or free); level rewards open at their level. Dungeons and recipes bought before this split stay owned.
 const has = i => i.shop ? (i.cost === 0 || G.owned.includes(i.id)) : (lvl() >= i.lv || G.owned.includes(i.id));
 const perk = k => has(item('p-' + k));
-const xpPerk = () => perk('xp3') ? .15 : perk('xp2') ? .10 : perk('xp1') ? .05 : 0;
-const coinPerk = () => perk('coin2') ? .20 : perk('coin1') ? .10 : 0;
+const xpPerk = () => perk('xp4') ? .20 : perk('xp3') ? .15 : perk('xp2') ? .10 : perk('xp1') ? .05 : 0;
+const coinPerk = () => perk('coin3') ? .30 : perk('coin2') ? .20 : perk('coin1') ? .10 : 0;
 const boostOn = () => Date.now() < (G.boostUntil || 0);
 const KIND = { theme: 'Theme', avatar: 'Profile picture', frame: 'Ring', banner: 'Banner', panel: 'Panel style', skin: 'Interface', dungeon: 'Workout', recipe: 'Meal', perk: 'Perk' };
 const ICO = i => i.type === 'dungeon' ? gi(DUNGEONS[i.id].ico, 'hero') : i.type === 'avatar' ? gi(i.key, 'hero') : i.type === 'perk' ? gi(i.ico, 'hero') : i.type === 'recipe' ? gi('chef', 'hero') : i.type === 'frame' ? gi('frame', 'hero') : i.type === 'banner' ? gi('banner', 'hero') : i.type === 'panel' ? gi('frame', 'hero') : i.type === 'skin' ? `<span class="emo">${i.emo}</span>` : gi('palette', 'hero');
@@ -177,7 +186,7 @@ function award(xp, coins = 0) {
   G.xp += xp; G.coins += coins;
   const to = levelOf(G.xp);
   if (to > from) {
-    for (let L = from + 1; L <= to; L++) { G.coins += 20 + 5 * L; if (L % 10 === 0) G.chests.push('gold'); else if (L % 5 === 0) G.chests.push('silver'); }
+    for (let L = from + 1; L <= to; L++) { G.coins += 20 + 5 * L; G.chests.push('silver'); if (L % 5 === 0) G.chests.push('gold'); } // a silver chest every level, a golden one too every 5th
     G.pend = { from: G.pend ? G.pend.from : from, to };
   }
   commit();
@@ -476,7 +485,7 @@ function heroCard() {
   return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
   <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
   <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 97</div>`;
+  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 98</div>`;
 }
 
 function initGame() {

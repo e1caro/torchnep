@@ -44,7 +44,7 @@ window.logSleep = h => {
 // ---------- daily spin ----------
 const SPIN = [[30, 'coins', 20], [25, 'coins', 50], [8, 'coins', 100], [20, 'xp', 40], [10, 'xp', 100], [6, 'chest', 'wood'], [1, 'chest', 'silver']];
 const spinsToday = () => G.spinDay?.d === dayId() ? G.spinDay.n : 0;
-const freeSpins = () => (perk('spin2') ? 2 : 1) - spinsToday();
+const freeSpins = () => (perk('spin3') ? 3 : perk('spin2') ? 2 : 1) - spinsToday();
 const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
 // The wheel has 8 equal slices; the odds come from SPIN, and the wheel then lands on a slice with that prize.
 const WHEEL = [['coins', 20], ['xp', 40], ['coins', 50], ['chest', 'wood'], ['coins', 20], ['xp', 100], ['coins', 100], ['chest', 'silver']];
@@ -171,7 +171,7 @@ function earn() {
   const wq = WQ.filter(q => !q.need || q.need());
   view.innerHTML = `${hud()}<h1>Ways to earn</h1>
   <section class="card"><div class="row between"><h3>Daily spin</h3><span class="mut">${canSpin ? `${spinsLeft()} spin${spinsLeft() > 1 ? 's' : ''} ready` : 'Come back tomorrow'}</span></div>
-  <p class="mut">${perk('spin2') ? 'Two free spins a day' : 'One free spin a day'}: coins, XP or even a chest. More spins are sold in the Shop.</p>
+  <p class="mut">${perk('spin3') ? 'Three free spins a day' : perk('spin2') ? 'Two free spins a day' : 'One free spin a day'}: coins, XP or even a chest. More spins are sold in the Shop.</p>
   <button class="btn ${canSpin ? 'chestbtn' : 'ghost'}" ${canSpin ? '' : 'disabled'} onclick="spin()">${gi('slot')} ${canSpin ? 'Spin now' : 'Spun today'}</button></section>
   <section class="card"><div class="row between"><h3>Water</h3><span class="mut">${t.water || 0}/${goal} glasses</span></div>
   <div class="qbar kc"><i style="width:${clamp((t.water || 0) / goal * 100, 0, 100)}%"></i></div>

@@ -58,7 +58,7 @@ window.sell = id => {
 
 // ---------- Levels ----------
 function levelsView() {
-  const L = lvl(), max = Math.min(30, Math.max(L + 8, 14));
+  const L = lvl(), max = Math.min(50, Math.max(L + 8, 14));
   const next = ITEMS.filter(i => !i.shop && i.lv > L).sort((a, b) => a.lv - b.lv)[0], perks = ITEMS.filter(i => i.type === 'perk' && has(i));
   return `${hud()}${rwSeg('levels')}${chestBtn()}
   <p class="mut">Levels unlock new <b>meals</b>, <b>workouts</b> and <b>perks</b>. Coins are spent in the Shop on looks and boosts.</p>
@@ -67,7 +67,7 @@ function levelsView() {
   <h2 class="sec">Reward road</h2><div class="road">${Array.from({ length: max }, (_, k) => k + 1).map(n => {
     const its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1);
     return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}${n > 1 ? ` · +${20 + 5 * n} coins` : ''}</div>
-    ${n % 5 === 0 ? `<div class="ri">${gi(n % 10 === 0 ? 'chest-gold' : 'chest-silver', 'hero')} ${n % 10 === 0 ? 'Golden' : 'Silver'} chest</div>` : ''}
+    ${n > 1 ? `<div class="ri">${gi('chest-silver', 'hero')} Silver chest</div>` : ''}${n % 5 === 0 ? `<div class="ri">${gi('chest-gold', 'hero')} Golden chest</div>` : ''}
     ${its.map(i => `<div class="ri">${ICO(i)} ${esc(i.name)} <span class="mut">${KIND[i.type]}</span>${i.desc ? `<div class="mut" style="font-weight:400">${esc(i.desc)}</div>` : ''}</div>`).join('')}</div></div>`;
   }).join('')}</div>`;
 }
