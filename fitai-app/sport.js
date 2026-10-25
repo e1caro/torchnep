@@ -176,7 +176,7 @@ const careerTier = ovr => CAREER.filter(t => ovr >= t[0]).at(-1)[1];
 const cardClass = ovr => ovr >= 93 ? 'icon' : ovr >= 75 ? 'gold' : ovr >= 55 ? 'silver' : 'bronze';
 const sportLevel = sxp => 1 + Math.floor(Math.sqrt(sxp / 120));
 const sportLvXp = lv => (lv - 1) ** 2 * 120;
-const MILES = [[50, 'wood', 60], [60, 'silver', 100], [70, 'silver', 150], [80, 'gold', 250], [90, 'gold', 400]];
+const MILES = [[50, 'wood', 35], [60, 'silver', 60], [70, 'silver', 90], [80, 'gold', 150], [90, 'gold', 240]];
 const weekDrills = sport => S.history.filter(h => h.sport && h.sport.key.startsWith(sport + '/') && weekId(h.t) === weekId()).length;
 
 // Everyday workouts raise the attributes a little, so all your training counts.
@@ -304,7 +304,7 @@ const NOTE = {
   W: { SPD: TT('Your pace decided it.', 'Tu ritmo lo decidió.'), PWR: TT('Your power decided it.', 'Tu potencia lo decidió.'), STA: TT('Your stamina decided it.', 'Tu resistencia lo decidió.'), AGI: TT('Your agility decided it.', 'Tu agilidad lo decidió.'), STR: TT('Your strength decided it.', 'Tu fuerza lo decidió.'), CORE: TT('Your balance decided it.', 'Tu equilibrio lo decidió.') },
   L: { SPD: TT('Lack of pace cost you. Train speed!', 'La falta de ritmo te costó caro. ¡Entrena velocidad!'), PWR: TT('Lack of power cost you. Train power!', 'La falta de potencia te costó caro. ¡Entrena potencia!'), STA: TT('You ran out of stamina. Train it!', 'Te quedaste sin resistencia. ¡Entrénala!'), AGI: TT('Lack of agility cost you. Train it!', 'La falta de agilidad te costó caro. ¡Entrénala!'), STR: TT('Lack of strength cost you. Train it!', 'La falta de fuerza te costó caro. ¡Entrénala!'), CORE: TT('Your balance let you down. Train your core!', 'Tu equilibrio te falló. ¡Entrena el core!') },
 };
-const MATCH_REW = { W: [200, 120, 80], D: [80, 50, 40], L: [40, 20, 30] };
+const MATCH_REW = { W: [200, 70, 80], D: [80, 30, 40], L: [40, 12, 30] };
 function winChance(key) {
   const role = roleOf(key), sport = key.split('/')[0], ovr = ovrOf(role), opp = opponentFor(key, ovr);
   const diff = (ovr - opp.ovr) / 50, extra = .04 * (Math.max(2, weekDrills(sport)) - 2);
@@ -506,7 +506,7 @@ function sportRow() {
 const _spHome = home;
 home = function () { _spHome(); const hud = view.querySelector('.hud'); if (hud && S.profile) { seedStats(); hud.insertAdjacentHTML('afterend', sportRow()); } };
 const _spMe = me;
-me = function () { _spMe(); if (SP.cur && S.profile) { seedStats(); view.querySelector('.hud')?.insertAdjacentHTML('afterend', clubCard(SP.cur)); } };
+me = function () { _spMe(); if (SP.cur && S.profile) seedStats(); }; // Hero shows badges and progress (profile.js); the club lives in the Academy
 Object.assign(routes, { home, me, sport: sportView });
 
 if (typeof i18nAdd === 'function') {

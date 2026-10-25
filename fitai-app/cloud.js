@@ -41,12 +41,8 @@ function applyData(d) {
   Object.keys(localStorage).filter(k => k.startsWith('fc.') && !SYNC_SKIP.includes(k)).forEach(k => localStorage.removeItem(k));
   Object.entries(d || {}).forEach(([k, v]) => { if (k.startsWith('fc.') && !SYNC_SKIP.includes(k)) localStorage.setItem(k, v); });
 }
-// what friends see: a summary of your profile, never your body data or history
-function publicProfile() {
-  const sp = typeof SP === 'object' && SP.cur && typeof roleOf === 'function' ? (r => r && { sport: SP.cur, ovr: ovrOf(r), pos: r.name, club: clubName() })(roleOf(SP.cur)) : null;
-  return { name: S.profile?.name || '', lvl: lvl(), xp: G.xp, title: title(), avatar: G.avatar, frame: G.frame, banner: G.banner, skin: G.skin,
-    workouts: S.history.length, minutes: S.history.reduce((a, h) => a + (h.dur || 0), 0), kg: Math.round(totalVol()), streak: streak(), badges: G.ach.length, sp };
-}
+// what friends see: the same profile summary as Hero (profile.js), never body data or history
+const publicProfile = () => profileSummary();
 let pushT = null;
 window.cloudDirty = () => {
   if (!SB_ON || !CL.uid) return;
@@ -156,11 +152,30 @@ function friendsView() {
   const row = (f, i) => { const p = f.public || {}; return `<button class="lookt frow ${f.me ? 'me' : ''}" ${f.me ? '' : `onclick="location.hash='#/friend/${f.id}'"`}>
     <b class="rank">${i + 1}</b><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
     <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small>${f.me ? 'You' : esc(p.title || '')}</small></span><span class="lvtag">Lv ${p.lvl || 1}</span></button>`; };
-  view.innerHTML = `<h1>Friends</h1>
+  view.innerHTML = `<h1>Friends</h1>${podium(all)}
   <div class="row"><input id="fr-code" placeholder="Friend's code" maxlength="6" autocapitalize="characters" spellcheck="false"><button class="btn sm" onclick="addFriend()">Add</button></div>
   <div class="mut">Your code: <b translate="no">${esc(CL.code || '')}</b></div>
   <h2 class="sec">Ranking</h2><div class="friends">${all.map(row).join('')}</div>`;
   if (Date.now() - FR_AT > 30e3) { FR_AT = Date.now(); loadFriends().then(() => { if (location.hash === '#/friends') route(); }).catch(() => { FRIENDS = FRIENDS || []; }); }
+}
+// The podium: the three highest levels among you and your friends. When someone climbs onto it or overtakes someone on
+// it, a toast says so and their step bounces once.
+function podium(all) {
+  const top = all.slice(0, 3), ids = top.map(f => f.id);
+  let last = {}; try { last = JSON.parse(localStorage.getItem('fc.podium')) || {}; } catch { /* first time */ }
+  const before = last.ids || [], same = last.n === all.length; // only levels count: adding or removing a friend says nothing
+  const moved = new Set(same ? ids.filter((id, i) => before.length && (before.indexOf(id) < 0 || before.indexOf(id) > i)) : []);
+  if (FRIENDS !== null && (ids.join() !== before.join() || !same)) {
+    try { localStorage.setItem('fc.podium', JSON.stringify({ ids, n: all.length })); } catch { /* storage blocked */ }
+    top.forEach((f, i) => { if (moved.has(f.id)) toast(T('{0} is now #{1}', f.public?.name || f.username || '', i + 1)); });
+  }
+  const shine = '<i class="shine"><i></i></i>', sparks = '<i class="spk s1">✦</i><i class="spk s2">✧</i><i class="spk s3">✦</i>';
+  const step = (f, place) => { if (!f) return `<div class="pod p${place} empty"><div class="pav">?</div><div class="blk">${shine}<b>${place}</b></div></div>`;
+    const p = f.public || {};
+    return `<div class="pod p${place}${moved.has(f.id) ? ' up' : ''}${f.me ? ' me' : ''}" ${f.me ? '' : `onclick="location.hash='#/friend/${f.id}'"`}>
+      <div class="pav av fr-${esc(p.frame || 'none')}" style="--p:1"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
+      ${place === 1 ? sparks : ''}<div class="pn" translate="no">${esc(p.name || f.username || '')}</div><div class="pl">Lv ${p.lvl || 1}</div><div class="blk">${shine}<b>${place}</b></div></div>`; };
+  return `<div class="podium">${step(top[1], 2)}${step(top[0], 1)}${step(top[2], 3)}</div>`;
 }
 window.addFriend = async () => {
   const code = ($('#fr-code')?.value || '').trim().toUpperCase();
@@ -185,9 +200,7 @@ async function friendView(id) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
   <section class="pcard pmini bn-${esc(p.banner || 'plain')}"><div class="av fr-${esc(p.frame || 'none')}" style="--p:1"><span>${gi(p.avatar || 'user', 'hero')}</span><i class="lv">${p.lvl || 1}</i></div>
     <div class="grow"><div class="hn" translate="no">${esc(p.name || f.username)}</div><div class="mut">${esc(p.title || '')}</div></div></section>
-  <div class="grid3"><div class="stat"><b>${p.workouts || 0}</b><span>workouts</span></div><div class="stat"><b>${p.minutes || 0}</b><span>minutes</span></div><div class="stat"><b>${p.streak || 0}</b><span>day streak</span></div></div>
-  <div class="grid3"><div class="stat"><b>${(p.kg || 0).toLocaleString()}</b><span>kg lifted</span></div><div class="stat"><b>${p.badges || 0}</b><span>badges</span></div><div class="stat"><b>${p.sp ? p.sp.ovr : '–'}</b><span>OVR</span></div></div>
-  ${p.sp ? `<section class="card"><b translate="no">${esc(p.sp.club || '')}</b><div class="mut">${esc(p.sp.pos || '')}</div></section>` : ''}
+  ${profileShow(p, false)}
   <button class="btn ghost" onclick="removeFriend('${f.id}')">Remove friend</button>`;
 }
 
@@ -207,7 +220,7 @@ if (typeof i18nAdd === 'function') {
     'Which data do you keep?': '¿Qué datos te quedas?', 'This device and your account both changed.': 'Este dispositivo y tu cuenta han cambiado los dos.', 'This device': 'Este dispositivo',
     Friends: 'Amigos', 'Sign in to add friends': 'Entra para añadir amigos', "Friend's code": 'Código de tu amigo', Add: 'Añadir', 'Your code:': 'Tu código:',
     'Codes have 6 letters and numbers': 'Los códigos tienen 6 letras y números', "That's your own code": 'Ese es tu propio código', 'No player with that code': 'No hay ningún jugador con ese código',
-    'Friend added': 'Amigo añadido', 'Sign in to add friends and see their profiles.': 'Entra para añadir amigos y ver sus perfiles.', Ranking: 'Ranking', You: 'Tú', 'Lv {n}': 'Nv {n}', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
+    'Friend added': 'Amigo añadido', '{0} is now #{1}': '{0} pasa al puesto {1}', 'Sign in to add friends and see their profiles.': 'Entra para añadir amigos y ver sus perfiles.', Ranking: 'Ranking', You: 'Tú', 'Lv {n}': 'Nv {n}', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
     'Turn off e-mail confirmation in Supabase (see tools/supabase.sql)': 'Desactiva la confirmación por e-mail en Supabase (mira tools/supabase.sql)',
   });
 }

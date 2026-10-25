@@ -127,7 +127,7 @@ const item = id => ITEMS.find(i => i.id === id);
 // Shop items are owned once bought (or free); level rewards open at their level. Dungeons and recipes bought before this split stay owned.
 // XP only comes from looking after yourself (training, food, water, sleep, weighing in); everything else pays coins,
 // a bit more than before to make up for it
-const coinsFor = xp => Math.round(xp / 4);
+const coinsFor = xp => Math.round(xp / 7); // quests, check-ins and matches turn their old XP value into coins
 // the picture of an item: looks show themselves (a ring, a banner strip, a theme swatch), the rest an icon
 const ICO = i => i.type === 'frame' ? `<div class="av fr-${i.key} icoav" style="--p:.6"><span></span></div>` : i.type === 'banner' ? `<span class="bnp icobn bn-${i.key}"></span>`
   : i.type === 'theme' && i.sw ? `<span class="swc round icosw" style="background:linear-gradient(135deg,${i.sw[0]},${i.sw[1]})"></span>` : ICO0(i);
@@ -208,7 +208,7 @@ function award(xp, coins = 0) {
   G.xp += xp; G.coins += coins;
   const to = levelOf(G.xp);
   if (to > from) {
-    for (let L = from + 1; L <= to; L++) { G.coins += 20 + 5 * L; G.chests.push('silver'); if (L % 5 === 0) G.chests.push('gold'); } // a silver chest every level, a golden one too every 5th
+    for (let L = from + 1; L <= to; L++) { G.chests.push('silver'); if (L % 5 === 0) G.chests.push('gold'); } // a silver chest every level, a golden one too every 5th (levels give no coins)
     G.pend = { from: G.pend ? G.pend.from : from, to };
   }
   commit();
@@ -216,12 +216,11 @@ function award(xp, coins = 0) {
 function flushLevelUp(after) {
   if (!G.pend) { after?.(); return; }
   const { from, to } = G.pend, unlocked = ITEMS.filter(i => !i.shop && i.lv > from && i.lv <= to && i.lv > 1);
-  const bonus = Array.from({ length: to - from }, (_, k) => 20 + 5 * (from + 1 + k)).reduce((a, b) => a + b, 0);
   G.pend = null; commit(); sfx('level'); confetti();
   modal(`<div class="lvup">LEVEL UP</div><div class="bignum">${to}</div><div class="mut">${title()}</div>
     ${(o => o.length ? `<h3>Shop opened</h3>${o.map(([t]) => `<div class="unl">${gi('palette', 'hero')} <b>${SHOP_NAME[t]}</b><span class="mut">Shop</span></div>`).join('')}` : '')(Object.entries(SHOP_LV).filter(([, l]) => l > from && l <= to))}
     ${unlocked.length ? `<h3>Unlocked</h3>${unlocked.map(i => `<div class="unl">${ICO(i)} <b>${esc(i.name)}${i.desc ? `<span class="mut" style="display:block;font-weight:400">${esc(i.desc)}</span>` : ''}</b><span class="mut">${KIND[i.type]}</span></div>`).join('')}` : ''}
-    <div class="unl">${gi('coin', 'cn')} <b>+${bonus} coins</b></div>${(n => `<div class="unl">${gi('chest-silver', 'hero')} <b>${to - from} × Silver chest</b><span class="mut">Open it in Loot</span></div>${n ? `<div class="unl">${gi('chest-gold', 'hero')} <b>${n} × Golden chest</b><span class="mut">Open it in Loot</span></div>` : ''}`)([...Array(to - from)].filter((_, k) => (from + 1 + k) % 5 === 0).length)}<button class="btn" data-close>Awesome</button>`, after);
+    ${(n => `<div class="unl">${gi('chest-silver', 'hero')} <b>${to - from} × Silver chest</b><span class="mut">Open it in Loot</span></div>${n ? `<div class="unl">${gi('chest-gold', 'hero')} <b>${n} × Golden chest</b><span class="mut">Open it in Loot</span></div>` : ''}`)([...Array(to - from)].filter((_, k) => (from + 1 + k) % 5 === 0).length)}<button class="btn" data-close>Awesome</button>`, after);
 }
 
 // ---------- achievements ----------
@@ -256,9 +255,9 @@ function checkAch() {
   const got = [];
   for (let more = true; more;) {
     more = false;
-    for (const a of ACH) if (!G.ach.includes(a.id) && a.ok()) { G.ach.push(a.id); award(0, coinsFor(a.xp)); got.push(a); more = true; }
+    for (const a of ACH) if (!G.ach.includes(a.id) && a.ok()) { G.ach.push(a.id); got.push(a); commit(); more = true; }
   }
-  got.forEach(a => toast(`Badge unlocked: ${a.n} (+${coinsFor(a.xp)} coins)`));
+  got.forEach(a => toast(`Badge unlocked: ${a.n}`));
   if (got.length) sfx('claim');
   return got;
 }
@@ -293,7 +292,7 @@ function gameWorkout(h) {
   const xpP = xpPerk(), coinP = coinPerk(), boost = boostOn(), recXp = perk('rec') ? 40 : 20;
   const sm = 1 + Math.min(0.5, (st - 1) * 0.05), mult = (dg?.mult || 1) * sm * (feat ? 1.5 : 1) * (1 + xpP) * (boost ? 2 : 1);
   const exXpSum = h.xpEx ?? 0, bonus = 40;
-  const base = exXpSum + bonus + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 6 * (1 + coinP));
+  const base = exXpSum + bonus + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 10 * (1 + coinP));
   const lines = [];
   [4, 3, 2, 1].forEach(t => { const n = h.ex.filter(x => x.tier === t).length; if (n) lines.push([`${n} × ${MEDAL_NAME[t]}`, null]); });
   lines.push(['Exercises', exXpSum], ['Workout cleared', bonus]);
@@ -351,11 +350,11 @@ window.claimQuest = id => {
 };
 window.claimQuestBonus = () => {
   if (G.quests.bonus || G.quests.claimed.length < G.quests.list.length) return;
-  G.quests.bonus = true; G.chests.push('wood'); award(0, 40); sfx('claim'); flushLevelUp(home);
+  G.quests.bonus = true; G.chests.push('wood'); award(0, 25); sfx('claim'); flushLevelUp(home);
 };
 const ciInfo = () => {
   const st = G.checkin === dayId() ? G.ciStreak : G.checkin === dayId(Date.now() - 864e5) ? G.ciStreak + 1 : 1;
-  return { st, xp: 10 + 2 * Math.min(st - 1, 6), coins: 15 + 5 * Math.min(st - 1, 6), chest: st % 7 === 0 };
+  return { st, xp: 10 + 2 * Math.min(st - 1, 6), coins: 8 + 3 * Math.min(st - 1, 6), chest: st % 7 === 0 };
 };
 window.checkIn = () => {
   if (G.checkin === dayId()) return;
@@ -366,7 +365,7 @@ window.checkIn = () => {
 const BOSSES = [['Iron Golem', 'golem'], ['Sloth Dragon', 'dragon'], ['Couch Lord', 'sofa'], ['Fatigue Wraith', 'ghost'], ['Gravity Beast', 'gorilla']];
 window.claimBoss = () => {
   if (G.bossClaimed === weekId() || weekCount() < S.profile.days) return;
-  G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(0, 160); sfx('claim'); checkAch(); flushLevelUp(home);
+  G.bossClaimed = weekId(); G.bosses++; G.chests.push(perk('boss') ? 'gold' : 'silver'); award(0, 100); sfx('claim'); checkAch(); flushLevelUp(home);
 };
 // The shop opens kind by kind over the first levels: at level 1 nothing can be bought yet
 const SHOP_LV = { avatar: 2, banner: 3, frame: 4, theme: 5, panel: 7, skin: 10 };
@@ -388,7 +387,7 @@ window.equipTitle = id => { G.title = G.title === id ? '' : id; commit(); route(
 // [name, icon, odds cuts (coins below cut 0, XP below cut 1, a look after), coin range, XP range]
 // Chests give no XP any more (cut 0 = cut 1): the share XP had went to coins, so the chance of a look did not change.
 // Coin amounts were lowered when every level started giving a chest.
-const CHEST = { wood: ['Wooden chest', 'crate', [95, 95, 100, 100], [15, 40], [0, 0]], silver: ['Silver chest', 'chest-silver', [70, 70, 100, 100], [25, 60], [0, 0]], gold: ['Golden chest', 'chest-gold', [50, 50, 90, 100], [60, 150], [0, 0]] };
+const CHEST = { wood: ['Wooden chest', 'crate', [95, 95, 100, 100], [10, 25], [0, 0]], silver: ['Silver chest', 'chest-silver', [70, 70, 100, 100], [15, 40], [0, 0]], gold: ['Golden chest', 'chest-gold', [50, 50, 90, 100], [40, 100], [0, 0]] };
 const rand = ([a, b]) => a + Math.floor(Math.random() * (b - a + 1));
 // Any shop item can come out of a chest, interfaces included. The pricier the item, the rarer it is, and how much rarer
 // depends on the chest: wooden chests mostly give cheap looks, golden ones give expensive ones a fair chance.
@@ -487,7 +486,7 @@ function home() {
     <div class="qbar"><i style="width:${v / q.n * 100}%"></i></div><div class="mut">${v}/${q.n} · ${gi('coin', 'cn')} ${coinsFor(q.xp)}</div></div>
     ${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimQuest('${id}')">Claim</button>` : ''}</div>`;
   }).join('')}
-  ${G.quests.bonus ? '' : `<div class="quest ${done >= G.quests.list.length ? 'ok' : ''}"><div class="qi">${gi('crate')}</div><div class="grow"><div class="qt">Clear every quest</div><div class="mut">Bonus chest · ${gi('coin', 'cn')} 40</div></div>
+  ${G.quests.bonus ? '' : `<div class="quest ${done >= G.quests.list.length ? 'ok' : ''}"><div class="qi">${gi('crate')}</div><div class="grow"><div class="qt">Clear every quest</div><div class="mut">Bonus chest · ${gi('coin', 'cn')} 25</div></div>
   ${done >= G.quests.list.length ? '<button class="btn sm" onclick="claimQuestBonus()">Open</button>' : ''}</div>`}
   ${G.checkin === dayId() ? '' : (c => `<button class="btn gold" onclick="checkIn()">Daily check-in · day ${c.st} · ${gi('coin', 'cn')} ${c.coins + coinsFor(c.xp)}${c.chest ? ' · chest' : ''}</button>`)(ciInfo())}
   ${G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${gi(CHEST[G.chests[0]][1])} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : ''}
@@ -496,7 +495,7 @@ function home() {
   <section class="card boss ${bossDone ? 'dead' : ''}"><div class="be">${gi(be, 'hero')}</div><div class="grow"><h3>${bn}</h3>
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
     <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left`}</div>
-    ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 160</button>` : ''}</div></section>
+    ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 100</button>` : ''}</div></section>
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
   <section class="card next"><div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min</div><h2>${esc(d.name.split(' · ')[1])}</h2>
@@ -533,7 +532,7 @@ function victory() {
   <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
   <div class="hud solo"><div class="av fr-${G.frame}" style="--p:0"><span>${gi(G.avatar, 'hero')}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
   ${r.chest ? `<div class="card row"><div class="avbig sm">${gi(CHEST[r.chest][1])}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}
-  ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${gi(a.i, 'hero')}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked · +${coinsFor(a.xp)} coins</div></div></div>`).join('')}
+  ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${gi(a.i, 'hero')}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked</div></div></div>`).join('')}
   <button class="btn" id="col">Collect</button></div>`;
   sfx('claim'); confetti();
   setTimeout(() => { const b = $('#vb'); if (b) { b.style.width = (lb > la ? 100 : pc(r.after)) + '%'; } }, 150);
@@ -541,7 +540,7 @@ function victory() {
 }
 
 function heroCard() { // stats live in Progress
-  return `${hud()}
+  return `${hud()}${typeof profileShow === 'function' ? profileShow(profileSummary()) : ''}
   ${looksBlock()}
   <button class="btn ghost" onclick="location.hash='#/settings'">${ic('gear', 18)} Settings</button>`;
 }

@@ -42,12 +42,12 @@ window.logSleep = h => {
 };
 
 // ---------- daily spin ----------
-const SPIN = [[30, 'coins', 20], [25, 'coins', 50], [8, 'coins', 100], [20, 'coins', 30], [10, 'coins', 75], [6, 'chest', 'wood'], [1, 'chest', 'silver']]; // coins and chests only: XP comes from looking after yourself
+const SPIN = [[30, 'coins', 10], [25, 'coins', 30], [8, 'coins', 60], [20, 'coins', 20], [10, 'coins', 45], [6, 'chest', 'wood'], [1, 'chest', 'silver']]; // coins and chests only: XP comes from looking after yourself
 const spinsToday = () => G.spinDay?.d === dayId() ? G.spinDay.n : 0;
 const freeSpins = () => (perk('spin3') ? 3 : perk('spin2') ? 2 : 1) - spinsToday();
 const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
 // The wheel has 8 equal slices; the odds come from SPIN, and the wheel then lands on a slice with that prize.
-const WHEEL = [['coins', 20], ['xp', 40], ['coins', 50], ['chest', 'wood'], ['coins', 20], ['xp', 100], ['coins', 100], ['chest', 'silver']];
+const WHEEL = [['coins', 10], ['xp', 40], ['coins', 30], ['chest', 'wood'], ['coins', 20], ['xp', 100], ['coins', 60], ['chest', 'silver']];
 const SLICE = 360 / WHEEL.length;
 const wheelLabel = ([k, v]) => k === 'coins' ? `${gi('coin', 'cn')}<b>${v}</b>` : k === 'xp' ? `${gi('sparkles')}<b>${v} XP</b>` : `${gi(CHEST[v][1])}<b>${v === 'silver' ? '★★★' : 'Loot chest'}</b>`;
 function wheelHtml() {
@@ -184,8 +184,8 @@ function earn() {
   <details class="card earnlist"><summary>Everything that pays</summary>
     ${[['lifter', 'Each exercise', 'up to 26 XP by its medal (stretches up to 5)'], ['swords', 'Workout cleared', '40 XP, + chest for dungeons'], ['trophy', 'New personal record', '20 XP each (40 with a level perk)'], ['flame', 'Training streak', 'up to ×1.5 XP'],
       ['gate', 'Dungeons', '×1.3 to ×3.5 XP, dungeon of the day ×1.5'], ['scroll', 'Daily quests', 'coins each, bonus chest for all of them'], ['calendar', 'Weekly quests', 'coins'],
-      ['golem', 'Weekly boss', '160 coins + a chest'], ['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
-      ['scale', 'Weigh-in', '15 XP'], ['crate', 'Daily check-in', 'coins, silver chest on day 7'], ['slot', 'Daily spin', 'coins or a chest'], ['medal', 'Badges', 'coins'], ['upgrade', 'Level-ups', 'coins, a silver chest (golden every 5th), meals, workouts, perks and level-only looks']]
+      ['golem', 'Weekly boss', '100 coins + a chest'], ['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
+      ['scale', 'Weigh-in', '15 XP'], ['crate', 'Daily check-in', 'coins, silver chest on day 7'], ['slot', 'Daily spin', 'coins or a chest'], ['medal', 'Badges', 'titles for your profile'], ['upgrade', 'Level-ups', 'a silver chest (golden every 5th), meals, workouts, perks and level-only looks']]
       .map(([i, a, b]) => `<div class="row between"><span>${gi(i, 'hero')} ${a}</span><b class="mut">${b}</b></div>`).join('')}
   </details>`;
 }

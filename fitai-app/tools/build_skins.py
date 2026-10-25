@@ -875,6 +875,37 @@ html[data-tint][data-skin] .orb{{background:radial-gradient(circle at 35% 30%,co
 """
 
 
+# ---------------------------------------------------------------- friends podium
+# Each interface builds the podium from its own materials: [first, second, third step colours, number colour,
+# the emblem over the winner, extra CSS for the steps].
+PODIUM = {
+    'clean': ('#6c8cff', '#9aa1b2', '#7d8597', '#ffffff', '"🏆"', 'border-radius:12px 12px 0 0;box-shadow:none'),
+    'hud': ('#22e4ff', '#7aa7c7', '#3d6a8a', '#021016', '"⬢"', 'border-radius:0;clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 10px,100% 100%,0 100%,0 10px);box-shadow:0 0 18px color-mix(in srgb,var(--pod) 55%,transparent),inset 0 0 0 1px #ffffff55'),
+    'chinese': ('#c4231b', '#a91c17', '#8f1a14', '#f3cf6e', '"🏮"', "{B}{border:0;border-radius:0;overflow:visible;margin-top:16px;box-shadow:inset 0 0 0 2px #d9ad45,inset 0 0 0 4px #0003}{B}::before{content:'';position:absolute;top:-16px;left:-12%;right:-12%;height:16px;background:linear-gradient(#f3cf6e,#b8892e);clip-path:polygon(0 100%,8% 40%,25% 0,75% 0,92% 40%,100% 100%,88% 70%,12% 70%);box-shadow:none}"),
+    'japanese': ('#e5432f', '#e5432f', '#e5432f', '#fff6e6', '"⛩️"', "{B}{border:0;border-radius:0;box-shadow:none;overflow:visible;background:linear-gradient(90deg,#0000 12%,var(--pod) 12% 24%,#0000 24% 76%,var(--pod) 76% 88%,#0000 88%)}{B}::before{content:'';position:absolute;top:-8px;left:-6%;right:-6%;height:9px;background:#1b1b1b;border-radius:60% 60% 0 0/10px 10px 0 0;box-shadow:0 7px 0 var(--pod)}{B}::after{content:'';position:absolute;top:20px;left:6%;right:6%;height:6px;background:var(--pod)}{B} b{margin-top:18px;color:#f2d8a7}"),
+    'fairy': ('#8a5a33', '#74492a', '#5e3b22', '#ffe9b0', '"🍄"', 'border-radius:40% 40% 6px 6px/22px 22px 6px 6px;border:0;box-shadow:inset 0 8px 0 #5f9a43,inset 0 -6px 12px #0006'),
+    'medieval': ('#7d7465', '#6a6255', '#575046', '#e8d9a8', '"🏰"', 'border-radius:0;border:0;clip-path:polygon(0 8px,14% 8px,14% 0,30% 0,30% 8px,44% 8px,44% 0,56% 0,56% 8px,70% 8px,70% 0,86% 0,86% 8px,100% 8px,100% 100%,0 100%);background-image:linear-gradient(#0002 1px,#0000 1px),linear-gradient(90deg,#0002 1px,#0000 1px);background-size:100% 14px,28px 100%'),
+    'steampunk': ('#b87333', '#a0632c', '#875325', '#2a1a0a', '"⚙️"', "{B}{border:0;border-radius:6px 6px 0 0;overflow:visible;background-image:repeating-linear-gradient(0deg,#0000 0 14px,#d6a25c 14px 17px),linear-gradient(90deg,#0003,#fff3 40%,#0003)}{B}::before{content:'⚙';position:absolute;top:-22px;right:-4px;font-size:26px;color:#d6a25c;line-height:1;animation:bspin 8s linear infinite}"),
+    'greek': ('#f2ede2', '#e4ddcd', '#d4ccb8', '#3a2f1c', '"🏛️"', "{B}{border:0;border-radius:0;box-shadow:none;overflow:visible;background:repeating-linear-gradient(90deg,var(--pod) 0 6px,#bfb5a0 6px 8px) 50% 0/64% 100% no-repeat}{B}::before{content:'';position:absolute;top:0;left:10%;right:10%;height:12px;background:radial-gradient(circle at 8px 6px,#bfb5a0 0 3px,#0000 3.5px),radial-gradient(circle at calc(100% - 8px) 6px,#bfb5a0 0 3px,#0000 3.5px),var(--pod);border-radius:6px;box-shadow:0 1px 0 #0003}{B}::after{content:'';position:absolute;bottom:0;left:6%;right:6%;height:9px;background:var(--pod);box-shadow:0 -3px 0 #d9cfb9}{B} b{background:var(--pod);padding:0 6px;border-radius:4px}"),
+    'egypt': ('#e0bd62', '#cfac56', '#b8964a', '#2a1b05', '"🏺"', '{B}{border:0;border-radius:0;box-shadow:none;clip-path:polygon(50% 0,100% 100%,0 100%);background:repeating-linear-gradient(0deg,var(--pod) 0 10px,#0000001f 10px 11px),var(--pod);align-items:end;padding-bottom:4px}{B} b{font-size:20px}'),
+    'viking': ('#8b929a', '#7a8188', '#686e75', '#e9e2c9', '"🛡️"', '{B}{border:0;border-radius:46% 46% 8px 8px/34% 34% 8px 8px;box-shadow:inset -6px -4px 0 #0003;background-image:linear-gradient(90deg,#0000 47%,#5a3e24 47% 53%,#0000 53%),radial-gradient(circle at 30% 30%,#ffffff22,#0000 50%)}'),
+    'pirate': ('#7a5530', '#6c4a29', '#5e4023', '#ffd36a', '"🏴\u200d☠️"', "{B}{border:0;border-radius:8px 8px 2px 2px;overflow:visible;margin-top:18px;box-shadow:inset 0 -3px 0 #3a2814;background-image:linear-gradient(90deg,#0000 0 10%,#c8a15a 10% 14%,#0000 14% 86%,#c8a15a 86% 90%,#0000 90%)}{B}::before{content:'';position:absolute;top:-14px;left:0;right:0;height:22px;background:color-mix(in srgb,var(--pod) 80%,#000);border-radius:50% 50% 4px 4px/100% 100% 4px 4px;box-shadow:inset 0 3px 0 #c8a15a}{B}::after{content:'';position:absolute;top:2px;left:50%;width:14px;height:16px;transform:translateX(-50%);background:#ffd36a;border-radius:3px;box-shadow:inset 0 -6px 0 #b8892e}{B} b{margin-top:16px}"),
+    'outrun': ('#ff3cc7', '#9b4dff', '#00c8ff', '#120024', '"🌴"', 'border-radius:4px 4px 0 0;border:0;background-image:linear-gradient(#0000 60%,#0003 60%),repeating-linear-gradient(90deg,#fff3 0 1px,#0000 1px 16px);box-shadow:0 0 18px color-mix(in srgb,var(--pod) 70%,transparent)'),
+    'arcade': ('#ffe14a', '#4ad6ff', '#ff5ca8', '#0d0a24', '"👾"', 'border-radius:0;border:0;box-shadow:inset 0 0 0 3px #0d0a24,inset 0 0 0 5px #ffffff88;image-rendering:pixelated'),
+    'classical': ('#f3ecdc', '#e3d9c3', '#d2c6ac', '#14110a', '"🥂"', "{B}{border:0;border-radius:0;overflow:visible;box-shadow:inset 0 0 0 1px #d9b87188}{B}::before{content:'';position:absolute;top:-6px;left:-6%;right:-6%;height:8px;background:var(--pod);box-shadow:inset 0 -2px 0 #d9b871,0 2px 4px #0005}{B}::after{content:'';position:absolute;bottom:0;left:-6%;right:-6%;height:8px;background:var(--pod);box-shadow:inset 0 2px 0 #d9b871}"),
+    'artdeco': ('#1a1a1a', '#151515', '#101010', '#e6c36a', '"🎷"', '{B}{border:0;border-radius:0;clip-path:polygon(22% 0,78% 0,78% 10px,88% 10px,88% 20px,100% 20px,100% 100%,0 100%,0 20px,12% 20px,12% 10px,22% 10px);background-image:repeating-conic-gradient(from -90deg at 50% 100%,#e6c36a30 0 5deg,#0000 5deg 10deg);box-shadow:inset 0 0 0 2px #e6c36a}'),
+    'gothic': ('#2a2f45', '#252a3d', '#202435', '#cfd8ff', '"🕯️"', '{B}{border:0;border-radius:0;clip-path:polygon(0 100%,0 34%,50% 0,100% 34%,100% 100%);background-image:conic-gradient(from 0deg at 50% 70%,#7a3ff066,#ff4d6d55,#ffd36a55,#3ddc9755,#7aa2ff66,#7a3ff066);box-shadow:inset 0 0 0 4px #4a4f63}{B} b{margin-top:14px}'),
+    'baroque': ('#8e1b2e', '#741626', '#5c111e', '#f3cf6e', '"👑"', "{B}{border:0;border-radius:4px 4px 0 0;overflow:visible;box-shadow:inset 0 0 0 2px #e0b44c}{B}::before{content:'';position:absolute;top:-8px;left:-8%;right:-8%;height:10px;background:linear-gradient(#f3d77a,#b8892e);border-radius:10px}{B}::after{content:'';position:absolute;bottom:0;left:-6%;right:-6%;height:8px;background:linear-gradient(#f3d77a,#b8892e)}"),
+    'mythical': ('#7c4dff', '#5a2fd6', '#3ddc97', '#ffffff', '"🐉"', 'border-radius:8px 8px 0 0;border:0;clip-path:polygon(50% 0,100% 18%,100% 100%,0 100%,0 18%);box-shadow:0 0 22px color-mix(in srgb,var(--pod) 70%,transparent),inset 0 0 18px #ffffff33'),
+    'cosmic': ('#9b7bff', '#5f6bd6', '#22d3ee', '#05031a', '"🪐"', 'border-radius:50% 50% 0 0/14px 14px 0 0;border:0;background-image:radial-gradient(circle,#fff 0 1px,#0000 1.5px);background-size:13px 17px;box-shadow:0 0 18px color-mix(in srgb,var(--pod) 60%,transparent)'),
+}
+# extra is either the steps' own declarations, or whole rules written with {B} for the step selector
+POD = "\n/* friends podium, dressed by each interface */\n" + "".join(
+    f"html[data-skin={k}]{{--pod1:{a};--pod2:{b};--pod3:{c};--podink:{ink};--podorn:{orn}}}\n"
+    + (extra.replace('{B}', f"html[data-skin={k}] .pod .blk") if '{B}' in extra else f"html[data-skin={k}] .pod .blk{{{extra}}}") + "\n"
+    for k, (a, b, c, ink, orn, extra) in PODIUM.items())
+
+
 # ---------------------------------------------------------------- prestige crests
 # Level-only prestige rings wear a small emblem on top, like game profile borders, drawn by each interface
 # (art in crest_art.py: build_min, one emblem each; build keeps the fuller ornaments). Two masks per interface: the
@@ -894,5 +925,5 @@ PREST = "\n/* prestige crests: each interface's ornament for level-only rings (m
     f"html[data-skin={k}]{{--pcrest:{svg(crest_metal(sh, cu), '0 0 120 120')};--pgem:{svg(chr(60) + 'g fill=' + chr(39) + '#fff' + chr(39) + '>' + gm + '</g>', '0 0 120 120')}}}\n"
     for k, (sh, cu, gm) in crest_build().items())
 
-OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST)
+OUT.write_text((HERE / 'skins_base.css').read_text() + ANIM + ''.join(SKINS) + TINT + BUB + PREVIEW + PREST + POD)
 print('wrote', OUT, OUT.stat().st_size, 'bytes,', len(SKINS), 'skins')
