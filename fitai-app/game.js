@@ -308,7 +308,7 @@ function gameWorkout(h) {
   if (chest) G.chests.push(chest);
   award(xp, coins);
   const ach = checkAch();
-  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest };
+  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h) };
 }
 function gameWeigh() {
   ensureDay();
@@ -544,6 +544,7 @@ function victory() {
   view.innerHTML = `<div class="vic"><div class="lvup">${r.dungeon ? 'Dungeon cleared' : 'Workout cleared'}</div><h1>${esc(r.name)}</h1>
   <div class="card">${r.lines.map(([t, v]) => `<div class="row between"><span>${t}</span><b>${v == null ? '' : '+' + v}</b></div>`).join('')}
   <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
+  ${typeof liftedCard === 'function' ? liftedCard(r.kg) : ''}
   <div class="hud solo"><div class="av fr-${G.frame}" style="--p:0"><span>${gi(G.avatar, 'hero')}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
   ${r.chest ? `<div class="card row"><div class="avbig sm">${gi(CHEST[r.chest][1])}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}
   ${r.ach.map(a => `<div class="card row"><div class="avbig sm">${gi(a.i, 'hero')}</div><div class="grow"><b>${a.n}</b><div class="mut">Badge unlocked</div></div></div>`).join('')}

@@ -1043,3 +1043,9 @@ nav#tabs .nbadge{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;h
 #resume .rquit{all:unset;display:grid;place-items:center;width:28px;height:28px;margin:-4px -6px -4px 2px;border-radius:50%;color:var(--mut);cursor:pointer}
 #resume .rquit:hover{color:var(--fg);background:var(--card2)}
 .minechip{margin:8px 0 0}
+/* after a workout: the kilos lifted as a thing from your interface's world */
+.lifted{display:flex;align-items:center;gap:14px}
+.lifted .lfe{font-size:40px;line-height:1;filter:drop-shadow(0 4px 10px #0007);animation:lfpop .6s .3s cubic-bezier(.2,1.6,.4,1) both}
+.lifted b{display:block;font-size:16px;line-height:1.25}
+@keyframes lfpop{0%{transform:translateY(14px) scale(.4);opacity:0}100%{transform:none;opacity:1}}
+@media(prefers-reduced-motion:reduce){.lifted .lfe{animation:none}}
