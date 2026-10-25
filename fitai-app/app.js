@@ -84,22 +84,24 @@ document.querySelectorAll('#tabs a').forEach(a => { a.insertAdjacentHTML('afterb
 
 // ---------- demo media ----------
 // A real video (data/videos.json: id -> mp4 URL or YouTube id) wins; otherwise the start/end pose photos loop.
-function demo(e, label = true) {
-  const v = VID[e.id];
-  if (v && /^[\w-]{11}$/.test(v)) return `<div class="demo"><iframe src="https://www.youtube-nocookie.com/embed/${v}?loop=1&playlist=${v}&rel=0" allowfullscreen></iframe></div>`;
-  if (v) return `<div class="demo"><video src="${esc(v)}" autoplay loop muted playsinline controls></video></div>`;
-  if (e.x) return `<div class="demo nophoto">${typeof gi === 'function' ? gi('shoulder') : ''}<span>Follow the steps below</span></div>`;
-  const a = IMG_BASE + e.id + '/0.jpg', b = IMG_BASE + e.id + '/' + (e.im > 1 ? 1 : 0) + '.jpg';
-  return `<div class="demo"><img data-a="${a}" data-b="${b}" src="${a}" alt="${esc(e.n)}" loading="lazy">${label ? '<small>demo loop</small>' : ''}</div>`;
+// The exercise's picture: a muscle map (front and back) with the muscles it works lit up (bodymap.js). Tapping it shows
+// the move itself: the two photos of the exercise cross-fading like a short clip; tapping again goes back to the map.
+function demo(e) {
+  return `<div class="demo body ${e.x ? '' : 'tap'}" ${e.x ? '' : `onclick="demoFlip(this,'${e.id}')" role="button" aria-label="Show the move"`}>${bodyMap(e.m, e.s, 'both')}${e.x ? '' : `<span class="flip">${ic('play', 14)}</span>`}</div>`;
 }
+const photoDemo = e => { const a = IMG_BASE + e.id + '/0.jpg', b = IMG_BASE + e.id + '/' + (e.im > 1 ? 1 : 0) + '.jpg';
+  return `<img src="${a}" alt="${esc(e.n)}">${a === b ? '' : `<img class="f2" src="${b}" alt="">`}<span class="flip">${ic('back', 14)}</span>`; };
+window.demoFlip = (el, id) => {
+  const e = BY[id]; if (!e) return;
+  const toPhoto = !el.classList.contains('anim');
+  el.classList.toggle('anim', toPhoto); el.classList.toggle('body', !toPhoto);
+  el.innerHTML = toPhoto ? photoDemo(e) : `${bodyMap(e.m, e.s, 'both')}<span class="flip">${ic('play', 14)}</span>`;
+};
 function startLoops() {
   timers.forEach(clearInterval); timers = [];
-  document.querySelectorAll('.demo img[data-a]').forEach(img => {
-    let f = 0;
-    timers.push(setInterval(() => { f ^= 1; img.src = f ? img.dataset.b : img.dataset.a; }, 900));
-  });
+  // demos animate with CSS now (a cross-fade between the two photos)
 }
-const thumb = e => e.x ? `<span class="thumb nophoto">${typeof gi === 'function' ? gi('shoulder') : ''}</span>` : `<img class="thumb" loading="lazy" src="${IMG_BASE}${e.id}/0.jpg" alt="">`;
+const thumb = e => `<span class="thumb bthumb">${bodyMap(e.m, e.s, 'auto')}</span>`;
 
 // ---------- coach: body numbers and nutrition targets ----------
 function analyze(p) {
@@ -492,26 +494,29 @@ window.swapEx = (di, ii) => {
   it.id = c[Math.floor(Math.random() * c.length)].id; save('plan', S.plan); if (tod) save('today', S.today); planView();
 };
 
-let libF = { q: '', m: '', e: '' };
+let libF = { q: '', m: '', e: '', g: '' };
 const fold = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 const exKey = e => fold(typeof tr === 'function' && tr(e.n) !== e.n ? e.n + ' ' + tr(e.n) : e.n); // search in English and in the app language
 // Filter options keep the English value; only the label gets translated, so filtering works in any language.
 const optList = (vals, cur) => vals.map(v => [v, typeof tr === 'function' ? tr(v) : v]).sort((a, b) => a[1].localeCompare(b[1]))
   .map(([v, t]) => `<option value="${esc(v)}" ${v === cur ? 'selected' : ''}>${esc(t)}</option>`).join('');
 let libN = 60;
+// The exercise library: first the muscle groups, each drawn on the body; then that group's exercises (or a search).
 function library() {
-  const muscles = [...new Set(EX.flatMap(e => e.m))].sort();
-  const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!libF.m || e.m.includes(libF.m)) && (!libF.e || e.e === libF.e));
-  view.innerHTML = `<h1>Exercises</h1>
-  <input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">
-  <div class="two" style="margin:8px 0"><select id="fm"><option value="">All muscles</option>${optList(muscles, libF.m)}</select>
-  <select id="fe"><option value="">All equipment</option>${optList([...new Set(EX.map(e => e.e))], libF.e)}</select></div>
-  <div class="mut">${list.length} results</div>
-  ${list.slice(0, libN).map(e => `<a class="card row li" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${e.m[0]} · ${e.e} · ${e.l}</div></div></a>`).join('')}
-  ${list.length > libN ? `<button class="btn ghost" onclick="libN += 60; library()">Show more (${list.length - libN})</button>` : ''}`;
+  const grp = MGROUPS.find(g => g[0] === libF.g);
+  const list = EX.filter(e => (!libF.q || exKey(e).includes(fold(libF.q))) && (!grp || e.m.some(m => grp[2].includes(m))) && (!libF.e || e.e === libF.e));
+  const head = `<button class="btn sm ghost back" onclick="${grp ? "libF.g='';libN=60;library()" : 'history.back()'}">${ic('back', 18)} Back</button>
+  <h1>${grp ? grp[1] : 'Exercises'}</h1><input class="search" id="q" placeholder="Search ${EX.length} exercises" value="${esc(libF.q)}">`;
+  if (!grp && !libF.q) {
+    view.innerHTML = `${head}<div class="mgrid">${MGROUPS.map(([k, name, ms]) => `<button class="mgroup" onclick="libF.g='${k}';libN=60;library()">${bodyMap(ms, [], 'auto')}<b>${name}</b><span class="mut">${EX.filter(e => e.m.some(m => ms.includes(m))).length}</span></button>`).join('')}</div>`;
+  } else {
+    view.innerHTML = `${head}
+    <select id="fe" style="margin:8px 0"><option value="">All equipment</option>${optList([...new Set(EX.map(e => e.e))], libF.e)}</select>
+    ${list.slice(0, libN).map(e => `<a class="card row li" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${e.e}</div></div></a>`).join('')}
+    ${list.length > libN ? `<button class="btn ghost" onclick="libN += 60; library()">Show more (${list.length - libN})</button>` : ''}`;
+    $('#fe').onchange = ev => { libF.e = ev.target.value; libN = 60; library(); };
+  }
   $('#q').oninput = ev => { libF.q = ev.target.value.toLowerCase(); libN = 60; const pos = ev.target.selectionStart; library(); const q = $('#q'); q.focus(); q.setSelectionRange(pos, pos); };
-  $('#fm').onchange = ev => { libF.m = ev.target.value; libN = 60; library(); };
-  $('#fe').onchange = ev => { libF.e = ev.target.value; libN = 60; library(); };
 }
 
 function exerciseView(id) {
@@ -708,7 +713,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 135</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 142</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();

@@ -203,7 +203,7 @@ home = function () {
   if (anchor) anchor.insertAdjacentHTML('afterend', foodCard());
 };
 const _flMeals = mealsView;
-mealsView = function (arg) { _flMeals(arg); if (!view.querySelector('#mgo')) view.querySelector(':scope > h1')?.insertAdjacentHTML('afterend', foodCard()); }; // not on the setup page
+mealsView = function (arg) { _flMeals(arg); }; // the food log lives on Today's Meals panel only
 Object.assign(routes, { home, meals: mealsView });
 
 if (typeof i18nAdd === 'function') i18nAdd({

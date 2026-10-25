@@ -322,25 +322,16 @@ function mealsView(arg) {
   if (mDay === null) mDay = todayIdx();
   const a = target(), d = M.plan.days[mDay], t = dayTotals(d);
   const bar = (lbl, v, goal, cls) => `<div class="mbar"><span>${lbl}</span><div class="qbar ${cls}"><i style="width:${clamp(v / goal * 100, 0, 100)}%"></i></div><b>${Math.round(v)}/${goal} g</b></div>`;
+  // just what matters: the day's calories and macros, its cooking time and one line per meal (its name)
   view.innerHTML = `${seg('meals')}<h1>Meal plan</h1>${appetiteNote()}
   <div class="days">${DAYN.map((n, i) => `<button class="dpill ${i === mDay ? 'on' : ''} ${i === todayIdx() ? 'td' : ''}" onclick="mealDay(${i})"><span>${n}</span><i>${M.plan.days[i].items.every(x => x.eaten) ? '✓' : ''}</i></button>`).join('')}</div>
-  <section class="card"><div class="row between"><h3>${Math.round(t.kcal)} kcal planned</h3><span class="mut">target ${a.kcal}</span></div>
-  <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div><div class="mut">${Math.round(t.eat)} kcal eaten so far</div>
-  ${bar('Protein', t.p, a.protein, 'pr')}${bar('Carbs', t.c, a.carbs, 'cb')}${bar('Fat', t.f, a.fat, 'ft')}
-  ${t.kcal < a.kcal * .9 && M.set.meals < 5 ? `<div class="mut" style="margin-top:8px">💡 One serving per meal falls short of your target. <a href="#/meals/setup" style="color:var(--acc2)">Choose ${M.set.meals + 1} meals a day</a> to eat enough.</div>` : ''}</section>
-  ${(() => { const avgP = M.plan.days.reduce((x, y) => x + dayTotals(y).p, 0) / 7; return avgP < a.protein * .9 ? `<p class="mut">💡 This week averages ${Math.round(avgP)} g protein against a ${a.protein} g target. A longer cooking time, "Balanced" variety or a protein snack closes the gap.</p>` : ''; })()}
-  <div class="mut">🛒 ${weekIngredients()} ingredients this week · ${VAR().name}${M.set.style === 'ai' ? ' · Anti-inflammatory' : ''}${(M.set.cuisines || []).length ? ' · ' + M.set.cuisines.map(c => CUISINES[c]).join(' + ') : ''} · <a href="#/meals/setup" style="color:var(--acc2)">change</a></div>
-  <div class="lbl">Time to cook this day</div>
-  ${d.items.some(it => it.kind !== 's' && RBY[it.rid].time > d.cook) ? '<p class="mut">⚠️ Your diet and cuisine choices leave no faster option for some meals, so they take a little longer than this.</p>' : ''}
-  <div class="chips">${Object.entries(COOK).map(([v, l]) => `<button class="chip ${+v === d.cook ? 'on' : ''}" onclick="setCook(${mDay},${v})">${l}</button>`).join('')}</div>
-  ${d.items.map((it, i) => { const r = RBY[it.rid], n = nutIt(it); return `<a class="card meal ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><div class="mi">${r.ico}</div><div class="grow"><div class="mut">${it.slot} · ${r.time} min${r.cu ? ' · ' + CUISINE_ICO[r.cu[0]] + ' ' + CUISINES[r.cu[0]] : ''}${r.chef ? ' · ⭐ Chef' : ''}${r.ai ? ' · ' + gi('leaf') : ''}${timesInWeek(it.rid) > 1 ? ` · ×${timesInWeek(it.rid)} this week` : ''}</div><div class="qt">${esc(r.name)}</div>
-  <div class="mut">${Math.round(n.kcal * it.k)} kcal · P ${Math.round(n.p * it.k)} · C ${Math.round(n.c * it.k)} · F ${Math.round(n.f * it.k)}</div></div><span class="chk">${it.eaten ? '✓' : ''}</span></a>`; }).join('')}
-  ${filterNotes(M.set).map(n => `<p class="mut">⚠️ ${esc(n)}</p>`).join('')}
+  <section class="card"><div class="row between"><h3>${Math.round(t.eat)} / ${a.kcal} kcal</h3><span class="mut">${Math.round(t.kcal)} planned</span></div>
+  <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div>
+  ${bar('Protein', t.p, a.protein, 'pr')}${bar('Carbs', t.c, a.carbs, 'cb')}${bar('Fat', t.f, a.fat, 'ft')}</section>
+  ${slider('cook', Object.entries(COOK), d.cook, `setCook(${mDay},+sldVal(this))`)}
+  <div class="mlist">${d.items.map((it, i) => { const r = RBY[it.rid]; return `<a class="mrow ${it.eaten ? 'done' : ''}" href="#/recipe/${mDay}/${i}"><span class="mi">${r.ico}</span><span class="grow"><small>${it.slot}</small><b>${esc(r.name)}</b></span>${it.eaten ? '<span class="chk">✓</span>' : ''}</a>`; }).join('')}</div>
   <button class="btn" onclick="location.hash='#/shop'">${gi('pack')} Shopping list</button>
-  <button class="btn ghost" onclick="rebuildWeek()">Shuffle the whole week</button>
-  <button class="btn ghost" onclick="location.hash='#/rewards'">${gi('chef')} See which chef recipes you unlock next</button>
-  <button class="btn ghost" onclick="location.hash='#/meals/setup'">Change diet and preferences</button>
-  <p class="mut">Calories and macros are estimates from typical ingredient values. They are not medical or dietitian advice.</p>`;
+  <div class="row"><button class="btn ghost" onclick="rebuildWeek()">New week</button><button class="btn ghost" onclick="location.hash='#/meals/setup'">Preferences</button></div>`;
 }
 window.mealDay = i => { mDay = i; mealsView(); };
 window.rebuildWeek = () => { toast('Planning your week…'); setTimeout(() => { buildWeek(); mealsView(); toast('New week planned'); }, 30); };
@@ -366,13 +357,13 @@ function recipeView() {
   <div class="rhero">${r.ico}</div><div class="mut">${DAYN[+di]} · ${it.slot}</div><h1>${esc(r.name)}</h1>
   <div class="grid4"><div class="stat"><b>${Math.round(n.kcal * it.k)}</b><span>kcal</span></div><div class="stat"><b>${Math.round(n.p * it.k)}g</b><span>protein</span></div>
   <div class="stat"><b>${Math.round(n.c * it.k)}g</b><span>carbs</span></div><div class="stat"><b>${Math.round(n.f * it.k)}g</b><span>fat</span></div></div>
-  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}${r.ai ? `<span class="chip on">${gi('leaf')} Anti-inflammatory</span>` : ''}<span class="chip">1 person · ${it.k < .95 ? 'light serving' : it.k > 1.3 ? 'large serving' : it.k > 1.05 ? 'hearty serving' : 'standard serving'}</span></div>
+  <div class="chips static"><span class="chip">⏱ ${r.time} min</span>${r.cu ? `<span class="chip">${CUISINE_ICO[r.cu[0]]} ${CUISINES[r.cu[0]]}</span>` : ''}${r.ai ? `<span class="chip on">${gi('leaf')} Anti-inflammatory</span>` : ''}</div>
   ${r.ai ? `<p class="mut">${gi('leaf')} Rich in ${r.aiGood.slice(0, 4).map(k => ING[k][0].toLowerCase()).join(', ')}. No red meat, refined pasta or added sugar.</p>` : ''}
   <section class="card hunger"><div class="row between"><h3>How hungry are you?</h3><span class="mut">×${it.k.toFixed(2)}</span></div>
     <div class="chips">${HUNGER.map(([l, k]) => `<button class="chip ${Math.abs(it.k - k) < .03 ? 'on' : ''}" onclick="setPortion(${di},${ii},${k})">${l}</button>`).join('')}</div>
     <div class="row"><button class="btn sm ghost" aria-label="Less food" onclick="setPortion(${di},${ii},${it.k - .1})">− Less</button><span class="grow"></span><button class="btn sm ghost" aria-label="More food" onclick="setPortion(${di},${ii},${it.k + .1})">+ More</button></div></section>
   <h2 class="sec">Ingredients</h2><div class="card">${r.ing.map(([k, g]) => ingRow(+di, +ii, it, k, g)).join('')}
-  <div class="mut">Plus salt, pepper, herbs and spices to taste.</div></div>
+</div>
   <h2 class="sec">Steps</h2><ol class="how">${r.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
   <button class="btn ${it.eaten ? 'ghost' : 'gold'}" onclick="toggleEat(${di},${ii})">${it.eaten ? 'Undo: not eaten' : 'I ate this · +15 XP'}</button>
   <button class="btn ghost" onclick="swapMeal(${di},${ii})">${ic('swap', 18)} Swap for another recipe</button>`;
