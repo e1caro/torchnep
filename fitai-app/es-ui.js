@@ -346,3 +346,6 @@ i18nAdd({ 'Show the move': 'Ver el movimiento' });
 i18nAdd({ 'Swap for a similar exercise': 'Cambiar por un ejercicio similar', 'Similar exercises': 'Ejercicios similares' });
 i18nAdd({ 'Workout playlist': 'Lista para entrenar', 'Making your playlist…': 'Creando tu lista…', 'New playlist': 'Nueva lista', 'Make a {n} min playlist': 'Crear una lista de {n} min',
   'Spotify did not find enough songs. Try another genre.': 'Spotify no encontró suficientes canciones. Prueba otro género.' });
+i18nAdd({ 'Link my Spotify': 'Vincular mi Spotify', 'New list': 'Nueva lista', 'Make a {n} min list': 'Crear una lista de {n} min',
+  'Open': 'Abre', 'and sign in.': 'e inicia sesión.', 'Create app: any name, choose Web API, and add this Redirect URI:': 'Crea una app (cualquier nombre), elige Web API y añade esta Redirect URI:',
+  'Copy its Client ID and paste it here.': 'Copia su Client ID y pégalo aquí.', 'Spotify asks for Premium for this.': 'Spotify pide Premium para esto.' });
