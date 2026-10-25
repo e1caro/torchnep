@@ -50,7 +50,8 @@ function form() {
   const exw = H.reduce((a, h) => a + h.ex.length, 0) / n || 5;
   const mg = Object.fromEntries(Object.keys(MG).map(g => [g, H.length ? frac(h => hitsGroup(h, g)) : .35]));
   const recentW = S.weights.filter(w => w.t >= since).length;
-  return { perWeek, dgPerWeek, mins: Math.max(15, mins), sets: Math.max(4, sets), xpw: Math.max(150, sets * 10 + 100) * 1.15, kgw, repw: Math.max(30, repw), exw, mg,
+  return { perWeek, dgPerWeek, mins: Math.max(15, mins), sets: Math.max(4, sets), xpw: Math.max(80, exw * 15 + 40) * 1.15, // about what a workout pays: each exercise by its medal, plus the clear bonus
+    kgw, repw: Math.max(30, repw), exw, mg,
     long: Math.max(.05, frac(h => h.dur >= 60)), morn: Math.max(.05, frac(h => hourOf(h) < 9)), eve: Math.max(.05, frac(h => hourOf(h) >= 20)),
     drills: Math.max(.5, S.history.filter(h => h.t >= since && h.sport).length / 4), weigh: Math.max(.5, recentW / 4) };
 }
@@ -93,7 +94,15 @@ const xpIn = (a, b = Infinity) => { const ks = Object.keys(BT.xpLog).map(Number)
 const prToday = () => prIn(dayStart(), dayEnd());
 // muscle groups, volume, time of day
 const MG = { legs: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors'], chest: ['chest'], back: ['lats', 'middle back', 'lower back', 'traps'], shoulders: ['shoulders'], arms: ['biceps', 'triceps', 'forearms'], core: ['abdominals'] };
-const hitsGroup = (h, g) => h.ex.some(x => MG[g].includes(BY[x.id]?.m[0]));
+// A workout trains a muscle group when that group has the most sets in it (ties count for each); cardio and stretching
+// don't count, so a full-body day with one curl is not an arms day.
+const mainGroups = h => {
+  const n = {};
+  h.ex.forEach(x => { const e = BY[x.id]; if (!e || ['cardio', 'stretching'].includes(e.c)) return; const g = Object.keys(MG).find(k => MG[k].includes(e.m[0])); if (g) n[g] = (n[g] || 0) + x.sets.length; });
+  const top = Math.max(0, ...Object.values(n));
+  return top ? Object.keys(n).filter(g => n[g] === top) : [];
+};
+const hitsGroup = (h, g) => mainGroups(h).includes(g);
 const mgIn = (g, a, b) => S.history.filter(h => inWin(h, a, b) && hitsGroup(h, g)).length;
 const sumSets = (a, b, fn) => S.history.filter(h => inWin(h, a, b)).reduce((s, h) => s + h.ex.reduce((x, e) => x + e.sets.reduce((y, st) => y + fn(st), 0), 0), 0);
 const kgIn = (a, b) => Math.round(sumSets(a, b, st => (st.w || 0) * (st.r || 0)));
@@ -510,23 +519,13 @@ function betsView() {
   const so = slipOdds(slip), maxStake = Math.min(stakeCap(slip), G.coins);
   stake = Math.max(BET_MIN, Math.min(stake, Math.max(BET_MIN, maxStake)));
   const row = m => `<button class="mkt ${on.has(m.id) ? 'on' : ''}" onclick="betPick('${m.id}')"><span class="qi">${gi(m.ico)}</span><span class="grow"><span class="mt">${m.t}</span>${m.need && m.show !== false ? `<span class="mut">${Math.min(m.prog, m.need)}/${m.need} so far</span>` : ''}</span>${oddCell(m, on.has(m.id))}</button>`;
-  const list = ms.filter(m => m.tab === betTab), per = periods().find(P => P.k === betTab);
-  const fmt = t => new Date(t).toLocaleDateString(LANG, { weekday: 'short', day: 'numeric', month: 'short' });
-  const note = `From today to ${fmt(per.to)}, counted from the day you bet.`;
+  const list = ms.filter(m => m.tab === betTab);
   view.innerHTML = `${hud()}<button class="btn sm ghost back" onclick="location.hash='#/earn'">${ic('back', 18)} Back</button><h1>Bets</h1>
   <h2 class="sec">My bets</h2>
   ${BT.open.length ? BT.open.map(betCard).join('') : '<p class="mut">No open bets.</p>'}
-  ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}</details>` : ''}
-  <div class="mut" style="text-align:center;margin-top:10px">Balance from bets: ${BT.net >= 0 ? '+' : '−'}${Math.abs(BT.net)} coins</div>
+  ${BT.done.length ? `<details class="card"><summary>Finished bets · won ${BT.won}, lost ${BT.lost}</summary>${BT.done.map(betCard).join('')}<div class="mut" style="text-align:center;margin-top:10px">Balance from bets: ${BT.net >= 0 ? '+' : '−'}${Math.abs(BT.net)} coins</div></details>` : ''}
   <h2 class="sec">New bet</h2>
-  <details class="card howto"><summary>How bets work</summary><ol>
-    <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the number is the total odds your bet would have with that goal added.</li>
-    <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
-    <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
-    <li>Bets last 7 days or a month, counted from the day you bet (today is the first day), whatever the day of the week. There are no one-day bets. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
-    <li>Muscle picks pay 1.00 alone, because you will train something, and a bit more for muscles you rarely train. Combine several muscles of the same bet to raise the odds: in 7 days up to ×1.6, in a month up to ×1.35.</li>
-    <li>Tick Repeat to place the same bet again, for the next 7 days or month, when it ends. Stop it from My bets whenever you like.</li>
-    <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back), training once a week or month never pays, and a month pays less than 7 days. Stakes go from ${BET_MIN} coins up to ${STAKE_CAP.week} on a 7-day bet and ${STAKE_CAP.month} on a one-month bet, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>
+  
   ${slip.length ? `<section class="card slip"><div class="row between"><h3>${slip.length > 1 ? `Combined bet · ${slip.length} picks` : 'Single bet'}</h3><button class="icon" aria-label="Clear slip" onclick="betClear()">${ic('close', 18)}</button></div>
     ${slip.map(l => `<div class="row betleg"><span class="grow">${l.t}</span><span class="mut">${l.o.toFixed(2)}</span></div>`).join('')}
     ${so.muscles > 1 ? `<div class="mut">Muscle combo: ${so.muscles} muscles ×${so.mgx.toFixed(2)}</div>` : ''}
@@ -537,11 +536,17 @@ function betsView() {
     <div class="row between pay"><span>Possible win</span><b>${gi('coin', 'cn')} ${Math.round(stake * so.total)}</b></div>
     <button class="btn chestbtn" ${G.coins >= stake && G.coins >= BET_MIN && BT.open.length < BET_OPEN ? '' : 'disabled'} onclick="placeBet()">${gi('ticket')} Place bet · ${stake} coins</button>
     ${G.coins < BET_MIN ? `<div class="mut">You need at least ${BET_MIN} coins.</div>` : BT.open.length >= BET_OPEN ? `<div class="mut">You can have ${BET_OPEN} open bets at a time.</div>` : ''}</section>`
-    : `<p class="mut">Pick one goal for a single bet, or several for a combined bet.</p>`}
+    : ''}
   <div class="chips bettabs">${PER_TABS.map(([k, t]) => `<button class="chip ${betTab === k ? 'on' : ''}" onclick="betTabSet('${k}')">${t}</button>`).join('')}</div>
-  <div class="mut">${note}</div>
-  ${list.length ? CATS.map(([c, name]) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<h3 class="betcat">${name}</h3>${c === 'muscle' ? mgHint(MG_X[betTab]) : ''}${xs.map(row).join('')}` : ''; }).join('') : `<p class="mut">Nothing to bet on here right now.</p>`}
-`;
+  ${list.length ? CATS.map(([c, name], ci) => { const xs = list.filter(m => catOf(m.kind) === c); return xs.length ? `<details class="betfold" ${xs.some(m => on.has(m.id)) ? 'open' : ''}><summary><h3 class="betcat">${name}</h3><span class="mut">${xs.length}</span></summary>${c === 'muscle' ? mgHint(MG_X[betTab]) : ''}${xs.map(row).join('')}</details>` : ''; }).join('') : `<p class="mut">Nothing to bet on here right now.</p>`}
+  <details class="card howto"><summary>How bets work</summary><ol>
+    <li>Tap a goal to add it to your bet slip. The number on the right is its odds: what each coin you stake pays back if it comes true. Once your slip has picks, the number is the total odds your bet would have with that goal added.</li>
+    <li>One pick is a single bet. Two to five picks make a combined bet: the odds multiply, so it pays much more, but every pick has to come true.</li>
+    <li>Picks about training are related, so in a combined bet each extra training pick cuts the total odds by 15%. Only one pick per kind of goal, and no two picks that one workout would win together.</li>
+    <li>Bets last 7 days or a month, counted from the day you bet (today is the first day), whatever the day of the week. There are no one-day bets. A bet pays out as soon as all its picks are done, and is lost when a pick runs out of time.</li>
+    <li>Muscle picks pay 1.00 alone, because you will train something, and a bit more for muscles you rarely train. Combine several muscles of the same bet to raise the odds: in 7 days up to ×1.6, in a month up to ×1.35.</li>
+    <li>Tick Repeat to place the same bet again, for the next 7 days or month, when it ends. Stop it from My bets whenever you like.</li>
+    <li>Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay 1.00 (you only get your coins back), training once a week or month never pays, and a month pays less than 7 days. Stakes go from ${BET_MIN} coins up to ${STAKE_CAP.week} on a 7-day bet and ${STAKE_CAP.month} on a one-month bet, with up to ${BET_OPEN} open bets. Only game coins, never real money.</li></ol></details>`;
 }
 
 // ---------- hooks ----------

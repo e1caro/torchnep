@@ -813,3 +813,76 @@ html[data-theme=olympus]{--bg:#070c16;--glow:#1d2c48;--acc:#f5e6b8;--acc2:#7fd4f
 .ri>div.mut{grid-column:2/-1;margin:1px 0 0;font-size:.85em;line-height:1.3}
 .ri .trychip{margin-left:6px;white-space:nowrap}
 .ri .icoav{margin:0}
+
+/* each interface has its own money and money icon (tools/currency_icons.py; names in i18n.js) */
+html[data-skin=hud] .gi.cn{--m:url(icons/gi/cur-hud.svg)!important}
+html[data-skin=chinese] .gi.cn{--m:url(icons/gi/cur-chinese.svg)!important}
+html[data-skin=japanese] .gi.cn{--m:url(icons/gi/cur-japanese.svg)!important}
+html[data-skin=fairy] .gi.cn{--m:url(icons/gi/cur-fairy.svg)!important}
+html[data-skin=medieval] .gi.cn{--m:url(icons/gi/cur-medieval.svg)!important}
+html[data-skin=steampunk] .gi.cn{--m:url(icons/gi/cur-steampunk.svg)!important}
+html[data-skin=greek] .gi.cn{--m:url(icons/gi/cur-greek.svg)!important}
+html[data-skin=egypt] .gi.cn{--m:url(icons/gi/cur-egypt.svg)!important}
+html[data-skin=viking] .gi.cn{--m:url(icons/gi/cur-viking.svg)!important}
+html[data-skin=pirate] .gi.cn{--m:url(icons/gi/cur-pirate.svg)!important}
+html[data-skin=outrun] .gi.cn{--m:url(icons/gi/cur-outrun.svg)!important}
+html[data-skin=arcade] .gi.cn{--m:url(icons/gi/cur-arcade.svg)!important}
+html[data-skin=classical] .gi.cn{--m:url(icons/gi/cur-classical.svg)!important}
+html[data-skin=artdeco] .gi.cn{--m:url(icons/gi/cur-artdeco.svg)!important}
+html[data-skin=gothic] .gi.cn{--m:url(icons/gi/cur-gothic.svg)!important}
+html[data-skin=baroque] .gi.cn{--m:url(icons/gi/cur-baroque.svg)!important}
+html[data-skin=mythical] .gi.cn{--m:url(icons/gi/cur-mythical.svg)!important}
+html[data-skin=cosmic] .gi.cn{--m:url(icons/gi/cur-cosmic.svg)!important}
+
+/* hero: one tile per kind of look */
+.lookgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px}
+.lookt{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 8px;background:var(--card);border:1px solid var(--line);border-radius:var(--r,12px);color:var(--fg);font:inherit;font-size:12px;cursor:pointer}
+.lookt span{color:var(--mut)}
+.lookt:active{transform:scale(.97)}
+/* settings */
+.setrow{gap:12px}
+.setrow .chips{margin:0;justify-content:flex-end}
+.card .setrow + .setrow{margin-top:12px}
+.tap.setrow{display:flex;align-items:center}
+.setfoot{font-size:11px;margin:18px 0 8px;line-height:1.5;opacity:.75}
+/* plan: one line per day, tap to see its exercises */
+details.day>summary{display:flex;align-items:center;gap:10px;list-style:none;cursor:pointer}
+details.day>summary::-webkit-details-marker{display:none}
+details.day>summary h3{margin:0}
+details.day[open]>summary{margin-bottom:8px}
+details.day>summary .mut{font-family:var(--body);font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;margin-top:2px}
+/* bets: one dropdown per kind of goal */
+details.betfold>summary{display:flex;align-items:center;justify-content:space-between;list-style:none;cursor:pointer;padding:6px 0}
+details.betfold>summary::-webkit-details-marker{display:none}
+details.betfold>summary h3{margin:0}
+details.betfold>summary::after{content:'▾';color:var(--mut);margin-left:8px}
+details.betfold[open]>summary::after{content:'▴'}
+details.betfold>summary .mut{margin-left:auto}
+details.pageinfo{margin:22px 0 8px}
+details.pageinfo>b{display:block;margin:10px 0 2px;font-size:13px}
+details.pageinfo p.mut{margin:0 0 6px}
+/* workout: medals, set timer and the bar to come back to it */
+.medal{display:inline-block;padding:2px 9px;border-radius:999px;font:700 11px var(--body);letter-spacing:.05em;text-transform:uppercase;color:#1a1206}
+.medal.m1{background:linear-gradient(135deg,#c98b57,#8a5530)}
+.medal.m2{background:linear-gradient(135deg,#eef2f6,#9aa6b2)}
+.medal.m3{background:linear-gradient(135deg,#ffe082,#e0a400)}
+.medal.m4{background:linear-gradient(135deg,#e6fbff,#8fd3e8 50%,#c7b8ff)}
+.wtimer{text-align:center}
+.wtimer .t{font:700 48px var(--disp);color:var(--acc);margin:4px 0 8px;font-variant-numeric:tabular-nums}
+#resume{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--acc);border-radius:14px;background:color-mix(in srgb,var(--card) 92%,var(--acc));color:var(--fg);font:600 14px var(--body);box-shadow:0 6px 24px #0008;cursor:pointer}
+#resume .grow{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.focus #resume{display:none}
+/* Today's meals: one line each, the one for now highlighted */
+.mealsnow .qbar{margin-bottom:6px}
+.mrow{display:flex;align-items:center;gap:12px;padding:9px 10px;margin:0 -10px;border-radius:10px;color:var(--fg);text-decoration:none}
+.mrow+.mrow{border-top:1px solid var(--line)}
+.mrow .mi{font-size:22px;width:28px;height:auto;text-align:center;border:0;background:none;box-shadow:none;clip-path:none;padding:0}
+.mrow .mi::before,.mrow .mi::after{display:none}
+.mrow .grow{display:flex;flex-direction:column;min-width:0}
+.mrow small{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.mrow b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow.now{background:color-mix(in srgb,var(--acc) 12%,transparent);border-top-color:transparent}
+.mrow.now small{color:var(--acc)}
+.mrow.now+.mrow{border-top-color:transparent}
+.mrow.done{opacity:.5}
+.mrow .chk{color:var(--ok)}

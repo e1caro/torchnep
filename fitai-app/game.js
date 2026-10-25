@@ -67,7 +67,7 @@ const PERKS = [
   ['xp1', 4, 'XP Boost I', '+5% XP from every workout', 'upgrade'], ['coin1', 6, 'Coin Boost I', '+10% coins from every workout', 'coins'],
   ['quest4', 8, 'Fourth quest', 'A fourth daily quest every day', 'scroll'], ['spin2', 10, 'Double spin', 'Two free daily spins', 'slot'],
   ['shield', 12, 'Rest-day shield', 'Your streak survives one missed day', 'shield'], ['boss', 14, 'Boss hunter', 'The weekly boss drops a golden chest', 'golem'],
-  ['xp2', 16, 'XP Boost II', '+10% XP from every workout', 'upgrade'], ['rec', 18, 'Record breaker', 'New personal records are worth 80 XP', 'medal'],
+  ['xp2', 16, 'XP Boost II', '+10% XP from every workout', 'upgrade'], ['rec', 18, 'Record breaker', 'New personal records are worth 40 XP', 'medal'],
   ['coin2', 20, 'Coin Boost II', '+20% coins from every workout', 'coins'], ['xp3', 24, 'XP Boost III', '+15% XP from every workout', 'upgrade'],
   ['spin3', 30, 'Triple spin', 'Three free daily spins', 'slot'], ['coin3', 35, 'Coin Boost III', '+30% coins from every workout', 'coins'], ['xp4', 42, 'XP Boost IV', '+20% XP from every workout', 'upgrade'],
 ];
@@ -262,17 +262,39 @@ function checkAch() {
 }
 
 // ---------- hooks called by app.js ----------
+// Workout XP: each exercise pays once, by how hard it is and how well it went.
+// Medal: bronze for a start, silver for most of it, gold for every planned set at the target reps (or time),
+// platinum for more reps than the target or more weight than ever. Stretching pays far less than lifting.
+const EX_XP = { strength: 20, powerlifting: 22, 'olympic weightlifting': 22, strongman: 22, plyometrics: 16, cardio: 14, stretching: 4 };
+const TIER_X = [0, .4, .7, 1, 1.3];
+let BEST_W = null; // the heaviest weight ever done per exercise, before the workout in progress
+const bestW = id => { if (!BEST_W) { BEST_W = {}; S.history.forEach(h => h.ex.forEach(x => x.sets.forEach(t => { if (t.w > (BEST_W[x.id] || 0)) BEST_W[x.id] = t.w; }))); } return BEST_W[id] || 0; };
+function exXp(x) {
+  const done = x.sets.filter(t => t.done), plan = x.plan || x.sets.length, e = BY[x.id];
+  if (!done.length) return { tier: 0, xp: 0 };
+  const target = timedSecs(x.reps) === null ? parseInt(x.reps) : null;
+  let score;
+  if (target) score = done.reduce((a, t) => a + Math.min(1.5, (+t.r || target) / target), 0) / plan; // sets × reps against the plan
+  else score = Math.min(1, done.length / plan);
+  const heavier = target && bestW(x.id) > 0 && Math.max(...done.map(t => +t.w || 0)) > bestW(x.id);
+  const tier = score >= 1.15 || (heavier && score >= .9) ? 4 : score >= .95 ? 3 : score >= .5 ? 2 : 1;
+  return { tier, xp: Math.round((EX_XP[e?.c] ?? 18) * TIER_X[tier]) };
+}
 function gameWorkout(h) {
   ensureDay();
+  BEST_W = null;
   const prev = {};
   S.history.slice(0, -1).forEach(w => w.ex.forEach(x => { prev[x.id] = Math.max(prev[x.id] || 0, ...x.sets.map(s => s.w)); }));
   const sets = h.ex.reduce((a, x) => a + x.sets.length, 0);
   const prs = h.ex.filter(x => prev[x.id] > 0 && Math.max(...x.sets.map(s => s.w)) > prev[x.id]).length;
   const dg = h.dungeon ? DUNGEONS[h.dungeon] : null, st = streak(), feat = dg && featuredId() === h.dungeon;
-  const xpP = xpPerk(), coinP = coinPerk(), boost = boostOn(), recXp = perk('rec') ? 80 : 40;
+  const xpP = xpPerk(), coinP = coinPerk(), boost = boostOn(), recXp = perk('rec') ? 40 : 20;
   const sm = 1 + Math.min(0.5, (st - 1) * 0.05), mult = (dg?.mult || 1) * sm * (feat ? 1.5 : 1) * (1 + xpP) * (boost ? 2 : 1);
-  const base = sets * 10 + 100 + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 6 * (1 + coinP));
-  const lines = [[`${sets} sets × 10`, sets * 10], ['Workout cleared', 100]];
+  const exXpSum = h.xpEx ?? 0, bonus = 40;
+  const base = exXpSum + bonus + prs * recXp, xp = Math.round(base * mult), coins = Math.round(xp / 6 * (1 + coinP));
+  const lines = [];
+  [4, 3, 2, 1].forEach(t => { const n = h.ex.filter(x => x.tier === t).length; if (n) lines.push([`${n} × ${MEDAL_NAME[t]}`, null]); });
+  lines.push(['Exercises', exXpSum], ['Workout cleared', bonus]);
   if (prs) lines.push([`${prs} new record${prs > 1 ? 's' : ''} × ${recXp}`, prs * recXp]);
   if (dg) lines.push([`${dg.name} ×${dg.mult}`, null]);
   if (feat) lines.push(['Dungeon of the day ×1.5', null]);
@@ -419,7 +441,9 @@ window.toggleSound = () => { G.sound = !G.sound; commit(); if (G.sound) sfx('tic
 
 // show an interface (also used by the shop's Try button) and load its fonts
 function setSkin(k) {
+  const was = document.documentElement.dataset.skin;
   document.documentElement.dataset.skin = k;
+  if (was !== k) curRefresh(); // each interface has its own money (i18n.js)
   // themes recolour an interface's accents; the default Cyber HUD theme keeps each interface's own colours
   document.documentElement.toggleAttribute('data-tint', k !== 'hud' && (G.theme || 'hud') !== 'hud');
   let l = document.getElementById('skinfont');
@@ -482,16 +506,21 @@ function home() {
   startLoops();
 }
 
+// Dungeons: the ones you can enter, then the next one to unlock; the rest stay folded.
 function dungeons() {
   if (needProfile()) return;
   const feat = featuredId(), list = Object.entries(DUNGEONS).sort((x, y) => x[1].lv - y[1].lv);
-  view.innerHTML = `<h1>Dungeons</h1><p class="mut">Special workouts built from your equipment and limits. They unlock as you level up. Clearing one earns bonus XP and a chest. ${list.filter(([id]) => has(item(id))).length} of ${list.length} unlocked.</p>` +
-    list.map(([id, d]) => {
-      const i = item(id), ok = has(i), miss = d.need && !S.profile.equipment.includes(d.need);
-      return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3><div class="mut">${d.desc}</div>
-      <div class="chips static"><span class="chip">Lv ${d.lv}</span><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
+  const open = list.filter(([id]) => has(item(id))), locked = list.filter(([id]) => !has(item(id)));
+  const row = ([id, d]) => {
+    const ok = has(item(id)), miss = d.need && !S.profile.equipment.includes(d.need);
+    return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3>
+      ${ok ? `<div class="mut">${d.desc}</div>` : ''}<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
       ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
-    }).join('');
+  };
+  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>
+    ${open.length ? open.map(row).join('') : '<div class="mut">Your first dungeon opens at level 2.</div>'}
+    ${locked.length ? `<h2 class="sec">Next</h2>${row(locked[0])}` : ''}
+    ${locked.length > 1 ? `<details class="fold"><summary><h2 class="sec">Locked · ${locked.length - 1}</h2></summary>${locked.slice(1).map(row).join('')}</details>` : ''}`;
 }
 
 function victory() {
@@ -511,10 +540,9 @@ function victory() {
 
 function heroCard() {
   const vol = totalVol(), mins = S.history.reduce((a, h) => a + h.dur, 0);
-  return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>STR · kg lifted</span></div><div class="stat"><b>${mins}</b><span>END · minutes</span></div><div class="stat"><b>${S.history.length}</b><span>DEX · workouts</span></div></div>
-  <button class="btn" onclick="location.hash='#/profile'">${gi('user')} Edit profile and looks</button>
-  <button class="btn ghost" onclick="toggleSound()">Sound effects: ${G.sound ? 'on' : 'off'}</button>
-  <div class="lbl">Language</div>${langChips()}<div class="mut" style="margin-top:14px;text-align:center">FitQuest version 112</div>`;
+  return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>kg lifted</span></div><div class="stat"><b>${mins}</b><span>minutes</span></div><div class="stat"><b>${S.history.length}</b><span>workouts</span></div></div>
+  ${looksBlock()}
+  <button class="btn ghost" onclick="location.hash='#/settings'">${ic('gear', 18)} Settings</button>`;
 }
 
 function initGame() {

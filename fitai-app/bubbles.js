@@ -41,7 +41,7 @@ function bubbleHome() {
   const hudEl = view.querySelector(':scope > .hud');
   if (!hudEl) return; // the profile wizard, not Today
   const q = s => view.querySelector(':scope > ' + s), prevH = el => el?.previousElementSibling?.matches('h2.sec') ? el.previousElementSibling : null;
-  const next = q('.card.next'), boss = q('.card.boss'), g4 = q('.grid4'), meals = q('section.card[onclick*="#/meals"],section.card[onclick*="#/recipe"]');
+  const next = q('.card.next'), boss = q('.card.boss'), g4 = q('.grid4'), meals = q('section.card.mealsnow,section.card[onclick*="#/meals"]');
   const groups = {
     train: [prevH(next), next, q('.card.songday'), q('.card.music'), q('section[onclick*="#/dungeons"]')],
     quests: [q('.sec2'), ...view.querySelectorAll(':scope > .quest'), prevH(boss), boss],

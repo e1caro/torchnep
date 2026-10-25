@@ -49,7 +49,7 @@ const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
 // The wheel has 8 equal slices; the odds come from SPIN, and the wheel then lands on a slice with that prize.
 const WHEEL = [['coins', 20], ['xp', 40], ['coins', 50], ['chest', 'wood'], ['coins', 20], ['xp', 100], ['coins', 100], ['chest', 'silver']];
 const SLICE = 360 / WHEEL.length;
-const wheelLabel = ([k, v]) => k === 'coins' ? `${gi('coin', 'cn')}<b>${v}</b>` : k === 'xp' ? `${gi('sparkles')}<b>${v} XP</b>` : `${gi(CHEST[v][1])}<b>${v === 'silver' ? '★★★' : 'Chest'}</b>`;
+const wheelLabel = ([k, v]) => k === 'coins' ? `${gi('coin', 'cn')}<b>${v}</b>` : k === 'xp' ? `${gi('sparkles')}<b>${v} XP</b>` : `${gi(CHEST[v][1])}<b>${v === 'silver' ? '★★★' : 'Loot chest'}</b>`;
 function wheelHtml() {
   const cols = ['var(--acc)', 'var(--card2)', 'var(--acc2)', 'var(--card2)'];
   const stops = WHEEL.map((w, i) => `${w[1] === 'silver' ? '#ffd34d' : cols[i % 4]} ${i * SLICE}deg ${(i + 1) * SLICE}deg`).join(',');
@@ -185,7 +185,7 @@ function earn() {
     return `<div class="quest ${cl ? 'cl' : ok ? 'ok' : ''}"><div class="qi">${gi(q.ico)}</div><div class="grow"><div class="qt">${q.t}</div><div class="qbar"><i style="width:${v / q.n * 100}%"></i></div>
     <div class="mut">${v}/${q.n} · ${gi('coin', 'cn')} ${q.coins + coinsFor(q.xp)}${q.chest ? ' · chest' : ''}</div></div>${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimWeekly('${q.id}')">Claim</button>` : ''}</div>`; }).join('')}
   <details class="card earnlist"><summary>Everything that pays</summary>
-    ${[['lifter', 'Every set', '10 XP'], ['swords', 'Workout cleared', '100 XP, + chest for dungeons'], ['trophy', 'New personal record', '40 XP each (80 with a level perk)'], ['flame', 'Training streak', 'up to ×1.5 XP'],
+    ${[['lifter', 'Each exercise', 'up to 26 XP by its medal (stretches up to 5)'], ['swords', 'Workout cleared', '40 XP, + chest for dungeons'], ['trophy', 'New personal record', '20 XP each (40 with a level perk)'], ['flame', 'Training streak', 'up to ×1.5 XP'],
       ['gate', 'Dungeons', '×1.3 to ×3.5 XP, dungeon of the day ×1.5'], ['scroll', 'Daily quests', 'coins each, bonus chest for all of them'], ['calendar', 'Weekly quests', 'coins'],
       ['golem', 'Weekly boss', '160 coins + a chest'], ['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
       ['scale', 'Weigh-in', '15 XP'], ['crate', 'Daily check-in', 'coins, silver chest on day 7'], ['slot', 'Daily spin', 'coins or a chest'], ['medal', 'Badges', 'coins'], ['upgrade', 'Level-ups', 'coins, a silver chest (golden every 5th), meals, workouts, perks and level-only looks']]

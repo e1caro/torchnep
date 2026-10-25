@@ -199,11 +199,11 @@ const fmtK = n => Math.round(n).toLocaleString(LANG === 'es' ? 'es-ES' : 'en-GB'
 const _flHome = home;
 home = function () {
   _flHome();
-  const anchor = view.querySelector(':scope > section.card[onclick*="#/meals"], :scope > section.card[onclick*="#/recipe"]');
+  const anchor = view.querySelector(':scope > section.card.mealsnow, :scope > section.card[onclick*="#/meals"]');
   if (anchor) anchor.insertAdjacentHTML('afterend', foodCard());
 };
 const _flMeals = mealsView;
-mealsView = function (arg) { _flMeals(arg); view.querySelector(':scope > h1')?.insertAdjacentHTML('afterend', foodCard()); };
+mealsView = function (arg) { _flMeals(arg); if (!view.querySelector('#mgo')) view.querySelector(':scope > h1')?.insertAdjacentHTML('afterend', foodCard()); }; // not on the setup page
 Object.assign(routes, { home, meals: mealsView });
 
 if (typeof i18nAdd === 'function') i18nAdd({

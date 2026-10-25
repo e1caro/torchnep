@@ -257,7 +257,7 @@ function fmtAmt(k, g, up = false) {
 }
 
 // ---------- views ----------
-const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Training</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
+const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Training</a><a class="${on === 'dun' ? 'on' : ''}" href="#/dungeons">Dungeons</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
 
 function mealSetup() {
   const st = M.set || { diet: 'any', avoid: [], meals: 4, variety: 'simple', style: 'none', cuisines: [], times: [30, 30, 30, 30, 30, 60, 60] };
@@ -267,15 +267,16 @@ function mealSetup() {
   view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your plan targets about ${target().kcal} kcal and ${target().protein} g protein a day.</p>
   <div class="lbl">Diet</div>${ch('diet', Object.entries(DIETS), draft.diet)}
   <div class="lbl">Avoid</div>${ch('avoid', Object.entries(AVOID).map(([k, v]) => [k, v[0]]), draft.avoid, true)}
+  <div class="lbl">Meals per day</div>${ch('meals', [[3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], draft.meals)}
+  <details class="fold"><summary><h2 class="sec">More options</h2></summary>
   <div class="lbl">Eating style</div>${ch('style', [['none', 'No preference'], ['ai', 'Anti-inflammatory']], draft.style)}
   <div class="mut" id="sdesc">${STYLE_DESC[draft.style]}</div>
   <div class="lbl">Cuisine</div>${ch('cuisines', Object.entries(CUISINES).map(([k, v]) => [k, `${CUISINE_ICO[k]} ${v}`]), draft.cuisines, true)}
-  <div class="mut">Optional. Leave empty for a mix. One cuisine gives the shortest shopping list; pick two or three for more choice.</div>
   <div class="lbl">Variety</div>${ch('variety', Object.entries(VARIETY).map(([k, v]) => [k, v.name]), draft.variety || 'simple')}<div class="mut" id="vdesc">${VARIETY[draft.variety || 'simple'].desc}</div>
-  <div class="lbl">Meals per day</div>${ch('meals', [[3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], draft.meals)}
-  <div class="lbl">Time to cook on weekdays</div>${ch('wd', Object.entries(COOK), wd)}
-  <div class="lbl">Time to cook on weekends</div>${ch('we', Object.entries(COOK), we)}
-  <p class="mut">You can change the cooking time for any single day later.</p><div id="fnote" class="err" style="min-height:0"></div>
+  <div class="lbl">Time to cook on weekdays</div>${slider('wd', Object.entries(COOK), wd)}
+  <div class="lbl">Time to cook on weekends</div>${slider('we', Object.entries(COOK), we)}
+  </details>
+  <div id="fnote" class="err" style="min-height:0"></div>
   <button class="btn" id="mgo">Build my meal plan</button>`;
   view.querySelectorAll('.chips').forEach(box => box.addEventListener('click', ev => {
     const c = ev.target.closest('[data-v]'); if (!c) return;
@@ -285,6 +286,7 @@ function mealSetup() {
     if (k === 'diet') draft.diet = v; else if (k === 'style') { draft.style = v; $('#sdesc').textContent = STYLE_DESC[v]; } else if (k === 'variety') { draft.variety = v; $('#vdesc').textContent = VARIETY[v].desc; } else if (k === 'meals') draft.meals = +v;
     else draft.times = draft.times.map((t, i) => (k === 'wd' ? i < 5 : i >= 5) ? +v : t);
   }));
+  view.querySelectorAll('.sld input').forEach(el => el.addEventListener('change', () => { const k = el.parentElement.dataset.k, v = +sldVal(el); draft.times = draft.times.map((t, i) => (k === 'wd' ? i < 5 : i >= 5) ? v : t); }));
   const note = () => { $('#fnote').innerHTML = filterNotes(draft).map(esc).join('<br>'); };
   view.querySelectorAll('.chips').forEach(b => b.addEventListener('click', () => setTimeout(note))); note();
   $('#mgo').onclick = () => {
@@ -424,13 +426,22 @@ function groceryView() {
   $('#cp').onclick = async () => { try { await navigator.clipboard.writeText(text); toast('List copied'); } catch { toast('Copy is blocked on this device.'); } };
 }
 
+// The meal that fits the time of day best (still to eat, closest to its usual hour), then all of today's meals to open any recipe.
+const MEAL_HOUR = { b: 8, l: 14, d: 21 };
+function mealHours(d) {
+  const hs = d.items.map(it => it.fuel ? 18 : MEAL_HOUR[it.kind] ?? null);
+  return hs.map((h, i) => h ?? ((hs.slice(0, i).reverse().find(x => x != null) ?? 8) + (hs.slice(i + 1).find(x => x != null) ?? 22)) / 2);
+}
 function mealsCard() {
   if (M.set) ensureMeals();
   if (!M.set || !M.plan || M.plan.week !== weekId()) return `<section class="card tap row" onclick="location.hash='#/meals'"><div class="dgi">${gi('cutlery')}</div><div class="grow"><h3>Meal plan</h3><div class="mut">Set your diet and cooking time to get a week of recipes that hit your calories.</div></div></section>`;
-  const d = M.plan.days[todayIdx()], t = dayTotals(d), nxt = d.items.findIndex(x => !x.eaten), a = target();
-  return `<section class="card tap" onclick="location.hash='#/${nxt < 0 ? 'meals' : 'recipe/' + todayIdx() + '/' + nxt}'"><div class="row between"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>
+  const di = todayIdx(), d = M.plan.days[di], t = dayTotals(d), a = target(), hrs = mealHours(d), now = new Date().getHours() + new Date().getMinutes() / 60;
+  const left = d.items.map((it, i) => i).filter(i => !d.items[i].eaten);
+  const pick = left.length ? left.reduce((b2, i) => Math.abs(hrs[i] - now) < Math.abs(hrs[b2] - now) ? i : b2, left[0]) : -1;
+  // one line per meal: the one for now stands out, eaten ones are ticked and dimmed
+  return `<section class="card mealsnow"><div class="row between" onclick="location.hash='#/meals'"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div>
-  <div class="mut">${nxt < 0 ? 'All meals done. Nice.' : `Next: ${d.items[nxt].slot} · ${esc(RBY[d.items[nxt].rid].name)} · ${RBY[d.items[nxt].rid].time} min`}</div></section>`;
+  ${d.items.map((x, i) => { const r = RBY[x.rid]; return `<a class="mrow ${i === pick ? 'now' : ''} ${x.eaten ? 'done' : ''}" href="#/recipe/${di}/${i}"><span class="mi">${r.ico}</span><span class="grow"><small>${x.slot}</small><b>${esc(r.name)}</b></span>${x.eaten ? '<span class="chk">✓</span>' : `<span class="mut">${r.time} min</span>`}</a>`; }).join('')}</section>`;
 }
 
 // ---------- hooks into existing screens ----------
