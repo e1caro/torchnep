@@ -151,4 +151,4 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 - **Workout time** is estimated from the exercises you completed (the same estimate the plan uses), not the clock, so time quests and bets match what you did.
 - **Muscle bets** count a workout for a muscle group only when that group has the most sets in it.
 - **Sliders** set days, session time, today's time, cardio and stretching minutes and cooking time.
-- **Today's meals** shows the meal for the time of day first, with every other meal of the day one tap away.
+- **Today's meals** is one line per meal (tap to open its recipe); the one for the time of day is highlighted and eaten ones are ticked.

@@ -872,16 +872,17 @@ details.pageinfo p.mut{margin:0 0 6px}
 #resume{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:40;display:flex;align-items:center;gap:10px;padding:12px 16px;border:1px solid var(--acc);border-radius:14px;background:color-mix(in srgb,var(--card) 92%,var(--acc));color:var(--fg);font:600 14px var(--body);box-shadow:0 6px 24px #0008;cursor:pointer}
 #resume .grow{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.focus #resume{display:none}
-/* Today's meals: the one for now, then chips to open the others */
-.mealnow{gap:12px;margin:10px 0 8px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;background:var(--card2);color:var(--fg);text-decoration:none}
-.mealnow .mi{font-size:28px}
-.mealnow .grow{display:flex;flex-direction:column;gap:2px}
-.mealchips{display:flex;flex-wrap:wrap;gap:6px}
-.mealchips .chip{text-decoration:none;font-size:12px}
-/* sliders for times and amounts */
-.sld{display:flex;align-items:center;gap:12px;margin:6px 0 10px}
-.sld input{flex:1;-webkit-appearance:none;appearance:none;height:6px;border-radius:3px;background:linear-gradient(90deg,var(--acc),var(--acc2)) 0 0/var(--p,50%) 100% no-repeat,var(--line);outline:none;border:0;padding:0;box-shadow:none}
-.sld input::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:var(--fg);border:3px solid var(--acc);box-shadow:0 0 10px color-mix(in srgb,var(--acc) 60%,transparent);cursor:pointer}
-.sld input::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--fg);border:3px solid var(--acc);cursor:pointer}
-.sld output{min-width:96px;text-align:right;font:600 14px var(--body);color:var(--fg)}
-.todaytime .sld{margin:4px 0 8px}
+/* Today's meals: one line each, the one for now highlighted */
+.mealsnow .qbar{margin-bottom:6px}
+.mrow{display:flex;align-items:center;gap:12px;padding:9px 10px;margin:0 -10px;border-radius:10px;color:var(--fg);text-decoration:none}
+.mrow+.mrow{border-top:1px solid var(--line)}
+.mrow .mi{font-size:22px;width:28px;height:auto;text-align:center;border:0;background:none;box-shadow:none;clip-path:none;padding:0}
+.mrow .mi::before,.mrow .mi::after{display:none}
+.mrow .grow{display:flex;flex-direction:column;min-width:0}
+.mrow small{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.mrow b{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mrow.now{background:color-mix(in srgb,var(--acc) 12%,transparent);border-top-color:transparent}
+.mrow.now small{color:var(--acc)}
+.mrow.now+.mrow{border-top-color:transparent}
+.mrow.done{opacity:.5}
+.mrow .chk{color:var(--ok)}

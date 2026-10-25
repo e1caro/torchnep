@@ -438,11 +438,10 @@ function mealsCard() {
   const di = todayIdx(), d = M.plan.days[di], t = dayTotals(d), a = target(), hrs = mealHours(d), now = new Date().getHours() + new Date().getMinutes() / 60;
   const left = d.items.map((it, i) => i).filter(i => !d.items[i].eaten);
   const pick = left.length ? left.reduce((b2, i) => Math.abs(hrs[i] - now) < Math.abs(hrs[b2] - now) ? i : b2, left[0]) : -1;
-  const it = pick >= 0 ? d.items[pick] : null, r = it && RBY[it.rid];
-  return `<section class="card mealsnow"><div class="row between"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>
+  // one line per meal: the one for now stands out, eaten ones are ticked and dimmed
+  return `<section class="card mealsnow"><div class="row between" onclick="location.hash='#/meals'"><h3>Meals today</h3><span class="mut">${d.items.filter(x => x.eaten).length}/${d.items.length} eaten</span></div>
   <div class="qbar kc"><i style="width:${clamp(t.eat / a.kcal * 100, 0, 100)}%"></i></div>
-  ${r ? `<a class="row mealnow" href="#/recipe/${di}/${pick}"><span class="mi">${r.ico}</span><span class="grow"><span class="mut">${it.slot} · ${r.time} min</span><b>${esc(r.name)}</b></span>${ic('back', 16).replace('<svg', '<svg style="transform:rotate(180deg)"')}</a>` : '<div class="mut">All meals done. Nice.</div>'}
-  <div class="mealchips">${d.items.map((x, i) => i === pick ? '' : `<a class="chip ${x.eaten ? 'on' : ''}" href="#/recipe/${di}/${i}">${x.eaten ? '✓ ' : ''}${x.slot}</a>`).join('')}<a class="chip" href="#/meals">Week</a></div></section>`;
+  ${d.items.map((x, i) => { const r = RBY[x.rid]; return `<a class="mrow ${i === pick ? 'now' : ''} ${x.eaten ? 'done' : ''}" href="#/recipe/${di}/${i}"><span class="mi">${r.ico}</span><span class="grow"><small>${x.slot}</small><b>${esc(r.name)}</b></span>${x.eaten ? '<span class="chk">✓</span>' : `<span class="mut">${r.time} min</span>`}</a>`; }).join('')}</section>`;
 }
 
 // ---------- hooks into existing screens ----------
