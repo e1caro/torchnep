@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-skin="clean">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
@@ -19,6 +19,12 @@
 <link rel="stylesheet" href="hud.css">
 <link rel="stylesheet" href="skins.css">
 <title>FitQuest</title>
+<script>
+// the saved look before anything is drawn, so the start screen already wears your interface
+try { const g = JSON.parse(localStorage.getItem('fc.game')) || {}, d = document.documentElement;
+  d.dataset.skin = g.skin || 'clean'; d.dataset.theme = g.theme || 'hud'; d.dataset.panel = g.panel || 'chamfer';
+  if ((g.skin || 'clean') !== 'hud' && (g.theme || 'hud') !== 'hud') d.setAttribute('data-tint', ''); } catch (e) { /* first run */ }
+</script>
 </head>
 <body>
 <main id="view"><div class="boot"><img src="icons/icon-192.png" alt="" width="96" height="96"><div class="bt">FitQuest</div></div></main>
