@@ -113,7 +113,7 @@ function shopView() {
 // ---------- Badges ----------
 function badgesView() {
   return `${hud()}${rwSeg('badges')}<h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>
-  ${ACH.map(a => { const got = G.ach.includes(a.id); return `<div class="card row ${got ? '' : 'locked'}"><div class="avbig sm">${got ? gi(a.i, 'hero') : gi('lock')}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}${a.t ? ` · title: ${a.t}` : ''}</div></div><span class="mut">+${a.xp} XP</span></div>`; }).join('')}`;
+  ${ACH.map(a => { const got = G.ach.includes(a.id); return `<div class="card row ${got ? '' : 'locked'}"><div class="avbig sm">${got ? gi(a.i, 'hero') : gi('lock')}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}${a.t ? ` · title: ${a.t}` : ''}</div></div><span class="mut">${gi('coin', 'cn')} ${coinsFor(a.xp)}</span></div>`; }).join('')}`;
 }
 
 function rewards(sub) {
@@ -141,6 +141,8 @@ function looksView(t) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/profile'">${ic('back', 18)} Back</button><h1>${name}</h1>
   <div class="mut">${mine.length} owned · tap one to use it</div>${t === 'theme' ? themeNote() : ''}
   <div class="pgrid ${wide}">${mine.map(i => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name.replace(/ panels$| banner$/, ''))}</small></button>`).join('')}</div>
+  ${(lockd => lockd.length ? `<h2 class="sec">Level rewards</h2><div class="mut">Only earned by levelling up: they can't be bought or found in chests.</div>
+    <div class="pgrid ${wide}">${lockd.map(i => `<div class="pick locked" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name)}<br>${gi('lock')} level ${i.lv}</small></div>`).join('')}</div>` : '')(ITEMS.filter(i => i.type === t && i.excl && !has(i)).sort((x, y) => x.lv - y.lv))}
   ${more ? `<button class="btn ghost sm moreb" onclick="shopAt('${t}')">${more} more in the Shop</button>` : ''}`;
 }
 function profileView(sub) {

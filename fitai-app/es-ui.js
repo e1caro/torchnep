@@ -299,3 +299,15 @@ i18nAdd({ 'Up to {n} coins on this bet.': 'Hasta {n} monedas en esta apuesta.', 
   'Odds come from your last four weeks: goals you rarely reach pay more, easy ones pay {n} (you only get your coins back), training once a week or month never pays, and a month pays less than {n} days. Stakes go from {n} coins up to {n} on a {n}-day bet and {n} on a one-month bet, with up to {n} open bets. Only game coins, never real money.': 'Las cuotas salen de tus últimas cuatro semanas: lo que consigues pocas veces paga más, lo fácil paga {n} (solo recuperas tus monedas), entrenar una vez a la semana o al mes nunca paga, y un mes paga menos que {n} días. Se apuesta desde {n} monedas hasta {n} en una apuesta de {n} días y {n} en una de un mes, con hasta {n} apuestas abiertas. Solo monedas del juego, nunca dinero real.' });
 i18nAdd({ '{n}–{n} coins': '{n}–{n} monedas', 'Coins to stake': 'Monedas a apostar' });
 i18nAdd({ 'Coins or a small look': 'Monedas o un aspecto pequeño' });
+i18nAdd({ 'Badge unlocked · {n} coins': 'Insignia desbloqueada · {n} monedas', 'Bonus chest ·': 'Cofre extra ·', 'Daily check-in · day {n} ·': 'Check-in diario · día {n} ·', 'Claim loot ·': 'Reclamar botín ·',
+  'Match reward: {n} coins': 'Premio del partido: {n} monedas', 'coins each, bonus chest for all of them': 'monedas cada una, cofre extra por completarlas todas', coins: 'monedas',
+  '{n} coins + a chest': '{n} monedas + un cofre', 'coins, silver chest on day {n}': 'monedas, cofre de plata el día {n}', 'coins or a chest': 'monedas o un cofre',
+  'coins, a silver chest (golden every {n}th), meals, workouts, perks and level-only looks': 'monedas, un cofre de plata (dorado cada {n}), comidas, entrenamientos, mejoras y aspectos exclusivos de nivel' });
+i18nPat(/^Badge unlocked: (.+) \((\+?\d+) coins\)$/, (a, b) => `Insignia desbloqueada: ${tr(a)} (${b} monedas)`);
+i18nAdd({ 'Level rewards': 'Premios de nivel', "Only earned by levelling up: they can't be bought or found in chests.": 'Solo se consiguen subiendo de nivel: no se pueden comprar ni salen en cofres.',
+  'Bronze laurel': 'Laurel de bronce', "Champion's banner": 'Estandarte del campeón', 'Laurel crown': 'Corona de laurel', 'Silver laurel': 'Laurel de plata', 'Hall of Fame': 'Salón de la fama', Temple: 'Templo',
+  'Golden laurel': 'Laurel de oro', Champion: 'Campeón', Constellation: 'Constelación', Treasure: 'Tesoro', 'Platinum halo': 'Halo de platino', Borealis: 'Boreal', Olympus: 'Olimpo',
+  'Phoenix ring': 'Anillo de fénix', Infinity: 'Infinito', 'Olympian aura': 'Aura olímpica', '{n} · level {n}': '{n} · nivel {n}' });
+i18nPat(/^(.+) · level (\d+)$/, (a, b) => `${tr(a)} · nivel ${b}`);
+i18nAdd({ 'level {n}': 'nivel {n}' });
+i18nAdd({ '{n} × Silver chest': '{n} × Cofre de plata', '{n} × Golden chest': '{n} × Cofre dorado', 'Open it in Loot': 'Ábrelo en Botín' });

@@ -22,7 +22,7 @@ window.claimWeekly = id => {
   const q = WQ.find(x => x.id === id), w = wkState();
   if (w.claimed.includes(id) || q.v() < q.n) return;
   w.claimed.push(id); if (q.chest) G.chests.push(q.chest);
-  award(q.xp, q.coins); sfx('claim'); checkAch(); flushLevelUp(earn);
+  award(0, q.coins + coinsFor(q.xp)); sfx('claim'); checkAch(); flushLevelUp(earn);
 };
 
 // ---------- water and sleep ----------
@@ -42,7 +42,7 @@ window.logSleep = h => {
 };
 
 // ---------- daily spin ----------
-const SPIN = [[30, 'coins', 20], [25, 'coins', 50], [8, 'coins', 100], [20, 'xp', 40], [10, 'xp', 100], [6, 'chest', 'wood'], [1, 'chest', 'silver']];
+const SPIN = [[30, 'coins', 20], [25, 'coins', 50], [8, 'coins', 100], [20, 'coins', 30], [10, 'coins', 75], [6, 'chest', 'wood'], [1, 'chest', 'silver']]; // coins and chests only: XP comes from looking after yourself
 const spinsToday = () => G.spinDay?.d === dayId() ? G.spinDay.n : 0;
 const freeSpins = () => (perk('spin3') ? 3 : perk('spin2') ? 2 : 1) - spinsToday();
 const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
@@ -183,12 +183,12 @@ function earn() {
   <h2 class="sec">Weekly quests</h2>
   ${wq.map(q => { const v = Math.min(q.n, q.v()), ok = v >= q.n, cl = w.claimed.includes(q.id);
     return `<div class="quest ${cl ? 'cl' : ok ? 'ok' : ''}"><div class="qi">${gi(q.ico)}</div><div class="grow"><div class="qt">${q.t}</div><div class="qbar"><i style="width:${v / q.n * 100}%"></i></div>
-    <div class="mut">${v}/${q.n} · +${q.xp} XP · ${gi('coin', 'cn')} ${q.coins}${q.chest ? ' · chest' : ''}</div></div>${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimWeekly('${q.id}')">Claim</button>` : ''}</div>`; }).join('')}
+    <div class="mut">${v}/${q.n} · ${gi('coin', 'cn')} ${q.coins + coinsFor(q.xp)}${q.chest ? ' · chest' : ''}</div></div>${cl ? '<span class="chk">✓</span>' : ok ? `<button class="btn sm" onclick="claimWeekly('${q.id}')">Claim</button>` : ''}</div>`; }).join('')}
   <details class="card earnlist"><summary>Everything that pays</summary>
     ${[['lifter', 'Every set', '10 XP'], ['swords', 'Workout cleared', '100 XP, + chest for dungeons'], ['trophy', 'New personal record', '40 XP each (80 with a level perk)'], ['flame', 'Training streak', 'up to ×1.5 XP'],
-      ['gate', 'Dungeons', '×1.3 to ×3.5 XP, dungeon of the day ×1.5'], ['scroll', 'Daily quests', '25 to 100 XP each, bonus chest for all of them'], ['calendar', 'Weekly quests', '100 to 250 XP + coins'],
-      ['golem', 'Weekly boss', '250 XP + a chest'], ['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
-      ['scale', 'Weigh-in', '15 XP'], ['crate', 'Daily check-in', 'up to 22 XP and 45 coins, silver chest on day 7'], ['slot', 'Daily spin', 'coins, XP or a chest'], ['medal', 'Badges', '50 to 600 XP'], ['upgrade', 'Level-ups', 'coins, a chest every 5th level, and new meals, workouts and perks']]
+      ['gate', 'Dungeons', '×1.3 to ×3.5 XP, dungeon of the day ×1.5'], ['scroll', 'Daily quests', 'coins each, bonus chest for all of them'], ['calendar', 'Weekly quests', 'coins'],
+      ['golem', 'Weekly boss', '160 coins + a chest'], ['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
+      ['scale', 'Weigh-in', '15 XP'], ['crate', 'Daily check-in', 'coins, silver chest on day 7'], ['slot', 'Daily spin', 'coins or a chest'], ['medal', 'Badges', 'coins'], ['upgrade', 'Level-ups', 'coins, a silver chest (golden every 5th), meals, workouts, perks and level-only looks']]
       .map(([i, a, b]) => `<div class="row between"><span>${gi(i, 'hero')} ${a}</span><b class="mut">${b}</b></div>`).join('')}
   </details>`;
 }
