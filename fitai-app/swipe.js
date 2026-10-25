@@ -1,5 +1,5 @@
 'use strict';
-// Swipe left or right to move between the sections of the tab bar (Today ↔ Plan ↔ Rewards ↔ Stats ↔ Hero).
+// Swipe left or right to move between the sections of the tab bar (Today ↔ Plan ↔ Shop ↔ Progress ↔ Friends ↔ Hero).
 // The page follows the finger, and the next section slides in. Swipes that belong to something else are left alone:
 // sideways scrollers, sliders and text fields, an open Today panel, a workout, the weekly summary, a dialog,
 // and the screen edges (the phone's own back gesture lives there).

@@ -44,7 +44,7 @@ function applyData(d) {
 // what friends see: a summary of your profile, never your body data or history
 function publicProfile() {
   const sp = typeof SP === 'object' && SP.cur && typeof roleOf === 'function' ? (r => r && { sport: SP.cur, ovr: ovrOf(r), pos: r.name, club: clubName() })(roleOf(SP.cur)) : null;
-  return { name: S.profile?.name || '', lvl: lvl(), title: title(), avatar: G.avatar, frame: G.frame, banner: G.banner, skin: G.skin,
+  return { name: S.profile?.name || '', lvl: lvl(), xp: G.xp, title: title(), avatar: G.avatar, frame: G.frame, banner: G.banner, skin: G.skin,
     workouts: S.history.length, minutes: S.history.reduce((a, h) => a + (h.dur || 0), 0), kg: Math.round(totalVol()), streak: streak(), badges: G.ach.length, sp };
 }
 let pushT = null;
@@ -143,15 +143,24 @@ async function loadFriends() {
   const rows = await sbFetch(`/rest/v1/friends?user_id=eq.${CL.uid}&select=friend_id,profiles(id,username,public)`);
   FRIENDS = rows.map(r => r.profiles).filter(Boolean);
 }
-function friendsBlock() {
-  if (!SB_ON) return '';
-  if (!CL.uid) return `<h2 class="sec">Friends</h2><button class="btn ghost" onclick="location.hash='#/account'">Sign in to add friends</button>`;
-  const row = f => { const p = f.public || {}; return `<button class="lookt frow" onclick="location.hash='#/friend/${f.id}'"><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
-    <span class="grow"><b translate="no">${esc(p.name || f.username)}</b><small>Level ${p.lvl || 1}</small></span></button>`; };
-  return `<h2 class="sec">Friends</h2>
+// The Friends tab: add a friend with their code, and a ranking of you and your friends by level (then XP).
+let FR_AT = 0; // when the list was last fetched
+function friendsView() {
+  if (needProfile()) return;
+  if (!CL.uid) {
+    view.innerHTML = `<h1>Friends</h1><div class="mut">Sign in to add friends and see their profiles.</div><button class="btn" onclick="location.hash='#/account'">Sign in</button>`;
+    return;
+  }
+  const me = { id: CL.uid, username: CL.user, public: publicProfile(), me: true };
+  const all = [me, ...(FRIENDS || [])].sort((x, y) => (y.public?.lvl || 1) - (x.public?.lvl || 1) || (y.public?.xp || 0) - (x.public?.xp || 0));
+  const row = (f, i) => { const p = f.public || {}; return `<button class="lookt frow ${f.me ? 'me' : ''}" ${f.me ? '' : `onclick="location.hash='#/friend/${f.id}'"`}>
+    <b class="rank">${i + 1}</b><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
+    <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small>${f.me ? 'You' : esc(p.title || '')}</small></span><span class="lvtag">Lv ${p.lvl || 1}</span></button>`; };
+  view.innerHTML = `<h1>Friends</h1>
   <div class="row"><input id="fr-code" placeholder="Friend's code" maxlength="6" autocapitalize="characters" spellcheck="false"><button class="btn sm" onclick="addFriend()">Add</button></div>
   <div class="mut">Your code: <b translate="no">${esc(CL.code || '')}</b></div>
-  <div class="friends">${FRIENDS === null ? '' : FRIENDS.length ? FRIENDS.map(row).join('') : ''}</div>`;
+  <h2 class="sec">Ranking</h2><div class="friends">${all.map(row).join('')}</div>`;
+  if (Date.now() - FR_AT > 30e3) { FR_AT = Date.now(); loadFriends().then(() => { if (location.hash === '#/friends') route(); }).catch(() => { FRIENDS = FRIENDS || []; }); }
 }
 window.addFriend = async () => {
   const code = ($('#fr-code')?.value || '').trim().toUpperCase();
@@ -161,11 +170,11 @@ window.addFriend = async () => {
     const [p] = await sbFetch(`/rest/v1/profiles?code=eq.${code}&select=id`);
     if (!p) { toast('No player with that code'); return; }
     await sbFetch('/rest/v1/friends', { method: 'POST', headers: { Prefer: 'resolution=ignore-duplicates' }, body: JSON.stringify({ user_id: CL.uid, friend_id: p.id }) });
-    await loadFriends(); toast('Friend added'); sfx('claim'); route();
+    await loadFriends(); FR_AT = Date.now(); toast('Friend added'); sfx('claim'); route();
   } catch (e) { toast(e.message); }
 };
 window.removeFriend = async id => {
-  try { await sbFetch(`/rest/v1/friends?user_id=eq.${CL.uid}&friend_id=eq.${id}`, { method: 'DELETE' }); await loadFriends(); location.hash = '#/me'; } catch (e) { toast(e.message); }
+  try { await sbFetch(`/rest/v1/friends?user_id=eq.${CL.uid}&friend_id=eq.${id}`, { method: 'DELETE' }); await loadFriends(); FR_AT = Date.now(); location.hash = '#/friends'; } catch (e) { toast(e.message); }
 };
 async function friendView(id) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button><div class="mut">…</div>`;
@@ -183,14 +192,7 @@ async function friendView(id) {
 }
 
 if (SB_ON) {
-  const _clMe = routes.me;
-  routes.me = function () {
-    _clMe();
-    const set = [...view.querySelectorAll(':scope > button.btn')].find(b => b.getAttribute('onclick')?.includes('#/settings'));
-    set?.insertAdjacentHTML('beforebegin', friendsBlock());
-    if (CL.uid && FRIENDS === null) loadFriends().then(() => { if (location.hash === '#/me') route(); }).catch(() => { FRIENDS = []; });
-  };
-  Object.assign(routes, { account: accountView, friend: friendView });
+  Object.assign(routes, { account: accountView, friend: friendView, friends: friendsView });
   window.addEventListener('pagehide', () => { if (CL.dirtyAt) cloudPush().catch(() => { }); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && CL.dirtyAt) cloudPush().catch(() => { }); });
   setTimeout(cloudPull, 1500);
@@ -205,7 +207,7 @@ if (typeof i18nAdd === 'function') {
     'Which data do you keep?': '¿Qué datos te quedas?', 'This device and your account both changed.': 'Este dispositivo y tu cuenta han cambiado los dos.', 'This device': 'Este dispositivo',
     Friends: 'Amigos', 'Sign in to add friends': 'Entra para añadir amigos', "Friend's code": 'Código de tu amigo', Add: 'Añadir', 'Your code:': 'Tu código:',
     'Codes have 6 letters and numbers': 'Los códigos tienen 6 letras y números', "That's your own code": 'Ese es tu propio código', 'No player with that code': 'No hay ningún jugador con ese código',
-    'Friend added': 'Amigo añadido', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
+    'Friend added': 'Amigo añadido', 'Sign in to add friends and see their profiles.': 'Entra para añadir amigos y ver sus perfiles.', Ranking: 'Ranking', You: 'Tú', 'Lv {n}': 'Nv {n}', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
     'Turn off e-mail confirmation in Supabase (see tools/supabase.sql)': 'Desactiva la confirmación por e-mail en Supabase (mira tools/supabase.sql)',
   });
 }
