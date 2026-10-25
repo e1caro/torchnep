@@ -169,7 +169,7 @@ function earn() {
   ensureDay(); flushLevelUp();
   const t = G.today, goal = waterGoal(), w = wkState(), canSpin = spinsLeft() > 0;
   const wq = WQ.filter(q => !q.need || q.need());
-  view.innerHTML = `${hud()}<h1>Ways to earn</h1>
+  view.innerHTML = `<div class="row between"><h1>Ways to earn</h1>${coinTag()}</div>
   <section class="card"><div class="row between"><h3>Daily spin</h3><span class="mut">${canSpin ? `${spinsLeft()} spin${spinsLeft() > 1 ? 's' : ''} ready` : 'Come back tomorrow'}</span></div>
   <button class="btn ${canSpin ? 'chestbtn' : 'ghost'}" ${canSpin ? '' : 'disabled'} onclick="spin()">${gi('slot')} ${canSpin ? 'Spin now' : 'Spun today'}</button></section>
   <section class="card"><div class="row between"><h3>Water</h3><span class="mut">${t.water || 0}/${goal} glasses</span></div>

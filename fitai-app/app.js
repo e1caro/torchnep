@@ -438,7 +438,7 @@ function planView() {
 let PE = null; // the edited copy, until saved
 function optionsCard(p) {
   const e = PE || p, ch = (k, opts, sel, multi) => chips(k, opts, sel, multi).replace('class="chips"', 'class="chips" data-pe="1"');
-  return `<details class="card optcard" ${S.optOpen ? 'open' : ''} ontoggle="S.optOpen=this.open"><summary>Training options <span class="mut">· ${p.days} days · ${sessionLabel(p.minutes)}</span></summary>
+  return `<details class="card optcard" ${S.optOpen ? 'open' : ''} ontoggle="S.optOpen=this.open"><summary>Training options</summary>
     <div class="lbl">Main objective</div>${ch('goal', Object.entries(GOALS).map(([k, [t]]) => [k, t]), e.goal)}
     <div class="lbl">Experience</div>${ch('level', LEVELS.map(l => [l, cap(l)]), e.level)}
     <div class="lbl">Days per week</div>${slider('days', [2, 3, 4, 5, 6].map(d => [d, `${d} days`]), e.days, '', 'data-pe="1"')}
@@ -702,7 +702,7 @@ function settings() {
   <div id="setmusic"></div>
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
-  <div class="mut setfoot"><span>FitQuest version 120</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 121</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();

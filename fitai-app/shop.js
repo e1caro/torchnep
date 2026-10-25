@@ -6,7 +6,7 @@
 // Stats, levels and badges are the three tabs of Progress; the shop is a tab of its own.
 const RW_TABS = [['stats', 'Overview', '#/progress'], ['levels', 'Levels', '#/rewards/levels'], ['badges', 'Badges', '#/rewards/badges']];
 const rwSeg = on => `<div class="seg">${RW_TABS.map(([k, l, h]) => `<a class="${on === k ? 'on' : ''}" href="${h}">${l}</a>`).join('')}</div>`;
-const chestBtn = () => G.chests.length ? `<button class="btn chestbtn" onclick="openChest()">${gi(CHEST[G.chests[0]][1])} Open ${CHEST[G.chests[0]][0].toLowerCase()}${G.chests.length > 1 ? ` (+${G.chests.length - 1} more)` : ''}</button>` : '';
+const coinTag = () => `<span class="coins">${gi('coin', 'cn')} ${G.coins}</span>`;
 
 // ---------- coin shop: boosts and chests ----------
 const BOOSTS = [
@@ -60,21 +60,21 @@ window.sell = id => {
 // ---------- Levels ----------
 const LOOKS = ['avatar', 'frame', 'banner', 'theme', 'panel', 'skin']; // kinds of look that can be tried on
 // one level of the reward road
-// one level of the reward road: only the big unlocks (every level also gives coins, a silver chest and new recipes, and every 5th a
-// golden one, so those are not listed)
+// one level of the reward road: only the workouts, level-only looks and perks it unlocks (coins, chests and recipes come
+// every level, and shop sections show their own lock in the Shop, so none of those are repeated here)
 function roadRow(n) {
-  const L = lvl(), its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1 && i.type !== 'recipe'), opens = Object.entries(SHOP_LV).filter(([, l]) => l === n);
-  if (!its.length && !opens.length && n !== L) return '';
+  const L = lvl(), its = ITEMS.filter(i => !i.shop && i.lv === n && n > 1 && i.type !== 'recipe');
+  if (!its.length && n !== L) return '';
+  const pct = n === L ? (G.xp - totalXp(L)) / (totalXp(L + 1) - totalXp(L)) * 100 : 0;
   return `<div class="rl ${n < L ? 'past' : n === L ? 'now' : ''}"><div class="dot">${n}</div><div class="grow"><div class="mut">Level ${n}</div>
-  ${opens.map(([t]) => `<div class="ri">${gi('palette', 'hero')} ${SHOP_NAME[t]} <span class="mut">in the Shop</span></div>`).join('')}
+  ${n === L ? `<div class="xpbar"><i style="width:${pct.toFixed(1)}%"></i></div>` : ''}
   ${its.map(i => `<div class="ri ${LOOKS.includes(i.type) ? 'trytap' : ''}" ${LOOKS.includes(i.type) ? `onclick="tryLook('${i.id}')"` : ''}>${ICO(i)} <span class="rn">${esc(i.name)}${LOOKS.includes(i.type) && !has(i) ? ` <span class="trychip">${TRY[i.type]?.key === i.key ? 'Trying' : 'Try'}</span>` : ''}</span> <span class="mut">${KIND[i.type]}</span></div>`).join('')}</div></div>`;
 }
 const roadRows = (a, b) => Array.from({ length: b - a + 1 }, (_, k) => roadRow(a + k)).join('');
 function levelsView() {
   const L = lvl(), max = 50; // the next levels; the rest of the road (up to 50) is folded
-  const next = ITEMS.filter(i => !i.shop && i.lv > L).sort((a, b) => a.lv - b.lv)[0], perks = ITEMS.filter(i => i.type === 'perk' && has(i));
-  return `${rwSeg('levels')}${hud()}${chestBtn()}
-  ${next ? `<section class="card row"><div class="dgi">${ICO(next)}</div><div class="grow"><div class="mut">Next unlock · level ${next.lv}</div><h3>${esc(next.name)}</h3><div class="mut">${KIND[next.type]} · ${(totalXp(next.lv) - G.xp).toLocaleString(dateLocale())} XP to go</div></div></section>` : ''}
+  const perks = ITEMS.filter(i => i.type === 'perk' && has(i));
+  return `${rwSeg('levels')}
   ${perks.length ? `<h2 class="sec">Active perks</h2><div class="card">${perks.map(p => `<div class="row" style="padding:7px 0"><span style="font-size:26px">${gi(p.ico, 'hero')}</span><div><b>${esc(p.name)}</b><div class="mut">${esc(p.desc)}</div></div></div>`).join('')}</div>` : ''}
   <h2 class="sec">Reward road</h2><div class="road">${roadRows(L, Math.min(max, L + 5))}</div>
   ${L + 5 < max ? `<details class="fold"><summary><h2 class="sec">Levels ${L + 6}–${max}</h2></summary><div class="road">${roadRows(L + 6, max)}</div></details>` : ''}`;
@@ -111,7 +111,7 @@ function shopView() {
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5);
   const sec = { skin: ['Interfaces', 'grid2', ''],
     avatar: ['Profile pictures', 'grid3', ''], frame: ['Rings', 'grid3', ''], banner: ['Banners', 'grid2', ''], panel: ['Panel styles', 'grid2', ''], theme: ['App themes', 'grid2', themeNote()] };
-  return `${hud()}<h1>Shop</h1>${chestBtn()}
+  return `<div class="row between"><h1>Shop</h1>${coinTag()}</div>
   <h2 class="sec">Boosts and chests</h2>
   ${BOOSTS.map(b => `<div class="card row"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>
     <button class="btn sm ${G.coins >= b.cost ? 'gold' : 'ghost'}" onclick="buyBoost('${b.id}')">${gi('coin', 'cn')} ${b.cost}</button></div>`).join('')}
@@ -121,7 +121,7 @@ function shopView() {
 
 // ---------- Badges ----------
 function badgesView() {
-  return `${rwSeg('badges')}${hud()}<h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>
+  return `${rwSeg('badges')}<h2 class="sec">Badges · ${G.ach.length}/${ACH.length}</h2>
   ${ACH.map(a => { const got = G.ach.includes(a.id); return `<div class="card row ${got ? '' : 'locked'}"><div class="avbig sm">${got ? gi(a.i, 'hero') : gi('lock')}</div><div class="grow"><b>${a.n}</b><div class="mut">${a.d}${a.t ? ` · title: ${a.t}` : ''}</div></div><span class="mut">${gi('coin', 'cn')} ${coinsFor(a.xp)}</span></div>`; }).join('')}`;
 }
 

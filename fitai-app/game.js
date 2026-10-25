@@ -538,9 +538,8 @@ function victory() {
   $('#col').onclick = () => { LAST = null; flushLevelUp(() => { location.hash = '#/home'; }); if (!G.pend && location.hash === '#/victory') location.hash = '#/home'; };
 }
 
-function heroCard() {
-  const vol = totalVol(), mins = S.history.reduce((a, h) => a + h.dur, 0);
-  return `${hud()}<div class="grid3"><div class="stat"><b>${Math.round(vol).toLocaleString()}</b><span>kg lifted</span></div><div class="stat"><b>${mins}</b><span>minutes</span></div><div class="stat"><b>${S.history.length}</b><span>workouts</span></div></div>
+function heroCard() { // stats live in Progress
+  return `${hud()}
   ${looksBlock()}
   <button class="btn ghost" onclick="location.hash='#/settings'">${ic('gear', 18)} Settings</button>`;
 }

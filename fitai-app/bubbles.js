@@ -201,20 +201,19 @@ function screenNodes(draw) {
   keep.append(...view.childNodes);
   let out = [];
   try { draw(); out = [...view.children]; } catch { /* leave the circle without it */ } finally { view.replaceChildren(keep); }
-  return out.filter(n => !n.matches('.hud, h1, .back'));
+  return out.filter(n => !n.matches('.hud, h1, .back, .row:has(> h1)'));
 }
 function earnNodes() {
-  const head = t => Object.assign(document.createElement('h2'), { className: 'sec keep', textContent: t });
   const bets = _bubBets ? screenNodes(_bubBets) : [];
   const ways = screenNodes(_bubEarn).filter(n => !n.querySelector?.('button[onclick*="#/bets"]')); // its "Open bets" card
   // the ways to earn first (spin, quests, water...), the bets last in a dropdown
-  if (!bets.length) return [head('Ways to earn'), ...ways];
+  if (!bets.length) return ways; // the panel's own title already says it
   const d = document.createElement('details'); d.className = 'card betfold'; d.open = !!BUB.betsOpen;
   d.addEventListener('toggle', () => { BUB.betsOpen = d.open; });
   const n = typeof BT === 'object' ? BT.open.length : 0;
   d.innerHTML = `<summary><h2 class="sec keep">${tr('Bets')}</h2><span class="mut">${n ? tr(`${n} open`) : ''}</span></summary>`;
   d.append(...bets);
-  return [head('Ways to earn'), ...ways, d];
+  return [...ways, d];
 }
 routes.home = home;
 
