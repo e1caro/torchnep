@@ -115,6 +115,7 @@ addEventListener('keydown', e => { if (!RC) return; if (e.key === 'Escape') clos
 let COACH_I = 0, COACH_DONE = false; // the coach greets you each time the app opens, until you have read it all
 const B = t => `<b>${esc(t)}</b>`;
 const S_ = t => `<span>${t}</span>`;
+const COACH_PICK = {}; // bet id -> the pick the coach talks about this time
 function coachLines() {
   const out = [], now = Date.now(), end = new Date().setHours(23, 59, 59, 999), name = esc(S.profile?.name || '');
   const hr = new Date().getHours(), hi = hr < 13 ? 'Good morning' : hr < 20 ? 'Good afternoon' : 'Good evening';
@@ -130,11 +131,15 @@ function coachLines() {
   else out.push({ p: 6, h: S_('Every daily quest done today. Legend.') });
   // open bets
   if (typeof BT === 'object') {
-    BT.open.forEach(b => b.legs.filter(l => !l.st && l.from <= now).forEach(l => {
-      const pay = Math.round(b.stake * b.odds), days = Math.ceil((l.to - now) / 864e5);
+    // one pick per bet, chosen at random among the ones still to do (a combined bet would fill the coach otherwise);
+    // the choice stays the same until the app is opened again
+    BT.open.forEach(b => {
+      const left = b.legs.filter(l => !l.st && l.from <= now); if (!left.length) return;
+      const l = left.find(x => x.id === COACH_PICK[b.id]) || left[Math.floor(Math.random() * left.length)], pay = Math.round(b.stake * b.odds), days = Math.ceil((l.to - now) / 864e5);
+      COACH_PICK[b.id] = l.id;
       if (l.to <= end) out.push({ p: 3, h: `${S_('Your bet')} ${B(legTitle(l))} ${S_('ends tonight.')} ${S_(`It pays ${pay} coins.`)}` });
       else out.push({ p: 5, h: `${S_('Your bet')} ${B(legTitle(l))} ${S_('is still alive.')} ${S_(`${days} day${days > 1 ? 's' : ''} left to win ${pay} coins.`)}` });
-    }));
+    });
   }
   // streak and boss
   const st = streak(), goal = S.profile?.days || 3, hits = Math.min(weekCount(), goal);
