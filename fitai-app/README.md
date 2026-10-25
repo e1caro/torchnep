@@ -168,3 +168,9 @@ Today, Plan (Training, Dungeons, Meals), Shop, Progress (Overview, Levels, Badge
 - **Updates:** the app checks those releases when it opens; when a newer one exists, a bar (and Settings) offers "Update", which downloads the new APK. It installs over the old one and keeps your data, because every release is signed with the same key, kept as the repository secret `FITQUEST_KEYSTORE` (never in the code).
 - **First install:** open the release page on the phone, download the APK and allow installing from your browser when Android asks.
 - **Time goals follow your session:** the daily quest asks for about two thirds of your usual session, and the "long workout" bet for about 90% of it; workout minutes are estimated from the exercises you finish.
+
+## Accounts and friends (Supabase)
+
+`cloud.js` adds accounts with a username and password: your data is saved online and syncs between the web app and the Android app (sign in on a new device, even from the first setup page, and everything comes over). Each account has a 6-character code; add a friend's code on Hero to see their profile (level, looks, workouts, minutes, streak, kg lifted, badges and Academy club). Friends only see that summary, never body data or history.
+
+It runs on a free Supabase project: run `tools/supabase.sql` in its SQL editor, turn off "Confirm email", and put the project URL and anon key in `cloud.js`. Until then the feature stays hidden.

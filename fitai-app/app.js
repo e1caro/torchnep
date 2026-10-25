@@ -46,7 +46,10 @@ const SPLITS = {
 
 // ---------- state ----------
 const load = (k, d) => { try { return JSON.parse(localStorage.getItem('fc.' + k)) ?? d; } catch { return d; } };
-const save = (k, v) => { try { localStorage.setItem('fc.' + k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
+const save = (k, v) => {
+  try { localStorage.setItem('fc.' + k, JSON.stringify(v)); } catch { /* storage full or blocked */ }
+  if (k !== 'cloud' && k !== 'session' && typeof cloudDirty === 'function') cloudDirty(); // the account copy follows (cloud.js)
+};
 const S = { profile: load('profile', null), plan: load('plan', null), history: load('history', []), weights: load('weights', []) };
 if (S.profile && !S.profile.height) { S.profile = null; S.plan = null; } // profile from the first version: ask again
 let EX = [], BY = {}, VID = {};
@@ -357,7 +360,7 @@ function onboarding(edit) {
   if (!wiz) wiz = { step: 0, p: { ...BLANK, ...(edit && S.profile ? S.profile : {}) }, edit: !!edit };
   const p = wiz.p, s = wiz.step;
   const body = [
-    () => `<div class="lbl" style="margin-top:0">Language</div>${langChips()}<label class="fld"><span>What should we call you?</span><div class="inp"><input id="f-name" value="${esc(p.name)}" placeholder="Your name" autocomplete="given-name"></div></label>
+    () => `${!wiz.edit && typeof SB_ON !== 'undefined' && SB_ON ? `<button type="button" class="btn ghost" onclick="location.hash='#/account'">I already have an account</button>` : ''}<div class="lbl" style="margin-top:0">Language</div>${langChips()}<label class="fld"><span>What should we call you?</span><div class="inp"><input id="f-name" value="${esc(p.name)}" placeholder="Your name" autocomplete="given-name"></div></label>
       <div class="lbl">Gender</div>${chips('gender', [['male', 'Male'], ['female', 'Female'], ['other', 'Other']], p.gender)}
       <div class="two">${num('f-age', 'Age', p.age, 'yrs', 'min="14" max="90"')}${num('f-height', 'Height', p.height, 'cm', 'min="120" max="230"')}</div>
       ${num('f-weight', 'Weight', p.weight, 'kg', 'min="30" max="250" step="0.1"')}
@@ -696,6 +699,7 @@ function settings() {
   <label class="fld"><span>Name</span><div class="row"><input id="pname" value="${esc(p.name || '')}" maxlength="20" autocomplete="nickname"><button class="btn sm" onclick="saveName()">Save</button></div></label>
   <section class="card tap setrow" onclick="location.hash='#/start/edit'"><div class="grow"><b>Body and training plan</b>
     <div class="mut">${p.age} years · ${p.height} cm · ${curWeight()} kg · BMI ${a.bmi.toFixed(1)}</div><div class="mut">${GOALS[p.goal][0]} · ${p.days} days · ${p.minutes} min</div></div>${ic('edit', 20)}</section>
+  ${typeof SB_ON !== 'undefined' && SB_ON ? `<section class="card tap setrow" onclick="location.hash='#/account'"><div class="grow"><b>Account</b><div class="mut">${CL.uid ? esc(CL.user || '') : 'Sign in to sync and add friends'}</div></div>${ic('user', 20)}</section>` : ''}
   <h2 class="sec">App</h2>
   <section class="card"><div class="row between setrow"><b>Sound effects</b><button class="chip ${G.sound ? 'on' : ''}" onclick="toggleSound()">${G.sound ? 'On' : 'Off'}</button></div>
     <div class="row between setrow"><b>Language</b>${langChips()}</div></section>
@@ -703,7 +707,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 126</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 127</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db.</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
