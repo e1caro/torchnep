@@ -102,6 +102,20 @@ setTimeout(() => {
 }, 1600);
 
 routes.crypt = cryptView;
+// with the Halloween Night interface on, your picture (Today, Hero, profile) spreads a pair of bat wings
+{
+  const _fx = addFx;
+  addFx = function () {
+    _fx();
+    const on = document.documentElement.dataset.skin === 'halloween';
+    document.querySelectorAll('.hud .av, .pcard .av').forEach(a => {
+      const w = a.querySelector(':scope > .avw');
+      if (on && !w) a.insertAdjacentHTML('beforeend', '<i class="avw l"></i><i class="avw r"></i>');
+      else if (!on && w) a.querySelectorAll(':scope > .avw').forEach(e => e.remove());
+    });
+  };
+  new MutationObserver(() => addFx()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-skin'] });
+}
 
 if (typeof i18nAdd === 'function') {
   i18nAdd({
