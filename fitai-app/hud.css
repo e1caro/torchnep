@@ -1102,3 +1102,8 @@ html[data-skin] .hwmodal .btn .gi{background:#1a0d03}
 .friends .fcard:nth-child(1) .rank{background:#e7b93a;color:#1a1200}.friends .fcard:nth-child(2) .rank{background:#c8ccd6;color:#141619}.friends .fcard:nth-child(3) .rank{background:#c98a52;color:#1a0d03}
 .friends .fcard .grow{position:relative;z-index:1;text-shadow:0 1px 3px #000c}
 .friends .fcard.me{box-shadow:inset 0 0 0 2px var(--acc)}
+.hwbtns{gap:8px;margin-top:10px}
+html[data-skin] .hwcard .hwbtns .btn{margin-top:0}
+html[data-skin] .hwcard .hwbtns .btn.ghost{background:#0c0711aa;color:#ffb36b;box-shadow:inset 0 0 0 1px #ff7a1a88}
+html[data-skin] .btn.hwgo{background:linear-gradient(180deg,#ffa04a,#ff7a1a 55%,#d85a0a);color:#1a0d03}
+html[data-skin] .btn.hwgo .gi{background:#1a0d03}

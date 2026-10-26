@@ -1,17 +1,18 @@
 'use strict';
 // Halloween event: until the end of 31 October 2026 (it closes at midnight, 1 November) the Haunted Crypt opens.
 // It is your own next workout with each exercise swapped for a spooky twin (same main muscle and kind, your equipment),
-// and clearing it once gives every prize: a jack-o'-lantern profile picture, a cobweb banner, a Halloween banner and the
-// Halloween Night interface. Any prize can be tried for a minute from the event card. The prizes are event-only: never in the shop or in chests, and they stay yours after the event.
+// and clearing it gives the Halloween Night interface. The other prizes (a jack-o'-lantern profile picture, a cobweb
+// banner and a Halloween banner) come one a day, each day you complete all the daily quests. Any prize can be tried for a minute from the event card. The prizes are event-only: never in the shop or in chests, and they stay yours after the event.
 const HW_END = new Date(2026, 10, 1).getTime(); // local midnight starting 1 November
 const hwOpen = () => Date.now() < HW_END;
 const HW_ID = 'd-halloween';
 // the event's prizes, in order
+// via: 'quests' (one a day for completing every daily quest) or 'crypt' (for clearing the Haunted Crypt)
 const HW_PRIZES = [
-  { id: 'ev-a-pumpkin', type: 'avatar', key: 'pumpkin', name: "Jack-o'-lantern" },
-  { id: 'ev-b-cobweb', type: 'banner', key: 'cobweb', name: 'Cobweb banner' },
-  { id: 'ev-b-halloween', type: 'banner', key: 'halloween', name: 'Halloween banner' },
-  { id: 'ev-sk-halloween', type: 'skin', key: 'halloween', name: 'Halloween Night', emo: '🎃' },
+  { id: 'ev-a-pumpkin', type: 'avatar', key: 'pumpkin', name: "Jack-o'-lantern", via: 'quests' },
+  { id: 'ev-b-cobweb', type: 'banner', key: 'cobweb', name: 'Cobweb banner', via: 'quests' },
+  { id: 'ev-b-halloween', type: 'banner', key: 'halloween', name: 'Halloween banner', via: 'quests' },
+  { id: 'ev-sk-halloween', type: 'skin', key: 'halloween', name: 'Halloween Night', emo: '🎃', via: 'crypt' },
 ];
 HW_PRIZES.forEach(p => ITEMS.push({ ...p, cost: 0, shop: false, lv: Infinity, event: 'halloween' }));
 DUNGEONS[HW_ID] = { ico: 'pumpkin', name: 'Haunted Crypt', lv: Infinity, mult: 1.5, event: true, desc: 'Your own workout, haunted: every exercise swapped for a spooky twin.' };
@@ -39,12 +40,24 @@ window.startHalloween = () => {
   if (!items.length) return;
   startSession(tr('Haunted Crypt'), items, { dungeon: HW_ID });
 };
-// called by gameWorkout when a workout ends: clearing the Haunted Crypt gives every prize still missing
+// called by gameWorkout when a workout ends: clearing the Haunted Crypt gives the interface
 function hwClear(h) {
   if (h.dungeon !== HW_ID) return null;
-  const got = HW_PRIZES.filter(p => !G.owned.includes(p.id)); if (!got.length) return null;
+  const got = HW_PRIZES.filter(p => p.via === 'crypt' && !G.owned.includes(p.id)); if (!got.length) return null;
   got.forEach(p => G.owned.push(p.id)); commit();
   return got;
+}
+// called when a daily quest is claimed: once all of today's are claimed, the next quest prize (one a day)
+function hwQuests() {
+  if (!hwOpen() || G.hwQ === dayId() || G.quests.claimed.length < G.quests.list.length) return;
+  const p = HW_PRIZES.find(x => x.via === 'quests' && !G.owned.includes(x.id)); if (!p) return;
+  G.owned.push(p.id); G.hwQ = dayId(); commit();
+  setTimeout(() => {
+    if (!$('#modal').hidden) { toast(T('Halloween prize: {0}', tr(p.name))); return; }
+    sfx('level'); confetti();
+    modal(`<div class="hwmodal"><div class="hwbig">${hwPic(p)}</div><div class="lvup">Halloween prize</div><h2>${esc(tr(p.name))}</h2>
+      <div class="mut">For completing all of today's quests.</div><button class="btn" onclick="$('#modal').hidden=true;equip('${p.id}')">Use it</button><button class="btn ghost" data-close>Later</button></div>`);
+  }, 600);
 }
 const hwPic = p => (p.type === 'avatar' ? gi(p.key, 'hero') : p.type === 'banner' ? `<span class="bnp bn-${p.key}"></span>` : `<span class="emo">${p.emo}</span>`);
 function hwPrizeCard(r) {
@@ -53,17 +66,27 @@ function hwPrizeCard(r) {
     <button class="btn sm" onclick="equip('${p.id}')">Use it</button></div>`).join('')}`;
 }
 // the prizes in order; tap one to wear it for a minute
-const hwTiles = () => `<div class="hwprizes">${HW_PRIZES.map(p => `<button class="hwp ${G.owned.includes(p.id) ? 'got' : ''}" onclick="event.stopPropagation();hwTry('${p.id}')" aria-label="${esc(tr(p.name))}">${hwPic(p)}<small>${G.owned.includes(p.id) ? '✓' : 'Try'}</small></button>`).join('')}</div>
-  <div class="mut hwhint">Tap a prize to try it for a minute.</div>`;
+const hwTiles = () => `<div class="hwprizes">${HW_PRIZES.map(p => `<button class="hwp ${G.owned.includes(p.id) ? 'got' : ''}" onclick="event.stopPropagation();hwTry('${p.id}')" aria-label="${esc(tr(p.name))}">${hwPic(p)}<small>${G.owned.includes(p.id) ? '✓' : p.via === 'crypt' ? 'Crypt' : 'Quests'}</small></button>`).join('')}</div>
+  <div class="mut hwhint">Clear the crypt for the interface. Complete all daily quests for the others, one a day. Tap a prize to try it for a minute.</div>`;
 window.hwTry = id => { $('#modal').hidden = true; if (G.owned.includes(id)) { equip(id); toast(tr('Equipped')); } else tryLook(id); };
 // the event on Today (inside the Train panel) and on top of Dungeons
 function hwCard() {
   if (!hwOpen() || !S.profile) return '';
   const nx = hwNext();
   return `<section class="card hwcard" onclick="event.stopPropagation()"><div class="hwbats" aria-hidden="true"></div><div class="row"><div class="hwpk">${gi('pumpkin', 'hero')}</div>
-    <div class="grow"><div class="mut">Halloween event · ${hwLeft()}</div><h3>Haunted Crypt</h3><div class="mut">${nx ? 'Clear it once to win every prize' : 'All prizes won!'}</div></div></div>
+    <div class="grow"><div class="mut">Halloween event · ${hwLeft()}</div><h3>Haunted Crypt</h3><div class="mut">${nx ? `Prizes · ${hwGot()}/${HW_PRIZES.length}` : 'All prizes won!'}</div></div></div>
     ${hwTiles()}
-    <button class="btn" onclick="startHalloween()">${gi('pumpkin')} Enter the crypt</button></section>`;
+    <div class="row hwbtns"><button class="btn ghost" onclick="location.hash='#/crypt'">See the workout</button><button class="btn" onclick="startHalloween()">${gi('pumpkin')} Enter</button></div></section>`;
+}
+// the whole crypt workout before you enter
+function cryptView() {
+  if (needProfile()) return;
+  const items = hwWorkout(), d = { items };
+  view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
+  <div class="hwpk" style="margin:0 auto">${gi('pumpkin', 'hero')}</div><h1>Haunted Crypt</h1>
+  <div class="mut">${items.length} exercises · ~${planMinutes(d)} min · 1.5× XP${hwOpen() ? ` · ${hwLeft()}` : ''}</div>
+  <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a></div>` : ''; }).join('')}</section>
+  ${hwOpen() ? `<button class="btn hwgo" onclick="startHalloween()">${gi('pumpkin')} Enter the crypt</button>` : '<div class="mut">The Haunted Crypt has closed.</div>'}`;
 }
 
 // a notice when the app opens, while the event runs and prizes are left (at most every 4 hours)
@@ -71,12 +94,17 @@ setTimeout(() => {
   if (!S.profile || !hwOpen() || !hwNext() || Date.now() - (G.hwSeen || 0) < 4 * 36e5 || !$('#modal').hidden || /workout|start|victory/.test(location.hash)) return;
   G.hwSeen = Date.now(); commit(); sfx('level');
   modal(`<div class="hwmodal"><div class="hwbats" aria-hidden="true"></div><div class="hwbig">${gi('pumpkin', 'hero')}</div><div class="lvup">Halloween event</div>
-    <h2>Haunted Crypt</h2><div class="mut">Your own workout, haunted. Open until 31 October.</div><b class="hwleft">${hwLeft()}</b><div class="mut">Clear it once to win every prize:</div>
+    <h2>Haunted Crypt</h2><div class="mut">Your own workout, haunted. Open until 31 October.</div><b class="hwleft">${hwLeft()}</b><div class="mut">Your prizes:</div>
     ${hwTiles()}<button class="btn" onclick="$('#modal').hidden=true;startHalloween()">${gi('pumpkin')} Enter the crypt</button><button class="btn ghost" data-close>Later</button></div>`);
 }, 1600);
 
+routes.crypt = cryptView;
+
 if (typeof i18nAdd === 'function') {
   i18nAdd({
+    Crypt: 'Cripta', Quests: 'Misiones', 'See the workout': 'Ver el entrenamiento', Enter: 'Entrar', 'Prizes · {n}/{n}': 'Premios · {n}/{n}', 'Your prizes:': 'Tus premios:',
+    'Clear the crypt for the interface. Complete all daily quests for the others, one a day. Tap a prize to try it for a minute.': 'Supera la cripta para la interfaz. Completa todas las misiones diarias para los demás, uno al día. Toca un premio para probarlo un minuto.',
+    "For completing all of today's quests.": 'Por completar todas las misiones de hoy.', 'Halloween prize: {0}': 'Premio de Halloween: {0}', '{n} exercises · ~{n} min · 1.5× XP': '{n} ejercicios · ~{n} min · 1,5× XP',
     'Haunted Crypt': 'Cripta embrujada', "Jack-o'-lantern": 'Calabaza de Halloween', 'Halloween banner': 'Banner de Halloween', 'Halloween Night': 'Noche de Halloween',
     'Halloween event ·': 'Evento de Halloween ·', 'Next prize: {n}': 'Próximo premio: {n}', 'All prizes won!': '¡Todos los premios conseguidos!', 'Enter the crypt': 'Entrar en la cripta',
     'Halloween prize · {n}/{n}': 'Premio de Halloween · {n}/{n}', 'Use it': 'Usar', 'The Haunted Crypt has closed.': 'La cripta embrujada ya ha cerrado.',
