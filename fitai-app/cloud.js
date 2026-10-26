@@ -37,9 +37,13 @@ async function sbRefresh() {
 // ---------- your data ----------
 const SYNC_SKIP = ['fc.cloud', 'fc.session'];
 const localData = () => Object.fromEntries(Object.keys(localStorage).filter(k => k.startsWith('fc.') && !SYNC_SKIP.includes(k)).map(k => [k, localStorage.getItem(k)]));
+// notices already shown on this device stay shown when the account's data comes in (the weekly summary, the
+// Halloween notice...), so syncing never brings them back
 function applyData(d) {
+  let seen = {}; try { const g = JSON.parse(localStorage.getItem('fc.game')) || {}; if (g.recapSeen === weekId()) seen.recapSeen = g.recapSeen; if (g.hwDay === dayId()) seen.hwDay = g.hwDay; } catch { /* no game yet */ }
   Object.keys(localStorage).filter(k => k.startsWith('fc.') && !SYNC_SKIP.includes(k)).forEach(k => localStorage.removeItem(k));
   Object.entries(d || {}).forEach(([k, v]) => { if (k.startsWith('fc.') && !SYNC_SKIP.includes(k)) localStorage.setItem(k, v); });
+  try { const g = JSON.parse(localStorage.getItem('fc.game')); if (g) { Object.assign(g, seen); localStorage.setItem('fc.game', JSON.stringify(g)); } } catch { /* fine */ }
 }
 // what friends see: the same profile summary as Hero (profile.js), never body data or history
 const publicProfile = () => profileSummary();

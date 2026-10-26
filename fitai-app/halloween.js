@@ -92,10 +92,10 @@ function cryptView() {
   ${hwOpen() ? `<div class="row"><button class="btn ghost" onclick="history.back()">Back</button><button class="btn hwgo" onclick="startHalloween()">${gi('pumpkin')} Start the crypt</button></div>` : '<div class="mut">The Haunted Crypt has closed.</div>'}`;
 }
 
-// a notice when the app opens, while the event runs and prizes are left (at most every 4 hours)
+// a notice when the app opens, while the event runs and prizes are left (once a day)
 setTimeout(() => {
-  if (!S.profile || !hwOpen() || !hwNext() || Date.now() - (G.hwSeen || 0) < 4 * 36e5 || !$('#modal').hidden || /workout|start|victory/.test(location.hash)) return;
-  G.hwSeen = Date.now(); commit(); sfx('level');
+  if (!S.profile || !hwOpen() || !hwNext() || G.hwDay === dayId() || !$('#modal').hidden || /workout|start|victory/.test(location.hash)) return;
+  G.hwDay = dayId(); commit(); sfx('level');
   modal(`<div class="hwmodal"><div class="hwbats" aria-hidden="true"></div><div class="hwbig">${gi('pumpkin', 'hero')}</div><div class="lvup">Halloween event</div>
     <h2>Haunted Crypt</h2><div class="mut">Your own workout, haunted. Open until 31 October.</div><b class="hwleft">${hwLeft()}</b><div class="mut">Your prizes:</div>
     ${hwTiles()}<button class="btn" onclick="$('#modal').hidden=true;location.hash='#/crypt'">${gi('pumpkin')} Enter the crypt</button><button class="btn ghost" data-close>Later</button></div>`);
