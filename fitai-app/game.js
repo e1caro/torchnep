@@ -346,6 +346,7 @@ window.claimQuest = id => {
   const q = QT.find(x => x.id === id);
   if (G.quests.claimed.includes(id) || metric(q.m) < q.n) return;
   G.quests.claimed.push(id); G.questsDone++; award(0, coinsFor(q.xp)); sfx('claim'); checkAch();
+  if (typeof hwQuests === 'function') hwQuests();
   flushLevelUp(home);
 };
 window.claimQuestBonus = () => {

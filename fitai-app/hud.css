@@ -1091,7 +1091,7 @@ html[data-skin] .hwp .bnp{width:100%;height:24px;min-height:0;border-radius:5px;
 .hwmodal{position:relative;text-align:center;display:grid;gap:8px}
 .hwmodal h2{margin:0;color:#ffb36b}
 .hwbig{width:84px;height:84px;margin:0 auto;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle,#ff7a1a44,#0000 70%)}
-html[data-skin] .hwbig .gi{background:#ff7a1a;width:60px;height:60px;animation:hwglow 2.4s ease-in-out infinite}
+html[data-skin] .hwbig>.gi{background:#ff7a1a;width:60px;height:60px;animation:hwglow 2.4s ease-in-out infinite}
 html[data-skin] .hwmodal .btn:not(.ghost){background:linear-gradient(180deg,#ffa04a,#ff7a1a 55%,#d85a0a);color:#1a0d03}
 html[data-skin] .hwmodal .btn .gi{background:#1a0d03}
 .hwleft{color:#ffb36b}
@@ -1102,3 +1102,33 @@ html[data-skin] .hwmodal .btn .gi{background:#1a0d03}
 .friends .fcard:nth-child(1) .rank{background:#e7b93a;color:#1a1200}.friends .fcard:nth-child(2) .rank{background:#c8ccd6;color:#141619}.friends .fcard:nth-child(3) .rank{background:#c98a52;color:#1a0d03}
 .friends .fcard .grow{position:relative;z-index:1;text-shadow:0 1px 3px #000c}
 .friends .fcard.me{box-shadow:inset 0 0 0 2px var(--acc)}
+.hwbtns{gap:8px;margin-top:10px}
+html[data-skin] .hwcard .hwbtns .btn{margin-top:0}
+html[data-skin] .hwcard .hwbtns .btn.ghost{background:#0c0711aa;color:#ffb36b;box-shadow:inset 0 0 0 1px #ff7a1a88}
+html[data-skin] .btn.hwgo{background:linear-gradient(180deg,#ffa04a,#ff7a1a 55%,#d85a0a);color:#1a0d03}
+html[data-skin] .btn.hwgo .gi{background:#1a0d03}
+/* Witching Hour ring: a thin dark-violet double ring with a pumpkin-glow line inside and a little ghost flying round
+   the picture */
+.fr-halloween{box-shadow:0 0 0 2px #1a0d26,0 0 0 3px #6b3fa0,0 0 14px #ff7a1a55,inset 0 0 0 2px #ff7a1a;animation:hwring 3s ease-in-out infinite}
+@keyframes hwring{0%,100%{box-shadow:0 0 0 2px #1a0d26,0 0 0 3px #6b3fa0,0 0 10px #ff7a1a44,inset 0 0 0 2px #ff7a1a}50%{box-shadow:0 0 0 2px #1a0d26,0 0 0 3px #8f5cd0,0 0 20px #ff7a1a88,inset 0 0 0 2px #ffa04a}}
+.fr-halloween::after{display:none}
+.av.fr-halloween>.fx:not(.fx2){display:none}
+.av.fr-halloween>.fx2{inset:-26%;height:auto;transform-origin:50% 50%;background:url(icons/gi/ghostie.svg) center/100% 100% no-repeat!important;-webkit-mask:none;mask:none;
+  filter:drop-shadow(0 0 3px #7dff6a88);animation:spin 9s linear infinite reverse}
+/* a ring shown as a prize: small, with the picture fitting inside it */
+.av.hwring{width:30px;height:30px}
+.hud .av.fr-halloween,.pcard .av.fr-halloween{overflow:visible}
+.av.hwring>span .gi{width:16px;height:16px;font-size:16px}
+.hwbig .av.hwring{width:58px;height:58px}
+.hwbig .av.hwring>span .gi{width:30px;height:30px;font-size:30px}
+/* Halloween Night: bat wings either side of your picture, flapping gently */
+.av>.avw{position:absolute;top:-10%;width:30%;height:66%;pointer-events:none;background:url(icons/gi/batwing.svg) center/contain no-repeat;
+  filter:drop-shadow(0 2px 3px #000a);z-index:-1;animation:hwflap 2.6s ease-in-out infinite}
+.av>.avw.r{left:86%;right:auto;bottom:auto;transform-origin:0 60%;transform:rotate(-10deg)}
+.av>.avw.l{left:-16%;right:auto;bottom:auto;transform-origin:100% 60%;transform:rotate(10deg);background-image:url(icons/gi/batwingl.svg)}
+.hud .av:has(>.avw),.pcard .av:has(>.avw){isolation:isolate}
+.hud:has(.avw){overflow:visible}
+@keyframes hwflap{0%,100%{rotate:-4deg}50%{rotate:9deg}}
+.av>.avw.l{animation-name:hwflapl}
+@keyframes hwflapl{0%,100%{rotate:4deg}50%{rotate:-9deg}}
+@media(prefers-reduced-motion:reduce){.av>.avw{animation:none}}
