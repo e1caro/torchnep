@@ -79,7 +79,7 @@ function hwCard() {
   return `<section class="card hwcard" onclick="event.stopPropagation()"><div class="hwbats" aria-hidden="true"></div><div class="row"><div class="hwpk">${gi('pumpkin', 'hero')}</div>
     <div class="grow"><div class="mut">Halloween event · ${hwLeft()}</div><h3>Haunted Crypt</h3><div class="mut">${nx ? `Prizes · ${hwGot()}/${HW_PRIZES.length}` : 'All prizes won!'}</div></div></div>
     ${hwTiles()}
-    <div class="row hwbtns"><button class="btn ghost" onclick="location.hash='#/crypt'">See the workout</button><button class="btn" onclick="startHalloween()">${gi('pumpkin')} Enter</button></div></section>`;
+    <button class="btn" onclick="location.hash='#/crypt'">${gi('pumpkin')} Enter the crypt</button></section>`;
 }
 // the whole crypt workout before you enter
 function cryptView() {
@@ -89,7 +89,7 @@ function cryptView() {
   <div class="hwpk" style="margin:0 auto">${gi('pumpkin', 'hero')}</div><h1>Haunted Crypt</h1>
   <div class="mut">${items.length} exercises · ~${planMinutes(d)} min · 1.5× XP${hwOpen() ? ` · ${hwLeft()}` : ''}</div>
   <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a></div>` : ''; }).join('')}</section>
-  ${hwOpen() ? `<button class="btn hwgo" onclick="startHalloween()">${gi('pumpkin')} Enter the crypt</button>` : '<div class="mut">The Haunted Crypt has closed.</div>'}`;
+  ${hwOpen() ? `<div class="row"><button class="btn ghost" onclick="history.back()">Back</button><button class="btn hwgo" onclick="startHalloween()">${gi('pumpkin')} Start the crypt</button></div>` : '<div class="mut">The Haunted Crypt has closed.</div>'}`;
 }
 
 // a notice when the app opens, while the event runs and prizes are left (at most every 4 hours)
@@ -98,7 +98,7 @@ setTimeout(() => {
   G.hwSeen = Date.now(); commit(); sfx('level');
   modal(`<div class="hwmodal"><div class="hwbats" aria-hidden="true"></div><div class="hwbig">${gi('pumpkin', 'hero')}</div><div class="lvup">Halloween event</div>
     <h2>Haunted Crypt</h2><div class="mut">Your own workout, haunted. Open until 31 October.</div><b class="hwleft">${hwLeft()}</b><div class="mut">Your prizes:</div>
-    ${hwTiles()}<button class="btn" onclick="$('#modal').hidden=true;startHalloween()">${gi('pumpkin')} Enter the crypt</button><button class="btn ghost" data-close>Later</button></div>`);
+    ${hwTiles()}<button class="btn" onclick="$('#modal').hidden=true;location.hash='#/crypt'">${gi('pumpkin')} Enter the crypt</button><button class="btn ghost" data-close>Later</button></div>`);
 }, 1600);
 
 routes.crypt = cryptView;
@@ -119,7 +119,7 @@ routes.crypt = cryptView;
 
 if (typeof i18nAdd === 'function') {
   i18nAdd({
-    Crypt: 'Cripta', Quests: 'Misiones', 'See the workout': 'Ver el entrenamiento', Enter: 'Entrar', 'Prizes · {n}/{n}': 'Premios · {n}/{n}', 'Your prizes:': 'Tus premios:',
+    Crypt: 'Cripta', 'Start the crypt': 'Empezar la cripta', Quests: 'Misiones', 'See the workout': 'Ver el entrenamiento', Enter: 'Entrar', 'Prizes · {n}/{n}': 'Premios · {n}/{n}', 'Your prizes:': 'Tus premios:',
     'Clear the crypt for the interface. Complete all daily quests for the others, one a day. Tap a prize to try it for a minute.': 'Supera la cripta para la interfaz. Completa todas las misiones diarias para los demás, uno al día. Toca un premio para probarlo un minuto.',
     "For completing all of today's quests.": 'Por completar todas las misiones de hoy.', 'Halloween prize: {0}': 'Premio de Halloween: {0}', '{n} exercises · ~{n} min · 1.5× XP': '{n} ejercicios · ~{n} min · 1,5× XP',
     'Haunted Crypt': 'Cripta embrujada', "Jack-o'-lantern": 'Calabaza de Halloween', 'Halloween banner': 'Banner de Halloween', 'Halloween Night': 'Noche de Halloween',

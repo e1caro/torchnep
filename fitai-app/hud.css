@@ -1142,3 +1142,4 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .av>.avw.l{animation-name:hwflapl}
 @keyframes hwflapl{0%,100%{rotate:4deg}50%{rotate:-9deg}}
 @media(prefers-reduced-motion:reduce){.av>.avw{animation:none}}
+.dghead{gap:12px;align-items:center;margin-bottom:6px}.dghead h1{margin:0}
