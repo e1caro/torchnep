@@ -28,7 +28,7 @@ const SLOTS = {
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 // Every recipe is one serving for one person. Portions only move a little (lighter or heartier serving);
 // bigger calorie targets are met with more meals a day, not with huge plates.
-const PMIN = .85, PMAX = 1.15, SERVE_CAP = { b: 500, m: 600, s: 280 };
+const PMIN = .8, PMAX = 1.1, SERVE_CAP = { b: 430, m: 510, s: 240 };
 RECIPES.forEach(r => {
   const kcal = nutOf(r).kcal, cap = SERVE_CAP[r.meal];
   if (kcal > cap) r.ing = r.ing.map(([k, g]) => [k, Math.max(5, Math.round(g * cap / kcal / 5) * 5)]);
@@ -43,8 +43,11 @@ const appetite = () => {
   const mean = v.reduce((a, x) => a + x, 0) / v.length;
   return Math.round(clamp(1 + (mean - 1) * Math.min(1, v.length / 8), .8, 1.1) * 20) / 20; // the more often, the closer to it
 };
+// The plan covers 85% of the day's calories: oil, drinks, sauces and bites outside the plan make up the rest, so the
+// plates (and the shopping list) don't come out too big. Protein stays.
+const MEAL_COVER = .85;
 const target = () => {
-  const a = analyze({ ...S.profile, weight: curWeight() }), f = appetite();
+  const a = analyze({ ...S.profile, weight: curWeight() }), f = appetite() * MEAL_COVER;
   if (f === 1) return a;
   const kcal = Math.round(a.kcal * f), rest = Math.max(0, kcal - a.protein * 4), old = Math.max(1, a.kcal - a.protein * 4); // protein stays, carbs and fat shrink
   return { ...a, kcal, carbs: Math.round(a.carbs * rest / old), fat: Math.round(a.fat * rest / old) };
@@ -284,7 +287,7 @@ function mealSetup() {
   const draft = { ...st, style: st.style || 'none', variety: st.variety || 'simple', avoid: [...st.avoid], cuisines: [...(st.cuisines || [])], times: [...st.times] };
   const wd = draft.times[0], we = draft.times[5];
   const ch = (key, opts, sel, multi) => `<div class="chips" data-k="${key}" ${multi ? 'data-multi="1"' : ''}>${opts.map(([v, l]) => `<button type="button" class="chip ${(multi ? sel.includes(v) : String(sel) === String(v)) ? 'on' : ''}" data-v="${v}">${l}</button>`).join('')}</div>`;
-  view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your plan targets about ${target().kcal} kcal and ${target().protein} g protein a day.</p>${appetiteNote()}
+  view.innerHTML = `${seg('meals')}<h1>Meal setup</h1><p class="mut">Your meals add up to about ${target().kcal} kcal and ${target().protein} g protein a day (${analyze({ ...S.profile, weight: curWeight() }).kcal} kcal in total, leaving room for oil, drinks and extras).</p>${appetiteNote()}
   <div class="lbl">Diet</div>${ch('diet', Object.entries(DIETS), draft.diet)}
   <div class="lbl">Avoid</div>${ch('avoid', Object.entries(AVOID).map(([k, v]) => [k, v[0]]), draft.avoid, true)}
   <div class="lbl">Meals per day</div>${ch('meals', [[3, '3'], [4, '3 + snack'], [5, '3 + 2 snacks']], draft.meals)}
