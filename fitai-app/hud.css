@@ -1122,10 +1122,10 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .hwbig .av.hwring{width:58px;height:58px}
 .hwbig .av.hwring>span .gi{width:30px;height:30px;font-size:30px}
 /* Halloween Night: bat wings either side of your picture, flapping gently */
-.av>.avw{position:absolute;top:4%;width:52%;height:42%;pointer-events:none;background:url(icons/gi/batwing.svg) center/contain no-repeat;
+.av>.avw{position:absolute;top:0;width:44%;height:46%;pointer-events:none;background:url(icons/gi/batwing.svg) center/contain no-repeat;
   filter:drop-shadow(0 2px 3px #000a);z-index:-1;animation:hwflap 2.6s ease-in-out infinite}
-.av>.avw.r{left:74%;right:auto;bottom:auto;transform-origin:0 75%;transform:rotate(-16deg)}
-.av>.avw.l{left:-26%;right:auto;bottom:auto;transform-origin:100% 75%;transform:rotate(16deg);background-image:url(icons/gi/batwingl.svg)}
+.av>.avw.r{left:80%;right:auto;bottom:auto;transform-origin:0 60%;transform:rotate(-10deg)}
+.av>.avw.l{left:-24%;right:auto;bottom:auto;transform-origin:100% 60%;transform:rotate(10deg);background-image:url(icons/gi/batwingl.svg)}
 .hud .av:has(>.avw),.pcard .av:has(>.avw){isolation:isolate}
 .hud:has(.avw){overflow:visible}
 @keyframes hwflap{0%,100%{rotate:-4deg}50%{rotate:9deg}}
