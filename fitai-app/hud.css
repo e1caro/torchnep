@@ -1107,12 +1107,14 @@ html[data-skin] .hwcard .hwbtns .btn{margin-top:0}
 html[data-skin] .hwcard .hwbtns .btn.ghost{background:#0c0711aa;color:#ffb36b;box-shadow:inset 0 0 0 1px #ff7a1a88}
 html[data-skin] .btn.hwgo{background:linear-gradient(180deg,#ffa04a,#ff7a1a 55%,#d85a0a);color:#1a0d03}
 html[data-skin] .btn.hwgo .gi{background:#1a0d03}
-/* Witching Hour ring: candy-corn stripes, a witch on her broom flying round the picture, green cauldron bubbles rising */
-.fr-halloween{box-shadow:0 0 16px #a46bff66,0 0 4px #7dff6a55}
-.fr-halloween::after{inset:-6px;background:repeating-conic-gradient(from 0deg,#ff7a1a 0 10deg,#ffd36a 10deg 20deg,#fff4e0 20deg 26deg,#2a1236 26deg 30deg)!important;
-  -webkit-mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px))!important;mask:radial-gradient(farthest-side,#0000 calc(100% - 5px),#000 calc(100% - 4px))!important;animation:spin 18s linear infinite}
-.av.fr-halloween>.fx{inset:-16px;background:#3a1650;-webkit-mask:url(icons/gi/broom.svg) 50% 0/34% auto no-repeat;mask:url(icons/gi/broom.svg) 50% 0/34% auto no-repeat;
-  filter:drop-shadow(0 0 3px #a46bff);animation:spin 7s linear infinite reverse}
-html[data-skin] .av.fr-halloween>.fx{background-color:#c49bff}
-.av.fr-halloween>.fx2{inset:-10px;-webkit-mask:none;mask:none;filter:none;background:radial-gradient(circle at 30% 96%,#7dff6a 0 2px,#0000 3px),radial-gradient(circle at 50% 100%,#7dff6acc 0 2.6px,#0000 3.4px),
-  radial-gradient(circle at 68% 95%,#7dff6a 0 1.6px,#0000 2.4px),radial-gradient(circle at 42% 90%,#b8ff9e 0 1.2px,#0000 2px)!important;animation:fxrise 2.2s ease-out infinite}
+/* Witching Hour ring: a thin dark-violet double ring with a pumpkin-glow line inside, a witch's hat resting on top
+   and a little ghost floating round the picture */
+.fr-halloween{box-shadow:0 0 0 2px #1a0d26,0 0 0 3px #6b3fa0,0 0 14px #ff7a1a55,inset 0 0 0 2px #ff7a1a;animation:hwring 3s ease-in-out infinite}
+@keyframes hwring{0%,100%{box-shadow:0 0 0 2px #1a0d26,0 0 0 3px #6b3fa0,0 0 10px #ff7a1a44,inset 0 0 0 2px #ff7a1a}50%{box-shadow:0 0 0 2px #1a0d26,0 0 0 3px #8f5cd0,0 0 20px #ff7a1a88,inset 0 0 0 2px #ffa04a}}
+.fr-halloween::after{display:none}
+.av.fr-halloween>.fx{inset:-44% 14% auto 26%;height:56%;background:linear-gradient(160deg,#a777e6,#4a2276 70%);-webkit-mask:url(icons/gi/witchhat.svg) 50% 100%/contain no-repeat;mask:url(icons/gi/witchhat.svg) 50% 100%/contain no-repeat;
+  filter:drop-shadow(0 0 1px #ffb36b) drop-shadow(0 0 5px #ff7a1a99);animation:hwhat 4s ease-in-out infinite;transform-origin:30% 100%;border-radius:0}
+html[data-skin] .av.fr-halloween>.fx{background-color:transparent}
+@keyframes hwhat{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(4deg)}}
+.av.fr-halloween>.fx2{inset:-19%;background:#f4eefc!important;-webkit-mask:url(icons/gi/wisp.svg) 100% 50%/26% auto no-repeat;mask:url(icons/gi/wisp.svg) 100% 50%/26% auto no-repeat;
+  opacity:.85;filter:drop-shadow(0 0 4px #c49bff);animation:spin 10s linear infinite}
