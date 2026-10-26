@@ -1116,10 +1116,11 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
   filter:drop-shadow(0 0 1px #ffb36b) drop-shadow(0 0 5px #ff7a1a99);animation:hwhat 4s ease-in-out infinite;transform-origin:30% 100%;border-radius:0}
 html[data-skin] .av.fr-halloween>.fx{background-color:transparent}
 @keyframes hwhat{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(4deg)}}
-.av.fr-halloween>.fx2{inset:-19%;background:#f4eefc!important;-webkit-mask:url(icons/gi/wisp.svg) 100% 50%/26% auto no-repeat;mask:url(icons/gi/wisp.svg) 100% 50%/26% auto no-repeat;
-  opacity:.85;filter:drop-shadow(0 0 4px #c49bff);animation:spin 10s linear infinite}
+.av.fr-halloween>.fx2{inset:-26%;height:auto;transform-origin:50% 50%;background:url(icons/gi/ghostie.svg) center/100% 100% no-repeat!important;-webkit-mask:none;mask:none;
+  filter:drop-shadow(0 0 3px #7dff6a88);animation:spin 9s linear infinite reverse}
 /* a ring shown as a prize: small, with the picture fitting inside it */
 .av.hwring{width:30px;height:30px}
+.hud .av.fr-halloween,.pcard .av.fr-halloween{overflow:visible}
 .av.hwring>span .gi{width:16px;height:16px;font-size:16px}
 .hwbig .av.hwring{width:58px;height:58px}
 .hwbig .av.hwring>span .gi{width:30px;height:30px;font-size:30px}
