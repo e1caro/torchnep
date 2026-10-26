@@ -112,7 +112,9 @@ window.shareRecap = async e => {
 addEventListener('keydown', e => { if (!RC) return; if (e.key === 'Escape') closeRecap(); if (e.key === 'ArrowRight') recapGo(1); if (e.key === 'ArrowLeft') recapGo(-1); });
 
 // ---------- the coach line on Today ----------
-let COACH_I = 0, COACH_DONE = false; // the coach greets you each time the app opens, until you have read it all
+// the coach greets you on the first opening of each day, until you have read it all; opening the app again later that
+// day leaves it out
+let COACH_I = 0, COACH_DONE = G.coachDay === dayId();
 const B = t => `<b>${esc(t)}</b>`;
 const S_ = t => `<span>${t}</span>`;
 const COACH_PICK = {}; // bet id -> the pick the coach talks about this time
@@ -180,7 +182,7 @@ home = function () {
   _rcHome();
   const hud = view.querySelector(':scope > .hud');
   if (!hud) return;
-  if (!COACH_DONE) hud.insertAdjacentHTML('afterend', coachCard());
+  if (!COACH_DONE) { hud.insertAdjacentHTML('afterend', coachCard()); if (G.coachDay !== dayId()) { G.coachDay = dayId(); commit(); } }
   if (typeof layoutOrbs === 'function') layoutOrbs(); // the circles share the screen with the coach line
   // the first visit of a new week shows last week's summary
   if (G.recapSeen !== weekId() && weekStats(weekStart() - WEEK).n && !document.querySelector('#modal:not([hidden])')) {
