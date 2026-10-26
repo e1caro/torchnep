@@ -2,7 +2,7 @@
 // Halloween event: until the end of 31 October 2026 (it closes at midnight, 1 November) the Haunted Crypt opens.
 // It is your own next workout with each exercise swapped for a spooky twin (same main muscle and kind, your equipment),
 // and clearing it gives the Halloween Night interface. The other prizes (a jack-o'-lantern profile picture, a cobweb
-// banner and a Halloween banner) come one a day, each day you complete all the daily quests. Any prize can be tried for a minute from the event card. The prizes are event-only: never in the shop or in chests, and they stay yours after the event.
+// banner and the Witching Hour ring) come one a day, each day you complete all the daily quests. Any prize can be tried for a minute from the event card. The prizes are event-only: never in the shop or in chests, and they stay yours after the event.
 const HW_END = new Date(2026, 10, 1).getTime(); // local midnight starting 1 November
 const hwOpen = () => Date.now() < HW_END;
 const HW_ID = 'd-halloween';
@@ -11,10 +11,13 @@ const HW_ID = 'd-halloween';
 const HW_PRIZES = [
   { id: 'ev-a-pumpkin', type: 'avatar', key: 'pumpkin', name: "Jack-o'-lantern", via: 'quests' },
   { id: 'ev-b-cobweb', type: 'banner', key: 'cobweb', name: 'Cobweb banner', via: 'quests' },
-  { id: 'ev-b-halloween', type: 'banner', key: 'halloween', name: 'Halloween banner', via: 'quests' },
+  { id: 'ev-f-halloween', type: 'frame', key: 'halloween', name: 'Witching Hour ring', via: 'quests' },
   { id: 'ev-sk-halloween', type: 'skin', key: 'halloween', name: 'Halloween Night', emo: '🎃', via: 'crypt' },
 ];
 HW_PRIZES.forEach(p => ITEMS.push({ ...p, cost: 0, shop: false, lv: Infinity, event: 'halloween' }));
+// the moon banner was a prize for a day: whoever got it keeps it
+ITEMS.push({ id: 'ev-b-halloween', type: 'banner', key: 'halloween', name: 'Halloween banner', cost: 0, shop: false, lv: Infinity, event: 'halloween' });
+PFX.add('halloween'); // the ring's witch and cauldron bubbles ride on the particle layers
 DUNGEONS[HW_ID] = { ico: 'pumpkin', name: 'Haunted Crypt', lv: Infinity, mult: 1.5, event: true, desc: 'Your own workout, haunted: every exercise swapped for a spooky twin.' };
 ITEMS.push({ id: HW_ID, type: 'dungeon', name: 'Haunted Crypt', lv: Infinity, event: 'halloween' });
 SKIN_FONTS.halloween = 'Creepster&family=Nunito:wght@400;600;800';
@@ -59,7 +62,7 @@ function hwQuests() {
       <div class="mut">For completing all of today's quests.</div><button class="btn" onclick="$('#modal').hidden=true;equip('${p.id}')">Use it</button><button class="btn ghost" data-close>Later</button></div>`);
   }, 600);
 }
-const hwPic = p => (p.type === 'avatar' ? gi(p.key, 'hero') : p.type === 'banner' ? `<span class="bnp bn-${p.key}"></span>` : `<span class="emo">${p.emo}</span>`);
+const hwPic = p => (p.type === 'avatar' ? gi(p.key, 'hero') : p.type === 'frame' ? `<div class="av fr-${p.key}" style="--p:1;width:34px;height:34px"><span>${gi(G.avatar, 'hero')}</span></div>` : p.type === 'banner' ? `<span class="bnp bn-${p.key}"></span>` : `<span class="emo">${p.emo}</span>`);
 function hwPrizeCard(r) {
   const ps = r.hw; if (!ps?.length) return '';
   return `<h2 class="sec">Halloween prizes</h2>${ps.map(p => `<div class="card row hwprize"><div class="avbig sm">${hwPic(p)}</div><div class="grow"><b>${esc(tr(p.name))}</b><div class="mut">Halloween prize</div></div>
@@ -109,7 +112,7 @@ if (typeof i18nAdd === 'function') {
     'Halloween event ·': 'Evento de Halloween ·', 'Next prize: {n}': 'Próximo premio: {n}', 'All prizes won!': '¡Todos los premios conseguidos!', 'Enter the crypt': 'Entrar en la cripta',
     'Halloween prize · {n}/{n}': 'Premio de Halloween · {n}/{n}', 'Use it': 'Usar', 'The Haunted Crypt has closed.': 'La cripta embrujada ya ha cerrado.',
     'Your own workout, haunted: every exercise swapped for a spooky twin.': 'Tu propio entrenamiento, embrujado: cada ejercicio cambiado por un gemelo terrorífico.',
-    'Cobweb banner': 'Banner de telaraña', Try: 'Probar', 'Tap a prize to try it for a minute.': 'Toca un premio para probarlo un minuto.', Equipped: 'Puesto', Later: 'Más tarde', 'Halloween event': 'Evento de Halloween',
+    'Cobweb banner': 'Banner de telaraña', 'Witching Hour ring': 'Aro de la hora bruja', 'Witching Hour': 'Hora bruja', Try: 'Probar', 'Tap a prize to try it for a minute.': 'Toca un premio para probarlo un minuto.', Equipped: 'Puesto', Later: 'Más tarde', 'Halloween event': 'Evento de Halloween',
     'Your own workout, haunted. Open until 31 October.': 'Tu propio entrenamiento, embrujado. Abierta hasta el 31 de octubre.', 'Clear it once to win every prize:': 'Supérala una vez y ganas todos los premios:', 'Clear it once to win every prize': 'Supérala una vez y ganas todos los premios', 'Halloween prizes': 'Premios de Halloween', 'Halloween prize': 'Premio de Halloween', Cobweb: 'Telaraña',
     '{0} d {1} h left': 'quedan {0} d {1} h', '{0} h left': 'quedan {0} h', Halloween: 'Halloween',
   });
