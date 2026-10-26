@@ -343,7 +343,7 @@ const CREST = {
   deco: 'M30 4h40l20 14v40c0 22-18 36-40 44C28 94 10 80 10 58V18z', baroque: 'M50 2c8 8 22 8 40 4v42c0 30-20 46-40 54C30 94 10 78 10 48V6c18 4 32 4 40-4z',
 };
 const CREST_OF = { hud: 'hex', chinese: 'round', japanese: 'round', fairy: 'baroque', medieval: 'heater', steampunk: 'hex', greek: 'round', egypt: 'oval', viking: 'round',
-  pirate: 'heater', outrun: 'hex', arcade: 'pixel', classical: 'oval', artdeco: 'deco', gothic: 'heater', baroque: 'baroque', mythical: 'baroque', cosmic: 'hex' };
+  pirate: 'heater', outrun: 'hex', arcade: 'pixel', classical: 'oval', artdeco: 'deco', gothic: 'heater', baroque: 'baroque', mythical: 'baroque', cosmic: 'hex', halloween: 'heater' };
 const TIER_METAL = { bronze: ['#f0b27a', '#a0582a', '#5e2e12'], silver: ['#ffffff', '#b8c2cc', '#69737d'], gold: ['#fff1a8', '#e2b23c', '#8a5a10'], icon: ['#e9d7ff', '#9b6bff', '#2ee6d6'] };
 const TIER_NAME = { bronze: TT('Bronze', 'Bronce'), silver: TT('Silver', 'Plata'), gold: TT('Gold', 'Oro'), icon: TT('Icon', 'Icono') };
 // Your club: an invented name, made once and kept. "Sign for another club" offers new ones, or you write your own.

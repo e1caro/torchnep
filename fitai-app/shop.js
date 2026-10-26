@@ -155,7 +155,7 @@ const COS = [
 ];
 function looksView(t) {
   const c = COS.find(x => x[0] === t); if (!c) { location.hash = '#/profile'; return; }
-  const [, name, wide, prev] = c, mine = ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost || (x.lv || 0) - (y.lv || 0)), more = ITEMS.filter(i => i.type === t && !has(i)).length;
+  const [, name, wide, prev] = c, mine = ITEMS.filter(i => i.type === t && has(i)).sort((x, y) => x.cost - y.cost || (x.lv || 0) - (y.lv || 0)), more = ITEMS.filter(i => i.type === t && !has(i) && !i.event).length;
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/profile'">${ic('back', 18)} Back</button><h1>${name}</h1>
   <div class="mut">${mine.length} owned · tap one to use it</div>${t === 'theme' ? themeNote() : ''}
   <div class="pgrid ${wide}">${mine.map(i => `<button class="pick ${equipped(i) ? 'on' : ''}" onclick="equip('${i.id}')" aria-label="${esc(i.name)}">${prev(i)}<small>${esc(i.name.replace(/ panels$| banner$/, ''))}</small></button>`).join('')}</div>

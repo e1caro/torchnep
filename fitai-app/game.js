@@ -297,7 +297,7 @@ function gameWorkout(h) {
   [4, 3, 2, 1].forEach(t => { const n = h.ex.filter(x => x.tier === t).length; if (n) lines.push([`${n} × ${MEDAL_NAME[t]}`, null]); });
   lines.push(['Exercises', exXpSum], ['Workout cleared', bonus]);
   if (prs) lines.push([`${prs} new record${prs > 1 ? 's' : ''} × ${recXp}`, prs * recXp]);
-  if (dg) lines.push([`${dg.name} ×${dg.mult}`, null]);
+  if (dg) lines.push([`${tr(dg.name)} ×${dg.mult}`, null]);
   if (feat) lines.push(['Dungeon of the day ×1.5', null]);
   if (sm > 1) lines.push([`${st}-day streak ×${sm.toFixed(2)}`, null]);
   if (xpP) lines.push([`Level perk +${Math.round(xpP * 100)}% XP`, null]);
@@ -308,7 +308,7 @@ function gameWorkout(h) {
   if (chest) G.chests.push(chest);
   award(xp, coins);
   const ach = checkAch();
-  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h) };
+  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h), hw: typeof hwClear === 'function' ? hwClear(h) : null };
 }
 function gameWeigh() {
   ensureDay();
@@ -517,7 +517,7 @@ function home() {
     ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 75</button>` : ''}</div></section>
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
-  <section class="card next">${ownPlan() ? `<div class="chips pickday">${S.plan.days.map((x, i) => `<button class="chip ${i === di ? 'on' : ''}" onclick="pickTrain(${i})">${esc(dayFor(i).name.split(' · ').pop())}</button>`).join('')}</div>` : ''}
+  ${typeof hwCard === 'function' ? hwCard() : ''}<section class="card next">${ownPlan() ? `<div class="chips pickday">${S.plan.days.map((x, i) => `<button class="chip ${i === di ? 'on' : ''}" onclick="pickTrain(${i})">${esc(dayFor(i).name.split(' · ').pop())}</button>`).join('')}</div>` : ''}
     <div class="mut">${d.items.length} exercises · ~${planMinutes(d)} min</div><h2>${esc(d.name.split(' · ').pop())}</h2>
     ${d.routine ? '' : timeChips(di)}${first ? demo(first, false) : ''}<button class="btn" onclick="startWorkout(${di})">Start workout</button></section>
   <h2 class="sec">Fuel</h2>
@@ -530,7 +530,7 @@ function home() {
 // Dungeons: the ones you can enter, then the next one to unlock; the rest stay folded.
 function dungeons() {
   if (needProfile()) return;
-  const feat = featuredId(), list = Object.entries(DUNGEONS).sort((x, y) => x[1].lv - y[1].lv);
+  const feat = featuredId(), list = Object.entries(DUNGEONS).filter(([, d]) => !d.event).sort((x, y) => x[1].lv - y[1].lv);
   const open = list.filter(([id]) => has(item(id))), locked = list.filter(([id]) => !has(item(id)));
   const row = ([id, d]) => {
     const ok = has(item(id)), miss = d.need && !S.profile.equipment.includes(d.need);
@@ -538,7 +538,7 @@ function dungeons() {
 <div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
       ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
   };
-  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>
+  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>${typeof hwCard === 'function' ? hwCard() : ''}
     ${open.length ? open.map(row).join('') : '<div class="mut">Your first dungeon opens at level 2.</div>'}
     ${locked.length ? `<h2 class="sec">Next</h2>${row(locked[0])}` : ''}
     ${locked.length > 1 ? `<details class="fold"><summary><h2 class="sec">Locked · ${locked.length - 1}</h2></summary>${locked.slice(1).map(row).join('')}</details>` : ''}`;
@@ -550,6 +550,7 @@ function victory() {
   view.innerHTML = `<div class="vic"><div class="lvup">${r.dungeon ? 'Dungeon cleared' : 'Workout cleared'}</div><h1>${esc(r.name)}</h1>
   <div class="card">${r.lines.map(([t, v]) => `<div class="row between"><span>${t}</span><b>${v == null ? '' : '+' + v}</b></div>`).join('')}
   <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
+  ${typeof hwPrizeCard === 'function' ? hwPrizeCard(r) : ''}
   ${typeof liftedCard === 'function' ? liftedCard(r.kg) : ''}
   <div class="hud solo"><div class="av fr-${G.frame}" style="--p:0"><span>${gi(G.avatar, 'hero')}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
   ${r.chest ? `<div class="card row"><div class="avbig sm">${gi(CHEST[r.chest][1])}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}

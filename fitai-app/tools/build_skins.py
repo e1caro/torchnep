@@ -565,6 +565,44 @@ html[data-skin=gothic] :is(.seg a.on,.dpill.on,.chip.on){{background:{GR};color:
 html[data-skin=gothic] .xpbar i{{background:linear-gradient(90deg,{GB},#c08bff,{GR})}}
 """)
 
+# ---------------------------------------------------------------- Halloween Night (event reward, Haunted Crypt)
+HO, HP, HG = '#ff7a1a', '#a46bff', '#7dff6a'  # pumpkin orange, witch purple, slime green
+bat = "<path d='M0 6Q4 0 8 4Q10 1 12 4Q16 0 20 6Q16 5 14 8Q12 6 10 9Q8 6 6 8Q4 5 0 6Z' fill='{c}'/>"
+ho_corner = (f"<g fill='none' stroke='{HO}' stroke-opacity='.75' stroke-width='1'><path d='M2 2L36 2M2 2L2 36M2 2L28 28M2 2L34 16M2 2L16 34'/>"
+             f"<path d='M10 2Q9 9 2 10M20 2Q18 15 7 15Q15 18 2 20M30 2Q27 22 22 22Q21 27 2 30'/></g><circle cx='14' cy='14' r='2' fill='{HP}'/>")
+ho_orn = svg(f"<path d='M0 20H96M144 20H240' stroke='{HO}' stroke-width='1.2'/>"
+             f"<ellipse cx='120' cy='18' rx='14' ry='11' fill='{HO}'/><path d='M120 7q2-5 6-6' stroke='{HG}' stroke-width='2.4' fill='none'/>"
+             f"<path d='M113 15l3-3 3 3zM121 15l3-3 3 3zM112 21q8 6 16 0l-3 2-2-2-2 2-2-2-2 2-2-2z' fill='#1a0f05'/>"
+             f"<g transform='translate(56 8) scale(.9)'>{bat.format(c=HP)}</g><g transform='translate(166 8) scale(.9)'>{bat.format(c=HP)}</g>", '0 0 240 30')
+moon = svg("<circle cx='100' cy='100' r='70' fill='#ffe9b8'/><circle cx='78' cy='84' r='12' fill='#f0d39a' fill-opacity='.7'/><circle cx='120' cy='122' r='8' fill='#f0d39a' fill-opacity='.6'/>"
+           "<circle cx='112' cy='76' r='5' fill='#f0d39a' fill-opacity='.6'/>", '0 0 200 200')
+graves = svg("<path d='M0 140V112Q60 92 120 108T240 102T360 110V140z' fill='#140c1c'/>"
+             "<path d='M40 112v-22q0-10 10-10t10 10v22zM96 110v-30q0-12 12-12t12 12v30zM250 106v-24q0-10 10-10t10 10v24z' fill='#1f1529'/>"
+             "<path d='M180 108V70M170 82h20' stroke='#1f1529' stroke-width='6'/>"
+             "<path d='M300 106c0-30 10-46 4-70M304 60l-14-12M304 74l16-14M302 90l-18-6' stroke='#1f1529' stroke-width='5' fill='none' stroke-linecap='round'/>", '0 0 360 140')
+bats = svg(''.join(f"<g transform='translate({x} {y}) scale({k})'>" + bat.format(c='#000') + "</g>" for x, y, k in ((10, 20, 1.2), (70, 8, .8), (120, 40, 1), (160, 14, .7))), '0 0 200 70')
+skin('Halloween Night', f"""
+html[data-skin=halloween]{{
+  --bg:#0c0711;--glow:#2a1236;--acc:#ff7a1a;--acc2:#a46bff;--fg:#f7eee4;--mut:#b5a5c2;--on:#1a0d03;--r:12px;
+  --card:#150d1d;--card2:#1e1428;--line:{HO}33;--line2:{HO}88;
+  --disp:'Creepster','Nunito',cursive;--body:'Nunito',system-ui,sans-serif;--mono:'Nunito',system-ui,sans-serif;
+  --clip:none;--pshadow:inset 0 0 0 1px {HO}22,inset 0 0 30px #000b;--rep:no-repeat;
+  --deco:{corners(ho_corner, 36, 'tl br')};--orn:{ho_orn};--orn-h:30px}}
+html[data-skin=halloween] body{{background:radial-gradient(40% 26% at 78% 12%,#ff7a1a22,#0000 70%) no-repeat,
+  {moon} calc(100% - 10px) 30px/min(170px,40vw) auto no-repeat,linear-gradient(#140c1c,#140c1c) 0 100%/100% 80px no-repeat,
+  {graves} 50% calc(100% - 78px)/min(620px,150vw) auto no-repeat,linear-gradient(180deg,#1a0d26,#0c0711 55%);background-attachment:fixed}}
+html[data-skin=halloween] body::after{{inset:0 0 auto 0;height:240px;background:{bats} 0 40px/220px auto repeat-x;opacity:.75;animation:batfly 26s linear infinite}}
+html[data-skin=halloween] :is(h1,h2){{letter-spacing:.05em;color:#ffb36b;text-shadow:0 0 14px #ff7a1a66}}
+html[data-skin=halloween] :is(h3,.hn,.lbl,.bl,.ov,.on2,.bxv,.btn,.chip,.seg a,.dpill,nav a span,.stat b,.rbig,.rlbl,.wkstats b,.ckdots i,details summary){{font-family:'Nunito',system-ui,sans-serif;font-weight:800}}
+html[data-skin=halloween] h2.sec::before{{content:"🎃";transform:none;border:0;width:auto;height:auto;font-size:15px;line-height:1}}
+html[data-skin=halloween] .btn{{background:linear-gradient(180deg,#ffa04a,{HO} 55%,#d85a0a);color:#1a0d03;border-radius:14px;box-shadow:inset 0 0 0 1px #fff4,inset 0 -3px 0 #0004,0 0 14px #ff7a1a44}}
+html[data-skin=halloween] .btn.ghost{{background:#150d1d;color:#ffb36b;box-shadow:inset 0 0 0 1px {HO}77}}
+html[data-skin=halloween] :is(.btn.gold,.btn.chestbtn){{background:linear-gradient(180deg,#c49bff,{HP});color:#12061f}}
+html[data-skin=halloween] :is(.seg a.on,.dpill.on,.chip.on){{background:{HP};color:#12061f;border-color:{HP}}}
+html[data-skin=halloween] .xpbar i{{background:linear-gradient(90deg,{HP},{HO},#ffd36a);box-shadow:0 0 10px {HO}88}}
+html[data-skin=halloween] .card{{box-shadow:var(--pshadow),0 0 0 1px {HO}1f}}
+""")
+
 # ---------------------------------------------------------------- Cosmic Voyage
 CV, CC = '#9b7bff', '#22d3ee'
 cs_corner = (f"<path d='M2 30A28 28 0 0 1 30 2' fill='none' stroke='{CC}' stroke-width='1.4'/><path d='M2 20A18 18 0 0 1 20 2' fill='none' stroke='{CV}' stroke-width='1' stroke-dasharray='2 3'/>"
@@ -601,6 +639,7 @@ ANIM = """
 @keyframes aurora{from{transform:translateX(-6%) skewY(-3deg);opacity:.7}to{transform:translateX(6%) skewY(2deg);opacity:1}}
 @keyframes sunglow{from{filter:drop-shadow(0 0 18px #ff3cc7)}to{filter:drop-shadow(0 0 40px #ff3cc7)}}
 @keyframes crt{0%{opacity:.8}100%{opacity:1}}
+@keyframes batfly{from{background-position:0 40px}50%{background-position:-110px 28px}to{background-position:-220px 40px}}
 @media(prefers-reduced-motion:reduce){html[data-skin] body::after,html[data-skin] body::before{animation:none!important}}
 /* title ornaments under every page title */
 /* the title is as wide as its words, and its ornament runs under exactly those words */
@@ -630,6 +669,7 @@ PREVIEW = """
 .skp[data-sk=baroque]{background:radial-gradient(circle,#e0b44c22 0 6px,#0000 7px) 0 0/16px 16px,linear-gradient(#330e16,#16060a);box-shadow:inset 0 0 0 2px #e0b44c,inset 0 0 0 5px #250a10,inset 0 0 0 6px #e0b44c66;border-radius:14px}
 .skp[data-sk=artdeco]{background:repeating-conic-gradient(from -90deg at 50% 100%,#e6c36a33 0 6deg,#0000 6deg 12deg),#0a0a0c;box-shadow:inset 0 0 0 1px #e6c36a,inset 0 0 0 4px #0a0a0c,inset 0 0 0 5px #e6c36a66}
 .skp[data-sk=gothic]{background:conic-gradient(from 0deg at 50% 40%,#7aa2ff88,#e0455a88,#e8b04a88,#5ec27a88,#7aa2ff88) 50% 40%/40px 40px no-repeat,linear-gradient(#0a0914,#07060e);box-shadow:inset 0 0 0 1px #c9c3d677}
+.skp[data-sk=halloween]{background:radial-gradient(circle at 82% 34%,#ffe9b8 0 12px,#0000 13px),linear-gradient(#0000 70%,#140c1c 70%),linear-gradient(#2a1236,#0c0711);border-radius:12px;box-shadow:inset 0 0 0 1px #ff7a1a88}
 .skp[data-sk=cosmic]{background:radial-gradient(circle at 80% 40%,#9b7bff 0 10px,#0000 11px),radial-gradient(circle,#fff 0 1px,#0000 1.5px) 0 0/17px 13px,radial-gradient(60% 60% at 20% 30%,#6b2fd688,#0000),#03020a;border-radius:16px;box-shadow:inset 0 0 0 1px #22d3ee88}
 .emo{font-style:normal;line-height:1}
 /* one-minute interface preview bar */
@@ -833,6 +873,8 @@ RINGS = {
                    + f"<circle {C} r='52' fill='none' stroke='{DT}' stroke-width='1'/>", '0 0 120 120'),
     'gothic': svg(f"<circle {C} r='53' fill='none' stroke='{GB}' stroke-width='7' stroke-dasharray='10 4'/><circle {C} r='53' fill='none' stroke='{GR}' stroke-width='7' stroke-dasharray='4 24' stroke-dashoffset='-2'/>"
                   + f"<g fill='none' stroke='{GS}' stroke-width='1.4'><circle {C} r='48.5'/><circle {C} r='57.5'/></g>", '0 0 120 120'),
+    'halloween': svg(f"<circle {C} r='53' fill='none' stroke='{HO}' stroke-width='4' stroke-dasharray='26 7'/><circle {C} r='58' fill='none' stroke='{HP}' stroke-width='1.2' stroke-dasharray='3 5'/>"
+                     + each(3, lambda a: rot(a, f"<g transform='translate(50 -3)'>{bat.format(c=HP)}</g>"), 20), '0 0 120 120'),
     'cosmic': svg(f"<circle {C} r='55' fill='none' stroke='{CC}' stroke-width='2' stroke-dasharray='60 12 20 12'/><circle {C} r='50' fill='none' stroke='{CV}' stroke-width='1.5' stroke-dasharray='2 5'/>"
                   + f"<circle cx='112' cy='38' r='4' fill='{CC}'/><circle cx='10' cy='80' r='3' fill='{CV}'/><circle cx='30' cy='14' r='1.6' fill='#fff'/><circle cx='100' cy='108' r='1.4' fill='#fff'/>", '0 0 120 120'),
 }
@@ -861,6 +903,7 @@ html[data-skin=classical] :is(.orb,.bxi)::before{--gc:#f6dfa0;animation:bspin 90
 html[data-skin=baroque] :is(.orb,.bxi)::before{--gc:#ffcf7a;animation:bspin 80s linear infinite,bflick 2.8s ease-in-out infinite}
 html[data-skin=artdeco] :is(.orb,.bxi)::before{--gc:#e6c36a;animation:bspin 30s steps(36) infinite,bglow 3s ease-in-out infinite}
 html[data-skin=gothic] :is(.orb,.bxi)::before{--gc:#7aa2ff;animation:bspin 70s linear infinite,bflick 3.4s ease-in-out infinite}
+html[data-skin=halloween] :is(.orb,.bxi)::before{--gc:#ff7a1a;animation:bspin 36s linear infinite,bflick 2.6s ease-in-out infinite}
 html[data-skin=cosmic] :is(.orb,.bxi)::before{--gc:#22d3ee;animation:bspin 14s linear infinite,bglow 2.6s ease-in-out infinite}
 html[data-skin] .bub:nth-child(3n) .orb::before{animation-delay:-1.3s}html[data-skin] .bub:nth-child(3n+1) .orb::before{animation-delay:-2.1s}
 """
@@ -902,6 +945,7 @@ PODIUM = {
     'gothic': ('#2a2f45', '#252a3d', '#202435', '#cfd8ff', '"🕯️"', '{B}{border:0;border-radius:0;clip-path:polygon(0 100%,0 34%,50% 0,100% 34%,100% 100%);background-image:conic-gradient(from 0deg at 50% 70%,#7a3ff066,#ff4d6d55,#ffd36a55,#3ddc9755,#7aa2ff66,#7a3ff066);box-shadow:inset 0 0 0 4px #4a4f63}{B} b{margin-top:14px}'),
     'baroque': ('#8e1b2e', '#741626', '#5c111e', '#f3cf6e', '"👑"', "{B}{border:0;border-radius:4px 4px 0 0;overflow:visible;box-shadow:inset 0 0 0 2px #e0b44c}{B}::before{content:'';position:absolute;top:-8px;left:-8%;right:-8%;height:10px;background:linear-gradient(#f3d77a,#b8892e);border-radius:10px}{B}::after{content:'';position:absolute;bottom:0;left:-6%;right:-6%;height:8px;background:linear-gradient(#f3d77a,#b8892e)}"),
     'mythical': ('#7c4dff', '#5a2fd6', '#3ddc97', '#ffffff', '"🐉"', 'border-radius:8px 8px 0 0;border:0;clip-path:polygon(50% 0,100% 18%,100% 100%,0 100%,0 18%);box-shadow:0 0 22px color-mix(in srgb,var(--pod) 70%,transparent),inset 0 0 18px #ffffff33'),
+    'halloween': ('#4a3b5c', '#3e3150', '#332845', '#ffb36b', '"🎃"', 'border:0;border-radius:46% 46% 6px 6px/26% 26% 6px 6px;box-shadow:inset 0 -6px 0 #0005,inset 0 0 0 2px #ff7a1a55;background-image:linear-gradient(#0000 70%,#7dff6a22 70% 74%,#0000 74%)'),
     'cosmic': ('#9b7bff', '#5f6bd6', '#22d3ee', '#05031a', '"🪐"', 'border-radius:50% 50% 0 0/14px 14px 0 0;border:0;background-image:radial-gradient(circle,#fff 0 1px,#0000 1.5px);background-size:13px 17px;box-shadow:0 0 18px color-mix(in srgb,var(--pod) 60%,transparent)'),
 }
 # extra is either the steps' own declarations, or whole rules written with {B} for the step selector
@@ -933,6 +977,7 @@ BODYBG = {
     'gothic': svg("<path d='M25 100V50Q25 15 50 5Q75 15 75 50V100' fill='none' stroke='#7aa2ff' stroke-opacity='.25' stroke-width='2'/><path d='M50 5V100M25 55H75' stroke='#7aa2ff' stroke-opacity='.12'/>", '0 0 100 100') + " 50% 100%/60% 94% no-repeat",
     'baroque': "radial-gradient(ellipse 34% 44% at 50% 46%,#0000 96%,#e0b44c40 97% 99%,#0000 100%),radial-gradient(70% 60% at 50% 45%,#8e1b2e26,#0000 70%)",
     'mythical': "radial-gradient(60% 55% at 50% 42%,#7c4dff33,#0000 70%),radial-gradient(circle at 20% 25%,#3ddc9755 0 1.5px,#0000 2.5px),radial-gradient(circle at 82% 60%,#3ddc9744 0 1.5px,#0000 2.5px)",
+    'halloween': "radial-gradient(circle at 80% 20%,#ffe9b844 0 9%,#0000 9.5%),radial-gradient(70% 50% at 50% 100%,#ff7a1a22,#0000 70%)",
     'cosmic': "radial-gradient(circle at 82% 22%,#9b7bff55 0 7%,#0000 7.5%),radial-gradient(#ffffff55 1px,#0000 1.5px) 0 0/37px 41px,radial-gradient(#ffffff33 1px,#0000 1.5px) 13px 19px/53px 47px",
 }
 BBG = "\n/* exercise pictures: each interface's backdrop behind the muscle map */\n" + "".join(

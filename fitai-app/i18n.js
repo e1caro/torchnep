@@ -53,9 +53,9 @@ const CUR = {
   greek: ['drachma', 'drachmas', 'dracma', 'dracmas'], egypt: ['scarab', 'scarabs', 'escarabajo', 'escarabajos'], viking: ['rune', 'runes', 'runa', 'runas'],
   pirate: ['doubloon', 'doubloons', 'doblón', 'doblones'], outrun: ['chip', 'chips', 'ficha', 'fichas'], arcade: ['point', 'points', 'punto', 'puntos'],
   classical: ['florin', 'florins', 'florín', 'florines'], artdeco: ['dollar', 'dollars', 'dólar', 'dólares'], gothic: ['soul', 'souls', 'alma', 'almas'],
-  baroque: ['ducat', 'ducats', 'ducado', 'ducados'], mythical: ['gem', 'gems', 'gema', 'gemas'], cosmic: ['star', 'stars', 'estrella', 'estrellas'],
+  baroque: ['ducat', 'ducats', 'ducado', 'ducados'], mythical: ['gem', 'gems', 'gema', 'gemas'], cosmic: ['star', 'stars', 'estrella', 'estrellas'], halloween: ['candy', 'candies', 'caramelo', 'caramelos'],
 };
-const CUR_M = new Set(['hud', 'chinese', 'japanese', 'steampunk', 'egypt', 'pirate', 'arcade', 'classical', 'artdeco', 'baroque'].map(k => CUR[k])); // masculine in Spanish
+const CUR_M = new Set(['halloween', 'hud', 'chinese', 'japanese', 'steampunk', 'egypt', 'pirate', 'arcade', 'classical', 'artdeco', 'baroque'].map(k => CUR[k])); // masculine in Spanish
 const curSet = () => CUR[document.documentElement.dataset.skin] || CUR.clean;
 const capLike = (w, x) => w.length > 1 && w === w.toUpperCase() ? x.toUpperCase() : w[0] === w[0].toUpperCase() ? x[0].toUpperCase() + x.slice(1) : x;
 // "Coins" -> "Credits", "1 moneda" -> "1 crédito"

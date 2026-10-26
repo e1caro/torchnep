@@ -1050,3 +1050,29 @@ nav#tabs .nbadge{position:absolute;top:2px;left:calc(50% + 6px);min-width:18px;h
 @keyframes lfpop{0%{transform:translateY(14px) scale(.4);opacity:0}100%{transform:none;opacity:1}}
 @media(prefers-reduced-motion:reduce){.lifted .lfe{animation:none}}
 .pickday{margin:0 0 10px}
+/* ===================== Halloween event ===================== */
+.bn-halloween{background:radial-gradient(circle at 84% 30%,#ffe9b8 0 9%,#ffe9b822 9.5% 15%,#0000 16%),
+  linear-gradient(#0000 72%,#140c1c 72%),radial-gradient(60% 80% at 20% 100%,#ff7a1a55,#0000 70%),linear-gradient(180deg,#3a1650,#0c0711)!important}
+.bn-halloween::after{content:"";position:absolute;inset:0;pointer-events:none;background:url(icons/gi/bat.svg) 12% 22%/22px no-repeat,url(icons/gi/bat.svg) 34% 12%/16px no-repeat,url(icons/gi/pumpkin.svg) 90% 92%/30px no-repeat;
+  filter:brightness(0);opacity:.85;animation:hwbob 4s ease-in-out infinite alternate}
+.bnp.bn-halloween,.pcard.bn-halloween,.hud.bn-halloween{position:relative}
+@keyframes hwbob{from{transform:translateY(0)}to{transform:translateY(-4px)}}
+.hwcard{position:relative;overflow:hidden;background:radial-gradient(circle at 90% 10%,#ffe9b833 0 12%,#0000 13%),linear-gradient(160deg,#2a1236,#140c1c 60%)!important;border:1px solid #ff7a1a88!important;color:#f7eee4}
+.hwcard h3{margin:2px 0;color:#ffb36b}
+.hwcard .mut{color:#c9b8d6}
+html[data-skin] .hwcard .btn{margin-top:10px;width:100%;background:linear-gradient(180deg,#ffa04a,#ff7a1a 55%,#d85a0a);color:#1a0d03;border-radius:12px}
+html[data-skin] .hwcard .btn .gi{background:#1a0d03}
+.hwpk{width:52px;height:52px;flex:none;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle,#ff7a1a33,#0000 70%)}
+html[data-skin] .hwpk .gi{background:#ff7a1a;filter:drop-shadow(0 0 8px #ff7a1a);animation:hwglow 2.4s ease-in-out infinite}
+@keyframes hwglow{0%,100%{filter:drop-shadow(0 0 4px #ff7a1a)}50%{filter:drop-shadow(0 0 14px #ffb36b)}}
+.hwbats{position:absolute;inset:0 0 auto;height:60px;pointer-events:none;background:url(icons/gi/bat.svg) 0 8px/18px no-repeat,url(icons/gi/bat.svg) 40px 26px/12px no-repeat;filter:brightness(0) invert(.25);opacity:.6;animation:hwbats 12s linear infinite}
+@keyframes hwbats{from{background-position:-40px 8px,-10px 26px}to{background-position:110% 2px,110% 20px}}
+.hwprizes{display:flex;gap:8px;margin-top:10px}
+.hwp{flex:1;height:44px;display:grid;place-items:center;border-radius:10px;background:#0c0711aa;border:1px dashed #ff7a1a55;opacity:.55;filter:grayscale(1)}
+.hwp.got{opacity:1;filter:none;border-style:solid;border-color:#ff7a1a}
+.hwp .bnp{width:90%;height:30px;border-radius:6px;display:block}
+.hwp .emo{font-size:24px}
+html[data-skin] .hwp .gi{background:#ff7a1a}
+.hwprize .avbig .bnp{width:56px;height:36px;display:block;border-radius:6px}
+.hwprize .avbig .emo{font-size:30px}
+@media(prefers-reduced-motion:reduce){.bn-halloween::after,.hwbats,.hwpk .gi{animation:none}}
