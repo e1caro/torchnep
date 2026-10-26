@@ -116,7 +116,7 @@ function shopView() {
   const hrs = Math.ceil(((G.boostUntil || 0) - Date.now()) / 36e5), left = new Date().setHours(24, 0, 0, 0) - Date.now();
   const tab = SHOP_TABS.some(([t]) => t === SHOP_TAB) ? SHOP_TAB : 'avatar';
   const ds = deals();
-  const deal = i => `<button class="deal r-${rarityOf(i)[1]}" onclick="buy('${i.id}')"><span class="off">−${Math.round(DEAL_OFF * 100)}%</span>${preview(i)}<b>${esc(i.name.replace(/ panels$| banner$/, ''))}</b>
+  const deal = i => `<button class="deal r-${rarityOf(i)[1]}" onclick="buy('${i.id}')"><span class="off">−${Math.round(DEAL_OFF * 100)}%</span><span class="dpv">${preview(i)}</span><b class="dname">${esc(i.name.replace(/ panels$| banner$/, ''))}</b>
     <span class="dprice"><s>${i.cost}</s> ${gi('coin', 'cn')} ${priceOf(i)}</span></button>`;
   const body = tab === 'boost'
     ? BOOSTS.map(b => `<div class="card row boostrow"><div class="dgi">${gi(b.ico)}</div><div class="grow"><b>${b.name}</b><div class="mut">${b.desc}${b.id === 'x-boost' && boostOn() ? ` · active, ${hrs} h left` : ''}${b.id === 'x-spin' && G.extraSpins ? ` · you have ${G.extraSpins}` : ''}</div></div>

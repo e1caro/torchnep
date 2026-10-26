@@ -334,11 +334,30 @@ function buildDungeon(id) {
   if (items.length < 3) shuffle(pool.filter(e => !used.has(e.id)), r).slice(0, 4 - items.length).forEach(add);
   return items;
 }
+// Entering a dungeon first shows its exercises (like a routine); from there you go back or start it.
+// The workout is drawn once and kept, so the one you start is the one you saw.
+let DG_PREV = null;
 window.startDungeon = id => {
   const i = item(id); if (!has(i)) return;
   const items = buildDungeon(id);
   if (items.length < 2) { toast(DUNGEONS[id].need && !S.profile.equipment.includes(DUNGEONS[id].need) ? `Add ${DUNGEONS[id].need} to your equipment in your profile.` : 'Not enough exercises match your equipment and limits.'); return; }
-  startSession(DUNGEONS[id].name, items, { dungeon: id });
+  DG_PREV = { id, items }; location.hash = '#/dungeon/' + id;
+};
+function dungeonView(id) {
+  if (needProfile()) return;
+  const d = DUNGEONS[id];
+  if (!d || !has(item(id))) { location.hash = '#/dungeons'; return; }
+  if (DG_PREV?.id !== id) { const items = buildDungeon(id); if (items.length < 2) { location.hash = '#/dungeons'; return; } DG_PREV = { id, items }; }
+  const items = DG_PREV.items;
+  view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/dungeons'">${ic('back', 18)} Back</button>
+  <div class="row dghead"><div class="dgi">${gi(d.ico)}</div><div class="grow"><h1>${esc(tr(d.name))}</h1><div class="mut">${d.desc ? esc(tr(d.desc)) : ''}</div></div></div>
+  <div class="chips static"><span class="chip">${d.mult}× XP</span><span class="chip">${items.length} exercises</span><span class="chip">~${planMinutes({ items })} min</span>${featuredId() === id ? '<span class="chip on">Today +50%</span>' : ''}</div>
+  <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a></div>` : ''; }).join('')}</section>
+  <div class="row"><button class="btn ghost" onclick="location.hash='#/dungeons'">Back</button><button class="btn" onclick="enterDungeon('${id}')">${gi(d.ico)} Start the dungeon</button></div>`;
+}
+window.enterDungeon = id => {
+  const p = DG_PREV?.id === id ? DG_PREV.items : buildDungeon(id); DG_PREV = null;
+  startSession(DUNGEONS[id].name, p, { dungeon: id });
 };
 
 // ---------- actions ----------
@@ -628,7 +647,7 @@ function migrateGame() {
   if (oldAv[G.avatar]) G.avatar = oldAv[G.avatar][0]; else if (!ITEMS.some(i => i.type === 'avatar' && i.key === G.avatar)) G.avatar = 'glove';
   G.ver = 3;
 }
-Object.assign(routes, { home, dungeons, victory });
+Object.assign(routes, { home, dungeons, victory, dungeon: dungeonView });
 
 // Prestige rings with particles (sparks, snow, runes, lightning...): two extra layers inside the avatar that carry them.
 // Added to every avatar on screen wearing one of these rings, whichever screen drew it.

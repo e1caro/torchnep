@@ -351,3 +351,4 @@ i18nAdd({ 'Link my Spotify': 'Vincular mi Spotify', 'New list': 'Nueva lista', '
   'Copy its Client ID and paste it here.': 'Copia su Client ID y pégalo aquí.', 'Spotify asks for Premium for this.': 'Spotify pide Premium para esto.' });
 i18nAdd({ 'My equipment': 'Mi material', 'Discard workout': 'Abandonar entrenamiento' });
 i18nAdd({ 'Open it in Loot, on Today.': 'Ábrelo en Botín, en Hoy.' });
+i18nAdd({ 'Start the dungeon': 'Empezar la mazmorra', '{n} exercises': '{n} ejercicios' });

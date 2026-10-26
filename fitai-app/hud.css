@@ -984,11 +984,21 @@ html:is([data-skin=japanese],[data-skin=greek]) .pod .blk .shine{display:none} /
   background:radial-gradient(120% 80% at 50% 0,color-mix(in srgb,var(--rc) 28%,var(--card)),var(--card));border:1px solid color-mix(in srgb,var(--rc) 55%,var(--line));
   box-shadow:0 0 18px -6px var(--rc);overflow:hidden}
 .deal::after{content:"";position:absolute;inset:0;background:linear-gradient(100deg,#0000 30%,#ffffff22 45%,#0000 60%);transform:translateX(-100%);animation:podshine 4.5s ease-in-out infinite}
-.deal b{font-size:12px;line-height:1.2;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deal .dname{font-size:12px;line-height:1.2;text-align:center;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .deal .off{position:absolute;top:6px;right:-26px;transform:rotate(35deg);background:#ff4d6d;color:#fff;font:800 10px var(--body);padding:2px 26px}
 .deal .dprice{display:inline-flex;align-items:center;gap:3px;font:700 13px var(--body)}
 .deal s,.sw s{opacity:.55;font-weight:500;font-size:.85em}
-.deal :is(.pv,.swc,.bnp,.pnp,.skp,.av){transform:scale(.8)}
+/* each deal: the same picture box for every kind of item, the ribbon on top, the name on up to two lines */
+.deal{justify-content:space-between;min-height:150px}
+.deal .dpv{position:relative;z-index:1;width:100%;height:62px;display:grid;place-items:center;overflow:hidden}
+.deal .dpv :is(.bnp,.pnp,.skp){width:100%;height:46px;min-height:0;border-radius:8px;font-size:22px}
+.deal .dpv .av{width:52px;height:52px}
+.deal .dpv .swc{width:40px;height:40px}
+.deal .dpv .gi{font-size:34px}
+.deal .dname{position:relative;z-index:1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:2.4em;align-content:center}
+.deal .dprice{position:relative;z-index:1}
+.deal .off{z-index:3;box-shadow:0 2px 6px #0006}
+.deal::after{z-index:2;pointer-events:none}
 .shoptabs{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:4px -16px 12px;padding:2px 16px 6px}
 .shoptabs::-webkit-scrollbar{display:none}
 .stab{flex:none;position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:74px;padding:10px 8px;border-radius:var(--r,12px);background:var(--card);border:1px solid var(--line);color:var(--mut);font:600 11px var(--body);cursor:pointer}
@@ -1132,3 +1142,4 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .av>.avw.l{animation-name:hwflapl}
 @keyframes hwflapl{0%,100%{rotate:4deg}50%{rotate:-9deg}}
 @media(prefers-reduced-motion:reduce){.av>.avw{animation:none}}
+.dghead{gap:12px;align-items:center;margin-bottom:6px}.dghead h1{margin:0}
