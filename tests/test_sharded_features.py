@@ -62,7 +62,7 @@ def _nep_in(path, head, tail):
     return str(path)
 
 
-def _run(tmp_path, nep_in, xyz, out, env=None, **kw):
+def _run(tmp_path, nep_in, xyz, out, env=None, timeout=600, **kw):
     """One 2-rank run; returns output.log. ``kw`` goes to train_nep_sharded."""
     cmd = torchrun_cmd(2)
     if not cmd:
@@ -76,7 +76,7 @@ def _run(tmp_path, nep_in, xyz, out, env=None, **kw):
     kw.setdefault("checkpoint_interval", 10**6)
     kw.setdefault("prediction_interval", 10**6)
     r = subprocess.run(cmd + [str(runner), nep_in, xyz, str(out), json.dumps(kw)],
-                       capture_output=True, text=True, env=e, timeout=600)
+                       capture_output=True, text=True, env=e, timeout=timeout)
     assert r.returncode == 0, r.stderr[-3000:]
     return (out / "output.log").read_text()
 
@@ -258,3 +258,16 @@ def test_autograd_forces_match_analytical(tmp_path):
     log = _run(tmp_path, nepin, xyz, tmp_path / "ag", use_autograd_forces=True, **kw)
     assert "SWA window never reached" in log and "use_gpumd_qscaler" in log
     np.testing.assert_allclose(_loss(tmp_path / "ag"), _loss(tmp_path / "an"), rtol=1e-8)
+
+
+def test_error_on_one_rank_ends_the_run(tmp_path):
+    """An error on one rank ends the run instead of leaving the other ranks
+    waiting until the collective timeout: one frame holds an unknown element."""
+    xyz = _frames(tmp_path / "train.xyz", 0, 8)
+    lines = open(xyz).read().splitlines()
+    lines[2] = "Fe" + lines[2][2:]
+    open(xyz, "w").write("\n".join(lines) + "\n")
+    nepin = tmp_path / "nep.in"
+    nepin.write_text(TYPES3 + NEP_IN + "epoch 1\n")
+    with pytest.raises(AssertionError):                # a hang raises TimeoutExpired instead
+        _run(tmp_path, str(nepin), xyz, tmp_path / "out", timeout=120)
