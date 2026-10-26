@@ -47,7 +47,9 @@ const spinsToday = () => G.spinDay?.d === dayId() ? G.spinDay.n : 0;
 const freeSpins = () => (perk('spin3') ? 3 : perk('spin2') ? 2 : 1) - spinsToday();
 const spinsLeft = () => Math.max(0, freeSpins()) + (G.extraSpins || 0);
 // The wheel has 8 equal slices; the odds come from SPIN, and the wheel then lands on a slice with that prize.
-const WHEEL = [['coins', 10], ['xp', 40], ['coins', 30], ['chest', 'wood'], ['coins', 20], ['xp', 100], ['coins', 60], ['chest', 'silver']];
+// The slices are taken from SPIN itself (the most common prize twice), so changing a prize can never leave the wheel
+// without a slice to land on.
+const WHEEL = [0, 4, 5, 3, 2, 0, 1, 6].map(i => [SPIN[i][1], SPIN[i][2]]);
 const SLICE = 360 / WHEEL.length;
 const wheelLabel = ([k, v]) => k === 'coins' ? `${gi('coin', 'cn')}<b>${v}</b>` : k === 'xp' ? `${gi('sparkles')}<b>${v} XP</b>` : `${gi(CHEST[v][1])}<b>${v === 'silver' ? '★★★' : 'Loot chest'}</b>`;
 function wheelHtml() {
@@ -109,13 +111,13 @@ window.spin = () => {
   let prize, amount = 0;
   if (kind === 'coins') { G.coins += v; amount = v; prize = `<div class="avbig">${gi('coin', 'cn')}</div><h2 id="cnt" data-u="coins">0 coins</h2>`; }
   else if (kind === 'xp') { award(v, 0); amount = v; prize = `<div class="avbig">${gi('sparkles', 'hero')}</div><h2 id="cnt" data-u="XP">0 XP</h2>`; }
-  else { G.chests.push(v); prize = `<div class="avbig">${gi(CHEST[v][1])}</div><h2>${CHEST[v][0]}</h2><div class="mut">Open it on the Rewards screen.</div>`; }
+  else { G.chests.push(v); prize = `<div class="avbig">${gi(CHEST[v][1])}</div><h2>${CHEST[v][0]}</h2><div class="mut">Open it in Loot, on Today.</div>`; }
   commit();
-  const big = kind === 'chest' || v === 100;
+  const big = kind === 'chest' || v >= 45;
 
   // land on a random slice holding this prize, a bit off-centre so it looks natural
   const slots = WHEEL.map((w, i) => w[0] === kind && w[1] === v ? i : -1).filter(i => i >= 0);
-  const slot = slots[Math.floor(Math.random() * slots.length)];
+  const slot = slots.length ? slots[Math.floor(Math.random() * slots.length)] : 0;
   const calm = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const turns = calm ? 1 : 6, dur = calm ? 1200 : 4600;
   const target = turns * 360 + (360 - slot * SLICE) + (Math.random() - .5) * SLICE * .6;
