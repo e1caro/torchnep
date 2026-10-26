@@ -62,7 +62,7 @@ function hwQuests() {
       <div class="mut">For completing all of today's quests.</div><button class="btn" onclick="$('#modal').hidden=true;equip('${p.id}')">Use it</button><button class="btn ghost" data-close>Later</button></div>`);
   }, 600);
 }
-const hwPic = p => (p.type === 'avatar' ? gi(p.key, 'hero') : p.type === 'frame' ? `<div class="av fr-${p.key}" style="--p:1;width:34px;height:34px"><span>${gi(G.avatar, 'hero')}</span></div>` : p.type === 'banner' ? `<span class="bnp bn-${p.key}"></span>` : `<span class="emo">${p.emo}</span>`);
+const hwPic = p => (p.type === 'avatar' ? gi(p.key, 'hero') : p.type === 'frame' ? `<div class="av hwring fr-${p.key}" style="--p:1"><span>${gi(G.avatar)}</span></div>` : p.type === 'banner' ? `<span class="bnp bn-${p.key}"></span>` : `<span class="emo">${p.emo}</span>`);
 function hwPrizeCard(r) {
   const ps = r.hw; if (!ps?.length) return '';
   return `<h2 class="sec">Halloween prizes</h2>${ps.map(p => `<div class="card row hwprize"><div class="avbig sm">${hwPic(p)}</div><div class="grow"><b>${esc(tr(p.name))}</b><div class="mut">Halloween prize</div></div>

@@ -1091,7 +1091,7 @@ html[data-skin] .hwp .bnp{width:100%;height:24px;min-height:0;border-radius:5px;
 .hwmodal{position:relative;text-align:center;display:grid;gap:8px}
 .hwmodal h2{margin:0;color:#ffb36b}
 .hwbig{width:84px;height:84px;margin:0 auto;display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle,#ff7a1a44,#0000 70%)}
-html[data-skin] .hwbig .gi{background:#ff7a1a;width:60px;height:60px;animation:hwglow 2.4s ease-in-out infinite}
+html[data-skin] .hwbig>.gi{background:#ff7a1a;width:60px;height:60px;animation:hwglow 2.4s ease-in-out infinite}
 html[data-skin] .hwmodal .btn:not(.ghost){background:linear-gradient(180deg,#ffa04a,#ff7a1a 55%,#d85a0a);color:#1a0d03}
 html[data-skin] .hwmodal .btn .gi{background:#1a0d03}
 .hwleft{color:#ffb36b}
@@ -1118,3 +1118,8 @@ html[data-skin] .av.fr-halloween>.fx{background-color:transparent}
 @keyframes hwhat{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(4deg)}}
 .av.fr-halloween>.fx2{inset:-19%;background:#f4eefc!important;-webkit-mask:url(icons/gi/wisp.svg) 100% 50%/26% auto no-repeat;mask:url(icons/gi/wisp.svg) 100% 50%/26% auto no-repeat;
   opacity:.85;filter:drop-shadow(0 0 4px #c49bff);animation:spin 10s linear infinite}
+/* a ring shown as a prize: small, with the picture fitting inside it */
+.av.hwring{width:30px;height:30px}
+.av.hwring>span .gi{width:16px;height:16px;font-size:16px}
+.hwbig .av.hwring{width:58px;height:58px}
+.hwbig .av.hwring>span .gi{width:30px;height:30px;font-size:30px}
