@@ -1,8 +1,8 @@
 'use strict';
 // Halloween event: until the end of 31 October 2026 (it closes at midnight, 1 November) the Haunted Crypt opens.
 // It is your own next workout with each exercise swapped for a spooky twin (same main muscle and kind, your equipment),
-// and every clear gives the next prize: a jack-o'-lantern profile picture, a Halloween banner and the Halloween Night
-// interface (and a cobweb banner on the way). Any prize can be tried for a minute from the event card. The prizes are event-only: never in the shop or in chests, and they stay yours after the event.
+// and clearing it once gives every prize: a jack-o'-lantern profile picture, a cobweb banner, a Halloween banner and the
+// Halloween Night interface. Any prize can be tried for a minute from the event card. The prizes are event-only: never in the shop or in chests, and they stay yours after the event.
 const HW_END = new Date(2026, 10, 1).getTime(); // local midnight starting 1 November
 const hwOpen = () => Date.now() < HW_END;
 const HW_ID = 'd-halloween';
@@ -39,18 +39,18 @@ window.startHalloween = () => {
   if (!items.length) return;
   startSession(tr('Haunted Crypt'), items, { dungeon: HW_ID });
 };
-// called by gameWorkout when a workout ends: a Haunted Crypt clear gives the next prize
+// called by gameWorkout when a workout ends: clearing the Haunted Crypt gives every prize still missing
 function hwClear(h) {
   if (h.dungeon !== HW_ID) return null;
-  const p = hwNext(); if (!p) return null;
-  G.owned.push(p.id); commit();
-  return p;
+  const got = HW_PRIZES.filter(p => !G.owned.includes(p.id)); if (!got.length) return null;
+  got.forEach(p => G.owned.push(p.id)); commit();
+  return got;
 }
 const hwPic = p => (p.type === 'avatar' ? gi(p.key, 'hero') : p.type === 'banner' ? `<span class="bnp bn-${p.key}"></span>` : `<span class="emo">${p.emo}</span>`);
 function hwPrizeCard(r) {
-  const p = r.hw; if (!p) return '';
-  return `<div class="card row hwprize"><div class="avbig sm">${hwPic(p)}</div><div class="grow"><b>${esc(tr(p.name))}</b><div class="mut">Halloween prize · ${hwGot()}/${HW_PRIZES.length}</div></div>
-    <button class="btn sm" onclick="equip('${p.id}')">Use it</button></div>`;
+  const ps = r.hw; if (!ps?.length) return '';
+  return `<h2 class="sec">Halloween prizes</h2>${ps.map(p => `<div class="card row hwprize"><div class="avbig sm">${hwPic(p)}</div><div class="grow"><b>${esc(tr(p.name))}</b><div class="mut">Halloween prize</div></div>
+    <button class="btn sm" onclick="equip('${p.id}')">Use it</button></div>`).join('')}`;
 }
 // the prizes in order; tap one to wear it for a minute
 const hwTiles = () => `<div class="hwprizes">${HW_PRIZES.map(p => `<button class="hwp ${G.owned.includes(p.id) ? 'got' : ''}" onclick="event.stopPropagation();hwTry('${p.id}')" aria-label="${esc(tr(p.name))}">${hwPic(p)}<small>${G.owned.includes(p.id) ? '✓' : 'Try'}</small></button>`).join('')}</div>
@@ -61,7 +61,7 @@ function hwCard() {
   if (!hwOpen() || !S.profile) return '';
   const nx = hwNext();
   return `<section class="card hwcard" onclick="event.stopPropagation()"><div class="hwbats" aria-hidden="true"></div><div class="row"><div class="hwpk">${gi('pumpkin', 'hero')}</div>
-    <div class="grow"><div class="mut">Halloween event · ${hwLeft()}</div><h3>Haunted Crypt</h3><div class="mut">${nx ? `Next prize: ${esc(tr(nx.name))} · ${hwGot()}/${HW_PRIZES.length}` : 'All prizes won!'}</div></div></div>
+    <div class="grow"><div class="mut">Halloween event · ${hwLeft()}</div><h3>Haunted Crypt</h3><div class="mut">${nx ? 'Clear it once to win every prize' : 'All prizes won!'}</div></div></div>
     ${hwTiles()}
     <button class="btn" onclick="startHalloween()">${gi('pumpkin')} Enter the crypt</button></section>`;
 }
@@ -71,7 +71,7 @@ setTimeout(() => {
   if (!S.profile || !hwOpen() || !hwNext() || Date.now() - (G.hwSeen || 0) < 4 * 36e5 || !$('#modal').hidden || /workout|start|victory/.test(location.hash)) return;
   G.hwSeen = Date.now(); commit(); sfx('level');
   modal(`<div class="hwmodal"><div class="hwbats" aria-hidden="true"></div><div class="hwbig">${gi('pumpkin', 'hero')}</div><div class="lvup">Halloween event</div>
-    <h2>Haunted Crypt</h2><div class="mut">Your own workout, haunted. Open until 31 October.</div><b class="hwleft">${hwLeft()}</b><div class="mut">Every clear wins the next prize:</div>
+    <h2>Haunted Crypt</h2><div class="mut">Your own workout, haunted. Open until 31 October.</div><b class="hwleft">${hwLeft()}</b><div class="mut">Clear it once to win every prize:</div>
     ${hwTiles()}<button class="btn" onclick="$('#modal').hidden=true;startHalloween()">${gi('pumpkin')} Enter the crypt</button><button class="btn ghost" data-close>Later</button></div>`);
 }, 1600);
 
@@ -82,7 +82,7 @@ if (typeof i18nAdd === 'function') {
     'Halloween prize · {n}/{n}': 'Premio de Halloween · {n}/{n}', 'Use it': 'Usar', 'The Haunted Crypt has closed.': 'La cripta embrujada ya ha cerrado.',
     'Your own workout, haunted: every exercise swapped for a spooky twin.': 'Tu propio entrenamiento, embrujado: cada ejercicio cambiado por un gemelo terrorífico.',
     'Cobweb banner': 'Banner de telaraña', Try: 'Probar', 'Tap a prize to try it for a minute.': 'Toca un premio para probarlo un minuto.', Equipped: 'Puesto', Later: 'Más tarde', 'Halloween event': 'Evento de Halloween',
-    'Your own workout, haunted. Open until 31 October.': 'Tu propio entrenamiento, embrujado. Abierta hasta el 31 de octubre.', 'Every clear wins the next prize:': 'Cada vez que la superes ganas el siguiente premio:', Cobweb: 'Telaraña',
+    'Your own workout, haunted. Open until 31 October.': 'Tu propio entrenamiento, embrujado. Abierta hasta el 31 de octubre.', 'Clear it once to win every prize:': 'Supérala una vez y ganas todos los premios:', 'Clear it once to win every prize': 'Supérala una vez y ganas todos los premios', 'Halloween prizes': 'Premios de Halloween', 'Halloween prize': 'Premio de Halloween', Cobweb: 'Telaraña',
     '{0} d {1} h left': 'quedan {0} d {1} h', '{0} h left': 'quedan {0} h', Halloween: 'Halloween',
   });
   i18nPat(/^Next prize: (.+) · (\d+)\/(\d+)$/, (a, b, c) => `Próximo premio: ${tr(a)} · ${b}/${c}`);
