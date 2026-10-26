@@ -172,9 +172,10 @@ function friendsView() {
   }
   const me = { id: CL.uid, username: CL.user, public: publicProfile(), me: true };
   const all = [me, ...(FRIENDS || [])].sort((x, y) => (y.public?.lvl || 1) - (x.public?.lvl || 1) || (y.public?.xp || 0) - (x.public?.xp || 0));
-  const row = (f, i) => { const p = f.public || {}; return `<button class="lookt frow ${f.me ? 'me' : ''}" ${f.me ? '' : `onclick="location.hash='#/friend/${f.id}'"`}>
-    <b class="rank">${i + 1}</b><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
-    <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small>${f.me ? 'You' : esc(p.title || '')}</small></span><span class="lvtag">Lv ${p.lvl || 1}</span></button>`; };
+  // each player as their own profile card: their banner, ring (laurels, halos...) and picture
+  const row = (f, i) => { const p = f.public || {}; return `<div class="hud tap fcard bn-${esc(p.banner || 'plain')} ${f.me ? 'me' : ''}" role="button" ${f.me ? `onclick="location.hash='#/profile'"` : `onclick="location.hash='#/friend/${f.id}'"`}>
+    <b class="rank">${i + 1}</b><div class="av fr-${esc(p.frame || 'none')}" style="--p:1"><span>${gi(p.avatar || 'user', 'hero')}</span><i class="lv">${p.lvl || 1}</i></div>
+    <div class="grow"><div class="hn" translate="no">${esc(p.name || f.username || '')}</div><div class="mut">${f.me ? 'You' : esc(p.title || '')}</div></div></div>`; };
   const reqs = FR_IN.map(f => { const p = f.public || {}; return `<div class="card row freq"><div class="av fr-${esc(p.frame || 'none')}" style="--p:1;width:40px;height:40px"><span>${gi(p.avatar || 'user', 'hero')}</span></div>
     <span class="grow"><b translate="no">${esc(p.name || f.username || '')}</b><small class="mut">wants to be your friend</small></span>
     <button class="btn sm" onclick="acceptFriend('${f.id}')">Accept</button><button class="icon" aria-label="Decline" onclick="declineFriend('${f.id}')">✕</button></div>`; }).join('');
