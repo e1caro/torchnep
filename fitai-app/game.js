@@ -352,7 +352,7 @@ function dungeonView(id) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/dungeons'">${ic('back', 18)} Back</button>
   <div class="row dghead"><div class="dgi">${gi(d.ico)}</div><div class="grow"><h1>${esc(tr(d.name))}</h1><div class="mut">${d.desc ? esc(tr(d.desc)) : ''}</div></div></div>
   <div class="chips static"><span class="chip">${d.mult}× XP</span><span class="chip">${items.length} exercises</span><span class="chip">~${planMinutes({ items })} min</span>${featuredId() === id ? '<span class="chip on">Today +50%</span>' : ''}</div>
-  <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a></div>` : ''; }).join('')}</section>
+  <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div>${typeof wgBadge === 'function' ? wgBadge(e.id) : ''}</a></div>` : ''; }).join('')}</section>
   <div class="row"><button class="btn ghost" onclick="location.hash='#/dungeons'">Back</button><button class="btn" onclick="enterDungeon('${id}')">${gi(d.ico)} Start the dungeon</button></div>`;
 }
 window.enterDungeon = id => {

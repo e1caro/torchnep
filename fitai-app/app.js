@@ -451,7 +451,7 @@ function planView() {
     S.plan.days.map((d0, di) => { const d = dayFor(di), nx = di === nextDayIdx(); return `<details class="card day" ${nx ? 'open' : ''}><summary><div class="grow"><h3>${esc(d.name)}</h3>
     <div class="mut">${nx ? 'Next · ' : ''}${d.items.length} exercises · ~${planMinutes(d)} min</div></div><button class="icon" aria-label="Remove from plan" onclick="event.preventDefault();planDrop(${di})">${ic('close', 16)}</button><button class="btn sm" onclick="event.preventDefault();startWorkout(${di})">Start</button></summary>
     ${nx && !d.routine ? timeChips(di) : ''}
-    ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a>
+    ${d.items.map((it, ii) => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div>${typeof wgBadge === 'function' ? wgBadge(e.id) : ''}</a>
     ${d.routine ? '' : `<button class="icon" aria-label="Swap exercise" onclick="swapEx(${di},${ii})">${ic('swap', 18)}</button>`}</div>` : ''; }).join('')}${d.routine ? `<button class="btn ghost sm" onclick="location.hash='#/routine/${d.routine}'">${ic('edit', 16)} Edit routine</button>` : ''}</details>`; }).join('') +
     (S.plan.removed?.length ? `<button class="btn ghost" onclick="planRestore()">${ic('plus', 18)} Bring back the coach's workouts (${S.plan.removed.length})</button>` : '') +
     `<div id="rtslot"></div><h2 class="sec">Adjust</h2>${optionsCard(p)}${cardioCard(p)}
@@ -588,7 +588,7 @@ function workoutView() {
   <div class="prog"><i style="width:${(session.cur + 1) / n * 100}%"></i></div>
   <div class="row between exhead"><h1>${esc(e.n)}</h1>${similar(x).length ? `<button class="icon" aria-label="Swap for a similar exercise" onclick="swapPick()">${ic('swap', 20)}</button>` : ''}</div>${demo(e)}
   <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last && !timed ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
-  ${(g => g ? `<div class="wgchip">${gi('weight')} Weight goal: <b>${g.w} kg × ${g.r}</b></div>` : '')(typeof wgOf === 'function' && !timed ? wgOf(x.id) : null)}
+  ${typeof wgAll === 'function' && !timed ? wgAll(x.id).map(g => `<div class="wgchip${g.daily ? ' day' : ''}">🎯 ${g.daily ? 'Daily challenge:' : 'Weight goal:'} <b>${wgLoad(g)}</b></div>`).join('') : ''}
   ${run ? `<div class="card wtimer"><div class="mut">Set ${run.set + 1}</div><div class="t" id="wt">--:--</div><button class="btn ghost sm" onclick="stopTimer()">Stop</button></div>` : ''}
   <table class="sets"><tr class="mut"><th>Set</th>${timed ? '<th></th>' : '<th>kg</th><th>Reps</th>'}<th></th></tr>
   ${x.sets.map((s, i) => `<tr class="${s.done ? 'done' : ''}"><td>${i + 1}</td>
@@ -602,6 +602,7 @@ function workoutView() {
   <button class="btn ghost sm" onclick="quitWorkout()">Discard workout</button>`;
   startLoops();
   if (run) tickTimer();
+  if (typeof wgArrive === 'function' && !timed) wgArrive(x);
 }
 const fmtSecs = t => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 // Timed exercises (cardio, holds, stretches): a countdown per set that ticks the set off by itself when it ends.
@@ -757,7 +758,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 181</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
+  <div class="mut setfoot"><span>FitQuest version 184</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();

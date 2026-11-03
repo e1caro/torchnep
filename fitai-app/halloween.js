@@ -88,7 +88,7 @@ function cryptView() {
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button>
   <div class="hwpk" style="margin:0 auto">${gi('pumpkin', 'hero')}</div><h1>Haunted Crypt</h1>
   <div class="mut">${items.length} exercises · ~${planMinutes(d)} min · 1.5× XP${hwOpen() ? ` · ${hwLeft()}` : ''}</div>
-  <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div></a></div>` : ''; }).join('')}</section>
+  <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div>${typeof wgBadge === 'function' ? wgBadge(e.id) : ''}</a></div>` : ''; }).join('')}</section>
   ${hwOpen() ? `<div class="row"><button class="btn ghost" onclick="history.back()">Back</button><button class="btn hwgo" onclick="startHalloween()">${gi('pumpkin')} Start the crypt</button></div>` : '<div class="mut">The Haunted Crypt has closed.</div>'}`;
 }
 
