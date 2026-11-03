@@ -57,6 +57,19 @@ function wgDaily() {
   return G.wgd;
 }
 const wgOf = id => { const d = wgDaily(); if (d && !d.done && d.id === id) return { ...d, daily: true }; return wgGoals().find(g => g.id === id && !g.done); };
+// every open goal on an exercise (the daily challenge and a weekly goal can share one)
+const wgAll = id => { const d = wgDaily(), out = []; if (d && !d.done && d.id === id) out.push({ ...d, daily: true }); const w = wgGoals().find(g => g.id === id && !g.done); if (w) out.push(w); return out; };
+// a small target next to an exercise's name in lists (plan, dungeon summaries)
+const wgBadge = id => (wgAll(id).length ? `<span class="wgbadge" aria-label="${esc(tr('Weight goal'))}">🎯</span>` : '');
+// arriving at an exercise with a goal during a workout: a short notice, once per exercise and workout
+function wgArrive(x) {
+  const gs = wgAll(x.id); if (!gs.length) return;
+  session.wgSeen = session.wgSeen || [];
+  if (session.wgSeen.includes(x.id)) return;
+  session.wgSeen.push(x.id);
+  sfx('tick'); navigator.vibrate?.(30);
+  toast(`🎯 ${gs.map(g => `${tr(g.daily ? 'Daily challenge:' : 'Weight goal:')} ${wgLoad(g)}`).join(' · ')}`);
+}
 // called when a workout ends: goals reached in it are ticked off and paid
 function wgCheck(h) {
   const got = [];
@@ -97,7 +110,7 @@ function wgVictory(r) {
 if (typeof i18nAdd === 'function') {
   i18nAdd({
     'Weight goals': 'Retos de peso', 'New goals every week, from your plan. Any set at that weight for those reps counts.': 'Retos nuevos cada semana, de tu plan. Vale cualquier serie con ese peso y esas repeticiones.',
-    'Weight goal': 'Reto de peso', 'Daily challenge · last exercise of your workout': 'Reto diario · último ejercicio de tu entrenamiento', 'This week': 'Esta semana',
+    'Weight goal': 'Reto de peso', 'Weight goal:': 'Reto de peso:', 'Daily challenge · last exercise of your workout': 'Reto diario · último ejercicio de tu entrenamiento', 'This week': 'Esta semana',
     '{0} reps in one set': '{0} repeticiones en una serie', 'Daily challenge:': 'Reto diario:',
   });
   i18nPat(/^(.+) kg × (\d+) · best this week (.+) kg$/, (a, b, c) => `${a} kg × ${b} · mejor esta semana ${c} kg`);

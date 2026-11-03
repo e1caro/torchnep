@@ -1155,3 +1155,8 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .wgchip{display:inline-flex;align-items:center;gap:6px;margin:0 0 8px;padding:6px 10px;border-radius:999px;border:1px solid var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent);font-size:13px}
 .wgday{padding-bottom:10px;border-bottom:1px solid var(--line);display:grid;gap:6px}
 .wgday.done{opacity:.8}
+.wgchip{margin-right:6px;animation:wgpulse 1.6s ease-in-out 2}
+.wgchip.day{border-color:#ff9a3c;background:color-mix(in srgb,#ff9a3c 14%,transparent)}
+@keyframes wgpulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 25%,transparent)}}
+.wgbadge{flex:none;font-size:18px;margin-left:6px;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--acc) 60%,transparent))}
+@media(prefers-reduced-motion:reduce){.wgchip{animation:none}}
