@@ -353,3 +353,4 @@ i18nAdd({ 'My equipment': 'Mi material', 'Discard workout': 'Abandonar entrenami
 i18nAdd({ 'Open it in Loot, on Today.': 'Ábrelo en Botín, en Hoy.' });
 i18nAdd({ 'Start the dungeon': 'Empezar la mazmorra', '{n} exercises': '{n} ejercicios' });
 i18nAdd({ 'Your meals add up to about {n} kcal and {n} g protein a day ({n} kcal in total, leaving room for oil, drinks and extras).': 'Tus comidas suman unas {n} kcal y {n} g de proteína al día ({n} kcal en total, dejando margen para aceite, bebidas y extras).' });
+i18nAdd({ 'Weight goal:': 'Reto de peso:' });

@@ -308,7 +308,7 @@ function gameWorkout(h) {
   if (chest) G.chests.push(chest);
   award(xp, coins);
   const ach = checkAch();
-  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h), hw: typeof hwClear === 'function' ? hwClear(h) : null };
+  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h), hw: typeof hwClear === 'function' ? hwClear(h) : null, wg: typeof wgCheck === 'function' ? wgCheck(h) : [] };
 }
 function gameWeigh() {
   ensureDay();
@@ -535,6 +535,7 @@ function home() {
     <div class="hp"><i style="width:${(1 - hits / p.days) * 100}%"></i></div>
     <div class="mut">${bossDone ? 'Defeated!' : `${p.days - hits} hit${p.days - hits > 1 ? 's' : ''} left`}</div>
     ${bossDone && G.bossClaimed !== weekId() ? `<button class="btn sm" onclick="claimBoss()" style="margin-top:8px">Claim loot · ${gi('coin', 'cn')} 75</button>` : ''}</div></section>
+  ${typeof wgCard === 'function' ? wgCard() : ''}
   ${featuredId() ? `<section class="card tap row" onclick="location.hash='#/dungeons'"><div class="dgi">${gi(DUNGEONS[featuredId()].ico)}</div><div class="grow"><div class="mut">Dungeon of the day · +50% XP</div><h3>${DUNGEONS[featuredId()].name}</h3></div></section>` : ''}
   <h2 class="sec">Next training</h2>
   ${typeof hwCard === 'function' ? hwCard() : ''}<section class="card next">${ownPlan() ? `<div class="chips pickday">${S.plan.days.map((x, i) => `<button class="chip ${i === di ? 'on' : ''}" onclick="pickTrain(${i})">${esc(dayFor(i).name.split(' · ').pop())}</button>`).join('')}</div>` : ''}
@@ -571,6 +572,7 @@ function victory() {
   <div class="card">${r.lines.map(([t, v]) => `<div class="row between"><span>${t}</span><b>${v == null ? '' : '+' + v}</b></div>`).join('')}
   <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
   ${typeof hwPrizeCard === 'function' ? hwPrizeCard(r) : ''}
+  ${typeof wgVictory === 'function' ? wgVictory(r) : ''}
   ${typeof liftedCard === 'function' ? liftedCard(r.kg) : ''}
   <div class="hud solo"><div class="av fr-${G.frame}" style="--p:0"><span>${gi(G.avatar, 'hero')}</span><i class="lv" id="vl">${la}</i></div><div class="grow"><div class="xpbar"><i id="vb" style="width:${pc(r.before)}%"></i></div><div class="xpt">${lb > la ? `Level ${la} → ${lb}` : `${r.after - totalXp(lb)} / ${totalXp(lb + 1) - totalXp(lb)} XP`}</div></div></div>
   ${r.chest ? `<div class="card row"><div class="avbig sm">${gi(CHEST[r.chest][1])}</div><div class="grow"><b>${CHEST[r.chest][0]}</b><div class="mut">Added to your loot. Open it on Today.</div></div></div>` : ''}
