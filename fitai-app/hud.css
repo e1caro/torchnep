@@ -1153,3 +1153,5 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .wgrw{flex:none;text-align:right;font:700 11px/1.35 var(--body);color:var(--acc)}
 .wgnote{font-size:12px}
 .wgchip{display:inline-flex;align-items:center;gap:6px;margin:0 0 8px;padding:6px 10px;border-radius:999px;border:1px solid var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent);font-size:13px}
+.wgday{padding-bottom:10px;border-bottom:1px solid var(--line);display:grid;gap:6px}
+.wgday.done{opacity:.8}
