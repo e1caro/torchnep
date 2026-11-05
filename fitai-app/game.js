@@ -556,10 +556,10 @@ function dungeons() {
   const row = ([id, d]) => {
     const ok = has(item(id)), miss = d.need && !S.profile.equipment.includes(d.need);
     return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3>
-<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
+<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div>${typeof dgFriends === 'function' ? dgFriends(id) : ''}</div>
       ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
   };
-  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>${typeof hwCard === 'function' ? hwCard() : ''}
+  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>${typeof hwCard === 'function' ? hwCard() : ''}${typeof dgFriendsCard === 'function' ? dgFriendsCard() : ''}
     ${open.length ? open.map(row).join('') : '<div class="mut">Your first dungeon opens at level 2.</div>'}
     ${locked.length ? `<h2 class="sec">Next</h2>${row(locked[0])}` : ''}
     ${locked.length > 1 ? `<details class="fold"><summary><h2 class="sec">Locked · ${locked.length - 1}</h2></summary>${locked.slice(1).map(row).join('')}</details>` : ''}`;

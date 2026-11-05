@@ -1160,3 +1160,21 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 @keyframes wgpulse{50%{box-shadow:0 0 0 4px color-mix(in srgb,var(--acc) 25%,transparent)}}
 .wgbadge{flex:none;font-size:18px;margin-left:6px;filter:drop-shadow(0 0 4px color-mix(in srgb,var(--acc) 60%,transparent))}
 @media(prefers-reduced-motion:reduce){.wgchip{animation:none}}
+/* friends in the dungeons */
+.dgfr{display:flex;align-items:center;gap:0;margin-top:6px}
+.dgfr .av{width:24px;height:24px;margin-right:-6px;box-shadow:0 0 0 2px var(--card)}
+.dgfr .av span .gi{font-size:13px}
+.dgfr .mut{margin-left:12px;font-size:12px}
+.dgrank{display:grid;gap:8px}
+.dgrank h3{display:flex;align-items:center;gap:8px;margin:0 0 2px}
+.dgr{display:flex;align-items:center;gap:10px;cursor:pointer}
+.dgr.me{cursor:default}
+.dgr .rk{width:18px;text-align:center;color:var(--mut)}
+.dgr .av{width:32px;height:32px;flex:none}
+.dgr .av span .gi{font-size:18px}
+.dgr .grow{display:grid;gap:4px}
+.dgr .qbar{height:5px}
+.dgr .mut{font-size:12px;white-space:nowrap}
+.pdg{display:flex;flex-wrap:wrap;gap:8px}
+.pdgi{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--card2);border:1px solid var(--line);font-size:12px}
+.pdgi small{color:var(--acc);font-weight:700}
