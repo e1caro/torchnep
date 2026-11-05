@@ -308,7 +308,7 @@ function gameWorkout(h) {
   if (chest) G.chests.push(chest);
   award(xp, coins);
   const ach = checkAch();
-  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h), hw: typeof hwClear === 'function' ? hwClear(h) : null, wg: typeof wgCheck === 'function' ? wgCheck(h) : [] };
+  LAST = { name: h.name, dungeon: dg, lines, xp, coins, before, after: G.xp, ach, chest, kg: volume(h), grade: h.dungeon ? h.grade || dgGrade(h) : null, best: h.dungeon ? S.history.slice(0, -1).filter(o => o.dungeon === h.dungeon).every(o => gradeBetter(h.grade || dgGrade(h), o.grade || dgGrade(o)) || (o.grade || dgGrade(o)) === (h.grade || dgGrade(h))) : false, hw: typeof hwClear === 'function' ? hwClear(h) : null, wg: typeof wgCheck === 'function' ? wgCheck(h) : [] };
 }
 function gameWeigh() {
   ensureDay();
@@ -334,6 +334,25 @@ function buildDungeon(id) {
   if (items.length < 3) shuffle(pool.filter(e => !used.has(e.id)), r).slice(0, 4 - items.length).forEach(add);
   return items;
 }
+// Dungeon grades: S, A, B, C or D from the medals of its exercises (bronze 1 ... platinum 4), skipped ones counting 0.
+const GRADES = ['S', 'A', 'B', 'C', 'D'];
+function dgGrade(h) {
+  const n = Math.max(h.total || 0, h.ex.length) || 1, avg = h.ex.reduce((a, x) => a + (x.tier || 0), 0) / n;
+  return avg >= 3.5 ? 'S' : avg >= 2.9 ? 'A' : avg >= 2.3 ? 'B' : avg >= 1.6 ? 'C' : 'D';
+}
+const gradeBetter = (a, b) => !b || GRADES.indexOf(a) < GRADES.indexOf(b);
+// your best grade in each dungeon, from your history
+const dgBests = () => S.history.reduce((o, h) => { if (h.dungeon) { const g = h.grade || dgGrade(h); if (gradeBetter(g, o[h.dungeon])) o[h.dungeon] = g; } return o; }, {});
+// your best grade and your friends', on the dungeon's summary
+function dgGrades(id) {
+  const mine = dgBests()[id];
+  const fr = typeof FRIENDS !== 'undefined' && FRIENDS ? FRIENDS.filter(f => f.public?.dgG?.[id]).map(f => ({ f, g: f.public.dgG[id] })).sort((a, b) => GRADES.indexOf(a.g) - GRADES.indexOf(b.g)) : [];
+  if (!mine && !fr.length) return '';
+  const row = (pic, name, g, me) => `<div class="dggr ${me ? 'me' : ''}">${pic}<span class="grow" translate="no">${esc(name)}</span><b class="grade g${g}">${g}</b></div>`;
+  return `<section class="card dggrades"><h3>Grades</h3>${mine ? row(`<span class="av fr-${esc(G.frame)}" style="--p:1"><span>${gi(G.avatar, 'hero')}</span></span>`, tr('You'), mine, true) : '<div class="mut">You have no grade here yet.</div>'}
+    ${fr.map(({ f, g }) => row(`<span class="av fr-${esc(f.public?.frame || 'none')}" style="--p:1"><span>${gi(f.public?.avatar || 'user', 'hero')}</span></span>`, f.public?.name || f.username || '', g)).join('')}</section>`;
+}
+
 // Entering a dungeon first shows its exercises (like a routine); from there you go back or start it.
 // The workout is drawn once and kept, so the one you start is the one you saw.
 let DG_PREV = null;
@@ -352,6 +371,7 @@ function dungeonView(id) {
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/dungeons'">${ic('back', 18)} Back</button>
   <div class="row dghead"><div class="dgi">${gi(d.ico)}</div><div class="grow"><h1>${esc(tr(d.name))}</h1><div class="mut">${d.desc ? esc(tr(d.desc)) : ''}</div></div></div>
   <div class="chips static"><span class="chip">${d.mult}× XP</span><span class="chip">${items.length} exercises</span><span class="chip">~${planMinutes({ items })} min</span>${featuredId() === id ? '<span class="chip on">Today +50%</span>' : ''}</div>
+  ${dgGrades(id)}
   <section class="card">${items.map(it => { const e = BY[it.id]; return e ? `<div class="item"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div class="grow"><div>${esc(e.n)}</div><div class="mut">${it.sets} × ${it.reps}</div></div>${typeof wgBadge === 'function' ? wgBadge(e.id) : ''}</a></div>` : ''; }).join('')}</section>
   <div class="row"><button class="btn ghost" onclick="location.hash='#/dungeons'">Back</button><button class="btn" onclick="enterDungeon('${id}')">${gi(d.ico)} Start the dungeon</button></div>`;
 }
@@ -556,10 +576,10 @@ function dungeons() {
   const row = ([id, d]) => {
     const ok = has(item(id)), miss = d.need && !S.profile.equipment.includes(d.need);
     return `<section class="card dg ${ok ? '' : 'locked'}"><div class="dgi">${ok ? gi(d.ico) : gi('lock')}</div><div class="grow"><h3>${d.name}</h3>
-<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div></div>
+<div class="chips static"><span class="chip">${d.mult}× XP</span>${id === feat ? '<span class="chip on">Today +50%</span>' : ''}${miss ? `<span class="chip">Needs ${d.need}</span>` : ''}</div>${typeof dgFriends === 'function' ? dgFriends(id) : ''}</div>
       ${ok ? `<button class="btn sm" onclick="startDungeon('${id}')">Enter</button>` : `<span class="mut cost">${gi('lock')} Level ${d.lv}</span>`}</section>`;
   };
-  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>${typeof hwCard === 'function' ? hwCard() : ''}
+  view.innerHTML = `${seg('dun')}<h1>Dungeons</h1>${typeof hwCard === 'function' ? hwCard() : ''}${typeof dgFriendsCard === 'function' ? dgFriendsCard() : ''}
     ${open.length ? open.map(row).join('') : '<div class="mut">Your first dungeon opens at level 2.</div>'}
     ${locked.length ? `<h2 class="sec">Next</h2>${row(locked[0])}` : ''}
     ${locked.length > 1 ? `<details class="fold"><summary><h2 class="sec">Locked · ${locked.length - 1}</h2></summary>${locked.slice(1).map(row).join('')}</details>` : ''}`;
@@ -569,6 +589,7 @@ function victory() {
   if (!LAST) { location.hash = '#/home'; return; }
   const r = LAST, la = levelOf(r.before), lb = levelOf(r.after), pc = x => { const L = levelOf(x); return (x - totalXp(L)) / (totalXp(L + 1) - totalXp(L)) * 100; };
   view.innerHTML = `<div class="vic"><div class="lvup">${r.dungeon ? 'Dungeon cleared' : 'Workout cleared'}</div><h1>${esc(r.name)}</h1>
+  ${r.grade ? `<div class="dgvic"><b class="grade big g${r.grade}">${r.grade}</b><div class="mut">${r.best ? 'Your best grade here' : 'Dungeon grade'}</div></div>` : ''}
   <div class="card">${r.lines.map(([t, v]) => `<div class="row between"><span>${t}</span><b>${v == null ? '' : '+' + v}</b></div>`).join('')}
   <div class="row between tot"><span>Total</span><b>+${r.xp} XP · ${gi('coin', 'cn')} ${r.coins}</b></div></div>
   ${typeof hwPrizeCard === 'function' ? hwPrizeCard(r) : ''}

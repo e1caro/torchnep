@@ -246,8 +246,29 @@ async function friendView(id) {
   <button class="btn ghost" onclick="removeFriend('${f.id}')">Remove friend</button>`;
 }
 
+// ---------- friends in the dungeons ----------
+// Each friend's shared profile says which dungeons they cleared (and how often): their pictures show on each dungeon,
+// and a small ranking on top of Dungeons counts the different dungeons each one cleared.
+const dgOf = p => Object.keys(p?.dg || {}).filter(id => DUNGEONS[id] && !DUNGEONS[id].event);
+const frPic = f => `<span class="av fr-${esc(f.public?.frame || 'none')}" style="--p:1" title="${esc(f.public?.name || f.username || '')}"><span>${gi(f.public?.avatar || 'user', 'hero')}</span></span>`;
+function dgFriends(id) {
+  if (!CL.uid || !FRIENDS?.length) return '';
+  const who = FRIENDS.filter(f => f.public?.dg?.[id]).sort((a, b) => b.public.dg[id] - a.public.dg[id]);
+  if (!who.length) return '';
+  return `<div class="dgfr">${who.slice(0, 5).map(f => frPic(f)).join('')}<span class="mut">${who.length === 1 ? esc(who[0].public?.name || who[0].username) : T('{0} friends', who.length)} ✓</span></div>`;
+}
+function dgFriendsCard() {
+  if (!CL.uid || !FRIENDS?.length) return '';
+  const me = { id: CL.uid, username: CL.user, public: publicProfile(), me: true };
+  const all = [me, ...FRIENDS].map(f => ({ f, n: dgOf(f.public).length, t: Object.values(f.public?.dg || {}).reduce((a, x) => a + x, 0) })).sort((a, b) => b.n - a.n || b.t - a.t);
+  const total = Object.values(DUNGEONS).filter(d => !d.event).length;
+  return `<section class="card dgrank"><h3>${gi('gate')} Friends in the dungeons</h3>${all.slice(0, 6).map(({ f, n, t }, i) => `<div class="dgr ${f.me ? 'me' : ''}" ${f.me ? '' : `onclick="location.hash='#/friend/${f.id}'"`}><b class="rk">${i + 1}</b>${frPic(f)}
+    <span class="grow"><b translate="no">${esc(f.me ? tr('You') : f.public?.name || f.username || '')}</b><span class="qbar"><i style="width:${n / total * 100}%"></i></span></span><span class="mut">${n}/${total}${t > n ? ` · ×${t}` : ''}</span></div>`).join('')}</section>`;
+}
+
 if (SB_ON) {
   Object.assign(routes, { account: accountView, friend: friendView, friends: friendsView });
+  { const _dg = routes.dungeons; routes.dungeons = () => { _dg(); if (CL.uid && Date.now() - FR_AT > 30e3) { FR_AT = Date.now(); loadFriends().then(() => { if (location.hash === '#/dungeons') _dg(); }).catch(() => { }); } }; }
   window.addEventListener('pagehide', () => { if (CL.dirtyAt) cloudPush().catch(() => { }); });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden' && CL.dirtyAt) cloudPush().catch(() => { }); });
   setTimeout(cloudPull, 1500);
@@ -263,7 +284,7 @@ if (typeof i18nAdd === 'function') {
     Friends: 'Amigos', 'Sign in to add friends': 'Entra para añadir amigos', "Friend's code": 'Código de tu amigo', Add: 'Añadir', 'Your code:': 'Tu código:',
     'Codes have 6 letters and numbers': 'Los códigos tienen 6 letras y números', "That's your own code": 'Ese es tu propio código', 'No player with that code': 'No hay ningún jugador con ese código',
     'Friend added': 'Amigo añadido', '{0} is now #{1}': '{0} pasa al puesto {1}', 'Sign in to add friends and see their profiles.': 'Entra para añadir amigos y ver sus perfiles.', Ranking: 'Ranking', You: 'Tú', 'Lv {n}': 'Nv {n}', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
-    Requests: 'Solicitudes', 'Pending requests': 'Peticiones pendientes', 'request sent': 'petición enviada', 'No pending requests.': 'No hay peticiones pendientes.', 'Pending requests · {n}': 'Peticiones pendientes · {n}', 'wants to be your friend': 'quiere ser tu amigo', Accept: 'Aceptar', Decline: 'Rechazar', 'Request sent': 'Solicitud enviada', 'Waiting for:': 'Esperando a:',
+    Requests: 'Solicitudes', 'Friends in the dungeons': 'Amigos en las mazmorras', '{0} friends': '{0} amigos', 'Dungeons · {n}': 'Mazmorras · {n}', 'Pending requests': 'Peticiones pendientes', 'request sent': 'petición enviada', 'No pending requests.': 'No hay peticiones pendientes.', 'Pending requests · {n}': 'Peticiones pendientes · {n}', 'wants to be your friend': 'quiere ser tu amigo', Accept: 'Aceptar', Decline: 'Rechazar', 'Request sent': 'Solicitud enviada', 'Waiting for:': 'Esperando a:',
     'Turn off e-mail confirmation in Supabase (see tools/supabase.sql)': 'Desactiva la confirmación por e-mail en Supabase (mira tools/supabase.sql)',
   });
 }
