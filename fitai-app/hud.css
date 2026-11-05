@@ -1178,3 +1178,15 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .pdg{display:flex;flex-wrap:wrap;gap:8px}
 .pdgi{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;background:var(--card2);border:1px solid var(--line);font-size:12px}
 .pdgi small{color:var(--acc);font-weight:700}
+/* dungeon grades */
+.grade{display:inline-grid;place-items:center;min-width:30px;height:30px;padding:0 6px;border-radius:8px;font:900 18px/1 var(--disp);color:#111;background:#8b92a3}
+.grade.sm{min-width:20px;height:20px;font-size:12px;border-radius:6px;margin-left:2px}
+.grade.big{min-width:76px;height:76px;font-size:48px;border-radius:18px;box-shadow:0 0 30px -4px currentColor;animation:gradepop .7s cubic-bezier(.2,1.6,.4,1) both}
+.grade.gS{background:linear-gradient(135deg,#fff1a8,#ffb020);color:#3a2400}.grade.gA{background:linear-gradient(135deg,#b6f5c9,#3fcf7a);color:#062a14}
+.grade.gB{background:linear-gradient(135deg,#bfe0ff,#4da3ff);color:#04203d}.grade.gC{background:linear-gradient(135deg,#ffd9b0,#ff9a3c);color:#3a1a00}.grade.gD{background:linear-gradient(135deg,#ffc2c9,#ff4d6d);color:#3a0010}
+.dgvic{display:grid;justify-items:center;gap:6px;margin:6px 0 12px}
+@keyframes gradepop{from{transform:scale(.3) rotate(-12deg);opacity:0}to{transform:none;opacity:1}}
+.dggrades{display:grid;gap:8px}.dggrades h3{margin:0}
+.dggr{display:flex;align-items:center;gap:10px}.dggr .av{width:30px;height:30px;flex:none}.dggr .av span .gi{font-size:16px}
+.dggr.me{font-weight:700}
+@media(prefers-reduced-motion:reduce){.grade.big{animation:none}}

@@ -19,6 +19,7 @@ function profileSummary() {
     badges: G.ach.length, ach: [...G.ach], sp,
     // dungeons cleared, and how many times each (friends see them on Dungeons and on this profile)
     dg: S.history.reduce((a, h) => { if (h.dungeon) a[h.dungeon] = (a[h.dungeon] || 0) + 1; return a; }, {}),
+    dgG: typeof dgBests === 'function' ? dgBests() : {},
     week: { ws: weekStart(), days: w.days, n: w.n, goal, min: w.min, kg: Math.round(w.kg), prs: w.prs.length, grade: grade(w, goal, prev) },
   };
 }
@@ -37,7 +38,7 @@ function profileShow(p, own = true) {
       <div><b>${fmtN(wk.kg)}</b><span>kg lifted</span></div><div><b>${wk.prs}</b><span>records</span></div></div>
     <div class="qbar"><i style="width:${Math.min(100, wk.n / Math.max(1, wk.goal) * 100)}%"></i></div></section>
   ${typeof liftedCard === 'function' && wk.kg > 0 ? liftedCard(wk.kg, true) : ''}
-  ${(dg => dg.length ? `<h2 class="sec">Dungeons · ${dg.length}</h2><div class="pdg">${dg.map(([id, n]) => `<span class="pdgi" title="${esc(tr(DUNGEONS[id].name))}">${gi(DUNGEONS[id].ico)}<b>${esc(tr(DUNGEONS[id].name))}</b><small>×${n}</small></span>`).join('')}</div>` : '')(Object.entries(p.dg || {}).filter(([id]) => DUNGEONS[id]).sort((a, b) => b[1] - a[1]))}
+  ${(dg => dg.length ? `<h2 class="sec">Dungeons · ${dg.length}</h2><div class="pdg">${dg.map(([id, n]) => `<span class="pdgi" title="${esc(tr(DUNGEONS[id].name))}">${gi(DUNGEONS[id].ico)}<b>${esc(tr(DUNGEONS[id].name))}</b><small>×${n}</small>${p.dgG?.[id] ? `<b class="grade sm g${p.dgG[id]}">${p.dgG[id]}</b>` : ''}</span>`).join('')}</div>` : '')(Object.entries(p.dg || {}).filter(([id]) => DUNGEONS[id]).sort((a, b) => b[1] - a[1]))}
   <h2 class="sec">Badges · ${got.length}/${ACH.length}</h2>
   ${got.length ? `<div class="pbadges">${got.slice().reverse().map(a => `<div class="pbadge" title="${esc(a.d)}">${gi(a.i, 'hero')}<span>${a.n}</span></div>`).join('')}</div>` : '<div class="mut">No badges yet.</div>'}`;
 }
