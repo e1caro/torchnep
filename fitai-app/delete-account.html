@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FitQuest · Borrar cuenta / Delete account</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0e1014;color:#eceef3;font:16px/1.5 system-ui,sans-serif}
+main{width:min(420px,100%);padding:24px;box-sizing:border-box}
+h1{font-size:22px}p,li{color:#a7adbb}label{display:grid;gap:4px;margin:10px 0}
+input{padding:10px;border-radius:8px;border:1px solid #333a48;background:#171a21;color:#fff;font:inherit}
+button{width:100%;margin-top:12px;padding:12px;border:0;border-radius:10px;background:#d9364f;color:#fff;font:600 16px system-ui}
+#m{margin-top:12px;color:#fff}
+</style>
+</head>
+<body>
+<main>
+<h1>Borrar tu cuenta de FitQuest</h1>
+<p>Al borrar tu cuenta se eliminan para siempre tu perfil, tu progreso guardado en línea, tus amigos, tus ejercicios compartidos en la comunidad y tus datos de recordatorios. No se guarda ninguna copia. Los datos que estén solo en tu móvil se quedan allí hasta que desinstales la app.</p>
+<p lang="en"><b>Delete your FitQuest account.</b> Your profile, progress saved online, friends, shared community exercises and reminder data are deleted for good. No copy is kept.</p>
+<label>Usuario / Username<input id="u" autocomplete="username" autocapitalize="none"></label>
+<label>Contraseña / Password<input id="p" type="password" autocomplete="current-password"></label>
+<button id="go">Borrar mi cuenta / Delete my account</button>
+<p id="m"></p>
+<p>¿Has olvidado la contraseña o no puedes entrar? Escribe a la dirección de contacto que aparece en la ficha de Google Play desde el email de tu cuenta y la borraremos en un máximo de 30 días.</p>
+</main>
+<script>
+// The web way to delete an account (Google Play asks for one besides the in-app button): sign in, then
+// public.delete_my_account() (tools/supabase-play.sql) removes the account and everything tied to it.
+const SB_URL = 'https://fghbrevlqmrugbnqshoj.supabase.co', SB_KEY = 'sb_publishable_22MWQyEpsR2OyZv9RXkswg_FdGjA2i9';
+const $ = id => document.getElementById(id), say = m => { $('m').textContent = m; };
+$('go').onclick = async () => {
+  const u = $('u').value.trim().toLowerCase(), p = $('p').value;
+  if (!u || !p) return say('Escribe tu usuario y contraseña. / Enter your username and password.');
+  if (!confirm('¿Seguro? No se puede deshacer. / Sure? This cannot be undone.')) return;
+  try {
+    const r = await fetch(SB_URL + '/auth/v1/token?grant_type=password', { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ email: u + '@users.fitquest.app', password: p }) });
+    if (!r.ok) return say('Usuario o contraseña incorrectos. / Wrong username or password.');
+    const { access_token } = await r.json();
+    const d = await fetch(SB_URL + '/rest/v1/rpc/delete_my_account', { method: 'POST', headers: { apikey: SB_KEY, Authorization: 'Bearer ' + access_token, 'Content-Type': 'application/json' }, body: '{}' });
+    if (!d.ok) return say('No se pudo borrar. Inténtalo más tarde. / Could not delete. Try again later.');
+    say('Cuenta borrada. / Account deleted.'); $('go').disabled = true;
+  } catch { say('Sin conexión. / No connection.'); }
+};
+</script>
+</body>
+</html>

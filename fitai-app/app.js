@@ -546,7 +546,8 @@ function exerciseView(id) {
   gameGuide(id);
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button><h1>${esc(e.n)}</h1>${demo(e)}
   <div class="chips static">${[...e.m, ...e.s].map(m => `<span class="chip">${m}</span>`).join('')}<span class="chip">${e.e}</span><span class="chip">${e.l}</span></div>
-  <h2 class="sec">How to</h2><ol class="how">${e.i.map(s => `<li>${esc(s)}</li>`).join('')}</ol>`;
+  <h2 class="sec">How to</h2><ol class="how">${e.i.map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+  ${e.k?.length ? `<h2 class="sec">Common mistakes</h2><ul class="how mistakes">${e.k.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}`;
   startLoops();
 }
 
@@ -757,8 +758,8 @@ function settings() {
   <div id="setmusic"></div>
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
-  ${APP_CODE ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 186</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
+  ${APP_CODE && !APP_PLAY ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
+  <div class="mut setfoot"><span>FitQuest version 191</span> · <span>free, no ads, no accounts: everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db. Muscle maps: react-native-body-highlighter (MIT).</span> <span>${GI_CREDIT}</span></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -778,8 +779,10 @@ function settings() {
 const APP_CODE = +((navigator.userAgent.match(/FitQuestApp\/(\d+)/) || [])[1] || 0);
 const APP_SHELL = +((navigator.userAgent.match(/FitQuestShell\/(\d+)/) || [])[1] || 1);
 let APP_NEW = null;
+// the Google Play build only updates through Play: no download offers from GitHub there
+const APP_PLAY = /FitQuestStore\/play/.test(navigator.userAgent);
 async function appUpdate(manual) {
-  if (!APP_CODE) return;
+  if (!APP_CODE || APP_PLAY) return;
   try {
     const rs = await (await fetch('https://api.github.com/repos/e1caro/torchnep/releases?per_page=30')).json();
     const top = rs.map(r => ({ r, n: +((r.tag_name.match(/^app-(\d+)$/) || [])[1] || 0) })).filter(x => x.n && !x.r.draft).sort((a, b) => b.n - a.n)[0];
@@ -886,6 +889,15 @@ try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // th
   }
   try {
     EX = await (await fetch('data/exercises.json')).json();
+    // 40 more exercises written for FitQuest (no photos), with common mistakes and their Spanish text
+    try {
+      const more = await (await fetch('data/exercises-more.json')).json();
+      more.forEach(e => { if (typeof i18nAdd === 'function') { i18nAdd({ [e.n]: e.es.n }); e.i.forEach((t, k) => i18nAdd({ [t]: e.es.i[k] })); e.k.forEach((t, k) => i18nAdd({ [t]: e.es.k[k] })); } });
+      EX.push(...more);
+    } catch { /* offline first run */ }
+    // your own exercises and the ones you added from the Guild (myex.js, community.js)
+    if (typeof myExLoad === 'function') EX.push(...myExLoad());
+    if (typeof guildLoad === 'function') EX.push(...guildLoad());
     VID = await (await fetch('data/videos.json')).json().catch(() => ({}));
     await langReady();
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }

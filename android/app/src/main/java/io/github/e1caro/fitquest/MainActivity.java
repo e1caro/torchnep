@@ -1,10 +1,16 @@
 package io.github.e1caro.fitquest;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Insets;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowInsets;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -63,12 +69,20 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setDatabaseEnabled(true);
         s.setMediaPlaybackRequiresUserGesture(false);
-        // the web app reads these: it runs in the APK, which web version it shows, and which native shell it has
-        s.setUserAgentString(s.getUserAgentString() + " FitQuestApp/" + shown + " FitQuestShell/" + BuildConfig.SHELL);
+        // the web app reads these: it runs in the APK, which web version it shows, which native shell it has, and
+        // whether it came from Google Play (no self-updates there)
+        s.setUserAgentString(s.getUserAgentString() + " FitQuestApp/" + shown + " FitQuestShell/" + BuildConfig.SHELL
+                + (BuildConfig.SELF_UPDATE ? "" : " FitQuestStore/play"));
+        web.addJavascriptInterface(new Bridge(), "FitQuestNative");
         web.setWebViewClient(new WebViewClient() {
             @Override
             public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest req) {
                 return loader.shouldInterceptRequest(req.getUrl());
+            }
+
+            @Override
+            public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                ownPage = url != null && url.startsWith("https://" + HOST + "/");
             }
 
             @Override
@@ -93,23 +107,69 @@ public class MainActivity extends Activity {
             }
         });
         setContentView(web);
+        // Android 15+ draws apps edge to edge: keep the page clear of the status and navigation bars
+        if (Build.VERSION.SDK_INT >= 30) {
+            web.setOnApplyWindowInsetsListener((v, in) -> {
+                Insets b = in.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
+                v.setPadding(b.left, b.top, b.right, b.bottom);
+                return WindowInsets.CONSUMED;
+            });
+        }
+        if (Build.VERSION.SDK_INT >= 33) {
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(0, () -> { if (web.canGoBack()) web.goBack(); else finish(); });
+        }
+        Reminder.schedule(this);
         home = "https://" + HOST + (local ? "/local/index.html" : "/assets/www/index.html");
         web.loadUrl(home);
         cleanOld(shown);
-        new Thread(this::checkUpdate).start();
+        if (BuildConfig.SELF_UPDATE) new Thread(this::checkUpdate).start();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         if (ready) { ready = false; recreate(); } // switch to the new version (the app's data stays in its storage)
-        else new Thread(this::checkUpdate).start();
+        else if (BuildConfig.SELF_UPDATE) new Thread(this::checkUpdate).start();
     }
 
     @Override
     public void onBackPressed() {
         if (web.canGoBack()) web.goBack();
         else super.onBackPressed();
+    }
+
+    // ---------- bridge to the web app: the daily reminder and the notification permission ----------
+    // Only the app's own pages may use it (not a sign-in page opened in the same view).
+    private volatile boolean ownPage = true;
+
+    private class Bridge {
+        @JavascriptInterface
+        public void setReminder(boolean on, int hour, int minute, String title, String text) {
+            if (!ownPage) return;
+            Reminder.save(MainActivity.this, on, Math.max(0, Math.min(23, hour)), Math.max(0, Math.min(59, minute)), title, text);
+        }
+
+        @JavascriptInterface
+        public String notificationPermission() {
+            if (Build.VERSION.SDK_INT < 33) return "granted";
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return "granted";
+            return shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) || !prefs().getBoolean("asked", false) ? "ask" : "denied";
+        }
+
+        @JavascriptInterface
+        public void requestNotificationPermission() {
+            if (!ownPage || Build.VERSION.SDK_INT < 33) return;
+            prefs().edit().putBoolean("asked", true).apply();
+            runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7));
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(code, perms, res);
+        if (code != 7) return;
+        boolean ok = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
+        web.evaluateJavascript("window.onNativePermission&&onNativePermission(" + ok + ")", null);
     }
 
     // ---------- updates ----------

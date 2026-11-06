@@ -1190,3 +1190,42 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .dggr{display:flex;align-items:center;gap:10px}.dggr .av{width:30px;height:30px;flex:none}.dggr .av span .gi{font-size:16px}
 .dggr.me{font-weight:700}
 @media(prefers-reduced-motion:reduce){.grade.big{animation:none}}
+/* on/off switch */
+.switch{position:relative;display:inline-block;width:46px;height:26px;flex:none}
+.switch input{opacity:0;width:0;height:0}
+.switch span{position:absolute;inset:0;border-radius:13px;background:var(--card2);border:1px solid var(--line2);transition:background .2s;cursor:pointer}
+.switch span::before{content:"";position:absolute;width:20px;height:20px;left:2px;top:2px;border-radius:50%;background:var(--fg);transition:transform .2s}
+.switch input:checked+span{background:var(--acc);border-color:var(--acc)}
+.switch input:checked+span::before{transform:translateX(20px);background:var(--on,#fff)}
+.remcard{display:grid;gap:10px}
+.remtime input{width:auto}
+.mailrem{display:grid;gap:10px}
+.mrok{align-items:flex-start;gap:8px;font-size:13px}.mrok input{width:auto;margin-top:2px}
+.btn.danger{background:#d9364f!important;color:#fff!important}
+.btn.ghost.danger{background:transparent!important;color:#ff6b81!important;box-shadow:inset 0 0 0 1px #ff6b8188!important}
+.mistakes li::marker{content:"✕  ";color:#ff6b81}
+/* own exercises: the clickable muscle map */
+.mmedit{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:10px;border-radius:var(--r,12px);background:var(--card);border:1px solid var(--line)}
+.mmsvg{width:100%;height:auto;max-height:340px;display:block}
+.mmp{cursor:pointer;transition:fill .15s}
+.mmp:hover{opacity:.85}
+.mmleg{display:flex;flex-wrap:wrap;gap:14px;margin:8px 0 2px;font-size:12px;color:var(--mut)}
+.mmleg span{display:inline-flex;align-items:center;gap:6px}
+.mmleg i{display:inline-block;width:12px;height:12px;border-radius:3px}
+.mmhint{font-size:12px}
+#mx-d{width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--fg);resize:vertical}
+.myxbtns{gap:8px;margin:4px 0 10px}
+/* the Guild */
+.gcard .row{align-items:flex-start;gap:10px}
+.gmap{flex:none;width:76px;padding:4px;border-radius:10px;background:var(--card2)}
+.gmap .bmap{display:flex;gap:2px}
+.gmap .bmap svg{width:34px;height:68px;flex:none}
+.guses{flex:none;display:grid;justify-items:center;min-width:48px}
+.guses b{font:800 20px/1 var(--disp)}
+.guses span{font-size:11px;color:var(--mut)}
+.gcard .chips{margin-top:6px}
+.gcard details{margin-top:6px}
+.gact{align-items:center;gap:6px;margin-top:8px}
+.gcard.hidden{opacity:.6;border-style:dashed}
+.gtop{margin:8px 0}
+.gnote{font-size:12px;margin-top:10px}

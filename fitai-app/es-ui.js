@@ -355,3 +355,4 @@ i18nAdd({ 'Start the dungeon': 'Empezar la mazmorra', '{n} exercises': '{n} ejer
 i18nAdd({ 'Your meals add up to about {n} kcal and {n} g protein a day ({n} kcal in total, leaving room for oil, drinks and extras).': 'Tus comidas suman unas {n} kcal y {n} g de proteína al día ({n} kcal en total, dejando margen para aceite, bebidas y extras).' });
 i18nAdd({ 'Weight goal:': 'Reto de peso:' });
 i18nAdd({ Grades: 'Notas', 'You have no grade here yet.': 'Aún no tienes nota aquí.', 'Your best grade here': 'Tu mejor nota aquí', 'Dungeon grade': 'Nota de la mazmorra' });
+i18nAdd({ 'Common mistakes': 'Errores comunes' });

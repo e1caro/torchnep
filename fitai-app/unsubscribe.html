@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FitQuest · Darse de baja</title>
+<style>
+body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0e1014;color:#eceef3;font:16px/1.5 system-ui,sans-serif}
+main{max-width:420px;padding:24px;text-align:center}
+h1{font-size:22px}p{color:#a7adbb}a{color:#7c9cff}
+</style>
+</head>
+<body>
+<main>
+<h1 id="t">FitQuest</h1>
+<p id="m">…</p>
+</main>
+<script>
+// One-click unsubscribe from the e-mail reminders (tools/supabase-reminders.sql, public.unsubscribe)
+const SB_URL = 'https://fghbrevlqmrugbnqshoj.supabase.co', SB_KEY = 'sb_publishable_22MWQyEpsR2OyZv9RXkswg_FdGjA2i9';
+const es = !/^en/.test(navigator.language || 'es'), t = new URLSearchParams(location.search).get('t');
+const say = (h, m) => { document.getElementById('t').textContent = h; document.getElementById('m').textContent = m; };
+if (!t) say('FitQuest', es ? 'Falta el enlace de baja.' : 'The unsubscribe link is missing.');
+else fetch(SB_URL + '/rest/v1/rpc/unsubscribe', { method: 'POST', headers: { apikey: SB_KEY, 'Content-Type': 'application/json' }, body: JSON.stringify({ token: t }) })
+  .then(r => r.ok ? r.json() : Promise.reject(r.status))
+  .then(ok => ok ? say(es ? 'Te has dado de baja' : 'You are unsubscribed', es ? 'No te enviaremos más recordatorios por email. Puedes volver a activarlos en la app, en Cuenta.' : 'We won’t send you any more reminder e-mails. You can turn them back on in the app, under Account.')
+    : say('FitQuest', es ? 'Este enlace no es válido o ya no existe.' : 'This link is not valid or no longer exists.'))
+  .catch(() => say('FitQuest', es ? 'No se pudo conectar. Inténtalo de nuevo en un momento.' : 'Could not connect. Please try again in a moment.'));
+</script>
+</body>
+</html>
