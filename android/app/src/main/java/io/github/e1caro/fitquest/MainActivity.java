@@ -110,8 +110,8 @@ public class MainActivity extends Activity {
         // Android 15+ draws apps edge to edge: keep the page clear of the status and navigation bars
         if (Build.VERSION.SDK_INT >= 30) {
             web.setOnApplyWindowInsetsListener((v, in) -> {
-                Insets b = in.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
-                v.setPadding(b.left, b.top, b.right, b.bottom);
+                Insets bars = in.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.ime());
+                v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
                 return WindowInsets.CONSUMED;
             });
         }

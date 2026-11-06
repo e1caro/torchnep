@@ -356,3 +356,4 @@ i18nAdd({ 'Your meals add up to about {n} kcal and {n} g protein a day ({n} kcal
 i18nAdd({ 'Weight goal:': 'Reto de peso:' });
 i18nAdd({ Grades: 'Notas', 'You have no grade here yet.': 'Aún no tienes nota aquí.', 'Your best grade here': 'Tu mejor nota aquí', 'Dungeon grade': 'Nota de la mazmorra' });
 i18nAdd({ 'Common mistakes': 'Errores comunes' });
+i18nAdd({ 'free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).': 'gratis, sin anuncios. Sin cuenta, todo se queda en este dispositivo. Las estimaciones son orientativas, no consejo médico. Ejercicios: free-exercise-db (Unlicense). Mapas musculares: react-native-body-highlighter (MIT). Tipografías: Google Fonts (SIL OFL).', Privacy: 'Privacidad', Credits: 'Créditos' });
