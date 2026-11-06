@@ -150,6 +150,11 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void testReminder() {
+            if (ownPage) ReminderReceiver.show(MainActivity.this);
+        }
+
+        @JavascriptInterface
         public String notificationPermission() {
             if (Build.VERSION.SDK_INT < 33) return "granted";
             if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return "granted";

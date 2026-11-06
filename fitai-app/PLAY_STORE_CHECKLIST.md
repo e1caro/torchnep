@@ -39,7 +39,7 @@ Local build instead: `PLAY_UPLOAD_KEYSTORE=/path/fitquest-upload.jks PLAY_UPLOAD
 | Content rating questionnaire | 🟡 | answer: users interact and share content; in-game coin "bets" are not real-money gambling. |
 | Target audience | 🟡 / ⚠️ | your choice; suggested 16+ or 18+. Not designed for children. |
 | User-generated content policy (the Guild) | ✅ | rules in the app (link in the Guild) and in the privacy page; in-app report (⚑) and block (⦸); hidden after 3 reports; admins delete or restore; bad-words filter in the app and in the database. 🟡 Make yourself admin (SQL in `tools/supabase-play.sql`) and review reports. |
-| Notification permission (Android 13+) | ✅ | asked once with an explanation first; switch and time in Settings; no exact alarms (`setInexactRepeating`). |
+| Notification permission (Android 13+) | ✅ | asked once with an explanation first; switch, time and a "Test the reminder" button in Settings; no exact alarms (`setWindow`, 15-minute window, set again each day). |
 | Ads declaration | 🟡 | "No ads". |
 | App access for reviewers | 🟡 | create a test account (username + password) and give it in "App access" (friends and the Guild need sign-in). |
 | Exercise photos licence | ⚠️ | see `CREDITS.md`, note 1 (recommended: hide photos in the Play build). |

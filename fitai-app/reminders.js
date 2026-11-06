@@ -28,12 +28,18 @@ window.onNativePermission = ok => {
   if (location.hash === '#/settings') route();
 };
 const remTime = () => `${String(REM.h).padStart(2, '0')}:${String(REM.m).padStart(2, '0')}`;
+window.remTest = () => {
+  if (remPerm() !== 'granted') { remToggle(true); return; }
+  remApply();
+  try { NATIVE.testReminder(); toast(tr('Sent: look at your notifications.')); } catch { /* older app */ }
+};
 window.remSetTime = v => { const [h, m] = String(v).split(':').map(Number); if (Number.isFinite(h)) { REM.h = h; REM.m = m || 0; remSave(); remApply(); toast(T('Reminder set for {0}', remTime())); } };
 function remCard() {
   if (!NATIVE) return '';
   return `<h2 class="sec">Reminders</h2><section class="card remcard"><div class="row between"><div><b>Daily reminder</b><div class="mut">A notification on this phone every day</div></div>
     <label class="switch"><input type="checkbox" ${REM.on ? 'checked' : ''} onchange="remToggle(this.checked)"><span></span></label></div>
-    ${REM.on ? `<label class="row between remtime"><span>Time</span><input type="time" value="${remTime()}" onchange="remSetTime(this.value)"></label>` : ''}</section>`;
+    ${REM.on ? `<label class="row between remtime"><span>Time</span><input type="time" value="${remTime()}" onchange="remSetTime(this.value)"></label>
+    ${typeof NATIVE.testReminder === 'function' ? '<button class="btn ghost" onclick="remTest()">Test the reminder</button>' : ''}` : ''}</section>`;
 }
 const _remSet = routes.settings;
 routes.settings = function () { _remSet(); view.querySelector('#exp')?.parentElement?.previousElementSibling?.insertAdjacentHTML('beforebegin', remCard()); };
@@ -52,6 +58,7 @@ if (typeof i18nAdd === 'function') {
     'Notifications are off for FitQuest. Turn them on in Android settings › Apps › FitQuest.': 'Las notificaciones de FitQuest están desactivadas. Actívalas en Ajustes de Android › Aplicaciones › FitQuest.',
     'Daily reminder': 'Recordatorio diario', 'Allow notifications': 'Permitir notificaciones', 'Not now': 'Ahora no', 'No reminder: notifications were not allowed.': 'Sin recordatorio: no se permitieron las notificaciones.',
     'A notification on this phone every day': 'Una notificación en este móvil cada día', Time: 'Hora',
+    'Test the reminder': 'Probar el aviso', 'Sent: look at your notifications.': 'Enviado: mira tus notificaciones.',
     'FitQuest will send you one notification a day at {n}:{n} to remind you to train. Nothing else, and you can turn it off in Settings.': 'FitQuest te enviará una notificación al día a las {n}:{n} para recordarte entrenar. Nada más, y puedes desactivarla en Ajustes.',
   });
 }

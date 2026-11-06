@@ -13,8 +13,13 @@ import android.os.Build;
 public class ReminderReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(Context c, Intent i) {
+        if (!Reminder.prefs(c).getBoolean("on", false)) return;
+        show(c);
+        Reminder.schedule(c);
+    }
+
+    static void show(Context c) {
         SharedPreferences p = Reminder.prefs(c);
-        if (!p.getBoolean("on", false)) return;
         Reminder.channel(c);
         Intent open = new Intent(c, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pi = PendingIntent.getActivity(c, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

@@ -12,11 +12,12 @@ import android.os.Build;
 import java.util.Calendar;
 
 /**
- * The daily training reminder: a local notification at the time chosen in Settings, scheduled on the phone with an
- * inexact daily alarm (no server, no exact-alarm permission; Android may deliver it a few minutes late to save battery).
+ * The daily training reminder: a local notification at the time chosen in Settings, scheduled on the phone for the next
+ * day each time it shows, in a 15-minute window (no server, no exact-alarm permission).
  */
 public final class Reminder {
     static final String CHANNEL = "daily";
+    static final long WINDOW = 15 * 60 * 1000L;
     private Reminder() { }
 
     static SharedPreferences prefs(Context c) { return c.getSharedPreferences("reminder", Context.MODE_PRIVATE); }
@@ -40,8 +41,9 @@ public final class Reminder {
         t.set(Calendar.HOUR_OF_DAY, p.getInt("h", 19));
         t.set(Calendar.MINUTE, p.getInt("m", 0));
         t.set(Calendar.SECOND, 0);
+        t.set(Calendar.MILLISECOND, 0);
         if (t.getTimeInMillis() <= System.currentTimeMillis()) t.add(Calendar.DAY_OF_YEAR, 1);
-        am.setInexactRepeating(AlarmManager.RTC_WAKEUP, t.getTimeInMillis(), AlarmManager.INTERVAL_DAY, intent(c));
+        am.setWindow(AlarmManager.RTC_WAKEUP, t.getTimeInMillis(), WINDOW, intent(c));
     }
 
     static void channel(Context c) {
