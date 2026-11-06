@@ -95,16 +95,6 @@ Each strength exercise is timed at about 50 s per set plus its rest and 2.5 minu
 - **Weekly summary:** a story of the week, with full-screen slides that advance on their own or with a tap, animated numbers and bars, and comparisons with the week before. It covers workouts, minutes, kilos, sets and reps, the muscles worked, new records, the best workout, the training days and streak, XP, the boss, and a week grade (C to A+, or a golden S with confetti for an exceptional week: more workouts than the goal plus a new record or more kilos than the week before), and you can share it. It opens by itself the first time you use the app in a new week. Progress shows the week inline (training days, workouts against the goal, minutes, kilos, records and a grade, compared with the same point of last week) with buttons to play this week or last week as a story.
 - **Coach:** a line on Today that changes with your day. It mentions your open bets (one pick of each, chosen at random among the ones still to do) and what they pay, the daily quests left or ready to claim, your training streak and the weekly boss, and ends with a short motivational line. Tap it for the next message; after the last one (✕) a tap folds it away and the circles glide back into the space. It greets you again the next time the app opens.
 
-## Workout music (Spotify)
-
-Works for everyone without linking an account: pick the genres you train to and/or paste your Spotify playlist links (Hero > Music, or Today > Train). Each workout suggests a different one: one of your playlists with Spotify's built-in player, or workout playlists of one of your genres opened in Spotify ("Rock gym", "Reggaeton training"...). "Something else" moves to the next suggestion.
-
-Song of the day: a well-known energetic song (about 1000 in `data/songs.txt`, 23–109 per genre) from one of your genres, a different genre each day. "Play in Spotify" opens the song itself. Its Spotify id comes from `data/song_ids.json`, made ahead of time by `tools/resolve_song_ids.py` in a GitHub Action, from open music data (Wikidata, then MusicBrainz, which know about one song in five) or, if the repository has a Spotify app's keys saved as the secrets `SPOTIFY_CLIENT_ID` and `SPOTIFY_CLIENT_SECRET`, from Spotify's own search, which finds almost all of them; for songs not in it, from Spotify's search when an account is linked, and otherwise from MusicBrainz in the browser. The lookup runs in the background when the card shows and is remembered; if it fails, the button opens Spotify's search for the song. "Another song" picks a different one.
-
-Linking an account (optional) gives playlists made from your own songs: every workout gets its own private playlist of energetic songs you like plus about 30% new ones, long enough for the workout, warming up, peaking in the middle and easing off. Spotify no longer shares a song's energy with apps, so energy is judged from the artists' genres and the song title.
-
-Linking needs a Spotify app Client ID, and Spotify now limits such apps to 5 accounts chosen by the owner (who needs Premium); open access is only for companies with 250k monthly users. Setup: create an app at developer.spotify.com (Web API), add the redirect URI shown in Hero > Music (on GitHub Pages: `https://e1caro.github.io/torchnep/fitcoach/`), add the accounts under User Management, and paste the Client ID in Hero > Music or set `SPOTIFY_CLIENT_ID` in `spotify.js` so users only tap "Link Spotify".
-
 ## Meal portions
 Every recipe is one serving for one person: mains are capped at about 600 kcal, breakfasts at 500 and snacks at 280. The planner only makes a serving 15% lighter or heartier, and on each recipe you can pick how hungry you are (×0.75 to ×1.5, or −/+ in 10% steps); your choice changes kcal, macros, ingredients and the shopping list, and the planner keeps it. Bigger calorie targets are met with more meals a day, and the plan suggests adding a meal when one serving per meal falls short.
 
@@ -145,7 +135,7 @@ To use real video for an exercise, add `"<exercise id>": "<mp4 URL or 11-char Yo
 ## Simpler screens
 
 - **Hero** shows your card, three stats, one tile per kind of look (tap to change it) and a Settings button.
-- **Settings** holds your name, body and training plan, sound, language, music (Spotify), export and delete.
+- **Settings** holds your name, body and training plan, sound, language, export and delete.
 - **Plan** has three tabs: Training, Dungeons and Meals. Each training day folds to one line, and the next one starts open. Training options sit under "Adjust".
 - **Dungeons** shows the ones you can enter and the next to unlock; the rest stay folded.
 - **Bets**: each kind of goal is a dropdown, and "How bets work" sits at the end.

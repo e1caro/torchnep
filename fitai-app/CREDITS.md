@@ -1,6 +1,6 @@
 # FitQuest — credits and third-party licenses
 
-Audit date: 2026-11-06. Everything listed allows commercial use; the two items marked ⚠️ need your decision before
+Audit date: 2026-11-06. Everything listed allows commercial use; the item marked ⚠️ needs your decision before
 Google Play (see the end).
 
 ## Code dependencies
@@ -36,15 +36,11 @@ No npm or Gradle library under GPL, AGPL, "non-commercial" or an unknown license
 | Sounds | generated live with the Web Audio API | own | ✅ | no sound files |
 | Emoji | the phone's own emoji font | — | ✅ | not bundled |
 | Recipes and meal data | written for FitQuest | own | ✅ | |
-| Song list `data/songs.txt` (titles and artists only) | compiled for FitQuest | facts, not copyrightable | ✅ | links open Spotify |
-| Spotify logo drawn in `spotify.js` and the "Play in Spotify" buttons | Spotify brand | Spotify brand guidelines | ⚠️ | see note 2 |
-| MusicBrainz lookups (song links) | [MusicBrainz](https://musicbrainz.org) | core data CC0 | ✅ | |
 
 ## Services (not shipped code; their terms apply)
 
 Supabase (accounts and database, free plan), Brevo (reminder e-mails, free plan: 300 e-mails a day), GitHub Pages and
-GitHub Releases (web app and APK hosting, free), Google Fonts, Spotify Web API (optional, development mode),
-MusicBrainz API.
+GitHub Releases (web app and APK hosting, free), Google Fonts.
 
 ## Notes for you to decide
 
@@ -53,11 +49,7 @@ MusicBrainz API.
    allows commercial use, but the origin can't be confirmed. The app already shows the muscle map by default and the
    photos only on tap. **Options:** keep them (small risk), or hide them in the Google Play build (one line: skip
    `demoFlip` when `APP_PLAY`). Recommended for Play: hide them.
-2. ⚠️ **Spotify logo and name.** Using the Spotify name and logo to link to Spotify is allowed only following the
-   [Spotify Design Guidelines](https://developer.spotify.com/documentation/design) (official logo file, unmodified,
-   green or black/white). The logo here is redrawn. **Options:** replace it with the official logo file or remove the
-   logo and keep text links ("Open in Spotify").
-3. Fonts are downloaded from Google's servers, which shares the user's IP address with Google (declared in the privacy
+2. Fonts are downloaded from Google's servers, which shares the user's IP address with Google (declared in the privacy
    policy). To avoid it entirely, the font files could be bundled inside the app instead (OFL allows it).
 
 ## Attribution text to keep in the app (Settings footer)

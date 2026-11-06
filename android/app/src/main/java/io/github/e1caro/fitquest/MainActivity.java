@@ -36,7 +36,7 @@ import java.util.zip.ZipInputStream;
 
 /**
  * FitQuest as an Android app: the web app is shown full screen from https://appassets.androidplatform.net, so storage
- * and fetch work like on the web. Links to anything else (Spotify, an APK download) open outside the app.
+ * and fetch work like on the web. Links to anything else (an APK download, a web page) open outside the app.
  *
  * Updates itself: each release (tag app-N) carries web.zip, the whole web app. When one is newer than what the app
  * shows, it is downloaded in the background into the app's own storage and used from the next time the app comes back
@@ -90,14 +90,6 @@ public class MainActivity extends Activity {
                 Uri u = req.getUrl();
                 String h = u.getHost() == null ? "" : u.getHost();
                 if (HOST.equals(h)) return false;
-                // linking Spotify: its sign-in pages stay in the app, and the way back (the web app's address with
-                // ?code=...) is brought home to the app's own page, where the sign-in started
-                if (h.equals("e1caro.github.io") && u.getPath() != null && u.getPath().startsWith("/torchnep/fitcoach")
-                        && (u.getQueryParameter("code") != null || u.getQueryParameter("error") != null)) {
-                    view.loadUrl(home + "?" + u.getEncodedQuery());
-                    return true;
-                }
-                if (h.endsWith("spotify.com") && !h.equals("open.spotify.com")) return false;
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW, u));
                 } catch (Exception ignored) {

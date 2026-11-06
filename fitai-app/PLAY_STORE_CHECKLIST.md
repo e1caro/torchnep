@@ -43,7 +43,6 @@ Local build instead: `PLAY_UPLOAD_KEYSTORE=/path/fitquest-upload.jks PLAY_UPLOAD
 | Ads declaration | 🟡 | "No ads". |
 | App access for reviewers | 🟡 | create a test account (username + password) and give it in "App access" (friends and the Guild need sign-in). |
 | Exercise photos licence | ⚠️ | see `CREDITS.md`, note 1 (recommended: hide photos in the Play build). |
-| Spotify logo | ⚠️ | see `CREDITS.md`, note 2 (use the official logo file or text only). |
 
 ## Store listing
 

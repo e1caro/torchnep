@@ -7,7 +7,7 @@ Based on what the app does today (2026-11-06). Check again if features change.
 | Question | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** |
-| Is all of the user data collected by your app encrypted in transit? | **Yes** (HTTPS to Supabase, Brevo, Spotify, MusicBrainz, GitHub) |
+| Is all of the user data collected by your app encrypted in transit? | **Yes** (HTTPS to Supabase, Brevo, GitHub) |
 | Do you provide a way for users to request that their data be deleted? | **Yes** — in the app (Settings › Account › Delete my account) and on the web: `https://e1caro.github.io/torchnep/fitcoach/delete-account.html` |
 
 ## Data types
@@ -28,7 +28,6 @@ count as sharing.
 | Location, Financial info, Messages, Photos/videos, Audio, Files, Calendar, Contacts, Web browsing, Device or other IDs, App info and performance | **No** | No | — | — |
 
 - No advertising, no analytics SDKs, no data sold.
-- Spotify sign-in tokens stay on the device (not collected).
 - Notifications are scheduled on the device (nothing collected).
 
 ## Other forms in "App content"
