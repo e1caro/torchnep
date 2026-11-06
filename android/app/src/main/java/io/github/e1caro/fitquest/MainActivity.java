@@ -2,6 +2,7 @@ package io.github.e1caro.fitquest;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -9,8 +10,11 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.view.WindowInsets;
 import android.webkit.JavascriptInterface;
+import android.webkit.ValueCallback;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -18,6 +22,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 
+import androidx.core.content.FileProvider;
 import androidx.webkit.WebViewAssetLoader;
 
 import org.json.JSONArray;
@@ -99,6 +104,12 @@ public class MainActivity extends Activity {
                 return true;
             }
         });
+        web.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> cb, FileChooserParams params) {
+                return pickPhoto(cb, params);
+            }
+        });
         // Android 15+ draws apps edge to edge: the page sits in a frame kept clear of the status bar, the navigation
         // buttons, the camera cutout and the keyboard (a WebView ignores its own padding, so the frame takes it)
         FrameLayout root = new FrameLayout(this);
@@ -125,7 +136,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (ready) { ready = false; recreate(); } // switch to the new version (the app's data stays in its storage)
+        if (picking) picking = false; // back from the camera: the page keeps its photo, a new version waits
+        else if (ready) { ready = false; recreate(); } // switch to the new version (the app's data stays in its storage)
         else if (BuildConfig.SELF_UPDATE) new Thread(this::checkUpdate).start();
     }
 
@@ -172,6 +184,52 @@ public class MainActivity extends Activity {
         if (code != 7) return;
         boolean ok = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
         web.evaluateJavascript("window.onNativePermission&&onNativePermission(" + ok + ")", null);
+    }
+
+    // ---------- photos for the page (a meal photo): the camera, or the gallery ----------
+    // The camera app writes into the app's own cache through a FileProvider, so no camera permission is needed.
+    private static final int PICK = 8;
+    private ValueCallback<Uri[]> picked;
+    private Uri shot;
+    private boolean picking;
+
+    private boolean pickPhoto(ValueCallback<Uri[]> cb, WebChromeClient.FileChooserParams params) {
+        if (picked != null) picked.onReceiveValue(null);
+        picked = cb;
+        shot = null;
+        Intent i = params.createIntent();
+        if (params.isCaptureEnabled()) {
+            File dir = new File(getCacheDir(), "shots");
+            dir.mkdirs();
+            shot = FileProvider.getUriForFile(this, getPackageName() + ".files", new File(dir, "meal.jpg"));
+            i = new Intent(MediaStore.ACTION_IMAGE_CAPTURE).putExtra(MediaStore.EXTRA_OUTPUT, shot)
+                    .addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            i.setClipData(ClipData.newRawUri("", shot));
+        }
+        try {
+            startActivityForResult(i, PICK);
+        } catch (Exception noCamera) {
+            shot = null;
+            try {
+                startActivityForResult(params.createIntent(), PICK);
+            } catch (Exception none) {
+                picked.onReceiveValue(null);
+                picked = null;
+                return true;
+            }
+        }
+        picking = true;
+        return true;
+    }
+
+    @Override
+    protected void onActivityResult(int code, int res, Intent data) {
+        super.onActivityResult(code, res, data);
+        if (code != PICK || picked == null) return;
+        Uri[] got = null;
+        if (res == RESULT_OK) got = shot != null ? new Uri[] { shot } : WebChromeClient.FileChooserParams.parseResult(res, data);
+        picked.onReceiveValue(got);
+        picked = null;
     }
 
     // ---------- updates ----------
