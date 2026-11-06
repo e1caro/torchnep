@@ -105,7 +105,7 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(getColor(R.color.bg));
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(root);
-        if (Build.VERSION.SDK_INT >= 30) {
+        if (Build.VERSION.SDK_INT >= 35) {
             root.setOnApplyWindowInsetsListener((v, in) -> {
                 Insets bars = in.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
                 v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
