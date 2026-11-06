@@ -32,15 +32,25 @@ function muscleEditor() {
     return `<svg class="mmsvg" viewBox="${ox} ${oy} ${w} ${h}" role="group" aria-label="${sd}">${BODY[g][sd].map(([slug, ps]) => ps.map(d => SKIN_PARTS.has(slug) || !SLUG_MUS[slug]
       ? `<path d="${d}" fill="var(--bm-skin)"/>` : `<path d="${d}" data-s="${slug}" class="mmp" fill="${MM[slug] === 1 ? 'var(--bm1)' : MM[slug] === 2 ? 'var(--bm2)' : 'var(--bm0)'}"/>`).join('')).join('')}</svg>`;
   };
-  return `<div class="mmedit" onclick="mmTap(event)">${side('front')}${side('back')}</div>
-    <div class="mmleg"><span><i style="background:var(--bm1)"></i>Main</span><span><i style="background:var(--bm2)"></i>Helper</span><span><i style="background:var(--bm0)"></i>Not used</span></div>
-    <div class="mut mmhint">Tap a muscle: once for main, twice for helper, three times to clear.</div><div class="chips static" id="mmsel">${mmChips()}</div>`;
+  return `<div class="seg mmtabs"><a role="button" class="on" data-side="front" onclick="mmSide('front')">Front view</a><a role="button" data-side="back" onclick="mmSide('back')">Back view</a></div>
+    <div class="mmedit" data-side="front" onclick="mmTap(event)">${side('front')}${side('back')}</div>
+    <div class="mmleg"><span><i style="background:var(--bm1)"></i>Main</span><span><i class="mm2"></i>Helper</span><span><i class="mm0"></i>Not used</span></div>
+    <div class="mmsel" id="mmsel">${mmChips()}</div>`;
 }
+window.mmSide = sd => {
+  $('.mmedit').dataset.side = sd;
+  document.querySelectorAll('.mmtabs a').forEach(a => a.classList.toggle('on', a.dataset.side === sd)); sfx('tick');
+};
 const mmMuscles = () => {
   const main = [...new Set(Object.entries(MM).filter(([, v]) => v === 1).map(([s]) => SLUG_MUS[s]))];
   return { m: main, s: [...new Set(Object.entries(MM).filter(([, v]) => v === 2).map(([s]) => SLUG_MUS[s]))].filter(x => !main.includes(x)) };
 };
-const mmChips = () => { const { m, s } = mmMuscles(); return [...m.map(x => `<span class="chip on">${tr(x)}</span>`), ...s.map(x => `<span class="chip">${tr(x)}</span>`)].join(''); };
+const mmChips = () => {
+  const { m, s } = mmMuscles();
+  if (!m.length && !s.length) return `<div class="mut">${tr('Nothing marked yet: tap a muscle on the body.')}</div>`;
+  const row = (t, l, on) => l.length ? `<div class="row mmrow"><b>${tr(t)}</b><div class="chips static">${l.map(x => `<span class="chip ${on ? 'on' : ''}">${tr(x)}</span>`).join('')}</div></div>` : '';
+  return row('Main', m, true) + row('Helper', s, false);
+};
 window.mmTap = ev => {
   const p = ev.target.closest('.mmp'); if (!p) return;
   const sl = p.dataset.s, v = ((MM[sl] || 0) + 1) % 3;
@@ -52,12 +62,14 @@ window.mmTap = ev => {
 const mmFrom = (m, s) => { const o = {}; Object.entries(SLUG_MUS).forEach(([sl, mu]) => { if (s.includes(mu)) o[sl] = 2; if (m.includes(mu)) o[sl] = 1; }); return o; };
 
 // ---------- screens ----------
+let MYX_FROM = '';
+window.myexNew = () => { MYX_FROM = /^#\/routine\//.test(location.hash) ? location.hash : ''; location.hash = '#/myex/new'; };
 function myexView(arg) {
   if (needProfile()) return;
   if (arg) return myexEdit(arg);
   view.innerHTML = `<button class="btn sm ghost back" onclick="history.back()">${ic('back', 18)} Back</button><h1>My exercises</h1>
   <div class="mut">Exercises you create: they work in routines like any other, and you can share them in the Guild.</div>
-  <button class="btn" onclick="location.hash='#/myex/new'">${ic('plus', 18)} Create an exercise</button>
+  <button class="btn" onclick="myexNew()">${ic('plus', 18)} Create an exercise</button>
   ${MYX.length ? MYX.map(x => `<a class="card row li" href="#/myex/${x.id}">${thumb(myxEx(x))}<div class="grow"><div>${esc(x.n)}</div><div class="mut">${tr(x.e)} · ${tr(x.l)}${x.cid ? ' · <b>Shared</b>' : ''}</div></div>${ic('edit', 18)}</a>`).join('') : '<div class="mut" style="margin-top:12px">No exercises yet.</div>'}
   <button class="btn ghost" onclick="location.hash='#/guild'">${gi('scroll')} Open the Guild</button>`;
 }
@@ -66,14 +78,17 @@ function myexEdit(id) {
   if (id !== 'new' && !x) { location.hash = '#/myex'; return; }
   MM = x ? mmFrom(x.m, x.s) : {};
   const opt = (vals, cur) => vals.map(v => `<option value="${v}" ${v === cur ? 'selected' : ''}>${tr(v)}</option>`).join('');
-  view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/myex'">${ic('back', 18)} Back</button><h1>${x ? 'Edit exercise' : 'New exercise'}</h1>
-  <label class="fld"><span>Name</span><div class="inp"><input id="mx-n" maxlength="50" value="${esc(x?.n || '')}"></div></label>
-  <label class="fld"><span>Description or steps</span><textarea id="mx-d" rows="4" maxlength="800" placeholder="${esc(tr('One step per line'))}">${esc(x?.d || '')}</textarea></label>
+  const step = (n, t, sub = '') => `<div class="mxstep"><b>${n}</b><span>${tr(t)}</span>${sub ? `<em class="mut">${tr(sub)}</em>` : ''}</div>`;
+  view.innerHTML = `<button class="btn sm ghost back" onclick="${MYX_FROM ? `location.hash='${MYX_FROM}'` : `location.hash='#/myex'`}">${ic('back', 18)} Back</button><h1>${x ? 'Edit exercise' : 'New exercise'}</h1>
+  ${step(1, 'Name')}<div class="inp"><input id="mx-n" maxlength="50" placeholder="${esc(tr('For example: Towel row'))}" value="${esc(x?.n || '')}"></div>
+  ${step(2, 'Muscles it works')}<div class="mut mmhint">Tap a muscle on the body: once = main, twice = helper, three times = clear. Turn the body with Front / Back.</div>
+  ${muscleEditor()}
+  ${step(3, 'Equipment and difficulty')}
   <div class="two"><label class="fld"><span>Equipment</span><select id="mx-e">${opt(MYX_EQ, x?.e || 'body only')}</select></label>
   <label class="fld"><span>Difficulty</span><select id="mx-l">${opt(MYX_LV, x?.l || 'beginner')}</select></label></div>
-  <div class="lbl">Muscles</div>${muscleEditor()}
+  ${step(4, 'How to do it', '(optional)')}<textarea id="mx-d" rows="4" maxlength="800" placeholder="${esc(tr('One step per line'))}">${esc(x?.d || '')}</textarea>
   <div id="mx-err" class="err"></div>
-  <button class="btn" onclick="myexSave('${x?.id || ''}')">${ic('check', 18)} Save</button>
+  <button class="btn mxsave" onclick="myexSave('${x?.id || ''}')">${ic('check', 18)} ${x ? 'Save' : 'Create exercise'}</button>
   ${x ? `<button class="btn ghost" onclick="${x.cid ? `guildUnshare('${x.id}')` : `guildShare('${x.id}')`}">${gi('scroll')} ${x.cid ? 'Stop sharing' : 'Share with the community'}</button>
     <button class="btn ghost danger" onclick="myexDelete('${x.id}')">Delete</button>` : ''}`;
   if (!BODY) setTimeout(() => { if (location.hash.startsWith('#/myex/')) myexEdit(id); }, 800);
@@ -88,7 +103,9 @@ window.myexSave = id => {
   Object.assign(x, { n, d, e: $('#mx-e').value, l: $('#mx-l').value, m, s });
   myxSave(); myxPut(x); sfx('claim'); toast(tr('Exercise saved'));
   if (x.cid && typeof guildShare === 'function') guildShare(x.id, true);
-  location.hash = '#/myex';
+  const r = MYX_FROM && typeof rtGet === 'function' ? rtGet(MYX_FROM.split('/')[2]) : null;
+  if (r && !r.items.some(it => it.id === x.id)) { r.items.push(rtDefault(BY[x.id])); rtSave(); toast(T('Added {0}', x.n)); }
+  location.hash = r ? MYX_FROM : '#/myex'; MYX_FROM = '';
 };
 window.myexDelete = id => {
   const x = MYX.find(o => o.id === id); if (!x) return;
@@ -100,7 +117,13 @@ window.myexDelete = id => {
 routes.myex = myexView;
 // a way in from the library
 const _myxLib = library;
-library = function () { _myxLib(); if (!libF.g && !libF.q) view.querySelector('.mgrid')?.insertAdjacentHTML('beforebegin', `<div class="row myxbtns"><button class="btn ghost sm" onclick="location.hash='#/myex'">${ic('plus', 16)} My exercises</button><button class="btn ghost sm" onclick="location.hash='#/guild'">${gi('scroll')} The Guild</button></div>`); };
+library = function () {
+  _myxLib();
+  if (!libF.g && !libF.q) view.querySelector('.mgrid')?.insertAdjacentHTML('beforebegin', `<section class="card myxcta"><div class="row"><span class="myxic">${ic('plus', 26)}</span>
+    <div class="grow"><b>Create your own exercise</b><div class="mut">Mark the muscles it works on the body and use it in your routines.</div></div></div>
+    <button class="btn" onclick="myexNew()">${ic('plus', 18)} Create exercise</button>
+    <div class="row myxbtns"><button class="btn ghost sm" onclick="location.hash='#/myex'">My exercises${MYX.length ? ` (${MYX.length})` : ''}</button><button class="btn ghost sm" onclick="location.hash='#/guild'">${gi('scroll')} The Guild</button></div></section>`);
+};
 routes.library = library;
 
 if (typeof i18nAdd === 'function') {
@@ -113,6 +136,11 @@ if (typeof i18nAdd === 'function') {
     'Share with the community': 'Compartir con la comunidad', 'Stop sharing': 'Dejar de compartir', 'No exercises yet.': 'Todavía no hay ejercicios.', 'Open the Guild': 'Abrir el Gremio',
     'Exercises you create: they work in routines like any other, and you can share them in the Guild.': 'Ejercicios que creas tú: funcionan en las rutinas como cualquier otro y puedes compartirlos en el Gremio.',
     'Delete this exercise? Routines that use it keep working with it until you change them.': '¿Borrar este ejercicio? Las rutinas que lo usan siguen funcionando hasta que las cambies.',
-    'Loading the muscle map…': 'Cargando el mapa muscular…', 'The Guild': 'El Gremio', 'body only': 'peso corporal', beginner: 'principiante', intermediate: 'intermedio', expert: 'experto',
+    'Loading the muscle map…': 'Cargando el mapa muscular…', 'Front view': 'Delante', 'Back view': 'Detrás', 'Muscles it works': 'Músculos que trabaja',
+    'Equipment and difficulty': 'Material y dificultad', 'How to do it': 'Cómo se hace', '(optional)': '(opcional)', 'For example: Towel row': 'Por ejemplo: Remo con toalla',
+    'Tap a muscle on the body: once = main, twice = helper, three times = clear. Turn the body with Front / Back.': 'Toca un músculo del cuerpo: una vez = principal, dos = secundario, tres = quitar. Gira el cuerpo con Delante / Detrás.',
+    'Nothing marked yet: tap a muscle on the body.': 'Aún no hay nada marcado: toca un músculo del cuerpo.', 'Create exercise': 'Crear ejercicio',
+    'Create your own exercise': 'Crea tu propio ejercicio', 'Mark the muscles it works on the body and use it in your routines.': 'Marca en el cuerpo los músculos que trabaja y úsalo en tus rutinas.',
+    "Can't find it? Create your own exercise": '¿No lo encuentras? Crea tu propio ejercicio', 'Added {0}': 'Añadido: {0}', 'The Guild': 'El Gremio', 'body only': 'peso corporal', beginner: 'principiante', intermediate: 'intermedio', expert: 'experto',
   });
 }
