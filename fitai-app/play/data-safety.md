@@ -7,14 +7,14 @@ Based on what the app does today (2026-11-06). Check again if features change.
 | Question | Answer |
 |---|---|
 | Does your app collect or share any of the required user data types? | **Yes** |
-| Is all of the user data collected by your app encrypted in transit? | **Yes** (HTTPS to Supabase, Brevo, GitHub) |
+| Is all of the user data collected by your app encrypted in transit? | **Yes** (HTTPS to Supabase, Brevo, Google Gemini, GitHub) |
 | Do you provide a way for users to request that their data be deleted? | **Yes** — in the app (Settings › Account › Delete my account) and on the web: `https://e1caro.github.io/torchnep/fitcoach/delete-account.html` |
 
 ## Data types
 
 "Collected" means it leaves the device. Data kept only on the phone (the app without an account) is not collected.
-None is **shared** with third parties: Supabase and Brevo act as service providers (processors), which Play does not
-count as sharing.
+Supabase and Brevo act as service providers (processors), which Play does not count as sharing. Meal photos are
+marked as **shared** because, on the Gemini API free tier, Google may use them to improve its own products.
 
 | Category › type | Collected | Shared | Optional? | Purposes |
 |---|---|---|---|---|
@@ -25,10 +25,14 @@ count as sharing.
 | Health and fitness › Fitness info (workouts, sets, minutes, dungeons) | Yes | No | Optional (synced with an account) | App functionality |
 | App activity › Other user-generated content (Guild exercises, friend profile summary) | Yes | No | Optional | App functionality |
 | App activity › Other actions (reports, blocks, "use it") | Yes | No | Optional | App functionality (moderation) |
-| Location, Financial info, Messages, Photos/videos, Audio, Files, Calendar, Contacts, Web browsing, Device or other IDs, App info and performance | **No** | No | — | — |
+| Photos and videos › Photos (meal photos, only when you ask for a rating) | Yes | **Yes** (Google, Gemini API) | Optional | App functionality |
+| App activity › Other user-generated content (AI answer reports) | Yes | No | Optional | App functionality (moderation of AI answers) |
+| Location, Financial info, Messages, Audio, Files, Calendar, Contacts, Web browsing, Device or other IDs, App info and performance | **No** | No | — | — |
 
 - No advertising, no analytics SDKs, no data sold.
 - Notifications are scheduled on the device (nothing collected).
+- The camera is opened through the phone's own camera app (no camera permission); the photo is shrunk to 1024 px,
+  sent once for the rating and not stored by FitQuest.
 
 ## Other forms in "App content"
 

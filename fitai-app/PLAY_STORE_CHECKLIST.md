@@ -39,6 +39,8 @@ Local build instead: `PLAY_UPLOAD_KEYSTORE=/path/fitquest-upload.jks PLAY_UPLOAD
 | Content rating questionnaire | 🟡 | answer: users interact and share content; in-game coin "bets" are not real-money gambling. |
 | Target audience | 🟡 / ⚠️ | your choice; suggested 16+ or 18+. Not designed for children. |
 | User-generated content policy (the Guild) | ✅ | rules in the app (link in the Guild) and in the privacy page; in-app report (⚑) and block (⦸); hidden after 3 reports; admins delete or restore; bad-words filter in the app and in the database. 🟡 Make yourself admin (SQL in `tools/supabase-play.sql`) and review reports. |
+| AI-generated content (meal photo rating) | ✅ | in-app "Report" on every answer (`food_reports` table, `tools/supabase-food.sql`); disclaimer "an estimate made by AI, not medical advice"; notice before the first photo. 🟡 Read the reports now and then (Table Editor › food_reports). |
+| Camera | ✅ | the phone's camera app is opened with an intent and writes to the app's cache (FileProvider): no CAMERA permission. |
 | Notification permission (Android 13+) | ✅ | asked once with an explanation first; switch, time and a "Test the reminder" button in Settings; no exact alarms (`setWindow`, 15-minute window, set again each day). |
 | Ads declaration | 🟡 | "No ads". |
 | App access for reviewers | 🟡 | create a test account (username + password) and give it in "App access" (friends and the Guild need sign-in). |
@@ -67,6 +69,7 @@ Local build instead: `PLAY_UPLOAD_KEYSTORE=/path/fitquest-upload.jks PLAY_UPLOAD
 | Item | Status | Notes |
 |---|---|---|
 | Guild, moderation and account deletion | 🟡 | run `tools/supabase-play.sql` |
+| Meal photo rating (free) | 🟡 | run `tools/supabase-food.sql`; create a Gemini API key in Google AI Studio **without billing**; deploy `tools/food-photo.ts` as the Edge Function `food-photo`; add the secret `GEMINI_API_KEY`. |
 | E-mail reminders | 🟡 | run `tools/supabase-reminders.sql`, save the Brevo key and sender in Vault, test with `select public.send_test_reminder();`, then `update public.reminder_config set live = true;` |
 
 ## Sources (checked 2026-11-06)

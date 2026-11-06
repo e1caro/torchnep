@@ -8,7 +8,8 @@ Google Play (see the end).
 | Component | Used for | Version | License | Commercial use |
 |---|---|---|---|---|
 | Web app (HTML/CSS/JS) | the whole app | own code | own | ✅ |
-| androidx.webkit (+ transitive androidx.core, androidx.annotation…) | Android WebView shell | 1.11.0 | Apache-2.0 | ✅ |
+| androidx.webkit (+ transitive androidx.annotation…) | Android WebView shell | 1.11.0 | Apache-2.0 | ✅ |
+| androidx.core (FileProvider for the camera photo) | Android shell | 1.13.1 | Apache-2.0 | ✅ |
 | Android Gradle Plugin | build only | 8.10.1 | Apache-2.0 | ✅ |
 | Gradle | build only | 8.13 | Apache-2.0 | ✅ |
 | GitHub Actions: actions/checkout, setup-java, upload-artifact, gradle/actions, softprops/action-gh-release | CI only | v2–v4 | MIT | ✅ |
@@ -40,7 +41,8 @@ No npm or Gradle library under GPL, AGPL, "non-commercial" or an unknown license
 ## Services (not shipped code; their terms apply)
 
 Supabase (accounts and database, free plan), Brevo (reminder e-mails, free plan: 300 e-mails a day), GitHub Pages and
-GitHub Releases (web app and APK hosting, free), Google Fonts.
+GitHub Releases (web app and APK hosting, free), Google Fonts, Google Gemini API (meal photo rating, free tier:
+under its terms Google may use free-tier content to improve its products; the app tells players before their first photo).
 
 ## Notes for you to decide
 
