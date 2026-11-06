@@ -38,7 +38,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: "8.9"
+          gradle-version: "8.13"
 
       - name: Pack the web app into the APK
         run: |
@@ -60,12 +60,27 @@ jobs:
               -storepass fitquest -keypass fitquest -dname "CN=FitQuest check"
           fi
 
+      # github APK (signed with the sideload key, as before), a debug APK for testing, and the Google Play bundle.
+      # The bundle is signed only when the Play upload key secrets exist (PLAY_UPLOAD_KEYSTORE_B64 and passwords);
+      # otherwise it is built unsigned, to check it builds. FITQUEST_KEY_PASS falls back to the sideload key's
+      # original password so installed APKs keep updating.
       - name: Build
-        run: gradle -p android assembleRelease -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon
+        env:
+          FITQUEST_KEY_PASS: ${{ secrets.FITQUEST_KEY_PASS || 'fitquest' }}
+          PLAY_KEYSTORE_B64: ${{ secrets.PLAY_UPLOAD_KEYSTORE_B64 }}
+          PLAY_UPLOAD_STORE_PASS: ${{ secrets.PLAY_UPLOAD_STORE_PASS }}
+          PLAY_UPLOAD_KEY_PASS: ${{ secrets.PLAY_UPLOAD_KEY_PASS }}
+          PLAY_UPLOAD_KEY_ALIAS: ${{ secrets.PLAY_UPLOAD_KEY_ALIAS }}
+        run: |
+          if [ -n "$PLAY_KEYSTORE_B64" ]; then echo "$PLAY_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"; export PLAY_UPLOAD_KEYSTORE="$RUNNER_TEMP/upload.jks"; fi
+          gradle -p android assembleGithubRelease assembleGithubDebug bundlePlayRelease \
+            -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon --console=plain
 
       - name: Name the APK, pack the web app for in-app updates
         run: |
-          cp android/app/build/outputs/apk/release/app-release.apk FitQuest-1.${{ github.run_number }}.apk
+          cp android/app/build/outputs/apk/github/release/app-github-release.apk FitQuest-1.${{ github.run_number }}.apk
+          cp android/app/build/outputs/apk/github/debug/app-github-debug.apk FitQuest-1.${{ github.run_number }}-debug.apk
+          cp android/app/build/outputs/bundle/playRelease/app-play-release.aab FitQuest-1.${{ github.run_number }}-play.aab
           (cd android/app/src/main/assets/www && zip -qr "$GITHUB_WORKSPACE/web.zip" .)
           # the native version this web app needs: older apps don't take it and ask to reinstall instead
           SHELL_V=$(grep '^fitquestShell=' android/gradle.properties | cut -d= -f2)
@@ -74,7 +89,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: FitQuest-1.${{ github.run_number }}
-          path: FitQuest-1.${{ github.run_number }}.apk
+          path: |
+            FitQuest-1.${{ github.run_number }}.apk
+            FitQuest-1.${{ github.run_number }}-debug.apk
+            FitQuest-1.${{ github.run_number }}-play.aab
 
       - name: Publish the release
         if: github.event_name == 'workflow_dispatch'

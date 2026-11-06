@@ -344,14 +344,11 @@ i18nAdd({ '{n} planned': '{n} planificadas', 'New week': 'Nueva semana', Prefere
 i18nAdd({ Chest: 'Pecho', Back: 'Atrás', Shoulders: 'Hombros', Arms: 'Brazos', Legs: 'Piernas', Glutes: 'Glúteos', Core: 'Core', Neck: 'Cuello', Exercises: 'Ejercicios', 'Search {n} exercises': 'Buscar entre {n} ejercicios', 'All equipment': 'Todo el material' });
 i18nAdd({ 'Show the move': 'Ver el movimiento' });
 i18nAdd({ 'Swap for a similar exercise': 'Cambiar por un ejercicio similar', 'Similar exercises': 'Ejercicios similares' });
-i18nAdd({ 'Workout playlist': 'Lista para entrenar', 'Making your playlist…': 'Creando tu lista…', 'New playlist': 'Nueva lista', 'Make a {n} min playlist': 'Crear una lista de {n} min',
-  'Spotify did not find enough songs. Try another genre.': 'Spotify no encontró suficientes canciones. Prueba otro género.' });
-i18nAdd({ 'Link my Spotify': 'Vincular mi Spotify', 'New list': 'Nueva lista', 'Make a {n} min list': 'Crear una lista de {n} min',
-  'Open': 'Abre', 'and sign in.': 'e inicia sesión.', 'Create app: any name, choose Web API, and add this Redirect URI:': 'Crea una app (cualquier nombre), elige Web API y añade esta Redirect URI:',
-  'Copy its Client ID and paste it here.': 'Copia su Client ID y pégalo aquí.', 'Spotify asks for Premium for this.': 'Spotify pide Premium para esto.' });
 i18nAdd({ 'My equipment': 'Mi material', 'Discard workout': 'Abandonar entrenamiento' });
 i18nAdd({ 'Open it in Loot, on Today.': 'Ábrelo en Botín, en Hoy.' });
 i18nAdd({ 'Start the dungeon': 'Empezar la mazmorra', '{n} exercises': '{n} ejercicios' });
 i18nAdd({ 'Your meals add up to about {n} kcal and {n} g protein a day ({n} kcal in total, leaving room for oil, drinks and extras).': 'Tus comidas suman unas {n} kcal y {n} g de proteína al día ({n} kcal en total, dejando margen para aceite, bebidas y extras).' });
 i18nAdd({ 'Weight goal:': 'Reto de peso:' });
 i18nAdd({ Grades: 'Notas', 'You have no grade here yet.': 'Aún no tienes nota aquí.', 'Your best grade here': 'Tu mejor nota aquí', 'Dungeon grade': 'Nota de la mazmorra' });
+i18nAdd({ 'Common mistakes': 'Errores comunes' });
+i18nAdd({ 'free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).': 'gratis, sin anuncios. Sin cuenta, todo se queda en este dispositivo. Las estimaciones son orientativas, no consejo médico. Ejercicios: free-exercise-db (Unlicense). Mapas musculares: react-native-body-highlighter (MIT). Tipografías: Google Fonts (SIL OFL).', Privacy: 'Privacidad', Credits: 'Créditos' });

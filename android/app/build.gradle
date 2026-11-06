@@ -8,32 +8,58 @@ def vName = (project.findProperty('versionName') ?: '1.0') as String
 
 android {
     namespace 'io.github.e1caro.fitquest'
-    compileSdk 34
+    compileSdk 36
 
     defaultConfig {
         applicationId 'io.github.e1caro.fitquest'
         minSdk 24
-        targetSdk 34
+        targetSdk 36
         versionCode vCode
         versionName vName
         buildConfigField 'int', 'SHELL', (project.findProperty('fitquestShell') ?: '1') as String
     }
 
-    // Every release is signed with the same key (the FITQUEST_KEYSTORE secret, written to ../fitquest.jks by the
-    // workflow), so a new APK installs over the old one and keeps your data.
-    signingConfigs {
-        release {
-            storeFile file('../fitquest.jks')
-            storePassword System.getenv('FITQUEST_KEY_PASS') ?: 'fitquest'
-            keyAlias 'fitquest'
-            keyPassword System.getenv('FITQUEST_KEY_PASS') ?: 'fitquest'
+    // Two builds of the same app:
+    // - github: the APK shared from GitHub releases, which updates its web part by itself;
+    // - play: the bundle for Google Play, which only updates through Play.
+    flavorDimensions 'store'
+    productFlavors {
+        github {
+            dimension 'store'
+            buildConfigField 'boolean', 'SELF_UPDATE', 'true'
+        }
+        play {
+            dimension 'store'
+            buildConfigField 'boolean', 'SELF_UPDATE', 'false'
         }
     }
+
+    // Signing: the keystore file and its passwords come from environment variables, never from git.
+    // github APKs: FITQUEST_KEYSTORE_FILE (default ../fitquest.jks), FITQUEST_KEY_PASS, FITQUEST_KEY_ALIAS (default fitquest).
+    // Play upload key: PLAY_UPLOAD_KEYSTORE, PLAY_UPLOAD_STORE_PASS, PLAY_UPLOAD_KEY_ALIAS, PLAY_UPLOAD_KEY_PASS.
+    // Without them the release is left unsigned (an unsigned bundle can still be checked, not uploaded).
+    def env = { String k, String d = null -> System.getenv(k) ?: d }
+    signingConfigs {
+        github {
+            storeFile file(env('FITQUEST_KEYSTORE_FILE', '../fitquest.jks'))
+            storePassword env('FITQUEST_KEY_PASS')
+            keyAlias env('FITQUEST_KEY_ALIAS', 'fitquest')
+            keyPassword env('FITQUEST_KEY_PASS')
+        }
+        play {
+            if (env('PLAY_UPLOAD_KEYSTORE')) storeFile file(env('PLAY_UPLOAD_KEYSTORE'))
+            storePassword env('PLAY_UPLOAD_STORE_PASS')
+            keyAlias env('PLAY_UPLOAD_KEY_ALIAS', 'upload')
+            keyPassword env('PLAY_UPLOAD_KEY_PASS')
+        }
+    }
+
+    if (env('FITQUEST_KEY_PASS')) productFlavors.github.signingConfig = signingConfigs.github
+    if (env('PLAY_UPLOAD_KEYSTORE')) productFlavors.play.signingConfig = signingConfigs.play
 
     buildTypes {
         release {
             minifyEnabled false
-            signingConfig signingConfigs.release
         }
     }
 

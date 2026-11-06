@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_name">Recordatorio diario</string>
+    <string name="reminder_text">¡Hora de entrenar! Tu misión te espera.</string>
+</resources>

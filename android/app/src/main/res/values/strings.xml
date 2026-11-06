@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="channel_name">Daily reminder</string>
+    <string name="reminder_text">Time to train! Your quest is waiting.</string>
+</resources>

@@ -42,7 +42,7 @@ const localData = () => Object.fromEntries(Object.keys(localStorage).filter(k =>
 function applyData(d) {
   let seen = {}; try { const g = JSON.parse(localStorage.getItem('fc.game')) || {}; if (g.recapSeen === weekId()) seen.recapSeen = g.recapSeen; if (g.hwDay === dayId()) seen.hwDay = g.hwDay; if (g.coachDay === dayId()) seen.coachDay = g.coachDay; } catch { /* no game yet */ }
   Object.keys(localStorage).filter(k => k.startsWith('fc.') && !SYNC_SKIP.includes(k)).forEach(k => localStorage.removeItem(k));
-  Object.entries(d || {}).forEach(([k, v]) => { if (k.startsWith('fc.') && !SYNC_SKIP.includes(k)) localStorage.setItem(k, v); });
+  Object.entries(d || {}).forEach(([k, v]) => { if (k.startsWith('fc.') && !SYNC_SKIP.includes(k) && !GONE_KEYS.includes(k)) localStorage.setItem(k, v); });
   try { const g = JSON.parse(localStorage.getItem('fc.game')); if (g) { Object.assign(g, seen); localStorage.setItem('fc.game', JSON.stringify(g)); } } catch { /* fine */ }
 }
 // what friends see: the same profile summary as Hero (profile.js), never body data or history
@@ -59,6 +59,15 @@ async function cloudPush() {
   await sbFetch('/rest/v1/saves', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify({ id: CL.uid, data: localData(), updated_at: now }) });
   await sbFetch(`/rest/v1/profiles?id=eq.${CL.uid}`, { method: 'PATCH', body: JSON.stringify({ public: publicProfile(), updated_at: now }) });
   CL.syncAt = now; CL.dirtyAt = 0; clSave();
+  contactSync().catch(() => { });
+}
+// What the e-mail reminders need (tools/supabase-reminders.sql): the last workout, the language, and whether this player
+// uses the Android app (app players get phone notifications instead, and never e-mails).
+async function contactSync(extra = {}) {
+  const last = S.history.length ? new Date(Math.max(...S.history.map(h => h.t))).toISOString() : null;
+  const row = { user_id: CL.uid, lang: LANG === 'en' ? 'en' : 'es', last_workout: last, updated_at: new Date().toISOString(), ...extra };
+  if (APP_CODE) Object.assign(row, { app_installed: true, last_app_login: new Date().toISOString() });
+  await sbFetch('/rest/v1/contact', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: JSON.stringify(row) });
 }
 // When the app opens: if the account has newer data from another device and nothing changed here since the last sync,
 // take it (the app reloads once with it).
@@ -117,7 +126,11 @@ function accountView() {
     view.innerHTML = `${back}<h1>Account</h1>
     <section class="card"><div class="row between"><b translate="no">${esc(CL.user || '')}</b><span class="chip" translate="no">${esc(CL.code || '')}</span></div>
       <div class="mut">${CL.syncAt ? `Synced ${new Date(CL.syncAt).toLocaleString(dateLocale(), { dateStyle: 'short', timeStyle: 'short' })}` : 'Not synced yet'}</div></section>
-    <div class="row"><button class="btn" onclick="cloudSyncNow()">Sync now</button><button class="btn ghost" onclick="cloudSignOut()">Sign out</button></div>`;
+    <div class="row"><button class="btn" onclick="cloudSyncNow()">Sync now</button><button class="btn ghost" onclick="cloudSignOut()">Sign out</button></div>
+    <div id="mailrem"></div>
+    <h2 class="sec">Delete account</h2><section class="card"><div class="mut">Deletes your account and everything saved online with it (profile, progress, friends, shared exercises). This can't be undone. What is on this device stays unless you also clear it.</div>
+      <button class="btn ghost danger" onclick="deleteAccount()">Delete my account</button></section>`;
+    mailRemCard();
     return;
   }
   view.innerHTML = `${back}<h1>Account</h1>
@@ -135,6 +148,35 @@ function accountView() {
   };
   $('#cl-up').onclick = () => go(true); $('#cl-in').onclick = () => go(false);
 }
+// E-mail reminders (only for players without the Android app): an e-mail you choose, and your consent
+async function mailRemCard() {
+  const box = $('#mailrem'); if (!box) return;
+  let row = null;
+  try { [row] = await sbFetch(`/rest/v1/contact?user_id=eq.${CL.uid}&select=email,opt_in`); } catch { /* table not set up yet */ }
+  if (!$('#mailrem')) return;
+  box.innerHTML = APP_CODE ? '' : `<h2 class="sec">E-mail reminders</h2><section class="card mailrem"><div class="mut">If you go 3 days without training, we can send you a short reminder by e-mail (at most one every 3 days). You get phone notifications instead if you use the Android app.</div>
+    <label class="fld"><span>E-mail</span><div class="inp"><input id="mr-e" type="email" autocomplete="email" value="${esc(row?.email || '')}" placeholder="you@example.com"></div></label>
+    <label class="row mrok"><input type="checkbox" id="mr-ok" ${row?.opt_in ? 'checked' : ''}> <span>I agree to receive these reminders. I can unsubscribe from any e-mail with one click.</span></label>
+    <button class="btn" onclick="mailRemSave()">Save</button></section>`;
+}
+window.mailRemSave = async () => {
+  const email = ($('#mr-e')?.value || '').trim(), ok = !!$('#mr-ok')?.checked;
+  if (ok && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { toast(tr('Write a valid e-mail.')); return; }
+  try { await contactSync({ email: email || null, opt_in: ok && !!email }); toast(tr(ok ? 'E-mail reminders on' : 'E-mail reminders off')); } catch (e) { toast(e.message); }
+};
+// Deleting the account: everything online goes (tools/supabase-play.sql, delete_my_account), then you are signed out
+window.deleteAccount = () => {
+  modal(`<h2>Delete your account?</h2><div class="mut">Your profile, progress saved online, friends and shared exercises are deleted for good.</div>
+    <label class="row mrok"><input type="checkbox" id="da-local"> <span>Also clear this device</span></label>
+    <button class="btn danger" id="da-yes">Delete for good</button><button class="btn ghost" data-close>Cancel</button>`);
+  $('#da-yes').onclick = async () => {
+    const local = $('#da-local').checked;
+    try { await sbFetch('/rest/v1/rpc/delete_my_account', { method: 'POST', body: '{}' }); } catch (e) { toast(e.message); return; }
+    $('#modal').hidden = true; cloudSignOut(true);
+    if (local) { Object.keys(localStorage).filter(k => k.startsWith('fc.')).forEach(k => localStorage.removeItem(k)); location.hash = '#/start'; location.reload(); return; }
+    toast(tr('Account deleted')); route();
+  };
+};
 window.cloudSyncNow = () => cloudPush().then(() => { toast('Synced'); route(); }).catch(e => toast(e.message));
 
 // friends: a section on Hero, and each friend's profile
@@ -284,7 +326,12 @@ if (typeof i18nAdd === 'function') {
     Friends: 'Amigos', 'Sign in to add friends': 'Entra para añadir amigos', "Friend's code": 'Código de tu amigo', Add: 'Añadir', 'Your code:': 'Tu código:',
     'Codes have 6 letters and numbers': 'Los códigos tienen 6 letras y números', "That's your own code": 'Ese es tu propio código', 'No player with that code': 'No hay ningún jugador con ese código',
     'Friend added': 'Amigo añadido', '{0} is now #{1}': '{0} pasa al puesto {1}', 'Sign in to add friends and see their profiles.': 'Entra para añadir amigos y ver sus perfiles.', Ranking: 'Ranking', You: 'Tú', 'Lv {n}': 'Nv {n}', 'Remove friend': 'Quitar amigo', 'day streak': 'días de racha', badges: 'insignias', 'I already have an account': 'Ya tengo cuenta',
-    Requests: 'Solicitudes', 'Friends in the dungeons': 'Amigos en las mazmorras', '{0} friends': '{0} amigos', 'Dungeons · {n}': 'Mazmorras · {n}', 'Pending requests': 'Peticiones pendientes', 'request sent': 'petición enviada', 'No pending requests.': 'No hay peticiones pendientes.', 'Pending requests · {n}': 'Peticiones pendientes · {n}', 'wants to be your friend': 'quiere ser tu amigo', Accept: 'Aceptar', Decline: 'Rechazar', 'Request sent': 'Solicitud enviada', 'Waiting for:': 'Esperando a:',
+    Requests: 'Solicitudes', 'Delete account': 'Borrar cuenta', 'Delete my account': 'Borrar mi cuenta', 'Delete your account?': '¿Borrar tu cuenta?', 'Delete for good': 'Borrar para siempre', 'Also clear this device': 'Borrar también este dispositivo', 'Account deleted': 'Cuenta borrada',
+    "Deletes your account and everything saved online with it (profile, progress, friends, shared exercises). This can't be undone. What is on this device stays unless you also clear it.": 'Borra tu cuenta y todo lo guardado en línea (perfil, progreso, amigos, ejercicios compartidos). No se puede deshacer. Lo que hay en este dispositivo se queda salvo que también lo borres.',
+    'Your profile, progress saved online, friends and shared exercises are deleted for good.': 'Tu perfil, el progreso guardado en línea, tus amigos y tus ejercicios compartidos se borran para siempre.',
+    'E-mail reminders': 'Recordatorios por email', 'E-mail': 'Email', 'Write a valid e-mail.': 'Escribe un email válido.', 'E-mail reminders on': 'Recordatorios por email activados', 'E-mail reminders off': 'Recordatorios por email desactivados',
+    'If you go 3 days without training, we can send you a short reminder by e-mail (at most one every 3 days). You get phone notifications instead if you use the Android app.': 'Si pasas 3 días sin entrenar, podemos mandarte un recordatorio breve por email (como mucho uno cada 3 días). Si usas la app de Android, te avisamos en el móvil en su lugar.',
+    'I agree to receive these reminders. I can unsubscribe from any e-mail with one click.': 'Acepto recibir estos recordatorios. Puedo darme de baja desde cualquier email con un clic.', 'Friends in the dungeons': 'Amigos en las mazmorras', '{0} friends': '{0} amigos', 'Dungeons · {n}': 'Mazmorras · {n}', 'Pending requests': 'Peticiones pendientes', 'request sent': 'petición enviada', 'No pending requests.': 'No hay peticiones pendientes.', 'Pending requests · {n}': 'Peticiones pendientes · {n}', 'wants to be your friend': 'quiere ser tu amigo', Accept: 'Aceptar', Decline: 'Rechazar', 'Request sent': 'Solicitud enviada', 'Waiting for:': 'Esperando a:',
     'Turn off e-mail confirmation in Supabase (see tools/supabase.sql)': 'Desactiva la confirmación por e-mail en Supabase (mira tools/supabase.sql)',
   });
 }
