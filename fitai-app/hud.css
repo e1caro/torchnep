@@ -1186,7 +1186,24 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .mmleg i{display:inline-block;width:12px;height:12px;border-radius:3px}
 .mmhint{font-size:12px}
 #mx-d{width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--fg);resize:vertical}
-.myxbtns{gap:8px;margin:4px 0 10px}
+.myxbtns{gap:8px;margin:10px 0 0}.myxbtns .btn{flex:1;margin:0}
+.myxcta{border:1px solid color-mix(in srgb,var(--acc) 55%,var(--line));background:linear-gradient(135deg,color-mix(in srgb,var(--acc) 14%,var(--card)),var(--card));margin:4px 0 14px}
+.myxcta>.row{gap:12px;align-items:center;margin-bottom:10px}.myxcta b{font:800 17px var(--disp)}
+.myxic{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--acc);color:var(--on,#021016)}
+.mxstep{display:flex;align-items:center;gap:10px;margin:24px 0 10px;font:800 18px var(--disp)}
+.mxstep b{flex:none;display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--acc);color:var(--on,#021016);font-size:15px}
+.mxstep em{font:400 13px var(--body);font-style:normal}
+.mmtabs{margin:10px 0 8px}.mmtabs a{cursor:pointer}
+.mmedit{display:block;--bm0:color-mix(in srgb,var(--fg) 30%,var(--card));--bm2:color-mix(in srgb,var(--acc) 62%,var(--card));padding:14px 8px}
+.mmedit .mmsvg{max-height:min(60vh,460px);margin:0 auto}
+.mmedit[data-side=front] .mmsvg[aria-label=back],.mmedit[data-side=back] .mmsvg[aria-label=front]{display:none}
+.mmedit .mmp{stroke:color-mix(in srgb,var(--fg) 55%,transparent);stroke-width:1;vector-effect:non-scaling-stroke}
+.mmedit .mmp[fill="var(--bm1)"]{filter:drop-shadow(0 0 5px var(--acc))}
+.mmleg{font-size:13px}.mmleg i.mm2{background:color-mix(in srgb,var(--acc) 62%,var(--card))}.mmleg i.mm0{background:color-mix(in srgb,var(--fg) 30%,var(--card))}
+.mmsel{display:grid;gap:8px;margin:10px 0 4px;padding:10px 12px;border-radius:12px;background:var(--card2);border:1px solid var(--line)}
+.mmrow{gap:10px;align-items:baseline}.mmrow>b{flex:none;min-width:84px;font-size:13px}.mmrow .chips{margin:0}
+.mmhint{font-size:13.5px}
+#mx-d{margin-top:0}.mxsave{margin-top:18px}.myxrt{margin-top:12px}
 /* the Guild */
 .gcard .row{align-items:flex-start;gap:10px}
 .gmap{flex:none;width:76px;padding:4px;border-radius:10px;background:var(--card2)}

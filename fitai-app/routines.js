@@ -41,6 +41,7 @@ function routineView(id) {
   <div class="chips">${mineChip(rtQ.mine, 'rtQ.mine=!rtQ.mine;this.classList.toggle(\'on\');rtResults(rtCur())')}</div>
   <select id="rt-m" style="margin:8px 0"><option value="">All muscles</option>${optList([...new Set(EX.flatMap(e => e.m))], rtQ.m)}</select>
   <div id="rt-res"></div>
+  <button class="btn ghost myxrt" onclick="myexNew()">${ic('plus', 18)} Can't find it? Create your own exercise</button>
   <button class="btn ghost" style="margin-top:16px" onclick="rtDelete('${r.id}')">${rtDel === r.id ? 'Tap again to delete' : 'Delete routine'}</button>`;
   $('#rt-name').onchange = ev => { r.name = ev.target.value.trim() || r.name; rtSave(); };
   $('#rt-q').oninput = ev => { rtQ.q = ev.target.value.toLowerCase(); rtResults(r); };
