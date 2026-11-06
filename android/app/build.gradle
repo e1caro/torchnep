@@ -54,8 +54,8 @@ android {
         }
     }
 
-    productFlavors.github.signingConfig = env('FITQUEST_KEY_PASS') ? signingConfigs.github : null
-    productFlavors.play.signingConfig = env('PLAY_UPLOAD_KEYSTORE') ? signingConfigs.play : null
+    if (env('FITQUEST_KEY_PASS')) productFlavors.github.signingConfig = signingConfigs.github
+    if (env('PLAY_UPLOAD_KEYSTORE')) productFlavors.play.signingConfig = signingConfigs.play
 
     buildTypes {
         release {

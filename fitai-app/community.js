@@ -48,7 +48,7 @@ function guildView() {
   <select onchange="GUILD.f.e=this.value;guildView()"><option value="">All equipment</option>${[...new Set(GUILD.list.map(r => r.data.e))].map(e => `<option value="${e}" ${f.e === e ? 'selected' : ''}>${tr(e)}</option>`).join('')}</select></div>
   ${list.length ? list.map(guildCard).join('') : '<div class="mut" style="margin-top:12px">No exercises here yet. Be the first to share one!</div>'}
   ${GLD.blocked.length ? `<button class="btn ghost sm" onclick="guildUnblockAll()">Unblock ${GLD.blocked.length} author(s)</button>` : ''}
-  <div class="mut gnote">Report anything offensive with ⚑: with 3 reports it is hidden and reviewed.</div>`;
+  <div class="mut gnote">Report anything offensive with ⚑: with 3 reports it is hidden and reviewed. <a href="privacy.html#${LANG === 'en' ? 'guild' : 'gremio'}" target="_blank" rel="noopener">Guild rules</a></div>`;
 }
 // sharing (from My exercises)
 window.guildShare = async (id, quiet) => {
@@ -116,6 +116,6 @@ if (typeof i18nAdd === 'function') {
     'Report this exercise?': '¿Reportar este ejercicio?', 'Tell us what is wrong. With 3 reports it is hidden until it is reviewed.': 'Dinos qué pasa. Con 3 reportes se oculta hasta que se revise.',
     'Offensive or hateful': 'Ofensivo o de odio', Dangerous: 'Peligroso', 'Spam or nonsense': 'Spam o sin sentido', Other: 'Otro', 'Thanks, we will review it': 'Gracias, lo revisaremos',
     'Block this author? You will not see their exercises any more.': '¿Bloquear a este autor? Ya no verás sus ejercicios.', 'Author blocked': 'Autor bloqueado',
-    'Hidden after {n} reports.': 'Oculto tras {n} reportes.', 'Guild Master': 'Maestro del Gremio', 'Your shared exercises were added by players 5 times': 'Tus ejercicios compartidos se han añadido 5 veces',
+    'Hidden after {n} reports.': 'Oculto tras {n} reportes.', 'Guild Master': 'Maestro del Gremio', 'Guild rules': 'Normas del Gremio', 'Your shared exercises were added by players 5 times': 'Tus ejercicios compartidos se han añadido 5 veces',
   });
 }
