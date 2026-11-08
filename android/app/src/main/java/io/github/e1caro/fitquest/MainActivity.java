@@ -3,6 +3,7 @@ package io.github.e1caro.fitquest;
 import android.Manifest;
 import android.app.Activity;
 import android.content.ClipData;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -10,7 +11,9 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
+import android.util.Base64;
 import android.view.WindowInsets;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
@@ -158,6 +161,32 @@ public class MainActivity extends Activity {
             Reminder.save(MainActivity.this, on, Math.max(0, Math.min(23, hour)), Math.max(0, Math.min(59, minute)), title, text);
         }
 
+        // the week as a picture: into the gallery (Pictures/FitQuest); on Android 9 and older, the share sheet instead
+        @JavascriptInterface
+        public String saveImage(String b64, String name) {
+            if (!ownPage) return "no";
+            try {
+                byte[] png = Base64.decode(b64, Base64.DEFAULT);
+                if (Build.VERSION.SDK_INT < 29) { sharePng(png, name); return "shared"; }
+                ContentValues v = new ContentValues();
+                v.put(MediaStore.Images.Media.DISPLAY_NAME, name);
+                v.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
+                v.put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/FitQuest");
+                Uri u = getContentResolver().insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, v);
+                if (u == null) return "error";
+                try (OutputStream o = getContentResolver().openOutputStream(u)) { o.write(png); }
+                return "ok";
+            } catch (Exception e) {
+                return "error";
+            }
+        }
+
+        @JavascriptInterface
+        public void shareImage(String b64, String name) {
+            if (!ownPage) return;
+            try { sharePng(Base64.decode(b64, Base64.DEFAULT), name); } catch (Exception ignored) { /* nothing to share */ }
+        }
+
         @JavascriptInterface
         public void testReminder() {
             if (ownPage) ReminderReceiver.show(MainActivity.this);
@@ -220,6 +249,17 @@ public class MainActivity extends Activity {
         }
         picking = true;
         return true;
+    }
+
+    private void sharePng(byte[] png, String name) throws Exception {
+        File dir = new File(getCacheDir(), "share");
+        dir.mkdirs();
+        File f = new File(dir, name.replaceAll("[^A-Za-z0-9._-]", "_"));
+        try (OutputStream o = new FileOutputStream(f)) { o.write(png); }
+        Uri u = FileProvider.getUriForFile(this, getPackageName() + ".files", f);
+        Intent send = new Intent(Intent.ACTION_SEND).setType("image/png").putExtra(Intent.EXTRA_STREAM, u).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        send.setClipData(ClipData.newRawUri("", u));
+        runOnUiThread(() -> startActivity(Intent.createChooser(send, null)));
     }
 
     @Override
