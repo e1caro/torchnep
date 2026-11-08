@@ -16,8 +16,7 @@ let BUB_INFO = {};
 function bubble(id, i, big) {
   const [ico0, label] = BUB_DEF[id], f = BUB_INFO[id] || {}, ico = f.ico || ico0, p = f.p == null ? 1 : Math.max(0, Math.min(1, f.p));
   return `<button class="bub b-${id}${big ? ' big' : ''}${f.bad ? ' hot' : ''}${f.p == null ? ' full' : ''}" data-b="${id}" style="--i:${i};--bp:${p.toFixed(3)}" onclick="openBub('${id}')" aria-label="${label}">
-    <span class="orb"><span class="oi">${gi(ico, big ? 'hero' : '')}</span>${f.v != null ? `<b class="ov">${f.v}</b>` : ''}${big && f.name ? `<span class="on2">${esc(f.name)}</span>` : ''}${f.bad ? '<i class="bdg">!</i>' : ''}</span>
-    <span class="bl">${label}</span></button>`;
+    <span class="orb"><span class="oi">${gi(ico, big ? 'hero' : '')}</span>${f.v != null ? `<b class="ov">${f.v}</b>` : ''}${f.bad ? '<i class="bdg">!</i>' : ''}</span></button>`;
 }
 
 // The check-in streak runs in weeks of 7 days; day 7 brings a silver chest. A streak is always at least day 1
@@ -97,7 +96,7 @@ function layoutOrbs() {
   if (!orbs) return;
   const navH = document.querySelector('nav#tabs')?.offsetHeight || 80, top = orbs.getBoundingClientRect().top + scrollY;
   const W = orbs.clientWidth, H = Math.max(360, innerHeight - top - navH - 6); // fills the screen exactly (Today doesn't scroll)
-  const big = orbs.querySelector('.bub.big'), sats = [...orbs.querySelectorAll('.bub:not(.big)')], n = sats.length, LBL = 24;
+  const big = orbs.querySelector('.bub.big'), sats = [...orbs.querySelectorAll('.bub:not(.big)')], n = sats.length, LBL = 0;
   orbs.style.height = `${H}px`;
   const E = 1.12; // ring ornaments reach a bit past each circle; neighbours' ornaments may touch, circles may not
   // spots around the middle, as fractions of the free width and height (clockwise from the top), kept away from the middle row
@@ -115,7 +114,6 @@ function layoutOrbs() {
     const by = up.length && down.length ? (Math.max(...up) + Math.min(...down)) / 2 : 0;
     const room = Math.min(H / 2, ...at.flatMap(([x, y]) => [
       Math.hypot(x, y - by) - d * O / 2 - 26,
-      Math.hypot(x - Math.sign(x) * Math.min(Math.abs(x), 36), y + d * O / 2 + 8 - by) - 24, // its label
     ]));
     return { d, rx, ry, at, by, B: Math.round(Math.min(230, W * .56, 2 * room / O)) };
   };
