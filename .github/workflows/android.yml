@@ -43,7 +43,7 @@ jobs:
       - name: Pack the web app into the APK
         run: |
           mkdir -p android/app/src/main/assets/www
-          rsync -a --delete --exclude tools --exclude '__pycache__' --exclude README.md fitai-app/ android/app/src/main/assets/www/
+          rsync -a --delete --exclude tools --exclude play --exclude '__pycache__' --exclude README.md fitai-app/ android/app/src/main/assets/www/
 
       # The signing key is the repository secret FITQUEST_KEYSTORE (the keystore, base64). Every release must use it,
       # so each APK installs over the previous one and keeps the data. Pull request checks without it use a throwaway key.

@@ -1,6 +1,6 @@
 # FitQuest · Google Play checklist
 
-Checked on 2026-11-06. Legend: ✅ done · 🟡 pending (you) · 🔵 pending (Claude) · ⚠️ needs your decision.
+Checked on 2026-11-08 (full pass before the first upload). Legend: ✅ done · 🟡 pending (you) · 🔵 pending (Claude) · ⚠️ needs your decision.
 
 ## Build and signing
 
@@ -36,7 +36,7 @@ Local build instead: `PLAY_UPLOAD_KEYSTORE=/path/fitquest-upload.jks PLAY_UPLOAD
 | Account deletion on the web | ✅ | `https://e1caro.github.io/torchnep/fitcoach/delete-account.html` → enter it in the "Delete account URL" field. |
 | Data safety form | 🟡 | Draft answers in `play/data-safety.md`. |
 | Health apps declaration | 🟡 | fitness app, not medical; see `play/data-safety.md`. |
-| Content rating questionnaire | 🟡 | answer: users interact and share content; in-game coin "bets" are not real-money gambling. |
+| Content rating questionnaire | 🟡 / ⚠️ | answer: users interact and share content (friends, the Guild). The coin "bets" and the daily spin count as **simulated gambling** (no real money, coins can't be bought): answer Yes to that question; it usually means a 12+/Teen rating. If you want the lowest rating, rename or remove bets and the spin first. |
 | Target audience | 🟡 / ⚠️ | your choice; suggested 16+ or 18+. Not designed for children. |
 | User-generated content policy (the Guild) | ✅ | rules in the app (link in the Guild) and in the privacy page; in-app report (⚑) and block (⦸); hidden after 3 reports; admins delete or restore; bad-words filter in the app and in the database. 🟡 Make yourself admin (SQL in `tools/supabase-play.sql`) and review reports. |
 | AI-generated content (meal photo rating) | ✅ | in-app "Report" on every answer (`food_reports` table, `tools/supabase-food.sql`); disclaimer "an estimate made by AI, not medical advice"; notice before the first photo. 🟡 Read the reports now and then (Table Editor › food_reports). |
@@ -46,14 +46,25 @@ Local build instead: `PLAY_UPLOAD_KEYSTORE=/path/fitquest-upload.jks PLAY_UPLOAD
 | App access for reviewers | 🟡 | create a test account (username + password) and give it in "App access" (friends and the Guild need sign-in). |
 | Exercise photos licence | ⚠️ | see `CREDITS.md`, note 1 (recommended: hide photos in the Play build). |
 
+## Ready for launch (done 2026-11-08)
+
+| Item | Status | Notes |
+|---|---|---|
+| Meal plan hidden, not deleted | ✅ | `MEALS_ON = false` in `app.js` hides the meal plan, recipes, shopping list, their quests, bets and badge. The Today bubble becomes "Nutrition" (what you ate, the meal photo, calorie targets). Set it to `true` to bring it back. |
+| Full check of every screen | ✅ | 21 screens in Spanish and English with example data: no page errors, no untranslated text, no meal-plan links left. |
+| Features players expect from similar apps | ✅ | progress per exercise (estimated 1-rep max and its trend, like Strong/Hevy), plate calculator, training calendar, one rating request in the Play app after 5 workouts. |
+| Store graphics kept out of the app | ✅ | `play/` is excluded from the APK/AAB (`android.yml`). |
+| Meal photo before launch | 🟡 | run `tools/supabase-food.sql`, deploy `food-photo`, add `GEMINI_API_KEY` (see below), or remove its line from the listing. |
+| Rating request link | ✅ | opens `https://play.google.com/store/apps/details?id=io.github.e1caro.fitquest`; only in the Play build. |
+
 ## Store listing
 
 | Item | Status | Notes |
 |---|---|---|
-| Name, short and full description (ES/EN) | ✅ draft | `play/store-listing.md` |
+| Name, short and full description (ES/EN) | ✅ | `play/store-listing.md` (no meal plan; mentions the meal photo, so set it up first or drop that line) |
 | App icon 512 × 512 | ✅ | `icons/icon-512.png` |
-| Feature graphic 1024 × 500 | 🟡 / 🔵 | to make (Claude can render one from the app's art if you want) |
-| Phone screenshots (2–8) | 🟡 / 🔵 | Claude can take them at 1080 × 1920 from the web app on request |
+| Feature graphic 1024 × 500 | ✅ | `play/graphics/{es,en}/feature-graphic-1024x500.png` |
+| Phone screenshots (2–8) | ✅ | 8 per language with captions, 1080 × 1920: `play/graphics/{es,en}/screenshot-*.png` |
 | Contact e-mail and website | 🟡 | shown on the listing |
 
 ## Account and release (only you)

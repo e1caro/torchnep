@@ -7,7 +7,7 @@ const BUB = { open: null };
 // id: [icon, bubble label, panel title]
 const BUB_DEF = {
   train: ['lifter', 'Train', 'Next training'], quests: ['scroll', 'Quests', 'Quests and boss'], loot: ['treasure', 'Loot', 'Daily loot'],
-  meals: ['cutlery', 'Meals', 'Meals and fuel'], earn: ['bolt', 'Earn', 'Earn and bet'], academy: ['trophy', 'Academy', 'Sports Academy'],
+  meals: ['cutlery', MEALS_ON ? 'Meals' : 'Nutrition', MEALS_ON ? 'Meals and fuel' : 'Nutrition'], earn: ['bolt', 'Earn', 'Earn and bet'], academy: ['trophy', 'Academy', 'Sports Academy'],
 };
 // at most six circles: training in the middle and five around it, clockwise from the top
 const BUB_ORDER = ['quests', 'loot', 'meals', 'earn', 'academy'];

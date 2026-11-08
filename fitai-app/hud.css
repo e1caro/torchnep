@@ -1254,3 +1254,20 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .wcbtns{display:grid;gap:8px;width:100%;max-width:320px;margin:6px auto 0;position:relative;z-index:3}.wcbtns .btn{margin:0;display:flex;align-items:center;justify-content:center;gap:6px}
 #recap .wcbtns .btn{max-width:none}
 .wkshare{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px}
+/* progress per exercise, plate calculator, training calendar */
+.xstats{display:grid;grid-template-columns:repeat(auto-fit,minmax(90px,1fr));gap:10px;margin-bottom:8px}.xstats b{display:block;font:800 20px var(--disp)}.xstats span{font-size:12px;color:var(--mut)}
+.xspark{display:block;width:100%;height:72px;margin:6px 0 2px;overflow:visible}.xspark .l{fill:none;stroke:var(--acc);stroke-width:3;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.xspark .a{fill:color-mix(in srgb,var(--acc) 16%,transparent)}.xspark circle{fill:var(--acc)}
+.xfoot{font-size:12px;margin-bottom:6px}.xfoot b.up{color:#3ecf8e}.xfoot b.down{color:#f06a5d}
+.xplatebtn{display:flex;align-items:center;gap:6px;margin-top:8px}
+.xbar{display:flex;align-items:center;justify-content:center;gap:2px;height:140px;margin:12px 0}
+.xbar span{width:46%;max-width:150px;height:10px;border-radius:5px;background:linear-gradient(#cfd5dc,#7d858f)}
+.xbar i{width:12px;height:var(--h);border-radius:3px;background:var(--c);box-shadow:inset 0 0 0 1px #0004}
+.xplates{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:6px}.xplates span{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--card2);font-weight:700;font-size:14px}
+.xplates i{width:12px;height:12px;border-radius:50%;background:var(--c)}
+.xcal .xgrid{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;margin-top:4px}.xcal .xgrid div{display:grid;gap:3px}
+.xcal i{display:block;aspect-ratio:1;border-radius:3px;background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.xcal i.l1{background:color-mix(in srgb,var(--acc) 35%,transparent)}.xcal i.l2{background:color-mix(in srgb,var(--acc) 65%,transparent)}.xcal i.l3{background:var(--acc);box-shadow:0 0 6px color-mix(in srgb,var(--acc) 60%,transparent)}
+.xcal i.now{outline:2px solid var(--fg);outline-offset:-1px}.xcal i.fut{opacity:.3}
+.xmonths{position:relative;height:16px;margin-top:8px;font-size:11px;color:var(--mut)}.xmonths span{position:absolute;left:calc(var(--w) * 100% / 18)}
+.xleg{gap:4px;align-items:center;justify-content:flex-end;font-size:11px;margin-top:8px}.xleg i{width:11px;height:11px;flex:none}

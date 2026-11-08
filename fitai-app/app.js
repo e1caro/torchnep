@@ -50,6 +50,8 @@ const save = (k, v) => {
   try { localStorage.setItem('fc.' + k, JSON.stringify(v)); } catch { /* storage full or blocked */ }
   if (k !== 'cloud' && k !== 'session' && typeof cloudDirty === 'function') cloudDirty(); // the account copy follows (cloud.js)
 };
+// the meal plan, recipes and shopping list (meals.js) are kept but not released yet: false hides them everywhere
+const MEALS_ON = false;
 const GONE_KEYS = ['fc.spotify', 'fc.spPkce'];
 GONE_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch { /* storage blocked */ } });
 const S = { profile: load('profile', null), plan: load('plan', null), history: load('history', []), weights: load('weights', []) };
@@ -760,7 +762,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE && !APP_PLAY ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 200</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
+  <div class="mut setfoot"><span>FitQuest version 201</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();

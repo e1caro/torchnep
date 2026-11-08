@@ -139,7 +139,7 @@ function logFlags() {
 }
 const flagIn = (k, a, b) => BT.flags[k].filter(t => t >= a && t <= b).length;
 const GRP = { legs: 'legs', chest: 'chest', back: 'back', shoulders: 'shoulders', arms: 'arms', core: 'core' };
-const mealsOn = () => typeof M !== 'undefined' && !!M.set && !!M.plan;
+const mealsOn = () => MEALS_ON && typeof M !== 'undefined' && !!M.set && !!M.plan;
 const sportKey = () => typeof SP !== 'undefined' && SP.cur && typeof roleOf === 'function' && roleOf(SP.cur) ? SP.cur : null;
 const sportName = key => { const r = roleOf(key); return r ? r.name : ''; };
 
