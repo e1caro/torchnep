@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<meta name="theme-color" content="#0f1630">
+<title>Bounce Arrows</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <section id="home" class="screen active">
+    <button class="icon-btn top-right" id="btnSettings" aria-label="Settings">&#9881;</button>
+    <div class="logo" aria-hidden="true">&#10148;</div>
+    <h1 id="homeTitle">Bounce Arrows</h1>
+    <p class="tagline" id="homeTagline"></p>
+    <div class="coinsline">&#129689; <span id="homeCoins">0</span></div>
+    <button class="btn big" id="btnPlay"></button>
+    <button class="btn alt" id="btnDaily"></button>
+    <div class="streak" id="homeStreak"></div>
+  </section>
+
+  <section id="play" class="screen">
+    <header class="bar">
+      <button class="icon-btn" id="btnHome" aria-label="Menu">&#9776;</button>
+      <div id="lvlLabel" class="lvl"></div>
+      <div id="hearts" class="hearts" aria-label="hearts"></div>
+      <div class="coins">&#129689; <span id="coins">0</span></div>
+    </header>
+    <div id="boardWrap"><canvas id="board"></canvas><div id="toast"></div></div>
+    <footer class="bar bottom">
+      <button class="btn small" id="btnHint">&#128161; <span id="hintLabel"></span> <b id="hintCount"></b></button>
+      <button class="btn small ghost" id="btnRestart">&#8635; <span id="restartLabel"></span></button>
+    </footer>
+  </section>
+
+  <div id="modal" class="modal"><div class="card" id="modalCard"></div></div>
+  <div id="adOverlay" class="adoverlay"></div>
+</div>
+
+<script src="levels.js"></script>
+<script src="i18n.js"></script>
+<script src="monetization.js"></script>
+<script src="game.js"></script>
+<script>
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
