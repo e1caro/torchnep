@@ -1245,3 +1245,12 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .fchist{width:100%;gap:12px;align-items:center;text-align:left;font:inherit;color:inherit}.fchist .mut{display:block;font-size:12.5px}
 .fcreasons{display:grid;gap:8px;margin:12px 0}
 .fcconsent .how{margin:8px 0 12px}
+/* the week in one picture (Instagram story) */
+.wcimg{display:block;height:min(56vh,560px);aspect-ratio:9/16;width:auto;max-width:100%;margin:6px auto 4px;border-radius:18px;object-fit:contain;position:relative;z-index:3;
+  background:var(--card);box-shadow:0 14px 40px #000a,0 0 0 1px color-mix(in srgb,var(--acc) 40%,transparent),0 0 40px color-mix(in srgb,var(--acc) 25%,transparent)}
+.wcimg.wcwait{animation:wcpulse 1.1s ease-in-out infinite}
+@keyframes wcpulse{50%{opacity:.45}}
+@media(prefers-reduced-motion:reduce){.wcimg.wcwait{animation:none}}
+.wcbtns{display:grid;gap:8px;width:100%;max-width:320px;margin:6px auto 0;position:relative;z-index:3}.wcbtns .btn{margin:0;display:flex;align-items:center;justify-content:center;gap:6px}
+#recap .wcbtns .btn{max-width:none}
+.wkshare{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:8px}

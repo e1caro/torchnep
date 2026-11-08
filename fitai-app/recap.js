@@ -71,7 +71,9 @@ window.openRecap = (which = 'last') => {
       <div class="rnote">${Math.min(w.n, goal) >= goal ? 'Weekly boss defeated.' : `${goal - Math.min(w.n, goal)} more workouts would have beaten the weekly boss.`}</div>`,
     `<div class="rkick">Week grade</div><div class="rgrade${grade(w, goal, prev) === 'S' ? ' s' : ''}">${grade(w, goal, prev)}</div><div class="rsub">${w.n} / ${goal} workouts</div>
       <div class="rnote">${grade(w, goal, prev) === 'S' ? 'An exceptional week. Above your goal and stronger than before.' : w.n >= goal ? 'Next week: keep the rhythm, and try one more set per exercise.' : `Next week: aim for ${goal} workouts.`}</div>
-      <button class="btn" onclick="shareRecap(event)">Share</button><button class="btn ghost" onclick="closeRecap()">Done</button>`,
+      <button class="btn" onclick="recapGo(1)">See it in one picture</button>`,
+    `<div class="rkick">Your week in one picture</div><img class="wcimg" alt=""><div class="rsub">Ready for your Instagram story.</div>
+      <div class="wcbtns">${wcButtons()}<button class="btn ghost" onclick="closeRecap()">Done</button></div>`,
   ];
   closeRecap(true);
   const el = document.createElement('div');
@@ -80,7 +82,7 @@ window.openRecap = (which = 'last') => {
     <button class="rx" aria-label="Close" onclick="closeRecap()">✕</button></div><div class="rslides">${slides.map(s => `<section class="rs">${s}</section>`).join('')}</div>
     <div class="rnav"><button aria-label="Back" onclick="recapGo(-1)"></button><button aria-label="Next" onclick="recapGo(1)"></button></div>`;
   document.body.append(el);
-  RC = { el, i: -1, n: slides.length, w, t: 0 };
+  RC = { el, i: -1, n: slides.length, w, t: 0, which };
   recapGo(1); sfx('claim');
 };
 window.recapGo = d => {
@@ -99,16 +101,12 @@ window.recapGo = d => {
     requestAnimationFrame(step);
   });
   if (RC.el.querySelector('.rs.on .rgrade.s')) setTimeout(() => { if (RC) confetti(); }, 500);
+  const pic = RC.el.querySelector('.rs.on .wcimg');
+  if (pic && !pic.src) wcShow(pic, RC.which);
   clearTimeout(RC.t);
   if (i < RC.n - 1) RC.t = setTimeout(() => recapGo(1), 6500); // the last slide waits for you
 };
 window.closeRecap = quiet => { if (!RC) return; clearTimeout(RC.t); RC.el.remove(); RC = null; if (quiet !== true) sfx('tick'); };
-window.shareRecap = async e => {
-  e?.stopPropagation();
-  const w = RC?.w; if (!w) return;
-  const text = `${tr('My week on FitQuest')}: ${w.n} ${tr('workouts')} · ${fmtN(w.min)} min · ${fmtN(w.kg)} kg${w.prs.length ? ` · ${w.prs.length} ${tr('new records')}` : ''} 💪`;
-  try { if (navigator.share) await navigator.share({ title: 'FitQuest', text }); else { await navigator.clipboard.writeText(text); toast('Copied, paste it anywhere'); } } catch { /* cancelled */ }
-};
 addEventListener('keydown', e => { if (!RC) return; if (e.key === 'Escape') closeRecap(); if (e.key === 'ArrowRight') recapGo(1); if (e.key === 'ArrowLeft') recapGo(-1); });
 
 // ---------- the coach line on Today ----------
@@ -201,7 +199,8 @@ routes.progress = function () {
     <div class="wkstats"><div><b>${w.n}<small>/${goal}</small></b><span>workouts</span>${d(w.n, prev.n)}</div><div><b>${fmtN(w.min)}</b><span>minutes</span>${d(w.min, prev.min)}</div>
       <div><b>${fmtN(w.kg)}</b><span>kg lifted</span>${d(w.kg, prev.kg)}</div><div><b>${w.prs.length}</b><span>records</span></div></div>
     <div class="qbar"><i style="width:${Math.min(100, w.n / goal * 100)}%"></i></div>
-    <div class="row wkbtns"><button class="btn sm" onclick="openRecap('this')">${gi('sparkles')} Play my week</button>${weekStats(weekStart() - WEEK).n ? `<button class="btn sm ghost" onclick="openRecap('last')">Last week</button>` : ''}</div></section>`);
+    <div class="row wkbtns"><button class="btn sm" onclick="openRecap('this')">${gi('sparkles')} Play my week</button>${weekStats(weekStart() - WEEK).n ? `<button class="btn sm ghost" onclick="openRecap('last')">Last week</button>` : ''}</div>
+    <button class="btn sm ghost wkshare" onclick="wcOpen('this')">${ic('down', 16)} Share my week</button></section>`);
 };
 Object.assign(routes, { home });
 
