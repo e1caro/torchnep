@@ -73,7 +73,7 @@ jobs:
           PLAY_UPLOAD_KEY_ALIAS: ${{ secrets.PLAY_UPLOAD_KEY_ALIAS }}
         run: |
           if [ -n "$PLAY_KEYSTORE_B64" ]; then echo "$PLAY_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/upload.jks"; export PLAY_UPLOAD_KEYSTORE="$RUNNER_TEMP/upload.jks"; fi
-          gradle -p android assembleGithubRelease assembleGithubDebug bundlePlayRelease \
+          gradle -p android assembleGithubRelease assembleGithubDebug assembleDevRelease bundlePlayRelease \
             -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon --console=plain
 
       - name: Name the APK, pack the web app for in-app updates
@@ -81,6 +81,7 @@ jobs:
           cp android/app/build/outputs/apk/github/release/app-github-release.apk FitQuest-1.${{ github.run_number }}.apk
           cp android/app/build/outputs/apk/github/debug/app-github-debug.apk FitQuest-1.${{ github.run_number }}-debug.apk
           cp android/app/build/outputs/bundle/playRelease/app-play-release.aab FitQuest-1.${{ github.run_number }}-play.aab
+          cp android/app/build/outputs/apk/dev/release/app-dev-release.apk FitQuest-Developer-1.${{ github.run_number }}.apk
           (cd android/app/src/main/assets/www && zip -qr "$GITHUB_WORKSPACE/web.zip" .)
           # the native version this web app needs: older apps don't take it and ask to reinstall instead
           SHELL_V=$(grep '^fitquestShell=' android/gradle.properties | cut -d= -f2)
@@ -93,6 +94,12 @@ jobs:
             FitQuest-1.${{ github.run_number }}.apk
             FitQuest-1.${{ github.run_number }}-debug.apk
             FitQuest-1.${{ github.run_number }}-play.aab
+
+      # FitQuest Developer (free test purchases): only as a workflow artifact, never in the public release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FitQuest-Developer-1.${{ github.run_number }}
+          path: FitQuest-Developer-1.${{ github.run_number }}.apk
 
       - name: Publish the release
         if: github.event_name == 'workflow_dispatch'

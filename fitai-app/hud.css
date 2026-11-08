@@ -1269,5 +1269,28 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .xcal i{display:block;aspect-ratio:1;border-radius:3px;background:color-mix(in srgb,var(--fg) 8%,transparent)}
 .xcal i.l1{background:color-mix(in srgb,var(--acc) 35%,transparent)}.xcal i.l2{background:color-mix(in srgb,var(--acc) 65%,transparent)}.xcal i.l3{background:var(--acc);box-shadow:0 0 6px color-mix(in srgb,var(--acc) 60%,transparent)}
 .xcal i.now{outline:2px solid var(--fg);outline-offset:-1px}.xcal i.fut{opacity:.3}
-.xmonths{position:relative;height:16px;margin-top:8px;font-size:11px;color:var(--mut)}.xmonths span{position:absolute;left:calc(var(--w) * 100% / 18)}
+.xmonths{position:relative;height:16px;margin-top:8px;font-size:11px;color:var(--mut)}.xmonths span{position:absolute;left:calc(var(--w) * 100% / var(--n,18))}
 .xleg{gap:4px;align-items:center;justify-content:flex-end;font-size:11px;margin-top:8px}.xleg i{width:11px;height:11px;flex:none}
+/* FitQuest Pro and gems (FitQuest Developer for now) */
+.prohero{text-align:center;padding:18px 8px 6px}.prohero h1{margin:6px 0 4px;background:linear-gradient(90deg,#ffd34d,#ff9f43);-webkit-background-clip:text;color:transparent}
+.prohero.on{border:1px solid #ffd34d66}
+.procrown{display:inline-grid;place-items:center;width:84px;height:84px;border-radius:50%;background:radial-gradient(circle,#ffd34d33,transparent 70%);color:#ffd34d}
+.procrown .gi{width:56px;height:56px;background:#ffd34d}.procrown.sm{width:44px;height:44px;flex:none}.procrown.sm .gi{width:30px;height:30px}
+.procmp{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}.procmp th{font-size:12px;color:var(--mut);text-align:center;padding:6px}
+.procmp td{padding:9px 6px;border-top:1px solid var(--line)}.procmp td:nth-child(n+2){text-align:center;width:64px}.procmp td:last-child b{color:#ffd34d}
+.proplans{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}
+.proplan{position:relative;display:grid;gap:4px;padding:18px 6px 12px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--fg);font:inherit;text-align:center;cursor:pointer}
+.proplan.on{border-color:#ffd34d;box-shadow:0 0 18px #ffd34d44}.proplan .prop{font:800 19px var(--disp)}.proplan .mut{font-size:11.5px}
+.probadge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);white-space:nowrap;padding:2px 8px;border-radius:999px;background:#ffd34d;color:#1a1200;font:800 11px var(--body)}
+.probadge.inl{position:static;transform:none;display:inline-block;vertical-align:middle;margin-left:4px}
+.procta{width:100%;margin-top:6px}.profine{font-size:12px;text-align:center;margin:8px 0}.prolist li{margin:4px 0}
+.probanner{display:flex;align-items:center;gap:12px;width:100%;text-align:left;font:inherit;color:inherit;border:1px solid #ffd34d66;background:linear-gradient(135deg,#ffd34d1f,var(--card))}
+.probanner .mut{display:block;font-size:12.5px}.probanner .btn{flex:none;margin:0}
+.gemtag{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:999px;border:1px solid #7fd6ff66;background:#7fd6ff1a;color:var(--fg);font:inherit;cursor:pointer}
+.gemrow{gap:8px;margin:0 0 12px;align-items:center}.gemrow .btn{margin:0}
+.gempacks{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.gempack{position:relative;display:grid;justify-items:center;gap:4px;padding:18px 8px 12px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--fg);font:inherit;cursor:pointer}
+.gempack.best{border-color:#7fd6ff}.gempack.starter{grid-column:1/-1;border-color:#ffd34d;background:linear-gradient(135deg,#ffd34d1a,var(--card))}
+.gemico{font-size:30px}.gempack b{font:800 22px var(--disp)}.gemprice{margin-top:4px;padding:5px 14px;border-radius:999px;background:var(--acc);color:var(--on,#021016);font-weight:800}
+.gemlook{display:grid;justify-items:center;gap:6px;font:inherit;color:inherit;text-align:center}.gemlook span{font-weight:800;color:#7fd6ff}
+.devcard{border:1px dashed #ff9f43}.devcard .setrow{padding:6px 0}

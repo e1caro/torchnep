@@ -27,10 +27,22 @@ android {
         github {
             dimension 'store'
             buildConfigField 'boolean', 'SELF_UPDATE', 'true'
+            buildConfigField 'String', 'STORE', '""'
+            resValue 'string', 'app_name', 'FitQuest'
         }
         play {
             dimension 'store'
             buildConfigField 'boolean', 'SELF_UPDATE', 'false'
+            buildConfigField 'String', 'STORE', '"play"'
+            resValue 'string', 'app_name', 'FitQuest'
+        }
+        // the owner's test build: its own app next to FitQuest, where Pro and gems are bought for free
+        dev {
+            dimension 'store'
+            applicationIdSuffix '.dev'
+            buildConfigField 'boolean', 'SELF_UPDATE', 'true'
+            buildConfigField 'String', 'STORE', '"dev"'
+            resValue 'string', 'app_name', 'FitQuest Developer'
         }
     }
 
@@ -54,7 +66,7 @@ android {
         }
     }
 
-    if (env('FITQUEST_KEY_PASS')) productFlavors.github.signingConfig = signingConfigs.github
+    if (env('FITQUEST_KEY_PASS')) { productFlavors.github.signingConfig = signingConfigs.github; productFlavors.dev.signingConfig = signingConfigs.github }
     if (env('PLAY_UPLOAD_KEYSTORE')) productFlavors.play.signingConfig = signingConfigs.play
 
     buildTypes {

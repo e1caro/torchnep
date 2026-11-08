@@ -24,13 +24,13 @@ function exProgress(id) {
   const fmt = n => fmtN(Math.round(n * 2) / 2);
   const weighted = hs.some(h => h.rm > 0), last = hs[hs.length - 1];
   const best = hs.reduce((b, h) => (h.rm > b.rm ? h : b), hs[0]);
-  const vals = hs.slice(-12).map(h => (weighted ? h.rm : h.reps));
+  const lim = typeof proGates === 'function' && proGates(), vals = hs.slice(lim ? -FREE.hist : -12).map(h => (weighted ? h.rm : h.reps));
   const first = vals[0], change = vals.length > 1 && first ? Math.round((vals[vals.length - 1] - first) / first * 100) : 0;
   return `<h2 class="sec">Your progress</h2><section class="card xprog">
     <div class="xstats">${weighted ? `<div><b>${fmt(best.rm)} kg</b><span>estimated 1-rep max</span></div><div><b>${best.best.w} kg × ${best.best.r}</b><span>best set</span></div>`
       : `<div><b>${Math.max(...hs.map(h => h.reps))}</b><span>most reps in a set</span></div>`}<div><b>${hs.length}</b><span>${hs.length === 1 ? 'workout' : 'workouts'}</span></div></div>
     ${vals.length > 1 ? `${spark(vals)}<div class="row between mut xfoot"><span>${weighted ? 'Estimated 1-rep max' : 'Reps'} · ${T('last {0} times', vals.length)}</span>${change ? `<b class="${change > 0 ? 'up' : 'down'}">${change > 0 ? '▲' : '▼'} ${Math.abs(change)}%</b>` : ''}</div>` : ''}
-    <div class="mut">${tr('Last time:')} ${new Date(last.t).toLocaleDateString(LANG, { day: 'numeric', month: 'short' })}${last.best.w ? ` · ${last.best.w} kg × ${last.best.r}` : last.reps ? ` · ${last.reps} reps` : ''}</div></section>`;
+    ${lim && hs.length > FREE.hist ? `<button class="btn sm ghost" onclick="location.hash='#/pro'">${gi('crown')} ${tr('See all your history with Pro')}</button>` : ''}<div class="mut">${tr('Last time:')} ${new Date(last.t).toLocaleDateString(LANG, { day: 'numeric', month: 'short' })}${last.best.w ? ` · ${last.best.w} kg × ${last.best.r}` : last.reps ? ` · ${last.reps} reps` : ''}</div></section>`;
 }
 const _xEx = exerciseView;
 exerciseView = function (id) { _xEx(id); const p = exProgress(id); if (p && BY[id]) view.querySelector('.how:last-of-type')?.insertAdjacentHTML('afterend', p); };
@@ -69,12 +69,12 @@ routes.workout = workoutView;
 
 // ---------- training calendar on Progress ----------
 function trainCalendar() {
-  const weeks = 18, start = weekStart() - (weeks - 1) * 7 * 864e5, sets = {};
+  const weeks = typeof proGates === 'function' && proGates() ? FREE.calWeeks : 18, start = weekStart() - (weeks - 1) * 7 * 864e5, sets = {};
   S.history.forEach(h => { if (h.t < start) return; const d = Math.floor((h.t - start) / 864e5); sets[d] = (sets[d] || 0) + h.ex.reduce((a, x) => a + x.sets.length, 0); });
   const max = Math.max(1, ...Object.values(sets)), today = Math.floor((Date.now() - start) / 864e5), days = Object.keys(sets).length;
   const lvl = v => (!v ? 0 : v < max * .34 ? 1 : v < max * .67 ? 2 : 3);
   const cols = [...Array(weeks)].map((_, w) => `<div>${[...Array(7)].map((__, d) => { const i = w * 7 + d; return `<i class="l${lvl(sets[i])}${i === today ? ' now' : ''}${i > today ? ' fut' : ''}"></i>`; }).join('')}</div>`).join('');
-  const months = [...Array(weeks)].map((_, w) => { const dt = new Date(start + w * 7 * 864e5); return dt.getDate() <= 7 ? `<span style="--w:${w}">${dt.toLocaleDateString(LANG, { month: 'short' })}</span>` : ''; }).join('');
+  const months = [...Array(weeks)].map((_, w) => { const dt = new Date(start + w * 7 * 864e5); return dt.getDate() <= 7 ? `<span style="--w:${w};--n:${weeks}">${dt.toLocaleDateString(LANG, { month: 'short' })}</span>` : ''; }).join('');
   return `<section class="card xcal"><div class="row between"><h3>${gi('calendar', 'hero')} Training calendar</h3><span class="mut">${T('{0} days', days)}</span></div>
     <div class="xmonths">${months}</div><div class="xgrid">${cols}</div>
     <div class="row xleg mut"><span>Less</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><span>More</span></div></section>`;
@@ -100,5 +100,5 @@ if (typeof i18nAdd === 'function') i18nAdd({
   "{0} kg can't be made with these plates": 'faltan {0} kg que no salen con estos discos', Close: 'Cerrar',
   'Training calendar': 'Calendario de entrenamiento', '{0} days': '{0} días', Less: 'Menos', More: 'Más',
   'Enjoying FitQuest?': '¿Te gusta FitQuest?', 'A rating on Google Play helps other people find it. It takes ten seconds.': 'Una valoración en Google Play ayuda a que otros la encuentren. Son diez segundos.',
-  'Rate on Google Play': 'Valorar en Google Play', 'Not now': 'Ahora no',
+  'Rate on Google Play': 'Valorar en Google Play', 'See all your history with Pro': 'Mira todo tu historial con Pro', 'Not now': 'Ahora no',
 });
