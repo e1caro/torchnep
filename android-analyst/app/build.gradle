@@ -1,0 +1,49 @@
+plugins {
+    id 'com.android.application'
+}
+
+// versionCode and versionName come from the workflow (-PversionCode=12 -PversionName=1.12)
+def vCode = (project.findProperty('versionCode') ?: '1') as int
+def vName = (project.findProperty('versionName') ?: '1.0') as String
+
+android {
+    namespace 'io.github.e1caro.analystpath'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'io.github.e1caro.analystpath'
+        minSdk 24
+        targetSdk 36
+        versionCode vCode
+        versionName vName
+    }
+
+    // Signing: the key file and its password come from environment variables, never from git.
+    // Every release must use the same key, so each APK installs over the previous one and keeps its data.
+    def env = { String k, String d = null -> System.getenv(k) ?: d }
+    signingConfigs {
+        release {
+            storeFile file(env('ANALYST_KEYSTORE_FILE', '../analyst.jks'))
+            storePassword env('ANALYST_KEY_PASS')
+            keyAlias env('ANALYST_KEY_ALIAS', 'fitquest')
+            keyPassword env('ANALYST_KEY_PASS')
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (env('ANALYST_KEY_PASS')) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+    implementation 'androidx.core:core:1.13.1'
+}

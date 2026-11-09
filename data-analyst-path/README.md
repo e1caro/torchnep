@@ -41,10 +41,17 @@ Everything except the SQL Lab, offline mode and installing also works by double-
 
 The repository's `docs` workflow publishes the app with the documentation: after the branch is merged to `master`, it is served at `<your GitHub Pages address>/analyst/` (for example `https://<user>.github.io/torchnep/analyst/`), next to `/fitcoach/`. Open that address on your phone and use *Install app* (Android) or Share → *Add to Home Screen* (iPhone, in Safari). The one-time Pages setting (Settings → Pages → Source: GitHub Actions) is the same one the docs already use. Any other static host works too: upload the folder.
 
+## Android app (APK)
+
+`../android-analyst` wraps this same web app as a native Android app (see its README). The workflow
+`.github/workflows/android-analyst.yml` builds it: run it by hand (Actions → *android-analyst* → Run workflow) and it
+publishes a release `analyst-N` whose APK can be downloaded and installed straight from the phone. Inside the app, saving
+files, copying, sharing and the calendar reminder go through a small native bridge (`ui.native()` in `js/ui.js`).
+
 ## Tests
 
 ```bash
-node tests/unit.js                                   # 36 tests, Node only
+node tests/unit.js                                   # 39 tests, Node only
 BASE=http://localhost:8000 node tests/e2e.js          # real browser (needs: npm i -g playwright)
 ```
 

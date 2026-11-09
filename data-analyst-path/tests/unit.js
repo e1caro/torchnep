@@ -134,4 +134,5 @@ test('sanitize rejects junk', () => {
 require('./unit-more');
 require('./unit-sync');
 require('./unit-pwa');
+require('./unit-native');
 runAll();

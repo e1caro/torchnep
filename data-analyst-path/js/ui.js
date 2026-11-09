@@ -54,8 +54,14 @@
     toastTimer = setTimeout(function () { t.classList.remove('show'); }, 2600);
   };
 
+  // Inside the Android app (see android-analyst/) a small native bridge is present: copy, share and save go through it,
+  // because a WebView has no reliable clipboard, share sheet or blob downloads. On the web this is null.
+  ui.native = function () { return typeof window !== 'undefined' && window.AnalystNative ? window.AnalystNative : null; };
+
   ui.copy = function (text, okMsg) {
     function done() { ui.toast(okMsg || 'Copied to clipboard'); }
+    var nat = ui.native();
+    if (nat && nat.copy) { try { nat.copy(text); done(); return; } catch (e) { /* fall through to the web way */ } }
     function fallback() {
       var ta = h('textarea', { 'aria-hidden': 'true', style: 'position:fixed;left:-9999px;top:0' });
       ta.value = text;
@@ -69,6 +75,8 @@
   };
 
   ui.download = function (filename, text, mime) {
+    var nat = ui.native();
+    if (nat && nat.saveFile) { try { nat.saveFile(filename, mime || 'text/plain;charset=utf-8', text); return; } catch (e) { /* fall through to the web way */ } }
     var url = URL.createObjectURL(new Blob([text], { type: mime || 'text/plain;charset=utf-8' }));
     var a = h('a', { href: url, download: filename });
     document.body.appendChild(a);

@@ -6,6 +6,7 @@
   var P = (DA.pwa = { deferred: null, offlineReady: false, installed: false });
 
   P.standalone = function () {
+    if (ui.native()) return true; // inside the Android app
     return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
   };
   P.isIos = function () {
@@ -51,6 +52,7 @@
   }
 
   P.register = function () {
+    if (ui.native()) return; // the app carries all its files, so it needs no service worker
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
     var hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange', function () { if (hadController) updateBar(); hadController = true; });

@@ -1,0 +1,7 @@
+.gradle/
+build/
+app/build/
+local.properties
+*.jks
+# the web app is copied here by the build (see .github/workflows/android-analyst.yml)
+app/src/main/assets/www/

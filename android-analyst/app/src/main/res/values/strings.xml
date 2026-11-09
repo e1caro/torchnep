@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Analyst Path</string>
+    <string name="saved">Saved</string>
+    <string name="save_failed">Could not save the file</string>
+    <string name="copied">Copied</string>
+</resources>
