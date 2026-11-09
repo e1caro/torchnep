@@ -103,6 +103,10 @@
 }
 
 * { box-sizing: border-box; }
+/* Swiping down at the top must not stretch the page or reload it (pull-to-refresh could wipe a practice round in progress).
+   Scrolling strips (SQL keys, tables, code) keep their own scroll and do not pass it on to the page. */
+html, body { overscroll-behavior-y: none; }
+.sql-keys, .table-wrap, .prompt-text, .code-box, .qcode, figure.code pre, .sidebar { overscroll-behavior: contain; }
 body {
   margin: 0;
   font: 16px/1.6 var(--font);

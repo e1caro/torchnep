@@ -55,3 +55,10 @@ test('every user-facing page has a route and a view', () => {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   [...html.matchAll(/href="#\/(\w*)/g)].forEach((m) => assert.ok(routes.includes(m[1] || 'home') || m[1] === '', 'nav links to unknown route ' + m[1]));
 });
+
+test('swiping down at the top cannot stretch or reload the page', () => {
+  const css = fs.readFileSync(path.join(root, 'css/style.css'), 'utf8');
+  assert.ok(/html,\s*body\s*\{\s*overscroll-behavior-y:\s*none/.test(css), 'html and body must set overscroll-behavior-y: none');
+  const java = fs.readFileSync(path.join(root, '..', 'android-analyst/app/src/main/java/io/github/e1caro/analystpath/MainActivity.java'), 'utf8');
+  assert.ok(java.includes('OVER_SCROLL_NEVER'), 'the Android WebView must disable over-scroll');
+});
