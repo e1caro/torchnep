@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Data Analyst Path</title>
+  <meta name="description" content="Learn to become a data analyst starting from your own background: a free daily-habit course with spreadsheets, SQL, Python, statistics, dashboards, an in-browser SQL lab, practice rounds and AI tutor prompts. Works offline on phone and computer.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#2158d6">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Analyst Path">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <script>
+    /* Apply a saved light/dark choice before the first paint, so there is no flash. */
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('data-analyst-path.v1') || 'null'), t = s && s.profile && s.profile.theme;
+        if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { /* no saved theme */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+
+  <header class="topbar">
+    <a href="#/" class="brand"><img class="logo-img" src="icons/icon.svg" alt="" width="32" height="32"> <span>Analyst Path</span></a>
+    <div id="hudTop" class="hud" aria-label="Your streak, level and daily goal"></div>
+  </header>
+
+  <div class="scrim" id="scrim"></div>
+
+  <nav id="sidebar" class="sidebar" aria-label="Main">
+    <a href="#/" class="brand"><img class="logo-img" src="icons/icon.svg" alt="" width="34" height="34"> <span>Data Analyst Path</span></a>
+    <div id="hudSide" class="hud-side" aria-label="Your streak, level and daily goal"></div>
+    <a id="navProfile" href="#/profile" class="profile-chip" data-nav="profile"></a>
+    <ul class="nav">
+      <li><a href="#/" data-nav="home"><span aria-hidden="true">🏠</span> Home</a></li>
+      <li><a href="#/roadmap" data-nav="roadmap"><span aria-hidden="true">🗺️</span> Roadmap</a></li>
+      <li><a href="#/practice" data-nav="practice"><span aria-hidden="true">⚡</span> Practice</a></li>
+      <li><a href="#/lab" data-nav="lab"><span aria-hidden="true">🗄️</span> SQL Lab</a></li>
+      <li><a href="#/prompts" data-nav="prompts"><span aria-hidden="true">💬</span> Prompt library</a></li>
+      <li><a href="#/tools" data-nav="tools"><span aria-hidden="true">🤖</span> AI toolbox</a></li>
+      <li><a href="#/me" data-nav="me"><span aria-hidden="true">🏅</span> You: badges and streak</a></li>
+      <li><a href="#/settings" data-nav="settings"><span aria-hidden="true">⚙️</span> Settings</a></li>
+    </ul>
+    <div id="navProgress" class="nav-progress"></div>
+    <p class="side-note">Your progress is saved on this device. Use Settings to move it to another one.</p>
+  </nav>
+
+  <main id="view" tabindex="-1">
+    <noscript><div class="view"><h1>JavaScript is required</h1><p>This site is a small app that runs entirely in your browser. Please enable JavaScript.</p></div></noscript>
+  </main>
+
+  <nav class="tabbar" aria-label="Primary">
+    <a href="#/" data-nav="home"><span class="t-ico" aria-hidden="true">🏠</span><span>Home</span></a>
+    <a href="#/roadmap" data-nav="roadmap"><span class="t-ico" aria-hidden="true">🗺️</span><span>Learn</span></a>
+    <a href="#/practice" data-nav="practice" class="t-main"><span class="t-ico" aria-hidden="true">⚡</span><span>Practice</span></a>
+    <a href="#/lab" data-nav="lab"><span class="t-ico" aria-hidden="true">🗄️</span><span>SQL</span></a>
+    <button id="menuBtn" type="button" aria-expanded="false" aria-controls="sidebar"><span class="t-ico" aria-hidden="true">☰</span><span>More</span></button>
+  </nav>
+
+  <canvas id="fx" aria-hidden="true"></canvas>
+  <div id="live" class="sr-only" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="updateBar" class="update-bar" role="status"></div>
+
+  <script src="js/data/backgrounds.js"></script>
+  <script src="js/data/datasets.js"></script>
+  <script src="js/data/curriculum.js"></script>
+  <script src="js/data/prompts.js"></script>
+  <script src="js/data/questions.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/drill-core.js"></script>
+  <script src="js/drill.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/pwa.js"></script>
+  <script src="js/me.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/sqllab.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

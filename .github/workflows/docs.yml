@@ -38,6 +38,11 @@ jobs:
       - name: Add the FitCoach app (served at /fitcoach/)
         run: cp -r fitai-app site/fitcoach
 
+      - name: Add the Data Analyst Path app (served at /analyst/, without its tests and tools)
+        run: |
+          cp -r data-analyst-path site/analyst
+          rm -rf site/analyst/tests site/analyst/tools
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
