@@ -1,0 +1,109 @@
+name: android-analyst
+
+# Builds the Data Analyst Path Android app (android-analyst/, with data-analyst-path/ packed inside it).
+# - On pull requests that touch the app: builds the APK as a check (downloadable from the run's artifacts).
+# - Run by hand (Actions > android-analyst > Run workflow, or asked from Claude): builds and publishes a release
+#   "Analyst Path 1.N" (tag analyst-N) with the APK, which can be downloaded and installed straight from a phone.
+# Tags are analyst-N, never v* (that would start the PyPI publish workflow) and never app-N (FitQuest's updater
+# looks for those); releases are not marked "latest".
+#
+# Signing: every release must use the same key, so each APK installs over the previous one and keeps the data.
+# It reuses the repository's existing sideload key (secrets FITQUEST_KEYSTORE and FITQUEST_KEY_PASS, the same
+# ones android.yml uses). Without them a one-off key is generated: the APK installs, but a later one will not
+# update it (uninstall first; export your progress in Settings before).
+
+on:
+  pull_request:
+    branches: [master]
+    paths: ["android-analyst/**", "data-analyst-path/**", ".github/workflows/android-analyst.yml"]
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "What's new in this version"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-analyst-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Pack the web app into the APK
+        run: |
+          mkdir -p android-analyst/app/src/main/assets/www
+          rsync -a --delete --exclude tests --exclude tools --exclude README.md --exclude sw.js \
+            data-analyst-path/ android-analyst/app/src/main/assets/www/
+
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.FITQUEST_KEYSTORE }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > android-analyst/analyst.jks
+          else
+            echo "::warning::No FITQUEST_KEYSTORE secret: signing with a one-off key, so a later APK will not be able to update this one."
+            keytool -genkeypair -keystore android-analyst/analyst.jks -alias fitquest -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass fitquest -keypass fitquest -dname "CN=Analyst Path"
+          fi
+
+      - name: Build
+        env:
+          ANALYST_KEY_PASS: ${{ secrets.FITQUEST_KEY_PASS || 'fitquest' }}
+        run: |
+          gradle -p android-analyst assembleRelease \
+            -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon --console=plain
+
+      - name: Name the APK and check it
+        run: |
+          APK=AnalystPath-1.${{ github.run_number }}.apk
+          cp android-analyst/app/build/outputs/apk/release/app-release.apk "$APK"
+          ls -la "$APK"
+          # the web app and the SQL engine must really be inside
+          unzip -l "$APK" | grep -E "assets/www/(index.html|vendor/sql.js/sql-wasm.wasm|js/app.js)"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - name: Show package and signature
+        continue-on-error: true
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs "$APK" | head -5
+          "$BT/aapt2" dump badging "$APK" | grep -E "^package|^sdkVersion|^targetSdkVersion|^application-label:|^uses-permission"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AnalystPath-1.${{ github.run_number }}
+          path: AnalystPath-1.${{ github.run_number }}.apk
+
+      - name: Publish the release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: analyst-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Analyst Path 1.${{ github.run_number }}
+          body: |
+            ${{ github.event.inputs.notes || 'Data Analyst Path for Android: learn data analysis with daily practice, a SQL lab and AI tutor prompts. Works offline.' }}
+
+            **Install on Android:** download `AnalystPath-1.${{ github.run_number }}.apk` on your phone, open it and allow "Install unknown apps" for your browser when asked.
+            **Instalar en Android:** descarga `AnalystPath-1.${{ github.run_number }}.apk` en el móvil, ábrelo y permite "Instalar apps desconocidas" para tu navegador cuando te lo pida.
+
+            Your progress is stored on the phone. To bring it from another device: Settings, create a code there, and merge it here.
+          files: AnalystPath-1.${{ github.run_number }}.apk
+          make_latest: false

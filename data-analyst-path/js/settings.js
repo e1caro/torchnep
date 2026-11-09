@@ -40,7 +40,7 @@
     // install and offline
     var offline = h('p', { class: 'status-line' });
     function paintOffline() {
-      offline.textContent = DA.pwa.offlineReady ? '✓ Works offline: everything is saved on this device.' : /^https?:$/.test(location.protocol) ? 'Preparing offline mode…' : 'Offline mode needs the site to be opened from a web address (not a file).';
+      offline.textContent = ui.native() ? '✓ This is the Android app: everything is inside it, so it works offline.' : DA.pwa.offlineReady ? '✓ Works offline: everything is saved on this device.' : /^https?:$/.test(location.protocol) ? 'Preparing offline mode…' : 'Offline mode needs the site to be opened from a web address (not a file).';
     }
     paintOffline();
     document.addEventListener('pwa-ready', function () { if (offline.isConnected) paintOffline(); });
@@ -53,7 +53,7 @@
     root.appendChild(section('Daily reminder', 'Websites cannot send reliable notifications without a server, so use your own calendar: this adds a repeating 15-minute event with an alarm.',
       h('div', { class: 'row' }, h('label', { for: 'remTime', class: 'muted', text: 'Remind me at' }), time,
         h('button', { class: 'btn', type: 'button', onclick: function () {
-          var url = location.href.split('#')[0];
+          var url = ui.native() ? '' : location.href.split('#')[0]; // inside the app the address means nothing to a calendar
           ui.download('data-analyst-path-daily.ics', Y.ics(time.value || '19:00', url), 'text/calendar;charset=utf-8');
           ui.toast('Open the downloaded file to add it to your calendar.');
         } }, '📅 Add to my calendar'))));
@@ -63,7 +63,10 @@
     var inp = h('textarea', { class: 'code-box', rows: '3', 'aria-label': 'Paste a transfer code here', placeholder: 'Paste the code from your other device here (it starts with DAP2.)' });
     var made = null;
     var copyBtn = h('button', { class: 'btn', type: 'button', disabled: true, onclick: function () { ui.copy(made, 'Code copied. Paste it on your other device.'); } }, 'Copy');
-    var shareBtn = navigator.share ? h('button', { class: 'btn ghost', type: 'button', disabled: true, onclick: function () { navigator.share({ title: 'Data Analyst Path progress', text: made }).catch(function () { /* cancelled */ }); } }, 'Share…') : null;
+    var shareBtn = navigator.share || (ui.native() && ui.native().share) ? h('button', { class: 'btn ghost', type: 'button', disabled: true, onclick: function () {
+      if (ui.native() && ui.native().share) ui.native().share(made);
+      else navigator.share({ title: 'Data Analyst Path progress', text: made }).catch(function () { /* cancelled */ });
+    } }, 'Share…') : null;
     var result = h('p', { class: 'status-line', role: 'status', 'aria-live': 'polite' });
     function merged(r) {
       ui.refreshChrome();
