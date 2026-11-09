@@ -9,6 +9,7 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.View;
 import android.view.WindowInsets;
 import android.webkit.JavascriptInterface;
 import android.webkit.JsResult;
@@ -77,6 +78,7 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
         s.setUserAgentString(s.getUserAgentString() + " AnalystPathApp/1");
+        web.setOverScrollMode(View.OVER_SCROLL_NEVER); // no stretch or glow when you swipe past the top or bottom
         web.addJavascriptInterface(new Bridge(), "AnalystNative");
 
         web.setWebViewClient(new WebViewClient() {

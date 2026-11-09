@@ -249,6 +249,8 @@ async function playRound(page, wrongAt = []) {
   ok(manifest.display === 'standalone' && manifest.icons.some((i) => i.purpose === 'maskable') && manifest.start_url, 'manifest is valid and has a maskable icon');
   const iconsOk = await page.evaluate(async (icons) => (await Promise.all(icons.map((i) => fetch(i.src).then((r) => r.ok)))).every(Boolean), manifest.icons);
   ok(iconsOk, 'every icon in the manifest exists');
+  const overscroll = await phone.evaluate(() => [getComputedStyle(document.documentElement).overscrollBehaviorY, getComputedStyle(document.body).overscrollBehaviorY]);
+  ok(overscroll.every((v) => v === 'none'), 'phone: swiping down at the top does not stretch or reload the page (overscroll-behavior ' + overscroll.join('/') + ')');
   await page.goto(BASE + '/index.html#/');
   await page.waitForFunction(() => navigator.serviceWorker && navigator.serviceWorker.controller, null, { timeout: 15000 }).catch(() => {});
   await page.reload();
