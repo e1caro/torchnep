@@ -45,6 +45,7 @@
 
   var toastTimer;
   ui.toast = function (msg) {
+    if (typeof document === 'undefined') return;
     var t = document.getElementById('toast');
     if (!t) return;
     t.textContent = msg;
@@ -76,12 +77,52 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   };
 
+  /* ---------- dates (local time) ---------- */
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  ui.now = function () { return new Date(); }; // overridable in tests
+  ui.dateStr = function (d) { return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); };
+  ui.today = function () { return ui.dateStr(ui.now()); };
+  ui.addDays = function (s, n) { var p = s.split('-'); return ui.dateStr(new Date(+p[0], +p[1] - 1, +p[2] + n)); };
+  // Whole calendar days from a to b (b - a), unaffected by daylight-saving changes.
+  ui.diffDays = function (a, b) {
+    var pa = a.split('-'), pb = b.split('-');
+    return Math.round((Date.UTC(+pb[0], +pb[1] - 1, +pb[2]) - Date.UTC(+pa[0], +pa[1] - 1, +pa[2])) / 86400000);
+  };
+  function isDate(s) { return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s); }
+
+  /* XP values. Every award has a unique key, so repeating an activity never pays twice. */
+  ui.XP = {
+    lesson: function (l) { return Math.min(100, Math.round(20 + 10 * l.hours)); },
+    quiz: 10,
+    note: 5,
+    sql: function (level) { return 15 * level; },
+    goalBonus: 10,
+  };
+
   /* ---------- saved state ---------- */
 
-  var KEY = 'data-analyst-path.v1';
+  var KEY = 'data-analyst-path.v1'; // storage key (kept from the first release; the state has its own version)
+  var GOALS = [20, 40, 80];
 
   function fresh() {
-    return { v: 1, profile: { bg: '', custom: '', lang: 'English', hours: 8, goal: '' }, done: {}, quiz: {}, notes: {}, sql: {} };
+    return {
+      v: 2,
+      profile: { bg: '', custom: '', lang: 'English', hours: 8, goal: '', dailyGoal: 40, theme: 'auto', sound: false, haptics: true },
+      done: {}, quiz: {}, notes: {}, sql: {},
+      xp: {},      // award key -> {d: 'YYYY-MM-DD' ('' for carried-over XP), n}. A ledger, so two devices can be merged.
+      met: {},     // date -> true when that day's XP goal was reached (streaks are derived from this)
+      quests: {},  // date -> {lesson, drill, sql: true, chest: bonus XP}
+      srs: {},     // question id -> {box 1..5, due date, t: ms of last review}
+      badges: {},  // badge id -> date earned
+      stats: { drills: 0, perfect: 0, answers: 0, correct: 0, queries: 0, bestCombo: 0, questsAll: 0 },
+      seen: {},    // one-time hints
+    };
+  }
+
+  function eachKey(o, fn, max) {
+    if (!o || typeof o !== 'object') return;
+    Object.keys(o).slice(0, max || 5000).forEach(function (k) { if (/^[\w:.\-]{1,60}$/.test(k)) fn(k, o[k]); });
   }
 
   // Never trust stored or imported data: copy only the fields we know, with type checks.
@@ -95,24 +136,43 @@
     var hrs = Math.round(Number(p.hours));
     if (hrs >= 1 && hrs <= 40) s.profile.hours = hrs;
     if (typeof p.goal === 'string') s.profile.goal = p.goal.slice(0, 200);
-    if (src.done && typeof src.done === 'object') {
-      Object.keys(src.done).forEach(function (id) { if (src.done[id] === true && DA.lessonById[id]) s.done[id] = true; });
-    }
-    if (src.sql && typeof src.sql === 'object') {
-      Object.keys(src.sql).forEach(function (id) {
-        if (src.sql[id] === true && DA.challenges.some(function (c) { return c.id === id; })) s.sql[id] = true;
-      });
-    }
-    if (src.quiz && typeof src.quiz === 'object') {
-      Object.keys(src.quiz).forEach(function (id) {
-        var l = DA.lessonById[id], q = src.quiz[id];
-        if (l && q && Number.isInteger(q.sel) && q.sel >= 0 && q.sel < l.quiz.options.length) s.quiz[id] = { sel: q.sel, ok: q.sel === l.quiz.answer };
-      });
-    }
-    if (src.notes && typeof src.notes === 'object') {
-      Object.keys(src.notes).forEach(function (id) {
-        if (DA.lessonById[id] && typeof src.notes[id] === 'string' && src.notes[id]) s.notes[id] = src.notes[id].slice(0, 5000);
-      });
+    if (GOALS.indexOf(Number(p.dailyGoal)) >= 0) s.profile.dailyGoal = Number(p.dailyGoal);
+    if (p.theme === 'light' || p.theme === 'dark' || p.theme === 'auto') s.profile.theme = p.theme;
+    if (typeof p.sound === 'boolean') s.profile.sound = p.sound;
+    if (typeof p.haptics === 'boolean') s.profile.haptics = p.haptics;
+
+    eachKey(src.done, function (id, v) { if (v === true && DA.lessonById[id]) s.done[id] = true; });
+    eachKey(src.sql, function (id, v) { if (v === true && DA.challenges.some(function (c) { return c.id === id; })) s.sql[id] = true; });
+    eachKey(src.quiz, function (id, q) {
+      var l = DA.lessonById[id];
+      if (l && q && Number.isInteger(q.sel) && q.sel >= 0 && q.sel < l.quiz.options.length) s.quiz[id] = { sel: q.sel, ok: q.sel === l.quiz.answer };
+    });
+    eachKey(src.notes, function (id, t) { if (DA.lessonById[id] && typeof t === 'string' && t) s.notes[id] = t.slice(0, 5000); });
+
+    eachKey(src.xp, function (k, e) {
+      if (e && (e.d === '' || isDate(e.d)) && Number.isInteger(e.n) && e.n >= 0 && e.n <= 1000) s.xp[k] = { d: e.d, n: e.n };
+    });
+    eachKey(src.met, function (d, v) { if (isDate(d) && v === true) s.met[d] = true; });
+    eachKey(src.quests, function (d, q) {
+      if (!isDate(d) || !q || typeof q !== 'object') return;
+      var o = {};
+      ['lesson', 'drill', 'sql'].forEach(function (n) { if (q[n] === true) o[n] = true; });
+      if (Number.isInteger(q.chest) && q.chest > 0 && q.chest <= 200) o.chest = q.chest;
+      s.quests[d] = o;
+    }, 800);
+    eachKey(src.srs, function (id, r) {
+      if (r && Number.isInteger(r.box) && r.box >= 1 && r.box <= 5 && isDate(r.due)) s.srs[id] = { box: r.box, due: r.due, t: Number(r.t) > 0 ? Math.floor(Number(r.t)) : 0 };
+    }, 2000);
+    eachKey(src.badges, function (id, d) { if (isDate(d)) s.badges[id] = d; }, 200);
+    var st = src.stats && typeof src.stats === 'object' ? src.stats : {};
+    Object.keys(s.stats).forEach(function (k) { var n = Math.floor(Number(st[k])); if (n > 0 && n < 1e7) s.stats[k] = n; });
+    eachKey(src.seen, function (k, v) { if (v === true) s.seen[k] = true; }, 100);
+
+    // Progress saved by the first release had no XP: carry it over so nothing is lost.
+    if (!(src.v >= 2)) {
+      Object.keys(s.done).forEach(function (id) { s.xp['lesson:' + id] = { d: '', n: ui.XP.lesson(DA.lessonById[id]) }; });
+      Object.keys(s.quiz).forEach(function (id) { if (s.quiz[id].ok) s.xp['quiz:' + id] = { d: '', n: ui.XP.quiz }; });
+      DA.challenges.forEach(function (c) { if (s.sql[c.id]) s.xp['sql:' + c.id] = { d: '', n: ui.XP.sql(c.level) }; });
     }
     return s;
   };
@@ -124,12 +184,31 @@
   ui.state = load();
   ui.save = function () {
     try { localStorage.setItem(KEY, JSON.stringify(ui.state)); storageOk = true; } catch (e) {
-      if (storageOk) ui.toast('Your browser blocks saving, so progress will be lost when you close this tab. Use Profile → Export.');
+      if (storageOk && ui.toast) ui.toast('Your browser blocks saving, so progress will be lost when you close this tab. Use You → Move progress.');
       storageOk = false;
     }
   };
   ui.replaceState = function (next) { ui.state = ui.sanitize(next); ui.save(); };
   ui.reset = function () { ui.state = fresh(); try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ } };
+
+  // Light or dark theme, applied to <html> (the choice is also read by a tiny script in index.html before first paint).
+  ui.applyTheme = function () {
+    var t = ui.state.profile.theme, root = document.documentElement;
+    if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
+    var dark = t === 'dark' || (t === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var m = document.querySelector('meta[name="theme-color"]');
+    if (m) m.setAttribute('content', dark ? '#0d1320' : '#2158d6');
+  };
+
+  // Deterministic shuffle (same seed, same order): used so a lesson quiz always shows its options in the same order.
+  ui.seededShuffle = function (arr, seed) {
+    var x = 2166136261, i;
+    for (i = 0; i < seed.length; i++) { x ^= seed.charCodeAt(i); x = Math.imul(x, 16777619); }
+    function rnd() { x = (x + 0x6d2b79f5) | 0; var t = Math.imul(x ^ (x >>> 15), 1 | x); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+    var a = arr.slice(), j, tmp;
+    for (i = a.length - 1; i > 0; i--) { j = Math.floor(rnd() * (i + 1)); tmp = a[i]; a[i] = a[j]; a[j] = tmp; }
+    return a;
+  };
 
   /* ---------- progress ---------- */
 

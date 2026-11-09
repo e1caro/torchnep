@@ -27,9 +27,55 @@
       p.appendChild(h('div', { class: 'small' }, h('strong', { text: n + ' / ' + total }), ' lessons done'));
       p.appendChild(ui.progressBar(100 * n / total, 'Course progress'));
     }
+    if (DA.game) DA.game.renderHud();
   };
 
   /* ================================================================ home */
+
+  function greeting() {
+    var hr = ui.now().getHours();
+    return hr < 5 ? 'Late session?' : hr < 12 ? 'Good morning.' : hr < 18 ? 'Good afternoon.' : 'Good evening.';
+  }
+
+  // First unsolved SQL challenge, preferring the dataset that fits the learner's background.
+  function nextChallenge() {
+    var order = [ui.defaultDataset()].concat(Object.keys(DA.datasets).filter(function (d) { return d !== ui.defaultDataset(); }));
+    for (var i = 0; i < order.length; i++) {
+      var c = DA.challenges.filter(function (x) { return x.ds === order[i] && !ui.state.sql[x.id]; })[0];
+      if (c) return c;
+    }
+    return null;
+  }
+
+  function todayCard() {
+    var G = DA.game, t = G.today(), st = t.streak, qs = t.quests, nx = ui.nextLesson(), due = DA.drill.dueCount(), sq = nextChallenge();
+    var left = Math.max(0, t.goal - t.xp), msg;
+    if (t.met) msg = 'Daily goal reached. Anything more today is a bonus.';
+    else if (st.count > 0 && st.atRisk) msg = left + ' XP keeps your ' + st.count + '-day streak going.';
+    else msg = left + ' XP today' + (st.count ? '' : ' starts a streak') + '.';
+    var rows = [
+      { done: qs.lesson, icon: '📘', name: 'Learn', text: 'Finish a lesson, a quiz or a note', href: nx ? '#/lesson/' + nx.id : '#/roadmap', cta: 'Go' },
+      { done: qs.drill, icon: '⚡', name: 'Practise', text: due ? due + ' due for review · one 5-question round' : 'One 5-question round, about 2 minutes', href: '#/practice/play', cta: 'Start' },
+      { done: qs.sql, icon: '🗄️', name: 'Code', text: sq ? 'Solve a SQL challenge: ' + sq.title : 'Practise in the SQL Lab', href: sq ? '#/lab/' + sq.ds + '/' + sq.id : '#/lab', cta: 'Open' },
+    ];
+    return h('section', { class: 'card today', 'aria-labelledby': 'today-h' },
+      h('div', { class: 'today-top' },
+        h('div', { class: 'today-ring' }, G.ring(t.pct, t.met), h('b', { text: t.met ? '✓' : t.xp + '/' + t.goal })),
+        h('div', { class: 'grow' }, h('h2', { id: 'today-h', text: 'Today' }), h('p', { class: 'muted', text: msg })),
+        h('div', { class: 'streak-big' + (st.metToday ? ' lit' : ''), 'aria-label': st.count + ' day streak' }, h('span', { 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) }), h('small', { text: st.count === 1 ? 'day' : 'days' }))),
+      h('ul', { class: 'quests' }, rows.map(function (r) {
+        return h('li', { class: r.done ? 'done' : '' },
+          h('span', { class: 'q-check', 'aria-hidden': 'true', text: r.done ? '✓' : '' }),
+          h('span', { class: 'q-ico', 'aria-hidden': 'true', text: r.icon }),
+          h('span', { class: 'grow' }, h('strong', { text: r.name }), r.done ? h('span', { class: 'sr-only', text: ' (done today)' }) : null, h('small', { text: r.text })),
+          r.done ? null : h('a', { class: 'btn small' + (r === rows[0] || !rows[0].done ? '' : ''), href: r.href }, r.cta));
+      })),
+      h('p', { class: 'chest' + (qs.all ? ' open' : '') },
+        h('span', { 'aria-hidden': 'true', text: qs.all ? '🎉' : '🎁' }), ' ',
+        qs.all ? 'Quest chest opened: +' + qs.chest + ' bonus XP' : 'Finish all three for a surprise chest of 15 to 40 bonus XP'),
+      st.freezes ? h('p', { class: 'muted small', text: '❄️ ' + st.freezes + ' streak freeze' + (st.freezes === 1 ? '' : 's') + ' saved: a missed day will not break your streak.' }) : null);
+  }
+
 
   V.home = function () {
     var b = ui.bg();
@@ -44,25 +90,29 @@
           link('#/profile', 'btn big accent', 'Start: tell me your background (1 minute)'),
           link('#/roadmap', 'btn big ghost', 'See the roadmap'))));
     } else {
-      var next = ui.nextLesson(), n = ui.doneCount(), total = DA.lessons.length;
+      var next = ui.nextLesson(), n = ui.doneCount(), total = DA.lessons.length, li = DA.game.levelInfo();
       var remaining = DA.totalHours - ui.doneHours();
       root.appendChild(h('section', { class: 'hero compact' },
         h('p', { class: 'eyebrow', text: b.icon + ' ' + (b.custom ? 'Your own background' : b.name) }),
-        title(n === 0 ? 'Your plan is ready. Let\'s start.' : n === total ? 'You finished the course. 🎉' : 'Welcome back.'),
-        ui.state.profile.goal ? h('p', { class: 'lead' }, 'Your goal: ', h('strong', { text: ui.state.profile.goal })) : h('p', { class: 'lead', text: 'Everything below is tuned to your background: examples, practice data, portfolio ideas and AI prompts.' })));
+        title(n === total ? 'You finished the course. 🎉' : greeting()),
+        ui.state.profile.goal ? h('p', { class: 'lead' }, 'Your goal: ', h('strong', { text: ui.state.profile.goal })) : null));
+
+      root.appendChild(todayCard());
+      if (DA.pwa) { var inst = DA.pwa.installCard(); if (inst) root.appendChild(inst); }
 
       var grid = h('div', { class: 'grid-3' });
-      grid.appendChild(card('Progress', h('div', null,
+      grid.appendChild(card('Level ' + li.level, h('div', null,
+        h('p', { class: 'next-title', text: li.title }),
+        ui.progressBar(li.pct, 'Progress to level ' + (li.level + 1)),
+        h('p', { class: 'muted small', text: li.xp + ' XP · ' + li.next + ' to level ' + (li.level + 1) }),
+        link('#/me', 'small', 'Badges and streak →'))));
+      grid.appendChild(card(next ? 'Up next' : 'All done', next
+        ? h('div', null, h('p', { class: 'next-title' }, h('span', { class: 'muted', text: next.number + ' · ' }), next.title), h('p', { class: 'muted small', text: next.module.title + ' · ' + ui.fmtHours(next.hours) + ' · +' + ui.XP.lesson(next) + ' XP' }), link('#/lesson/' + next.id, 'btn accent', n === 0 ? 'Start lesson' : 'Continue'))
+        : h('p', { text: 'Keep practising in the SQL Lab and build more projects.' })));
+      grid.appendChild(card('Course progress', h('div', null,
         h('p', { class: 'big-num' }, n, h('small', { text: ' / ' + total + ' lessons' })),
         ui.progressBar(100 * n / total, 'Course progress'),
-        h('p', { class: 'muted small', text: ui.fmtHours(ui.doneHours()) + ' of about ' + Math.round(DA.totalHours) + ' h done' }))));
-      grid.appendChild(card(next ? 'Up next' : 'All done', next
-        ? h('div', null, h('p', { class: 'next-title' }, h('span', { class: 'muted', text: next.number + ' · ' }), next.title), h('p', { class: 'muted small', text: next.module.title + ' · ' + ui.fmtHours(next.hours) }), link('#/lesson/' + next.id, 'btn accent', n === 0 ? 'Start lesson' : 'Continue'))
-        : h('p', { text: 'Keep practising in the SQL Lab and build more projects.' })));
-      grid.appendChild(card('Your pace', h('div', null,
-        h('p', { class: 'big-num' }, ui.state.profile.hours, h('small', { text: ' h / week' })),
-        h('p', { class: 'muted small', text: remaining > 0 ? 'About ' + weeksText(weeksFor(remaining)) + ' to go' : 'Course complete' }),
-        link('#/profile', 'small', 'Change pace'))));
+        h('p', { class: 'muted small', text: (remaining > 0 ? 'About ' + weeksText(weeksFor(remaining)) + ' to go at ' + ui.state.profile.hours + ' h / week' : 'Course complete') }))));
       root.appendChild(grid);
 
       var two = h('div', { class: 'grid-2' });
@@ -151,36 +201,7 @@
       h('button', { class: 'btn big accent', type: 'submit' }, p.bg ? 'Save profile' : 'Save and start'));
     root.appendChild(form);
 
-    // data management
-    var fileInput = h('input', { type: 'file', accept: 'application/json,.json', class: 'hidden', id: 'importFile', onchange: function (e) {
-      var f = e.target.files[0];
-      if (!f) return;
-      var r = new FileReader();
-      r.onload = function () {
-        try {
-          var obj = JSON.parse(r.result);
-          if (!obj || obj.app !== 'data-analyst-path') throw new Error('not a progress file');
-          ui.replaceState(obj.state);
-          ui.refreshChrome(); ui.toast('Progress imported.');
-          location.hash = '#/';
-        } catch (err) { ui.toast('That file is not a valid progress export.'); }
-      };
-      r.readAsText(f);
-    } });
-    root.appendChild(h('section', { class: 'section' },
-      h('h2', { text: 'Your data' }),
-      h('p', { class: 'muted', text: 'Progress, notes and answers are stored in this browser only (localStorage). Nothing is sent to any server. Export a backup to move to another device.' }),
-      h('div', { class: 'row' },
-        h('button', { class: 'btn ghost', type: 'button', onclick: function () {
-          ui.download('data-analyst-path-progress.json', JSON.stringify({ app: 'data-analyst-path', exportedAt: new Date().toISOString(), state: ui.state }, null, 2), 'application/json');
-        } }, 'Export progress'),
-        h('button', { class: 'btn ghost', type: 'button', onclick: function () { fileInput.click(); } }, 'Import progress'),
-        fileInput,
-        h('button', { class: 'btn ghost danger', type: 'button', onclick: function () {
-          if (window.confirm('Delete your profile, progress, quiz answers and notes from this browser? This cannot be undone.')) {
-            ui.reset(); ui.refreshChrome(); ui.toast('Everything was reset.'); location.hash = '#/';
-          }
-        } }, 'Reset everything'))));
+    root.appendChild(h('p', { class: 'muted' }, 'Daily goal, theme, reminders, installing the app and moving progress between devices are in ', link('#/settings', '', 'Settings'), '.'));
     return root;
   };
 
@@ -225,20 +246,30 @@
   /* ================================================================ lesson */
 
   function quizBlock(l) {
-    var q = l.quiz, saved = ui.state.quiz[l.id];
+    var q = l.quiz, G = DA.game;
+    var order = ui.seededShuffle(q.options.map(function (_, i) { return i; }), l.id); // stable display order, not always "B"
     var fb = h('div', { class: 'quiz-fb', role: 'status', 'aria-live': 'polite' });
-    var opts = q.options.map(function (text, i) {
-      return h('button', { class: 'quiz-opt', type: 'button', onclick: function () { choose(i, true); } }, h('span', { class: 'letter', 'aria-hidden': 'true', text: String.fromCharCode(65 + i) }), h('span', { text: text }));
+    var opts = order.map(function (orig, pos) {
+      return h('button', { class: 'quiz-opt', type: 'button', onclick: function () { choose(pos, true); } }, h('span', { class: 'letter', 'aria-hidden': 'true', text: String.fromCharCode(65 + pos) }), h('span', { text: q.options[orig] }));
     });
-    function choose(i, store) {
-      var ok = i === q.answer;
-      opts.forEach(function (b, j) { b.classList.remove('right', 'wrong'); b.setAttribute('aria-pressed', j === i ? 'true' : 'false'); });
-      opts[i].classList.add(ok ? 'right' : 'wrong');
+    function choose(pos, store) {
+      var orig = order[pos], ok = orig === q.answer;
+      opts.forEach(function (b, j) { b.classList.remove('right', 'wrong'); b.setAttribute('aria-pressed', j === pos ? 'true' : 'false'); });
+      opts[pos].classList.add(ok ? 'right' : 'wrong');
       ui.clear(fb);
       fb.appendChild(h('div', { class: 'callout ' + (ok ? 'ok' : 'warn') }, h('strong', { text: ok ? 'Correct. ' : 'Not quite. Try another answer. ' }), ok ? q.why : ''));
-      if (store) { ui.state.quiz[l.id] = { sel: i, ok: ok }; ui.save(); }
+      if (!store) return;
+      var prev = ui.state.quiz[l.id];
+      if (!(prev && prev.ok)) { ui.state.quiz[l.id] = { sel: orig, ok: ok }; ui.save(); } // a right answer is never overwritten
+      G.sound(ok ? 'ok' : 'bad');
+      if (ok) {
+        G.buzz(20);
+        G.award('quiz:' + l.id, ui.XP.quiz, 'Quiz correct');
+        G.quest('lesson');
+      }
     }
-    if (saved) choose(saved.sel, false);
+    var saved = ui.state.quiz[l.id];
+    if (saved) choose(order.indexOf(saved.sel), false);
     return h('div', { class: 'quiz' }, h('p', { class: 'quiz-q', text: q.q }), h('div', { class: 'quiz-opts' }, opts), fb);
   }
 
@@ -262,7 +293,7 @@
     root.appendChild(title(l.number + '  ' + l.title));
     var doneBtn = h('button', { class: 'btn', type: 'button' });
     var nextLink = h('span');
-    root.appendChild(h('p', { class: 'meta' }, h('span', { class: 'pill', text: '⏱ about ' + ui.fmtHours(l.hours) }), ' ', h('span', { class: 'pill', text: l.module.title })));
+    root.appendChild(h('p', { class: 'meta' }, h('span', { class: 'pill', text: '⏱ about ' + ui.fmtHours(l.hours) }), ' ', h('span', { class: 'pill', text: l.module.title }), ' ', h('span', { class: 'pill xp', text: '⭐ up to ' + (ui.XP.lesson(l) + ui.XP.quiz + ui.XP.note) + ' XP' })));
     root.appendChild(h('p', { class: 'lead', text: l.why }));
 
     if (l.concept) root.appendChild(conceptBlock(l));
@@ -305,7 +336,11 @@
     var t;
     notes.addEventListener('input', function () {
       clearTimeout(t);
-      t = setTimeout(function () { if (notes.value.trim()) ui.state.notes[l.id] = notes.value; else delete ui.state.notes[l.id]; ui.save(); }, 400);
+      t = setTimeout(function () {
+        if (notes.value.trim()) ui.state.notes[l.id] = notes.value; else delete ui.state.notes[l.id];
+        ui.save();
+        if (notes.value.trim().length >= 20) { DA.game.award('note:' + l.id, ui.XP.note, 'Note saved'); DA.game.quest('lesson'); }
+      }, 700);
     });
     root.appendChild(h('section', { class: 'block' }, h('h2', { text: '5 · My notes' }), notes, h('p', { class: 'muted small', text: 'Saved automatically in this browser.' })));
 
@@ -322,13 +357,21 @@
       doneBtn.setAttribute('aria-pressed', d ? 'true' : 'false');
       ui.clear(nextLink);
       var nx = DA.lessons[l.index + 1];
-      if (d && nx) nextLink.appendChild(link('#/lesson/' + nx.id, 'btn big', 'Next: ' + nx.title + ' →'));
+      if (d) {
+        nextLink.appendChild(link('#/practice/play/' + encodeURIComponent(l.module.cat), 'btn big', '⚡ 2-minute practice on ' + l.module.cat));
+        if (nx) nextLink.appendChild(link('#/lesson/' + nx.id, 'btn big ghost', 'Next: ' + nx.title + ' →'));
+      }
     }
     doneBtn.addEventListener('click', function () {
+      var G = DA.game;
       if (ui.state.done[l.id]) delete ui.state.done[l.id]; else ui.state.done[l.id] = true;
       ui.save(); ui.refreshChrome(); paintDone();
-      var n = ui.doneCount();
-      if (ui.state.done[l.id]) ui.toast(n === DA.lessons.length ? '🎉 Course complete! Now build and publish your projects.' : 'Lesson complete: ' + n + ' of ' + DA.lessons.length + ' done.');
+      if (ui.state.done[l.id]) {
+        G.award('lesson:' + l.id, ui.XP.lesson(l), 'Lesson complete');
+        G.quest('lesson');
+        G.touch(); // badges that depend on finishing lessons
+        G.confetti(false); G.sound('done'); G.buzz(30);
+      } else { G.touch(); }
     });
     paintDone();
     var prev = DA.lessons[l.index - 1], nxt = DA.lessons[l.index + 1];
@@ -429,7 +472,7 @@
 
   /* ================================================================ router */
 
-  var routes = { '': V.home, profile: V.profile, roadmap: V.roadmap, lesson: V.lesson, lab: V.lab, prompts: V.prompts, tools: V.tools };
+  var routes = { '': 'home', profile: 'profile', roadmap: 'roadmap', lesson: 'lesson', lab: 'lab', practice: 'practice', me: 'me', settings: 'settings', prompts: 'prompts', tools: 'tools' };
   var navOf = { '': 'home', lesson: 'roadmap' };
 
   function parse() {
@@ -440,7 +483,8 @@
   }
 
   function render() {
-    var r = parse(), view = routes[r.name] || V.notFound, node;
+    if (DA.drill && DA.drill.leave) DA.drill.leave(); // leaving a practice round releases held celebrations
+    var r = parse(), view = V[routes[r.name]] || V.notFound, node;
     try { node = view(r.params); } catch (err) {
       if (window.console) console.error(err);
       node = h('div', { class: 'view' }, title('Something went wrong'), h('p', { text: 'This page failed to load. Try going back to the start.' }), link('#/', 'btn', 'Go to the start'));
@@ -454,6 +498,8 @@
       a.classList.toggle('active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
+    var more = document.getElementById('menuBtn');
+    if (more) more.classList.toggle('active', ['me', 'settings', 'prompts', 'tools', 'profile'].indexOf(nav) >= 0);
     var t = document.getElementById('view-title');
     document.title = (t ? t.textContent.replace(/\s+/g, ' ').trim() + ' · ' : '') + 'Data Analyst Path';
     window.scrollTo(0, 0);
@@ -464,6 +510,15 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    ui.applyTheme();
+    if (window.matchMedia) {
+      var mq = window.matchMedia('(prefers-color-scheme: dark)');
+      if (mq.addEventListener) mq.addEventListener('change', function () { ui.applyTheme(); });
+    }
+    if (DA.pwa) {
+      DA.pwa.register();
+      document.addEventListener('pwa-installable', function () { if (parse().name === '') render(); });
+    }
     var mb = document.getElementById('menuBtn');
     mb.addEventListener('click', function () {
       var open = document.body.classList.toggle('menu-open');

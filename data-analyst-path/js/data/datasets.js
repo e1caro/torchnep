@@ -207,6 +207,7 @@
     retail: {
       id: 'retail',
       title: 'Café chain: sales 2025',
+      short: 'Café sales',
       blurb: 'Five cafés, 14 products, 400 customers and 3,200 orders. Good for business, marketing, finance and operations questions.',
       tables: [
         { name: 'stores', note: 'one row per café', cols: [['store_id', 'INTEGER', 'primary key'], ['city', 'TEXT'], ['opened_year', 'INTEGER']] },
@@ -220,6 +221,7 @@
     lab: {
       id: 'lab',
       title: 'Training study: 12 weeks',
+      short: 'Training study',
       blurb: 'A small trial: 60 participants, an intervention and a control group, weekly sessions with fitness measurements. Includes dropouts, missing data and sensor errors. Good for science, health, sport, education and engineering.',
       tables: [
         { name: 'participants', note: 'one row per participant', cols: [['participant_id', 'INTEGER', 'primary key'], ['age', 'INTEGER'], ['sex', 'TEXT', 'F or M'], ['group_name', 'TEXT', 'control or intervention'], ['site', 'TEXT', 'North or South']] },

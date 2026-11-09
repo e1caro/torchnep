@@ -64,17 +64,17 @@
 
     var root = h('div', { class: 'view lab' });
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'SQL Lab' }));
-    root.appendChild(h('p', { class: 'lead', text: 'Practise real SQL on a real database, in your browser. Nothing is uploaded: the database is created on your computer each time you open this page.' }));
+    root.appendChild(h('p', { class: 'lead lab-lead', text: 'Practise real SQL on a real database, in your browser. Nothing is uploaded: the database is created on your computer each time you open this page.' }));
 
     // dataset tabs
     var tabs = h('div', { class: 'tabs', role: 'group', 'aria-label': 'Choose a dataset' },
       Object.keys(DA.datasets).map(function (id) {
-        return h('a', { class: 'tab' + (id === dsId ? ' active' : ''), href: '#/lab/' + id, 'aria-current': id === dsId ? 'page' : null, text: DA.datasets[id].title });
+        return h('a', { class: 'tab' + (id === dsId ? ' active' : ''), href: '#/lab/' + id, 'aria-current': id === dsId ? 'page' : null, text: DA.datasets[id].short || DA.datasets[id].title });
       }));
     root.appendChild(tabs);
-    root.appendChild(h('p', { class: 'muted', text: ds.blurb }));
+    root.appendChild(h('p', { class: 'muted lab-blurb', text: ds.blurb }));
 
-    var status = h('div', { class: 'callout info', role: 'status' }, 'Loading the SQL engine…');
+    var status = h('div', { class: 'callout info compact', role: 'status' }, 'Loading the SQL engine…');
     root.appendChild(status);
 
     var layout = h('div', { class: 'lab-layout' });
@@ -134,39 +134,63 @@
         hintBox, solBox));
     } else {
       main.appendChild(h('div', { class: 'task' }, h('strong', { text: 'Free exploration' }),
-        h('p', { class: 'muted', text: 'Pick a challenge on the left, or explore: look at each table, count rows, find the oldest or newest date, find NULLs. Good analysts always do this first.' })));
+        h('p', { class: 'muted', text: 'Pick a challenge from the list, or explore: look at each table, count rows, find the oldest or newest date, find NULLs. Good analysts always do this first.' })));
     }
 
+    // Typing SQL on a phone is slow: one-tap keywords, table names and symbols (the editor keeps focus, so the keyboard stays open).
+    function insert(text, back) {
+      var a = editor.selectionStart, b = editor.selectionEnd, v = editor.value, prev = v.charAt(a - 1);
+      // keep words apart: "SELECT *" + "FROM" must not become "SELECT *FROM"
+      if (a > 0 && !/[\s(.]/.test(prev) && /^[A-Za-z*]/.test(text)) text = ' ' + text;
+      editor.value = v.slice(0, a) + text + v.slice(b);
+      editor.selectionStart = editor.selectionEnd = a + text.length - (back || 0);
+      drafts[draftKey] = editor.value;
+      editor.focus({ preventScroll: true });
+    }
+    var KEYS = [['SELECT', 'SELECT '], ['FROM', 'FROM '], ['WHERE', 'WHERE '], ['JOIN', 'JOIN '], ['ON', 'ON '], ['GROUP BY', 'GROUP BY '], ['ORDER BY', 'ORDER BY '], ['HAVING', 'HAVING '],
+      ['LIMIT', 'LIMIT '], ['COUNT(*)', 'COUNT(*)'], ['SUM()', 'SUM()', 1], ['AVG()', 'AVG()', 1], ['ROUND()', 'ROUND()', 1], ['AS', ' AS '], ['AND', ' AND '], ['OR', ' OR '], ['DESC', ' DESC'],
+      ['*', '*'], [',', ', '], ['( )', '()', 1], ["'", "''", 1], ['=', ' = '], ['>', ' > '], ['<', ' < '], ['.', '.']];
+    var keys = h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'SQL shortcuts' },
+      ds.tables.map(function (t) { return h('button', { class: 'key table-key', type: 'button', onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(t.name + ' '); } }, t.name); }),
+      KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); }));
+    main.appendChild(keys);
     main.appendChild(editor);
     main.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, resetBtn, aiBtn, schemaBtn));
     main.appendChild(feedback);
     main.appendChild(resultBox);
     main.appendChild(aiBox);
 
-    /* side: schema + challenge list */
-    side.appendChild(h('h2', { class: 'side-title', text: 'Tables' }));
+    /* side: schema + challenge list (collapsible on small screens so the editor comes first) */
+    var inner = h('div', { class: 'side-inner' });
+    var sideBox = h('details', { class: 'side-collapse' }, h('summary', null, '📋 Tables and challenges · ', h('span', { class: 'muted', text: list.filter(function (c) { return ui.state.sql[c.id]; }).length + '/' + list.length + ' solved' })), inner);
+    side.appendChild(sideBox);
+    var narrow = window.matchMedia ? window.matchMedia('(max-width: 1100px)') : null;
+    function syncSide() { sideBox.open = narrow && narrow.matches ? !cur : true; }
+    syncSide();
+    if (narrow && narrow.addEventListener) narrow.addEventListener('change', function () { if (sideBox.isConnected) syncSide(); });
+    inner.appendChild(h('h2', { class: 'side-title', text: 'Tables' }));
     ds.tables.forEach(function (t) {
-      side.appendChild(h('details', { class: 'schema' },
+      inner.appendChild(h('details', { class: 'schema' },
         h('summary', null, h('code', { text: t.name }), h('span', { class: 'muted small', text: ' · ' + t.note })),
         h('ul', null, t.cols.map(function (c) {
-          return h('li', null, h('code', { text: c[0] }), ' ', h('span', { class: 'muted small', text: c[1] + (c[2] ? ' · ' + c[2] : '') }));
+          return h('li', null, h('button', { class: 'col-key', type: 'button', title: 'Insert ' + c[0], 'aria-label': 'Insert column ' + c[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(c[0]); } }, c[0]), ' ', h('span', { class: 'muted small', text: c[1] + (c[2] ? ' · ' + c[2] : '') }));
         })),
         h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
           editor.value = 'SELECT * FROM ' + t.name + ' LIMIT 10;'; drafts[draftKey] = editor.value; editor.focus();
           if (SQL) run(false);
         } }, 'Preview rows')));
     });
-    side.appendChild(h('h2', { class: 'side-title', text: 'Challenges' }));
+    inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges' }));
     var solved = list.filter(function (c) { return ui.state.sql[c.id]; }).length;
-    side.appendChild(h('p', { class: 'muted small', text: solved + ' of ' + list.length + ' solved' }));
-    side.appendChild(ui.progressBar(100 * solved / list.length, 'Challenges solved'));
-    side.appendChild(h('a', { class: 'chal' + (!cur ? ' active' : ''), href: '#/lab/' + dsId }, h('span', { class: 'mark', text: '·' }), 'Free exploration'));
+    inner.appendChild(h('p', { class: 'muted small', text: solved + ' of ' + list.length + ' solved' }));
+    inner.appendChild(ui.progressBar(100 * solved / list.length, 'Challenges solved'));
+    inner.appendChild(h('a', { class: 'chal' + (!cur ? ' active' : ''), href: '#/lab/' + dsId }, h('span', { class: 'mark', text: '·' }), 'Free exploration'));
     [1, 2, 3].forEach(function (lv) {
       var items = list.filter(function (c) { return c.level === lv; });
       if (!items.length) return;
-      side.appendChild(h('div', { class: 'level-label', text: LEVELS[lv] }));
+      inner.appendChild(h('div', { class: 'level-label', text: LEVELS[lv] }));
       items.forEach(function (c) {
-        side.appendChild(h('a', { class: 'chal' + (cur && cur.id === c.id ? ' active' : ''), href: '#/lab/' + dsId + '/' + c.id, 'aria-current': cur && cur.id === c.id ? 'page' : null },
+        inner.appendChild(h('a', { class: 'chal' + (cur && cur.id === c.id ? ' active' : ''), href: '#/lab/' + dsId + '/' + c.id, 'aria-current': cur && cur.id === c.id ? 'page' : null },
           h('span', { class: 'mark', text: ui.state.sql[c.id] ? '✔' : '○' }), c.title));
       });
     });
@@ -203,6 +227,7 @@
       if (!sql) { setFeedback('warn', 'Write a query first.'); return; }
       var db = getDb(SQL, dsId, false);
       var res, t0 = performance.now();
+      ui.state.stats.queries++;
       try {
         res = lastResult(db.exec(sql));
       } catch (e) {
@@ -226,6 +251,9 @@
       if (cmp.ok) {
         var firstTime = !ui.state.sql[cur.id];
         ui.state.sql[cur.id] = true; ui.save();
+        DA.game.award('sql:' + cur.id, ui.XP.sql(cur.level), 'SQL solved');
+        DA.game.quest('sql');
+        DA.game.sound('done'); DA.game.buzz(30); DA.game.confetti(false);
         var idx = list.indexOf(cur), next = list[idx + 1];
         setFeedback('ok', '✔ ' + cmp.message, h('div', { class: 'row' },
           next ? h('a', { class: 'btn small', href: '#/lab/' + dsId + '/' + next.id }, 'Next challenge →') : h('span', { text: ' You finished every challenge in this dataset. 🎉' }),
@@ -269,8 +297,8 @@
       loadEngine().then(function (mod) {
         SQL = mod;
         getDb(SQL, dsId, false);
-        status.className = 'callout ok';
-        status.textContent = 'Ready. SQLite is running in your browser with the "' + ds.title + '" database loaded.';
+        status.className = 'callout ok compact';
+        status.textContent = 'Ready: SQLite is running in your browser with the "' + ds.title + '" database.';
         runBtn.disabled = false;
         if (checkBtn) checkBtn.disabled = false;
         resetBtn.disabled = !dirty;
