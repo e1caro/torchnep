@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Data Analyst Path</title>
+  <meta name="description" content="Learn to become a data analyst starting from your own background: a free roadmap with spreadsheets, SQL, Python, statistics, dashboards, an in-browser SQL lab and AI tutor prompts.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#2563eb">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232563eb'/%3E%3Crect x='14' y='34' width='9' height='16' rx='2' fill='white'/%3E%3Crect x='27' y='24' width='9' height='26' rx='2' fill='white'/%3E%3Crect x='40' y='14' width='9' height='36' rx='2' fill='%2399f6e4'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a class="skip" href="#view">Skip to content</a>
+
+  <header class="topbar">
+    <button id="menuBtn" class="icon-btn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="sidebar">☰</button>
+    <a href="#/" class="brand"><span class="logo" aria-hidden="true">▮▮▮</span> Data Analyst Path</a>
+  </header>
+
+  <div class="scrim" id="scrim"></div>
+
+  <nav id="sidebar" class="sidebar" aria-label="Main">
+    <a href="#/" class="brand"><span class="logo" aria-hidden="true">▮▮▮</span> Data Analyst Path</a>
+    <a id="navProfile" href="#/profile" class="profile-chip" data-nav="profile"></a>
+    <ul class="nav">
+      <li><a href="#/" data-nav="home"><span aria-hidden="true">🏠</span> Home</a></li>
+      <li><a href="#/roadmap" data-nav="roadmap"><span aria-hidden="true">🗺️</span> Roadmap</a></li>
+      <li><a href="#/lab" data-nav="lab"><span aria-hidden="true">🗄️</span> SQL Lab</a></li>
+      <li><a href="#/prompts" data-nav="prompts"><span aria-hidden="true">💬</span> Prompt library</a></li>
+      <li><a href="#/tools" data-nav="tools"><span aria-hidden="true">🤖</span> AI toolbox</a></li>
+    </ul>
+    <div id="navProgress" class="nav-progress"></div>
+    <p class="side-note">Your progress is saved in this browser only.</p>
+  </nav>
+
+  <main id="view" tabindex="-1">
+    <noscript><div class="view"><h1>JavaScript is required</h1><p>This site is a small app that runs entirely in your browser. Please enable JavaScript.</p></div></noscript>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data/backgrounds.js"></script>
+  <script src="js/data/datasets.js"></script>
+  <script src="js/data/curriculum.js"></script>
+  <script src="js/data/prompts.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/sqllab.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
