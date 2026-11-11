@@ -48,13 +48,21 @@
   /* ================================================================ streak (derived) */
 
   // A day counts when its XP goal was reached. One freeze is earned each time the streak hits a multiple
-  // of 7 (max 2 held); a freeze silently covers a missed day. Pure function of S().met, so it merges exactly.
-  G.streak = function () {
-    var days = Object.keys(S().met).sort(), count = 0, best = 0, freezes = 0, prev = null;
+  // of 7 (max 2 held); a freeze silently covers a missed day. A "repaired" day (see repairOffer) does not
+  // count as missed. Pure function of S().met and S().repaired, so two devices merge exactly.
+  function missedDays(a, b) { // whole days strictly between a and b that were neither met nor repaired
+    var gap = ui.diffDays(a, b) - 1, n = 0, i;
+    if (gap <= 0) return 0;
+    if (gap > 14) return gap;
+    for (i = 1; i <= gap; i++) if (!S().repaired[ui.addDays(a, i)]) n++;
+    return n;
+  }
+  function calcStreak(days, today) { // days: sorted goal days, none after `today`
+    var count = 0, best = 0, freezes = 0, prev = null;
     days.forEach(function (d) {
       if (prev === null) count = 1;
       else {
-        var gap = ui.diffDays(prev, d) - 1;
+        var gap = missedDays(prev, d);
         if (gap <= 0) count++;
         else if (freezes >= gap) { freezes -= gap; count++; }
         else count = 1;
@@ -63,14 +71,34 @@
       if (count > best) best = count;
       prev = d;
     });
-    var today = ui.today(), cur = count, atRisk = false;
+    var cur = count, atRisk = false;
     if (prev === null) cur = 0;
     else if (prev !== today) {
-      var missed = ui.diffDays(prev, today) - 1; // whole days since the last goal day, today excluded
+      var missed = missedDays(prev, today); // whole days since the last goal day, today excluded
       if (missed <= 0 || freezes >= missed) atRisk = true; // still alive; today's goal keeps it going
       else cur = 0;
     }
-    return { count: cur, best: Math.max(best, cur), freezes: freezes, metToday: !!S().met[today], atRisk: atRisk, last: prev };
+    return { count: cur, best: Math.max(best, cur), freezes: freezes, metToday: prev === today, atRisk: atRisk, last: prev };
+  }
+  G.streak = function (asOf) {
+    var today = asOf || ui.today();
+    return calcStreak(Object.keys(S().met).filter(function (d) { return d <= today; }).sort(), today);
+  };
+  // 0: under a week, 1: a week or more, 2: a month or more, 3: a hundred days or more (the flame changes colour)
+  G.flameTier = function (n) { return n >= 100 ? 3 : n >= 30 ? 2 : n >= 7 ? 1 : 0; };
+
+  // Streak repair: losing a long streak to ONE missed day makes people quit ("nothing left to lose"), so the
+  // day after a miss you can win it back by earning twice your daily goal. Only when no freeze covered the miss,
+  // only for a run of 3 days or more, and only on the very next day.
+  G.repairOffer = function () {
+    var s = S(), today = ui.today(), y = ui.addDays(today, -1), before = ui.addDays(today, -2);
+    if (s.met[y] || s.repaired[y]) return null;
+    var days = Object.keys(s.met).filter(function (d) { return d < today; }).sort();
+    if (!days.length || days[days.length - 1] !== before) return null;
+    var was = calcStreak(days, before), now = calcStreak(days, today);
+    if (now.count > 0 || was.count < 3) return null;
+    var need = 2 * G.goal(), have = G.dayXp(today);
+    return { streak: was.count, need: need, have: have, left: Math.max(0, need - have), day: y };
   };
 
   /* ================================================================ daily quests */
@@ -90,6 +118,7 @@
       q.chest = 15 + Math.floor(Math.random() * 26); // a small surprise: 15 to 40 bonus XP
       s.xp['chest:' + d] = { d: d, n: q.chest };
       s.stats.questsAll++;
+      s.boost = ui.now().getTime() + G.BOOST_MS; // and everything pays double for a while
       queue({ type: 'chest', xp: q.chest });
     }
     finish(lvBefore);
@@ -133,6 +162,14 @@
     { id: 'verifier', icon: '🔍', name: 'Trust but verify', desc: 'Complete the "Verify AI output" lesson', prog: doneId('l6-2') },
     { id: 'builder', icon: '🛠️', name: 'Builder', desc: 'Complete "Build a project end to end"', prog: doneId('l7-2') },
     { id: 'course', icon: '🎉', name: 'Course complete', desc: 'Complete all lessons', prog: function (s) { return [lessonsDone(s), DA.lessons.length]; } },
+    { id: 'cards-10', icon: '🃏', name: 'Curious', desc: 'Collect 10 Discover cards', prog: function (s) { return [count(s.cards), 10]; } },
+    { id: 'cards-50', icon: '🗂️', name: 'Collector', desc: 'Collect 50 Discover cards', prog: function (s) { return [count(s.cards), 50]; } },
+    { id: 'cards-all', icon: '📚', name: 'Walking encyclopedia', desc: 'Collect every Discover card', prog: function (s) { return [count(s.cards), (DA.feedCards || []).length || 1]; } },
+    { id: 'stories-all', icon: '📜', name: 'Storyteller', desc: 'Collect every data story', prog: function (s) { var st = (DA.feedCards || []).filter(function (c) { return c.cat === 'Stories'; }); return [st.filter(function (c) { return s.cards[c.id]; }).length, st.length || 1]; } },
+    { id: 'corr-8', icon: '🦅', name: 'Eagle eye', desc: 'Score 8 or more in Guess the correlation', prog: function (s) { return [s.stats.corrBest, 8]; } },
+    { id: 'blocks-all', icon: '🧱', name: 'Block builder', desc: 'Solve every SQL blocks puzzle', prog: function (s) { return [count(s.blocks), (DA.puzzles || []).length || 1]; } },
+    { id: 'comeback', icon: '🩹', name: 'Comeback', desc: 'Win back a streak the day after missing', prog: function (s) { return [count(s.repaired), 1]; } },
+    { id: 'beat-week', icon: '📈', name: 'Personal best', desc: 'Earn more XP in a week than in the week before', prog: function () { return [G.weekRace().beaten ? 1 : 0, 1]; } },
   ];
   DA.modules.forEach(function (m) {
     BADGES.push({
@@ -162,10 +199,16 @@
 
   function checkGoal() {
     var s = S(), d = ui.today();
-    if (s.met[d] || G.dayXp(d) < G.goal()) return;
-    s.met[d] = true;
-    s.xp['goal:' + d] = { d: d, n: ui.XP.goalBonus };
-    queue({ type: 'goal' });
+    if (!s.met[d] && G.dayXp(d) >= G.goal()) {
+      s.met[d] = true;
+      s.xp['goal:' + d] = { d: d, n: ui.XP.goalBonus };
+      queue({ type: 'goal' });
+    }
+    var offer = G.repairOffer();
+    if (offer && offer.left === 0) {
+      s.repaired[offer.day] = true;
+      queue({ type: 'repair', streak: offer.streak + 1 });
+    }
   }
 
   function finish(lvBefore) {
@@ -178,33 +221,57 @@
     flushSoon();
   }
 
+  /* XP boost: for 15 minutes after the quest chest opens, activities pay double. */
+  G.BOOST_MS = 15 * 60 * 1000;
+  G.boostLeft = function () { return Math.max(0, (S().boost || 0) - ui.now().getTime()); };
+  function boosted(n) { return G.boostLeft() > 0 ? n * 2 : n; }
+  function boostLabel(label) { return G.boostLeft() > 0 ? (label ? label + ' · 2× boost' : '2× boost') : label; }
+
   // One-time award. The key makes repeats pay nothing. Returns the XP given (0 if already awarded).
   G.award = function (key, n, label) {
     var s = S();
     if (s.xp[key] || n <= 0) return 0;
     var lvBefore = G.level(G.totalXp());
+    label = boostLabel(label); n = boosted(n);
     s.xp[key] = { d: ui.today(), n: n };
     pop('+' + n + ' XP', label);
     finish(lvBefore);
     return n;
   };
 
-  // Accumulating award, used for a practice round (the key identifies the round).
-  G.addXp = function (key, n, label) {
+  // Accumulating award, used for a practice round (the key identifies the round). `cap` limits the key's total.
+  G.addXp = function (key, n, label, cap) {
     var s = S();
     if (n <= 0) return 0;
     var lvBefore = G.level(G.totalXp());
+    label = boostLabel(label); n = boosted(n);
     if (!s.xp[key]) s.xp[key] = { d: ui.today(), n: 0 };
-    s.xp[key].n = Math.min(1000, s.xp[key].n + n);
+    n = Math.min(n, (cap === undefined ? 1000 : cap) - s.xp[key].n);
+    if (n <= 0) { if (!s.xp[key].n) delete s.xp[key]; return 0; }
+    s.xp[key].n += n;
     pop('+' + n + ' XP', label);
     finish(lvBefore);
     return n;
+  };
+
+  // Bonus for finishing every lesson of a module (called when a lesson is completed).
+  G.moduleCheck = function (lesson) {
+    var m = lesson.module;
+    if (m.lessons.every(function (l) { return S().done[l.id]; })) return G.award('module:' + m.id, ui.XP.module, m.title + ' complete');
+    return 0;
   };
 
   // Re-check badges / goal after state changed elsewhere (for example a lesson was unticked).
   G.touch = function () { finish(G.level(G.totalXp())); };
 
   /* ================================================================ summaries for the pages */
+
+  // The last day with any XP (or '' if none): used to welcome people back without making them feel behind.
+  G.lastActive = function () {
+    var x = S().xp, last = '';
+    Object.keys(x).forEach(function (k) { if (x[k].d > last) last = x[k].d; });
+    return last;
+  };
 
   G.today = function () {
     var xp = G.dayXp(ui.today()), goal = G.goal();
@@ -213,6 +280,23 @@
 
   function dow(d) { var p = d.split('-'); return (new Date(+p[0], +p[1] - 1, +p[2]).getDay() + 6) % 7; } // Monday = 0
   var DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // You against your own last week (an honest league: no invented rivals). Weeks start on Monday.
+  // prevSame = what you had earned by the same weekday last week.
+  G.weekRace = function () {
+    var today = ui.today(), di = dow(today), mon = ui.addDays(today, -di), lastMon = ui.addDays(mon, -7), cut = ui.addDays(lastMon, di);
+    var x = S().xp, weeks = {}, prevSame = 0;
+    Object.keys(x).forEach(function (k) {
+      var d = x[k].d;
+      if (!d) return;
+      var wk = ui.addDays(d, -dow(d));
+      weeks[wk] = (weeks[wk] || 0) + x[k].n;
+      if (d >= lastMon && d <= cut) prevSame += x[k].n;
+    });
+    var cur = weeks[mon] || 0, prevAll = weeks[lastMon] || 0, best = 0;
+    Object.keys(weeks).forEach(function (w) { if (w !== mon && weeks[w] > best) best = weeks[w]; });
+    return { cur: cur, prevSame: prevSame, prevAll: prevAll, best: best, ahead: cur - prevSame, day: di, beaten: prevAll > 0 && cur > prevAll };
+  };
 
   G.weekBars = function () {
     var today = ui.today(), out = [];
@@ -335,7 +419,8 @@
       var st = G.streak();
       return { icon: '🎯', title: 'Daily goal reached', text: t.xp + ' XP today' + (st.count > 1 ? ' · ' + st.count + '-day streak 🔥' : '') + '. Everything else today is a bonus.', big: false, snd: 'done', buzz: [30, 40, 30] };
     }
-    if (item.type === 'chest') return { icon: '🎁', title: 'Quest chest opened', text: 'All three daily quests done: +' + item.xp + ' bonus XP.', big: true, snd: 'done', buzz: [30, 40, 30] };
+    if (item.type === 'chest') return { icon: '🎁', title: 'Quest chest opened', text: 'All three daily quests done: +' + item.xp + ' bonus XP, and everything pays double XP for the next 15 minutes.', big: true, snd: 'done', buzz: [30, 40, 30], mood: 'cheer' };
+    if (item.type === 'repair') return { icon: '🩹', title: 'Streak repaired', text: 'You earned twice your goal today, so yesterday is forgiven. ' + item.streak + '-day streak 🔥', big: true, snd: 'level', buzz: [40, 60, 40, 60, 90], mood: 'cheer' };
     return { icon: item.badge.icon, title: 'New badge: ' + item.badge.name, text: item.badge.desc + '.', big: true, snd: 'done', buzz: [30, 40, 30] };
   }
 
