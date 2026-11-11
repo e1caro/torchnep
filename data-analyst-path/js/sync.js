@@ -29,7 +29,8 @@
       if (!out.quiz[id] || (b.quiz[id].ok && !out.quiz[id].ok)) out.quiz[id] = copy(b.quiz[id]);
     });
     Object.keys(b.notes).forEach(function (id) {
-      if (!out.notes[id] || b.notes[id].length > out.notes[id].length) out.notes[id] = b.notes[id];
+      var n = out.notes[id], m = b.notes[id]; // the longer note wins; a fixed tie-break keeps both devices in agreement
+      if (!n || m.length > n.length || (m.length === n.length && m > n)) out.notes[id] = m;
     });
     Object.keys(b.xp).forEach(function (k) {
       if (!out.xp[k] || b.xp[k].n > out.xp[k].n) out.xp[k] = copy(b.xp[k]);

@@ -27,6 +27,8 @@
       p.appendChild(h('div', { class: 'small' }, h('strong', { text: n + ' / ' + total }), ' lessons done'));
       p.appendChild(ui.progressBar(100 * n / total, 'Course progress'));
     }
+    var note = document.getElementById('sideNote');
+    if (note) note.textContent = DA.cloud && DA.cloud.signedIn() ? '☁️ Synced as ' + DA.cloud.user() + '. Sign in with the same account on your other devices.' : 'Your progress is saved on this device. Settings → Sync keeps your phone and computer together.';
     if (DA.game) DA.game.renderHud();
   };
 
@@ -545,7 +547,15 @@
     var scrim = document.getElementById('scrim');
     if (scrim) scrim.addEventListener('click', function () { document.body.classList.remove('menu-open'); mb.setAttribute('aria-expanded', 'false'); });
     window.addEventListener('hashchange', render);
+    // Progress that arrives from another device: refresh the pages where nothing is being typed or played.
+    document.addEventListener('cloud-merged', function () {
+      ui.refreshChrome();
+      if (['', 'me', 'roadmap'].indexOf(parse().name) >= 0) { var y = window.scrollY; render(); window.scrollTo(0, y); }
+      ui.toast('☁️ Progress synced from your other device.');
+    });
+    document.addEventListener('cloud-status', function () { ui.refreshChrome(); });
     ui.refreshChrome();
     render();
+    if (DA.cloud) DA.cloud.start();
   });
 })();

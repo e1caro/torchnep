@@ -10,7 +10,7 @@ global.localStorage = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k,
 global.DA = undefined;
 const files = ['js/data/backgrounds.js', 'js/data/datasets.js', 'js/data/curriculum.js', 'js/data/prompts.js',
   'js/data/questions.js', 'js/data/feed.js', 'js/data/puzzles.js', 'js/ui.js', 'js/game.js', 'js/drill-core.js',
-  'js/feed-core.js', 'js/arcade-core.js', 'js/sync.js'];
+  'js/feed-core.js', 'js/arcade-core.js', 'js/sync.js', 'js/cloud.js'];
 files.forEach((f) => {
   const p = path.join(root, f);
   if (fs.existsSync(p)) (0, eval)(fs.readFileSync(p, 'utf8') + '\n//# sourceURL=' + f);
