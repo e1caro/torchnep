@@ -136,4 +136,5 @@ require('./unit-sync');
 require('./unit-pwa');
 require('./unit-native');
 require('./unit-v3');
+require('./unit-cloud');
 runAll();

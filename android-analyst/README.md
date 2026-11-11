@@ -10,8 +10,9 @@ A small native shell (one `MainActivity`, about 250 lines) around the web app in
   the calendar for the daily reminder, the clipboard and share sheet for the progress code, a file picker for import.
 - An optional **daily notification** (Settings in the app): one local notification a day at the chosen time, scheduled on the phone
   (`Reminder`, `ReminderReceiver`, `BootReceiver`; no server, no exact-alarm permission). Android 13+ asks for permission the first time.
-- It makes no network requests of its own. Progress stays on the phone; Settings has the code that moves it to
-  another device.
+- It makes no network requests of its own. Progress stays on the phone unless you sign in under Settings → *Sync phone
+  and computer*: then the web code (`js/cloud.js`) keeps it in sync with the web version through the account
+  (HTTPS calls to Supabase; the INTERNET permission is already there). The transfer code still works without an account.
 
 ## Build
 

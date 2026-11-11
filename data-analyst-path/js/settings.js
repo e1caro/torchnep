@@ -33,10 +33,79 @@
     try { ui.native().setReminder(!!p.remind, Number(t[0]), Number(t[1]), 'Data Analyst Path', 'Your daily round is ready. Two minutes keeps the habit going.'); } catch (e) { /* older app version */ }
   };
 
+  /* Automatic sync with an account (js/cloud.js). */
+  function when(ms) {
+    if (!ms) return 'not yet';
+    var d = new Date(ms), now = ui.now(), hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    return ui.dateStr(d) === ui.dateStr(now) ? 'today at ' + hm : d.toLocaleDateString() + ' ' + hm;
+  }
+  function syncCard() {
+    var C = DA.cloud, box = h('div', { id: 'syncBox' }), msg = h('p', { class: 'status-line', role: 'status', 'aria-live': 'polite' });
+    var card = section('Sync phone and computer', null, h('div', null, box, msg));
+    card.id = 'sync';
+    function busy(btns, on) { btns.forEach(function (b) { b.disabled = on; }); }
+    var shown = null;
+    function paint() {
+      ui.clear(box);
+      shown = C.signedIn();
+      if (C.signedIn()) {
+        var err = C.lastError();
+        box.appendChild(h('p', { class: 'sync-ok' }, h('strong', { text: '☁️ Signed in as ' + C.user() }), h('br'),
+          h('span', { class: 'muted small', text: 'Progress syncs by itself on every device where you sign in with this account: here, the web and the Android app.' })));
+        box.appendChild(h('p', { class: 'muted small', id: 'syncWhen', text: err ? err : 'Last synced ' + when(C.lastSync()) + '.' }));
+        var now = h('button', { class: 'btn accent', type: 'button', onclick: function () {
+          busy([now, out], true); msg.textContent = 'Syncing…';
+          C.sync().then(function (r) { msg.textContent = r && r.got ? 'Synced: new progress arrived from your other device.' : 'Synced. Everything is up to date.'; },
+            function (e) { msg.textContent = e.message; }).then(function () { busy([now, out], false); });
+        } }, 'Sync now');
+        var out = h('button', { class: 'btn ghost', type: 'button', onclick: function () {
+          C.signOut(); msg.textContent = 'Signed out. Your progress stays on this device and in your account.';
+        } }, 'Sign out');
+        box.appendChild(h('div', { class: 'row' }, now, out));
+        box.appendChild(h('details', { class: 'muted small' }, h('summary', { text: 'Delete my account' }),
+          h('p', { text: 'Deletes the online copy of your progress and the account. This device keeps its progress.' }),
+          h('button', { class: 'btn ghost danger', type: 'button', onclick: function () {
+            if (!window.confirm('Delete your account and its online copy? Your other devices keep what they have, but stop syncing.')) return;
+            C.deleteAccount().then(function () { msg.textContent = 'Account deleted. Your progress is still on this device.'; }, function (e) { msg.textContent = e.message; });
+          } }, 'Delete account')));
+        return;
+      }
+      var user = h('input', { type: 'text', id: 'syncUser', autocomplete: 'username', autocapitalize: 'none', spellcheck: 'false', maxlength: '20', placeholder: 'username', 'aria-label': 'Username' });
+      var pass = h('input', { type: 'password', id: 'syncPass', autocomplete: 'current-password', placeholder: 'password (6+ characters)', 'aria-label': 'Password' });
+      function go(fn, btns, okText) {
+        busy(btns, true); msg.textContent = 'Connecting…';
+        fn(user.value, pass.value).then(function (r) {
+          pass.value = '';
+          ui.refreshChrome();
+          msg.textContent = okText + (r && r.got ? ' Progress from your other device was merged in.' : '');
+          ui.toast('☁️ Sync is on.');
+        }, function (e) { msg.textContent = e.message; busy(btns, false); });
+      }
+      var inBtn = h('button', { class: 'btn accent', type: 'submit' }, 'Sign in');
+      var upBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () { go(C.signUp, [inBtn, upBtn], 'Account created. Now sign in with it on your other device.'); } }, 'Create account');
+      box.appendChild(h('p', { class: 'muted', text: 'Create an account here, then sign in with the same username and password on your other device (web or Android app). From then on your progress syncs by itself, and merging never deletes anything.' }));
+      box.appendChild(h('form', { class: 'sync-form', onsubmit: function (e) { e.preventDefault(); go(C.signIn, [inBtn, upBtn], 'Signed in. Sync is on.'); } },
+        h('label', { for: 'syncUser', class: 'sr-only', text: 'Username' }), user,
+        h('label', { for: 'syncPass', class: 'sr-only', text: 'Password' }), pass,
+        h('div', { class: 'row' }, inBtn, upBtn)));
+      box.appendChild(h('p', { class: 'muted small', text: 'Stored online: only your progress (no e-mail, no name). The password is never saved on this device.' }));
+    }
+    paint();
+    document.addEventListener('cloud-status', function onStatus() {
+      if (!card.isConnected) { document.removeEventListener('cloud-status', onStatus); return; }
+      if (C.signedIn() !== shown) { paint(); return; }
+      var w = document.getElementById('syncWhen');
+      if (w) w.textContent = C.lastError() || 'Last synced ' + when(C.lastSync()) + '.';
+    });
+    return card;
+  }
+
   V.settings = function () {
     var p = ui.state.profile, root = h('div', { class: 'view settings' });
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'Settings' }));
     root.appendChild(h('p', { class: 'lead' }, 'Your background, study hours and language are in ', h('a', { href: '#/profile', text: 'Profile' }), '.'));
+
+    root.appendChild(syncCard());
 
     root.appendChild(section('Daily goal', 'The XP you aim for each day. Reaching it keeps your streak alive. Pick something you can do on a busy day.',
       choice('goal', 'Daily XP goal', [[20, 'Easy · 20 XP', 'A quiz and a note, about 5 minutes'], [40, 'Regular · 40 XP', 'One practice round, about 10 minutes'], [80, 'Serious · 80 XP', 'A lesson and a round, about 30 minutes']],
@@ -100,7 +169,7 @@
       if (ui.native() && ui.native().share) ui.native().share(made);
       else navigator.share({ title: 'Data Analyst Path progress', text: made }).catch(function () { /* cancelled */ });
     } }, 'Share…') : null;
-    var result = h('p', { class: 'status-line', role: 'status', 'aria-live': 'polite' });
+    var result = h('p', { class: 'status-line transfer-result', role: 'status', 'aria-live': 'polite' });
     function merged(r) {
       ui.refreshChrome();
       result.textContent = 'Merged. ' + (r.lessons > 0 ? r.lessons + ' new lesson' + (r.lessons === 1 ? '' : 's') + ', ' : '') + (r.xp > 0 ? '+' + r.xp + ' XP' : 'no new XP') + '. Nothing was overwritten.';
@@ -120,7 +189,7 @@
       r.readAsText(f);
       e.target.value = '';
     } });
-    root.appendChild(section('Use it on phone and computer', 'Progress lives on each device. To move it, create a code here, paste it on the other device, and merge. Merging keeps the best of both and never deletes anything, so you can do it in either direction, any time.',
+    root.appendChild(section('Move progress without an account', 'Prefer no account? Create a code here, paste it on the other device, and merge. Merging keeps the best of both and never deletes anything, so you can do it in either direction, any time.',
       h('div', null,
         h('div', { class: 'sync-step' }, h('h3', { text: '1 · On this device' }),
           h('div', { class: 'row' }, h('button', { class: 'btn accent', type: 'button', onclick: function () {

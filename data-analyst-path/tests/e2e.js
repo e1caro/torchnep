@@ -323,10 +323,10 @@ async function playRound(page, wrongAt = []) {
   ok(before.xp === 0 && before.done === 0, 'phone starts empty');
   await phone.fill('textarea[aria-label^="Paste a transfer code"]', 'garbage');
   await phone.click('button:has-text("Merge into this device")');
-  ok((await txt(phone, '.status-line[role="status"]')).includes('transfer code'), 'phone rejects a bad code with a clear message');
+  ok((await txt(phone, '.transfer-result')).includes('transfer code'), 'phone rejects a bad code with a clear message');
   await phone.fill('textarea[aria-label^="Paste a transfer code"]', code);
   await phone.click('button:has-text("Merge into this device")');
-  await phone.waitForFunction(() => document.querySelector('.status-line[role="status"]').textContent.startsWith('Merged'));
+  await phone.waitForFunction(() => document.querySelector('.transfer-result').textContent.startsWith('Merged'));
   const after = await phone.evaluate(() => ({ xp: DA.game.totalXp(), done: Object.keys(DA.ui.state.done).length, bg: DA.ui.state.profile.bg, srs: Object.keys(DA.ui.state.srs).length, streak: DA.game.streak().count }));
   const desk = await page.evaluate(() => ({ xp: DA.game.totalXp(), done: Object.keys(DA.ui.state.done).length, streak: DA.game.streak().count }));
   ok(after.xp === desk.xp && after.done === desk.done && after.streak === desk.streak, 'phone now has the same XP (' + after.xp + '), lessons and streak as the desktop');

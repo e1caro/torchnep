@@ -34,9 +34,10 @@ The habit layer is designed not to manipulate: everything is earned by learning 
 **Phone and computer**
 - **Installable and offline.** It is a PWA: *Install app* (Android/desktop Chrome and Edge) or *Add to Home Screen* (iPhone). After the first visit everything, including the SQL engine, works with no connection.
 - **Phone layout.** Bottom tab bar, safe areas for notches, 44px touch targets, 16px inputs (no iOS zoom), focus mode during practice rounds, light/dark/auto theme.
-- **Move progress between devices** with no account and no server: Settings → *Create code* on one device, paste it on the other and *Merge*. Merging keeps the best of both (lessons and SQL are unioned, XP is a ledger of uniquely keyed awards, the review schedule keeps whichever device reviewed a question last) and never deletes anything, so you can do it in either direction at any time. A backup file works too.
+- **Automatic sync between phone and computer.** Settings → *Sync phone and computer*: create an account (just a username and a password) on one device and sign in with it on the others, web or Android app. From then on progress syncs by itself: when the app opens, a few seconds after each change, when you come back to it and every two minutes while it is open. Every sync **merges** (the same merge as below), so working on two devices, even offline, never loses anything. It uses the free Supabase project that FitQuest's accounts already use (`js/cloud.js`, plain `fetch`, no library): only the progress is stored, in this account's row of the `saves` table that no one else can read (row-level security); accounts are separate from FitQuest's; the password is never stored on the device, and the account can be deleted from Settings.
+- **Move progress without an account**: Settings → *Create code* on one device, paste it on the other and *Merge*. Merging keeps the best of both (lessons and SQL are unioned, XP is a ledger of uniquely keyed awards, the review schedule keeps whichever device reviewed a question last) and never deletes anything, so you can do it in either direction at any time. A backup file works too.
 - **Daily reminder** as a repeating calendar event with an alarm (Settings → *Add to my calendar*).
-- **Private.** Everything is stored in your browser. No server, no tracking, no external requests when it runs.
+- **Private.** Everything is stored in your browser. No tracking, and no external requests unless you turn on sync.
 
 ## Run it
 
@@ -64,10 +65,12 @@ files, copying, sharing and the calendar reminder go through a small native brid
 ## Tests
 
 ```bash
-node tests/unit.js                                   # 61 tests, Node only
+node tests/unit.js                                   # 70 tests, Node only
 BASE=http://localhost:8000 node tests/e2e.js          # real browser (needs: npm i -g playwright)
+BASE=http://localhost:8000 node tests/e2e-cloud.js    # a computer and a phone syncing through a fake account service
 ```
 
+- `tests/unit-cloud.js` (part of `unit.js`): sign up / sign in on two devices against a fake Supabase, nothing lost in either direction, no writes when nothing changed, one sync per burst of changes, expired and revoked sessions, offline, clear error messages, account deletion.
 - `tests/unit-v3.js` (part of `unit.js`): feed content rules and sequencing, double XP, streak repair, week race, the correlation generator (the answer shown is the true correlation of the picture) and every SQL blocks puzzle executed on the practice database.
 - `tests/unit.js`: XP, levels, streaks and freezes (with a fake clock and daylight-saving edges), quests, badges, the review schedule, the question bank, state merging (idempotent, commutative, no double-counted XP), transfer codes, the calendar file, and static checks that `sw.js`, the manifest and `index.html` agree with the files on disk.
 - `tests/e2e.js`: plays a practice round, completes a lesson and a SQL challenge, checks quests, chest and badges, moves progress from a desktop to a phone profile, checks the phone layout (no sideways scrolling, tab bar, touch targets), then goes offline and checks the app, the SQL engine and practice still work.
@@ -99,6 +102,7 @@ js/path.js              the learning path
 js/drill-core.js        question picking and spaced repetition (pure logic)
 js/drill.js             practice lobby and round screen
 js/sync.js              merge, transfer code, calendar reminder (pure logic)
+js/cloud.js             automatic sync with an account (Supabase REST)
 js/pwa.js               service worker, install prompt, update notice
 js/me.js                You page: level, streak calendar, weekly chart, badges
 js/settings.js          daily goal, theme, reminder, devices, reset
