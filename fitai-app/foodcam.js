@@ -136,7 +136,7 @@ const _fcCard = foodCard;
 foodCard = function () { return _fcCard().replace('</h3>', `</h3>${fcBtn()}`); };
 const _fcMeals = mealsView;
 mealsView = function (arg) { _fcMeals(arg); if (!arg) view.querySelector('h1')?.insertAdjacentHTML('afterend', fcBtn()); };
-Object.assign(routes, { meals: mealsView });
+if (MEALS_ON) routes.meals = mealsView;
 
 if (typeof i18nAdd === 'function') i18nAdd({
   'Photo of your meal': 'Foto de tu comida', 'Rate a photo of my meal': 'Valorar una foto de mi comida', 'Take a photo': 'Hacer una foto', 'From the gallery': 'De la galería',

@@ -187,10 +187,10 @@ function foodCard() {
       ${j.unknown.length ? `<div class="mut">Not recognised: <span translate="no">${esc(j.unknown.slice(0, 3).join(', '))}</span></div>` : ''}
       <div class="fltip">${foodTip(j)}</div><button class="btn sm ghost" onclick="foodClear()">OK</button></div>`;
   }
-  return `<section class="card foodlog"><h3>${gi('chef', 'hero')} Ate something off the plan?</h3>
+  return `<section class="card foodlog"><h3>${gi('chef', 'hero')} ${MEALS_ON ? 'Ate something off the plan?' : 'What did you eat?'}</h3>
     ${res || `<textarea rows="2" placeholder="Describe it, e.g. grilled chicken with salad, or a burger with fries and a coke"></textarea>
     <button class="btn" onclick="foodJudge()">Judge my food</button>`}
-    ${day.length ? `<div class="lbl">Today off the plan · ${fmtK(kc)} kcal · ${xp > 0 ? '+' : ''}${xp} XP</div>
+    ${day.length ? `<div class="lbl">${MEALS_ON ? 'Today off the plan' : 'Eaten today'} · ${fmtK(kc)} kcal · ${xp > 0 ? '+' : ''}${xp} XP</div>
       ${day.map(e => `<div class="row flrow"><span class="fldot t${e.tier}"></span><span class="grow" translate="no">${esc(e.text)}</span><b class="${e.xp > 0 ? 'up' : e.xp < 0 ? 'down' : ''}">${e.xp > 0 ? '+' : ''}${e.xp}</b><button class="icon" aria-label="Remove" onclick="foodUndo(${e.t})">✕</button></div>`).join('')}` : ''}
   </section>`;
 }
@@ -201,13 +201,14 @@ home = function () {
   _flHome();
   const anchor = view.querySelector(':scope > section.card.mealsnow, :scope > section.card[onclick*="#/meals"]');
   if (anchor) anchor.insertAdjacentHTML('afterend', foodCard());
+  else [...view.querySelectorAll(':scope > h2.sec')].find(h => h.textContent === 'Fuel')?.insertAdjacentHTML('beforebegin', foodCard());
 };
 const _flMeals = mealsView;
 mealsView = function (arg) { _flMeals(arg); }; // the food log lives on Today's Meals panel only
-Object.assign(routes, { home, meals: mealsView });
+Object.assign(routes, MEALS_ON ? { home, meals: mealsView } : { home });
 
 if (typeof i18nAdd === 'function') i18nAdd({
-  'Ate something off the plan?': '¿Comiste algo fuera del plan?', 'Judge my food': 'Juzgar mi comida',
+  'Ate something off the plan?': '¿Comiste algo fuera del plan?', 'What did you eat?': '¿Qué has comido?', 'Eaten today': 'Comido hoy', Nutrition: 'Nutrición', 'Judge my food': 'Juzgar mi comida',
   'Describe it, e.g. grilled chicken with salad, or a burger with fries and a coke': 'Descríbelo, p. ej. pollo a la plancha con ensalada, o una hamburguesa con patatas fritas y una coca-cola',
   'Describe what you ate.': 'Describe lo que comiste.', 'Excellent choice': 'Excelente elección', 'Good choice': 'Buena elección', 'So-so': 'Regular',
   'Not very healthy': 'Poco saludable', 'Junk food': 'Comida basura', 'About {n} kcal.': 'Unos {n} kcal.',

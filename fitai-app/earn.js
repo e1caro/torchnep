@@ -14,7 +14,7 @@ const mealsEaten = () => M.plan?.week === weekId() ? M.plan.days.reduce((s, d) =
 const WQ = [
   { id: 'w-train', t: 'Train 4 times this week', ico: 'lifter', n: 4, v: () => S.history.filter(h => h.t >= weekStart()).length, xp: 200, coins: 45 },
   { id: 'w-dungeon', t: 'Clear 2 dungeons', ico: 'gate', n: 2, v: () => S.history.filter(h => h.t >= weekStart() && h.dungeon).length, xp: 250, coins: 60, chest: 'wood', need: () => lvl() >= 2 },
-  { id: 'w-meals', t: 'Eat 15 planned meals', ico: 'cutlery', n: 15, v: mealsEaten, xp: 200, coins: 45, need: () => !!M.set },
+  { id: 'w-meals', t: 'Eat 15 planned meals', ico: 'cutlery', n: 15, v: mealsEaten, xp: 200, coins: 45, need: () => MEALS_ON && !!M.set },
   { id: 'w-water', t: 'Hit your water goal on 4 days', ico: 'water', n: 4, v: () => wkState().waterDays, xp: 150, coins: 38 },
   { id: 'w-weigh', t: 'Log your weight twice', ico: 'scale', n: 2, v: () => S.weights.filter(x => x.t >= weekStart()).length, xp: 100, coins: 23 },
 ];
@@ -186,7 +186,7 @@ function earn() {
   <details class="card earnlist"><summary>Everything that pays</summary>
     ${[['lifter', 'Each exercise', 'up to 26 XP by its medal (stretches up to 5)'], ['swords', 'Workout cleared', '40 XP, + chest for dungeons'], ['trophy', 'New personal record', '20 XP each (40 with a level perk)'], ['flame', 'Training streak', 'up to ×1.5 XP'],
       ['gate', 'Dungeons', '×1.3 to ×3.5 XP, dungeon of the day ×1.5'], ['scroll', 'Daily quests', 'coins each, bonus chest for all of them'], ['calendar', 'Weekly quests', 'coins'],
-      ['golem', 'Weekly boss', '100 coins + a chest'], ['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP'], ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
+      ['golem', 'Weekly boss', '100 coins + a chest'], ...(MEALS_ON ? [['cutlery', 'Meals eaten', '15 XP each, perfect day +40 XP']] : []), ['water', 'Water', '3 XP a glass, +20 at your goal'], ['sleep', 'Sleep 7 h+', '20 XP'],
       ['scale', 'Weigh-in', '15 XP'], ['crate', 'Daily check-in', 'coins, silver chest on day 7'], ['slot', 'Daily spin', 'coins or a chest'], ['medal', 'Badges', 'titles for your profile'], ['upgrade', 'Level-ups', 'a silver chest (golden every 5th), meals, workouts, perks and level-only looks']]
       .map(([i, a, b]) => `<div class="row between"><span>${gi(i, 'hero')} ${a}</span><b class="mut">${b}</b></div>`).join('')}
   </details>`;

@@ -150,7 +150,7 @@ const QT = [
   { id: 'dungeon', t: 'Clear a dungeon', n: 1, m: 'dungeons', xp: 100, ico: 'gate', needLv: 2 },
   { id: 'water', t: 'Drink 8 glasses of water', n: 8, m: 'water', xp: 40, ico: 'water' },
   { id: 'sleep', t: 'Sleep 7 hours or more', n: 7, m: 'sleep', xp: 40, ico: 'sleep' },
-  { id: 'meals', t: 'Eat 3 planned meals', n: 3, m: 'meals', xp: 50, ico: 'cutlery', need: () => typeof M !== 'undefined' && !!M.set },
+  { id: 'meals', t: 'Eat 3 planned meals', n: 3, m: 'meals', xp: 50, ico: 'cutlery', need: () => MEALS_ON && typeof M !== 'undefined' && !!M.set },
 ];
 const metric = m => m === 'guides' ? G.today.guides.length : (G.today[m] || 0);
 

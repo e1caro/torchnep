@@ -81,7 +81,7 @@ public class MainActivity extends Activity {
         // the web app reads these: it runs in the APK, which web version it shows, which native shell it has, and
         // whether it came from Google Play (no self-updates there)
         s.setUserAgentString(s.getUserAgentString() + " FitQuestApp/" + shown + " FitQuestShell/" + BuildConfig.SHELL
-                + (BuildConfig.SELF_UPDATE ? "" : " FitQuestStore/play"));
+                + (BuildConfig.STORE.isEmpty() ? "" : " FitQuestStore/" + BuildConfig.STORE));
         web.addJavascriptInterface(new Bridge(), "FitQuestNative");
         web.setWebViewClient(new WebViewClient() {
             @Override

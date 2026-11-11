@@ -142,7 +142,7 @@ async function weekCard(w, prev, goal) {
 
   // the highlight: what the week's kilos weigh like, or the best record
   const thing = typeof liftedThing === 'function' ? liftedThing(w.kg, document.documentElement.dataset.skin || 'clean') : null, pr0 = w.prs[0];
-  const hl = thing ? [thing.emo, es ? `Como levantar ${thing.name}` : `Like lifting ${thing.name}`, es ? `${fmtN(w.kg)} kg en total esta semana` : `${fmtN(w.kg)} kg in total this week`]
+  const hl = thing ? [thing.emo, es ? `Como levantar ${thing.name}` : `Like lifting ${thing.name}`, es ? 'Lo que has levantado esta semana' : 'What you lifted this week']
     : pr0 ? ['🏆', `${BY[pr0.id]?.n || ''}: ${pr0.w} kg`, es ? 'nuevo récord' : 'new record'] : ['🔥', es ? 'Cada semana cuenta' : 'Every week counts', es ? 'La próxima, a por todas' : 'Next week, go all in'];
   glass(60, 1630, 960, 132, 66);
   font(400, 66, 'sans-serif'); x.fillText(hl[0], 94, 1720);

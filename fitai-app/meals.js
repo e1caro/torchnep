@@ -280,7 +280,7 @@ function fmtAmt(k, g, up = false) {
 }
 
 // ---------- views ----------
-const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Train</a><a class="${on === 'dun' ? 'on' : ''}" href="#/dungeons">Dungeons</a><a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a></div>`;
+const seg = on => `<div class="seg"><a class="${on === 'train' ? 'on' : ''}" href="#/plan">Train</a><a class="${on === 'dun' ? 'on' : ''}" href="#/dungeons">Dungeons</a>${MEALS_ON ? `<a class="${on === 'meals' ? 'on' : ''}" href="#/meals">Meals</a>` : ''}</div>`;
 
 function mealSetup() {
   const st = M.set || { diet: 'any', avoid: [], meals: 4, variety: 'simple', style: 'none', cuisines: [], times: [30, 30, 30, 30, 30, 60, 60] };
@@ -464,10 +464,13 @@ function mealsCard() {
 
 // ---------- hooks into existing screens ----------
 const _plan = planView; planView = function () { _plan(); if (view.querySelector('h1')) view.insertAdjacentHTML('afterbegin', seg('train')); };
-const _home2 = home;
-home = function () {
-  _home2();
-  const fuel = [...view.querySelectorAll('h2.sec')].find(h => h.textContent === 'Fuel');
-  if (fuel) fuel.insertAdjacentHTML('beforebegin', mealsCard());
-};
-Object.assign(routes, { plan: planView, home, meals: mealsView, recipe: recipeView, shop: groceryView });
+if (MEALS_ON) {
+  const _home2 = home;
+  home = function () {
+    _home2();
+    const fuel = [...view.querySelectorAll('h2.sec')].find(h => h.textContent === 'Fuel');
+    if (fuel) fuel.insertAdjacentHTML('beforebegin', mealsCard());
+  };
+  Object.assign(routes, { home, meals: mealsView, recipe: recipeView, shop: groceryView });
+}
+routes.plan = planView;
