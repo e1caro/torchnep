@@ -878,5 +878,5 @@ main:has(.feedview) { padding-top: 14px; padding-bottom: 14px; }
   .feed { border-radius: 22px; }
   .tabbar a.active, .tabbar button.active { background: var(--accent-soft); }
 }
-@media (max-height: 640px) { .fc-inner p { font-size: .96rem; line-height: 1.48; } .fc-inner { gap: 8px; } }
+@media (max-height: 700px) { .fc-inner p { font-size: .96rem; line-height: 1.48; } .fc-inner { gap: 8px; } .crime-chart { max-height: 132px; } .fc-title { font-size: 1.3rem; } .fc-inner .fc-take { font-size: .92rem; padding: 8px 10px; } }
 @media (prefers-reduced-motion: reduce) { .mascot, .mascot *, .view, .node-start, .node.current .node-face::after, .hud-chip.boost, .fcard.just .fc-got { animation: none !important; } }

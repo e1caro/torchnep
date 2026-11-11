@@ -8,6 +8,8 @@ A small native shell (one `MainActivity`, about 250 lines) around the web app in
 - A WebView cannot save files, copy, share, pick files or show `confirm()` boxes on its own, so the shell adds
   them (`window.AnalystNative`, used by `ui.native()` in `js/ui.js`): the system "save as" screen for CSV and backups,
   the calendar for the daily reminder, the clipboard and share sheet for the progress code, a file picker for import.
+- An optional **daily notification** (Settings in the app): one local notification a day at the chosen time, scheduled on the phone
+  (`Reminder`, `ReminderReceiver`, `BootReceiver`; no server, no exact-alarm permission). Android 13+ asks for permission the first time.
 - It makes no network requests of its own. Progress stays on the phone; Settings has the code that moves it to
   another device.
 
