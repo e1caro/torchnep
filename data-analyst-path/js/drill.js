@@ -47,6 +47,8 @@
         return h('div', { class: 'stat' }, h('b', { text: String(x[1]) }), h('span', { text: x[0] }));
       })));
 
+    root.appendChild(h('h2', { class: 'section-h', text: 'Arcade' }));
+    root.appendChild(DA.arcade.tiles());
     root.appendChild(ui.callout('info', 'How review works. ', 'A question you get right returns after 1, 3, 7, 14 and then 30 days. A miss comes back sooner. "Mastered" means you answered it correctly on several different days.'));
     return root;
   }
@@ -174,7 +176,7 @@
       var t = G.today(), qs = G.quests(), left = 3 - (qs.lesson ? 1 : 0) - (qs.drill ? 1 : 0) - (qs.sql ? 1 : 0);
       var li = G.levelInfo();
       stage.appendChild(h('div', { class: 'results' },
-        h('div', { class: 'res-ring' }, G.ring(pct, pct === 100), h('b', { text: pct + '%' })),
+        h('div', { class: 'res-top' }, DA.mascot.svg(perfect ? 'cheer' : pct >= 60 ? 'proud' : 'happy', 96), h('div', { class: 'res-ring' }, G.ring(pct, pct === 100), h('b', { text: pct + '%' }))),
         h('h2', { id: 'results-title', tabindex: '-1', text: perfect ? 'Perfect round!' : pct >= 60 ? 'Round complete' : 'Good practice' }),
         h('p', { class: 'muted', text: R.correct + ' of ' + R.total + ' right on the first try' + (R.best >= 3 ? ' · best combo ' + R.best : '') }),
         h('div', { class: 'stat-row' },

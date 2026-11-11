@@ -430,7 +430,7 @@
     showing = true;
     var btn = h('button', { class: 'btn big accent', type: 'button', onclick: close }, q.length ? 'Next' : 'Continue');
     var box = h('div', { class: 'modal', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': 'modal-title' },
-      h('div', { class: 'modal-icon', 'aria-hidden': 'true', text: c.icon }),
+      h('div', { class: 'modal-art', 'aria-hidden': 'true' }, DA.mascot ? DA.mascot.svg(c.mood || 'cheer', 104) : null, h('span', { class: 'modal-icon', text: c.icon })),
       h('h2', { id: 'modal-title', text: c.title }),
       h('p', { text: c.text }),
       btn);
@@ -474,7 +474,8 @@
     var h = ui.h, t = G.today(), li = G.levelInfo(), st = t.streak;
     var streakLabel = 'Streak: ' + st.count + ' day' + (st.count === 1 ? '' : 's') + (st.metToday ? ', today done' : st.count ? ', today still open' : '');
     return [
-      h('a', { class: 'hud-chip streak' + (st.metToday ? ' lit' : st.atRisk && st.count ? ' risk' : ''), href: '#/me', 'aria-label': streakLabel }, h('span', { 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) })),
+      G.boostLeft() > 0 ? h('a', { class: 'hud-chip boost', href: '#/practice', 'aria-label': 'Double XP for ' + Math.ceil(G.boostLeft() / 60000) + ' more minutes' }, h('span', { 'aria-hidden': 'true', text: '⚡' }), h('b', { text: '2× ' + Math.ceil(G.boostLeft() / 60000) + 'm' })) : null,
+      h('a', { class: 'hud-chip streak t' + G.flameTier(st.count) + (st.metToday ? ' lit' : st.atRisk && st.count ? ' risk' : ''), href: '#/me', 'aria-label': streakLabel }, h('span', { class: 'flame', 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) })),
       h('a', { class: 'hud-chip lvl', href: '#/me', 'aria-label': 'Level ' + li.level + ', ' + li.title }, h('span', { 'aria-hidden': 'true', text: '⭐' }), h('b', { text: 'Lv ' + li.level })),
       h('a', { class: 'hud-chip goal', href: '#/me', 'aria-label': 'Daily goal: ' + t.xp + ' of ' + t.goal + ' XP' + (t.met ? ', reached' : '') }, ring(t.pct, t.met), h('b', { text: t.met ? '✓' : t.xp + '/' + t.goal })),
     ];
@@ -483,7 +484,7 @@
   G.renderHud = function () {
     if (!hasDom()) return;
     var h = ui.h, top = document.getElementById('hudTop'), side = document.getElementById('hudSide');
-    if (top) { ui.clear(top); hudChips().forEach(function (c) { top.appendChild(c); }); }
+    if (top) { ui.clear(top); hudChips().forEach(function (c) { if (c) top.appendChild(c); }); }
     if (side) {
       var li = G.levelInfo();
       ui.clear(side);

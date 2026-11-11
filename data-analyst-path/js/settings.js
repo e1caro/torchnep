@@ -23,6 +23,16 @@
     return h('label', { class: 'toggle' }, input, h('span', null, h('strong', { text: label }), h('span', { class: 'muted small', text: desc })));
   }
 
+  /* The Android app's daily notification (see android-analyst/). The text never mentions a streak length:
+   * it is written today for tomorrow, and must still be true then. */
+  var R = (DA.reminder = {});
+  R.available = function () { var n = ui.native(); return !!(n && n.setReminder); };
+  R.sync = function () {
+    if (!R.available()) return;
+    var p = ui.state.profile, t = p.remindAt.split(':');
+    try { ui.native().setReminder(!!p.remind, Number(t[0]), Number(t[1]), 'Data Analyst Path', 'Your daily round is ready. Two minutes keeps the habit going.'); } catch (e) { /* older app version */ }
+  };
+
   V.settings = function () {
     var p = ui.state.profile, root = h('div', { class: 'view settings' });
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'Settings' }));
@@ -48,15 +58,38 @@
     root.appendChild(section('Phone and computer', 'Install it like an app, on as many devices as you like.', h('div', null, offline,
       inst || h('p', { class: 'muted small', text: DA.pwa.standalone() ? 'You are using the installed app.' : 'Your browser offers an install option in its menu ("Install app" or "Add to Home Screen").' }))));
 
-    // reminder
-    var time = h('input', { type: 'time', id: 'remTime', value: '19:00', 'aria-label': 'Reminder time' });
-    root.appendChild(section('Daily reminder', 'Websites cannot send reliable notifications without a server, so use your own calendar: this adds a repeating 15-minute event with an alarm.',
-      h('div', { class: 'row' }, h('label', { for: 'remTime', class: 'muted', text: 'Remind me at' }), time,
-        h('button', { class: 'btn', type: 'button', onclick: function () {
-          var url = ui.native() ? '' : location.href.split('#')[0]; // inside the app the address means nothing to a calendar
-          ui.download('data-analyst-path-daily.ics', Y.ics(time.value || '19:00', url), 'text/calendar;charset=utf-8');
-          ui.toast('Open the downloaded file to add it to your calendar.');
-        } }, '📅 Add to my calendar'))));
+    // reminder: a real notification inside the Android app, a calendar event on the web
+    if (DA.reminder.available()) {
+      var nat = ui.native(), remMsg = h('p', { class: 'status-line', role: 'status', 'aria-live': 'polite' });
+      var remTime = h('input', { type: 'time', id: 'remTime', value: p.remindAt, 'aria-label': 'Reminder time', onchange: function () {
+        if (/^\d\d:\d\d$/.test(remTime.value)) { p.remindAt = remTime.value; ui.save(); DA.reminder.sync(); if (p.remind) remMsg.textContent = 'Reminder set for ' + p.remindAt + ' every day.'; }
+      } });
+      window.onNativePermission = function (ok) {
+        if (!ok) { p.remind = false; ui.save(); DA.reminder.sync(); remMsg.textContent = 'Notifications are not allowed for this app. You can allow them in your phone\'s settings.'; if (location.hash === '#/settings') location.reload(); }
+        else remMsg.textContent = 'Reminder set for ' + p.remindAt + ' every day.';
+      };
+      root.appendChild(section('Daily reminder', 'One gentle notification a day at the time you choose. No nagging: it never repeats or counts what you missed.', h('div', null,
+        toggle('Remind me every day', 'A notification from this app on this phone', p.remind, function (v) {
+          p.remind = v; ui.save(); DA.reminder.sync();
+          if (!v) { remMsg.textContent = 'Reminder off.'; return; }
+          var perm = nat.notificationPermission ? nat.notificationPermission() : 'granted';
+          if (perm === 'ask') nat.requestNotificationPermission();
+          else if (perm === 'denied') window.onNativePermission(false);
+          else remMsg.textContent = 'Reminder set for ' + p.remindAt + ' every day.';
+        }),
+        h('div', { class: 'row' }, h('label', { for: 'remTime', class: 'muted', text: 'At' }), remTime,
+          h('button', { class: 'btn ghost', type: 'button', onclick: function () { if (nat.testReminder) nat.testReminder(); } }, 'Send a test')),
+        remMsg)));
+    } else {
+      var time = h('input', { type: 'time', id: 'remTime', value: p.remindAt, 'aria-label': 'Reminder time' });
+      root.appendChild(section('Daily reminder', 'Websites cannot send reliable notifications without a server, so use your own calendar: this adds a repeating 15-minute event with an alarm. (The Android app has a built-in daily notification.)',
+        h('div', { class: 'row' }, h('label', { for: 'remTime', class: 'muted', text: 'Remind me at' }), time,
+          h('button', { class: 'btn', type: 'button', onclick: function () {
+            var url = ui.native() ? '' : location.href.split('#')[0]; // inside the app the address means nothing to a calendar
+            ui.download('data-analyst-path-daily.ics', Y.ics(time.value || '19:00', url), 'text/calendar;charset=utf-8');
+            ui.toast('Open the downloaded file to add it to your calendar.');
+          } }, '📅 Add to my calendar'))));
+    }
 
     // move progress
     var out = h('textarea', { class: 'code-box', rows: '3', readonly: true, 'aria-label': 'Your transfer code', placeholder: 'Press "Create code" and it appears here.' });

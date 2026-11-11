@@ -1,10 +1,13 @@
 package io.github.e1caro.analystpath;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
@@ -43,7 +46,8 @@ import java.nio.charset.StandardCharsets;
  *  - save files (CSV practice data, backups): the system "save as" screen, no storage permission needed;
  *  - open the calendar reminder (.ics) straight in the calendar app;
  *  - copy to the clipboard and the system share sheet (to send the progress code to your other device);
- *  - pick a file (import a backup), and show confirm / alert boxes.
+ *  - pick a file (import a backup), and show confirm / alert boxes;
+ *  - one optional notification a day at the time chosen in Settings (Reminder, ReminderReceiver, BootReceiver).
  * The web side finds these through window.AnalystNative (see ui.native in js/ui.js).
  */
 public class MainActivity extends Activity {
@@ -51,6 +55,7 @@ public class MainActivity extends Activity {
     private static final String START = "https://" + HOST + "/assets/www/index.html";
     private static final int REQ_SAVE = 41;
     private static final int REQ_PICK = 42;
+    private static final int REQ_NOTIFY = 43;
 
     private WebView web;
     private ValueCallback<Uri[]> chooser;
@@ -157,6 +162,7 @@ public class MainActivity extends Activity {
             getOnBackInvokedDispatcher().registerOnBackInvokedCallback(OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::goBackOrFinish);
         }
 
+        Reminder.schedule(this); // keeps the daily reminder alive if the system dropped it
         if (state == null || web.restoreState(state) == null) web.loadUrl(START);
     }
 
@@ -218,6 +224,16 @@ public class MainActivity extends Activity {
                 }
             }
         }
+    }
+
+    private SharedPreferences prefs() { return getSharedPreferences("app", MODE_PRIVATE); }
+
+    @Override
+    public void onRequestPermissionsResult(int code, String[] perms, int[] res) {
+        super.onRequestPermissionsResult(code, perms, res);
+        if (code != REQ_NOTIFY) return;
+        boolean ok = res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED;
+        web.evaluateJavascript("window.onNativePermission&&onNativePermission(" + ok + ")", null);
     }
 
     private void toast(String text) { Toast.makeText(this, text, Toast.LENGTH_SHORT).show(); }
@@ -282,6 +298,32 @@ public class MainActivity extends Activity {
                     // no app can share text
                 }
             });
+        }
+
+        // ---------- the daily reminder ----------
+        @JavascriptInterface
+        public void setReminder(boolean on, int hour, int minute, String title, String text) {
+            Reminder.save(MainActivity.this, on, Math.max(0, Math.min(23, hour)), Math.max(0, Math.min(59, minute)), title, text);
+        }
+
+        @JavascriptInterface
+        public void testReminder() {
+            ReminderReceiver.show(MainActivity.this);
+        }
+
+        /** "granted", "ask" (the system will show its question) or "denied" (only the phone's settings can change it). */
+        @JavascriptInterface
+        public String notificationPermission() {
+            if (Build.VERSION.SDK_INT < 33) return "granted";
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED) return "granted";
+            return shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS) || !prefs().getBoolean("asked", false) ? "ask" : "denied";
+        }
+
+        @JavascriptInterface
+        public void requestNotificationPermission() {
+            if (Build.VERSION.SDK_INT < 33) return;
+            prefs().edit().putBoolean("asked", true).apply();
+            runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFY));
         }
 
         @JavascriptInterface

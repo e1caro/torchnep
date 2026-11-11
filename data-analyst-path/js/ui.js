@@ -123,7 +123,7 @@
   function fresh() {
     return {
       v: 2,
-      profile: { bg: '', custom: '', lang: 'English', hours: 8, goal: '', dailyGoal: 40, theme: 'auto', sound: false, haptics: true },
+      profile: { bg: '', custom: '', lang: 'English', hours: 8, goal: '', dailyGoal: 40, theme: 'auto', sound: false, haptics: true, remind: false, remindAt: '19:00' },
       done: {}, quiz: {}, notes: {}, sql: {},
       xp: {},      // award key -> {d: 'YYYY-MM-DD' ('' for carried-over XP), n}. A ledger, so two devices can be merged.
       met: {},     // date -> true when that day's XP goal was reached (streaks are derived from this)
@@ -160,6 +160,8 @@
     if (p.theme === 'light' || p.theme === 'dark' || p.theme === 'auto') s.profile.theme = p.theme;
     if (typeof p.sound === 'boolean') s.profile.sound = p.sound;
     if (typeof p.haptics === 'boolean') s.profile.haptics = p.haptics;
+    if (typeof p.remind === 'boolean') s.profile.remind = p.remind;
+    if (typeof p.remindAt === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.remindAt)) s.profile.remindAt = p.remindAt;
 
     eachKey(src.done, function (id, v) { if (v === true && DA.lessonById[id]) s.done[id] = true; });
     eachKey(src.sql, function (id, v) { if (v === true && DA.challenges.some(function (c) { return c.id === id; })) s.sql[id] = true; });

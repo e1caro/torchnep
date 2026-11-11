@@ -47,22 +47,45 @@
     return null;
   }
 
+  // This week against your own last week (no invented rivals).
+  function raceCard() {
+    var r = DA.game.weekRace(), max = Math.max(r.cur, r.prevAll, 1), msg;
+    if (!r.prevAll) msg = r.cur ? 'Your first week on record: ' + r.cur + ' XP so far. Next week you race against it.' : 'Earn XP this week and next week you will have a record to beat.';
+    else if (r.beaten) msg = 'You have already beaten all of last week (' + r.prevAll + ' XP). 🎉';
+    else if (r.ahead >= 0) msg = 'You are ' + r.ahead + ' XP ahead of where you were at this point last week.';
+    else msg = (-r.ahead) + ' XP behind last week\'s pace. A practice round is worth about 40.';
+    function bar(label, v, cls) {
+      return h('div', { class: 'race-row' }, h('span', { class: 'race-label', text: label }),
+        h('div', { class: 'race-track' }, h('div', { class: 'race-bar ' + cls, style: 'width:' + Math.max(v ? 3 : 0, 100 * v / max) + '%' })),
+        h('b', { text: String(v) }));
+    }
+    return h('section', { class: 'card race', 'aria-labelledby': 'race-h' },
+      h('h2', { id: 'race-h', text: 'You vs. last week' }),
+      bar('This week', r.cur, 'now'),
+      r.prevAll ? bar('Last week by now', r.prevSame, 'then') : null,
+      r.prevAll ? bar('Last week, total', r.prevAll, 'all') : null,
+      h('p', { class: 'muted small', text: msg }));
+  }
+
   function todayCard() {
     var G = DA.game, t = G.today(), st = t.streak, qs = t.quests, nx = ui.nextLesson(), due = DA.drill.dueCount(), sq = nextChallenge();
-    var left = Math.max(0, t.goal - t.xp), msg;
+    var left = Math.max(0, t.goal - t.xp), msg, offer = G.repairOffer(), boost = G.boostLeft();
+    var touch = !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches); // on a phone, tiles beat typing SQL
     if (t.met) msg = 'Daily goal reached. Anything more today is a bonus.';
     else if (st.count > 0 && st.atRisk) msg = left + ' XP keeps your ' + st.count + '-day streak going.';
     else msg = left + ' XP today' + (st.count ? '' : ' starts a streak') + '.';
     var rows = [
       { done: qs.lesson, icon: '📘', name: 'Learn', text: 'Finish a lesson, a quiz or a note', href: nx ? '#/lesson/' + nx.id : '#/roadmap', cta: 'Go' },
       { done: qs.drill, icon: '⚡', name: 'Practise', text: due ? due + ' due for review · one 5-question round' : 'One 5-question round, about 2 minutes', href: '#/practice/play', cta: 'Start' },
-      { done: qs.sql, icon: '🗄️', name: 'Code', text: sq ? 'Solve a SQL challenge: ' + sq.title : 'Practise in the SQL Lab', href: sq ? '#/lab/' + sq.ds + '/' + sq.id : '#/lab', cta: 'Open' },
+      touch
+        ? { done: qs.sql, icon: '🧱', name: 'Code', text: 'Solve 3 puzzles in a round of SQL blocks (no typing)', href: '#/arcade/blocks', cta: 'Build' }
+        : { done: qs.sql, icon: '🗄️', name: 'Code', text: sq ? 'Solve a SQL challenge: ' + sq.title : 'Practise in the SQL Lab', href: sq ? '#/lab/' + sq.ds + '/' + sq.id : '#/lab', cta: 'Open' },
     ];
     return h('section', { class: 'card today', 'aria-labelledby': 'today-h' },
       h('div', { class: 'today-top' },
         h('div', { class: 'today-ring' }, G.ring(t.pct, t.met), h('b', { text: t.met ? '✓' : t.xp + '/' + t.goal })),
         h('div', { class: 'grow' }, h('h2', { id: 'today-h', text: 'Today' }), h('p', { class: 'muted', text: msg })),
-        h('div', { class: 'streak-big' + (st.metToday ? ' lit' : ''), 'aria-label': st.count + ' day streak' }, h('span', { 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) }), h('small', { text: st.count === 1 ? 'day' : 'days' }))),
+        h('div', { class: 'streak-big t' + G.flameTier(st.count) + (st.metToday ? ' lit' : ''), 'aria-label': st.count + ' day streak' }, h('span', { 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) }), h('small', { text: st.count === 1 ? 'day' : 'days' }))),
       h('ul', { class: 'quests' }, rows.map(function (r) {
         return h('li', { class: r.done ? 'done' : '' },
           h('span', { class: 'q-check', 'aria-hidden': 'true', text: r.done ? '✓' : '' }),
@@ -73,6 +96,8 @@
       h('p', { class: 'chest' + (qs.all ? ' open' : '') },
         h('span', { 'aria-hidden': 'true', text: qs.all ? '🎉' : '🎁' }), ' ',
         qs.all ? 'Quest chest opened: +' + qs.chest + ' bonus XP' : 'Finish all three for a surprise chest of 15 to 40 bonus XP'),
+      boost > 0 ? h('p', { class: 'boost-line' }, h('span', { 'aria-hidden': 'true', text: '⚡ ' }), 'Double XP for ' + Math.ceil(boost / 60000) + ' more min') : null,
+      offer ? h('p', { class: 'repair-line' }, h('span', { 'aria-hidden': 'true', text: '🩹 ' }), 'Streak repair: ' + (offer.left ? 'earn ' + offer.left + ' more XP today' : 'done') + ' and your ' + offer.streak + '-day streak comes back.') : null,
       st.freezes ? h('p', { class: 'muted small', text: '❄️ ' + st.freezes + ' streak freeze' + (st.freezes === 1 ? '' : 's') + ' saved: a missed day will not break your streak.' }) : null);
   }
 
@@ -85,44 +110,59 @@
       root.appendChild(h('section', { class: 'hero' },
         h('p', { class: 'eyebrow', text: 'Free · hands-on · AI-assisted' }),
         title('Become a data analyst, starting from what you already know.'),
-        h('p', { class: 'lead', text: 'A step-by-step course built around your own background. Learn spreadsheets, SQL, Python, statistics and dashboards, with an AI tutor you know how to use, and a SQL lab that runs in your browser.' }),
+        h('p', { class: 'lead', text: 'A step-by-step path built around your own background, in ten minutes a day: bite-size lessons, a feed of data stories, quick games, a SQL lab and an AI tutor you know how to use.' }),
+        DA.mascot.say('happy', 'Hi, I\'m Dot. Tell me where you come from and I will tune everything to you.', link('#/profile', 'btn accent', 'Start (1 minute)')),
         h('div', { class: 'row' },
-          link('#/profile', 'btn big accent', 'Start: tell me your background (1 minute)'),
-          link('#/roadmap', 'btn big ghost', 'See the roadmap'))));
+          link('#/feed', 'btn big ghost', 'Peek at Discover'),
+          link('#/roadmap', 'btn big ghost', 'See the path'))));
     } else {
-      var next = ui.nextLesson(), n = ui.doneCount(), total = DA.lessons.length, li = DA.game.levelInfo();
-      var remaining = DA.totalHours - ui.doneHours();
-      root.appendChild(h('section', { class: 'hero compact' },
-        h('p', { class: 'eyebrow', text: b.icon + ' ' + (b.custom ? 'Your own background' : b.name) }),
-        title(n === total ? 'You finished the course. 🎉' : greeting()),
-        ui.state.profile.goal ? h('p', { class: 'lead' }, 'Your goal: ', h('strong', { text: ui.state.profile.goal })) : null));
+      var G = DA.game, next = ui.nextLesson(), n = ui.doneCount(), total = DA.lessons.length, li = G.levelInfo();
+      var remaining = DA.totalHours - ui.doneHours(), line = DA.mascot.homeLine();
+      root.appendChild(h('section', { class: 'hero-card' },
+        h('div', { class: 'hero-top' },
+          h('div', { class: 'grow' },
+            h('p', { class: 'eyebrow', text: b.icon + ' ' + (b.custom ? 'Your own background' : b.name) }),
+            title(n === total ? 'You finished the course. 🎉' : greeting()),
+            ui.state.profile.goal ? h('p', { class: 'hero-goal' }, 'Goal: ', h('strong', { text: ui.state.profile.goal })) : null),
+          h('a', { class: 'hero-level', href: '#/me', 'aria-label': 'Level ' + li.level + ', ' + li.title + '. ' + li.next + ' XP to the next level.' },
+            h('small', { text: 'LEVEL' }), h('b', { text: String(li.level) }), h('span', { text: li.title }))),
+        DA.mascot.say(line.mood, line.text, line.href ? link(line.href, 'btn small', line.cta) : null)));
 
       root.appendChild(todayCard());
       if (DA.pwa) { var inst = DA.pwa.installCard(); if (inst) root.appendChild(inst); }
 
-      var grid = h('div', { class: 'grid-3' });
-      grid.appendChild(card('Level ' + li.level, h('div', null,
-        h('p', { class: 'next-title', text: li.title }),
+      if (next) {
+        var col = DA.unitColor(DA.modules.indexOf(next.module));
+        root.appendChild(h('a', { class: 'next-card', href: '#/lesson/' + next.id, style: '--mc:' + col[0] + ';--mcd:' + col[1] },
+          h('span', { class: 'next-icon', 'aria-hidden': 'true', text: next.module.icon }),
+          h('span', { class: 'grow' },
+            h('small', { text: (n === 0 ? 'Start here' : 'Up next') + ' · Lesson ' + next.number + ' · ' + ui.fmtHours(next.hours) + ' · +' + ui.XP.lesson(next) + ' XP' }),
+            h('strong', { text: next.title }),
+            h('span', { class: 'next-unit', text: next.module.title + ' · ' + ui.moduleDone(next.module) + '/' + next.module.lessons.length + ' done' })),
+          h('span', { class: 'next-go', 'aria-hidden': 'true', text: '→' })));
+      }
+
+      var teaser = DA.feed.teaser();
+      if (teaser) root.appendChild(teaser);
+      root.appendChild(raceCard());
+
+      root.appendChild(h('section', { class: 'section tight' }, h('h2', { text: 'Arcade' }), DA.arcade.tiles()));
+
+      var grid = h('div', { class: 'grid-2' });
+      grid.appendChild(card('Level ' + li.level + ' · ' + li.title, h('div', null,
         ui.progressBar(li.pct, 'Progress to level ' + (li.level + 1)),
         h('p', { class: 'muted small', text: li.xp + ' XP · ' + li.next + ' to level ' + (li.level + 1) }),
         link('#/me', 'small', 'Badges and streak →'))));
-      grid.appendChild(card(next ? 'Up next' : 'All done', next
-        ? h('div', null, h('p', { class: 'next-title' }, h('span', { class: 'muted', text: next.number + ' · ' }), next.title), h('p', { class: 'muted small', text: next.module.title + ' · ' + ui.fmtHours(next.hours) + ' · +' + ui.XP.lesson(next) + ' XP' }), link('#/lesson/' + next.id, 'btn accent', n === 0 ? 'Start lesson' : 'Continue'))
-        : h('p', { text: 'Keep practising in the SQL Lab and build more projects.' })));
       grid.appendChild(card('Course progress', h('div', null,
-        h('p', { class: 'big-num' }, n, h('small', { text: ' / ' + total + ' lessons' })),
         ui.progressBar(100 * n / total, 'Course progress'),
-        h('p', { class: 'muted small', text: (remaining > 0 ? 'About ' + weeksText(weeksFor(remaining)) + ' to go at ' + ui.state.profile.hours + ' h / week' : 'Course complete') }))));
+        h('p', { class: 'muted small', text: n + ' of ' + total + ' lessons · ' + (remaining > 0 ? 'about ' + weeksText(weeksFor(remaining)) + ' to go at ' + ui.state.profile.hours + ' h / week' : 'course complete') }),
+        link('#/roadmap', 'small', 'Open your path →'))));
       root.appendChild(grid);
 
-      var two = h('div', { class: 'grid-2' });
-      two.appendChild(card('Your edge', list(b.strengths), 'good'));
-      two.appendChild(card('Gaps to close', list(b.gaps), 'gap'));
-      root.appendChild(two);
-
-      root.appendChild(card('A first portfolio idea from your background', h('div', null,
-        h('p', { text: b.projects[0] }),
-        link('#/lesson/l7-1', 'small', 'More ideas in the portfolio lesson →'))));
+      root.appendChild(h('details', { class: 'card fold' },
+        h('summary', null, h('strong', { text: 'Your edge, your gaps and a first project idea' })),
+        h('div', { class: 'grid-2' }, card('Your edge', list(b.strengths), 'good'), card('Gaps to close', list(b.gaps), 'gap')),
+        h('p', null, h('strong', { text: 'Project idea: ' }), b.projects[0], ' ', link('#/lesson/l7-1', 'small', 'More ideas →'))));
     }
 
     if (!b) {
@@ -146,12 +186,14 @@
       root.appendChild(ui.callout('info', 'Realistic expectations. ', 'The plan is about ' + Math.round(DA.totalHours) + ' hours of focused work. At 8 hours a week that is roughly 4 months. It prepares you for junior analyst applications; it cannot promise a job, because that depends on your market, projects and persistence.'));
     }
 
-    // module overview
-    root.appendChild(h('section', { class: 'section' },
-      h('h2', { text: 'The roadmap at a glance' }),
-      h('div', { class: 'modules-mini' }, DA.modules.map(function (m, i) {
-        return link('#/roadmap', 'mini', [h('span', { class: 'mini-icon', 'aria-hidden': 'true', text: m.icon }), h('span', null, h('strong', { text: m.title }), h('small', { text: ui.moduleDone(m) + '/' + m.lessons.length + ' lessons' }))]);
-      }))));
+    // module overview (first visit only: afterwards the Path tab shows it)
+    if (!b) {
+      root.appendChild(h('section', { class: 'section' },
+        h('h2', { text: 'The path at a glance' }),
+        h('div', { class: 'modules-mini' }, DA.modules.map(function (m) {
+          return link('#/roadmap', 'mini', [h('span', { class: 'mini-icon', 'aria-hidden': 'true', text: m.icon }), h('span', null, h('strong', { text: m.title }), h('small', { text: m.lessons.length + ' lessons' }))]);
+        }))));
+    }
     return root;
   };
 
@@ -202,44 +244,6 @@
     root.appendChild(form);
 
     root.appendChild(h('p', { class: 'muted' }, 'Daily goal, theme, reminders, installing the app and moving progress between devices are in ', link('#/settings', '', 'Settings'), '.'));
-    return root;
-  };
-
-  /* ================================================================ roadmap */
-
-  V.roadmap = function () {
-    var root = h('div', { class: 'view' });
-    var n = ui.doneCount(), total = DA.lessons.length, hpw = ui.state.profile.hours;
-    root.appendChild(title('Your roadmap'));
-    root.appendChild(h('p', { class: 'lead', text: DA.modules.length + ' modules, ' + total + ' lessons, about ' + Math.round(DA.totalHours) + ' hours. At ' + hpw + ' hours a week that is ' + weeksText(weeksFor(DA.totalHours)) + '.' }));
-    root.appendChild(h('div', { class: 'row between' }, h('div', { class: 'grow' }, ui.progressBar(100 * n / total, 'Course progress')), h('strong', { class: 'small', text: n + ' / ' + total + ' done' })));
-
-    var cum = 0;
-    DA.modules.forEach(function (m, mi) {
-      var mh = m.lessons.reduce(function (s, l) { return s + l.hours; }, 0);
-      var w1 = Math.floor(cum / hpw) + 1, w2 = Math.max(w1, Math.ceil((cum + mh) / hpw));
-      cum += mh;
-      var done = ui.moduleDone(m);
-      root.appendChild(h('section', { class: 'module' },
-        h('header', null,
-          h('span', { class: 'mod-icon', 'aria-hidden': 'true', text: m.icon }),
-          h('div', { class: 'grow' }, h('h2', { text: (mi + 1) + '. ' + m.title }), h('p', { class: 'muted', text: m.goal })),
-          h('div', { class: 'mod-meta' }, h('strong', { text: done + '/' + m.lessons.length }), h('small', { text: 'Weeks ' + (w1 === w2 ? w1 : w1 + '–' + w2) + ' · ' + ui.fmtHours(mh) }))),
-        h('ol', { class: 'lessons' }, m.lessons.map(function (l) {
-          var d = ui.state.done[l.id];
-          return h('li', { class: d ? 'done' : '' }, h('a', { href: '#/lesson/' + l.id },
-            h('span', { class: 'check', 'aria-hidden': 'true', text: d ? '✔' : '' }),
-            h('span', { class: 'ltitle' }, h('span', { class: 'muted', text: l.number + ' ' }), l.title, d ? h('span', { class: 'sr-only', text: ' (completed)' }) : null),
-            h('span', { class: 'lhours', text: ui.fmtHours(l.hours) })));
-        }))));
-    });
-
-    root.appendChild(h('section', { class: 'section' },
-      h('h2', { text: 'A weekly rhythm that works' }),
-      h('div', { class: 'grid-3' },
-        card('2 × learn', h('p', { text: 'Read one lesson and ask your AI tutor to explain anything unclear. Stop when you can explain it in your own words.' })),
-        card('2 × practise', h('p', { text: 'Do the hands-on task and the SQL Lab challenges. Practice is where the skill appears.' })),
-        card('1 × review', h('p', { text: 'Ask the AI to quiz you on the week, update your error log and write your notes.' })))));
     return root;
   };
 
@@ -369,6 +373,7 @@
       if (ui.state.done[l.id]) {
         G.award('lesson:' + l.id, ui.XP.lesson(l), 'Lesson complete');
         G.quest('lesson');
+        G.moduleCheck(l);
         G.touch(); // badges that depend on finishing lessons
         G.confetti(false); G.sound('done'); G.buzz(30);
       } else { G.touch(); }
@@ -472,8 +477,9 @@
 
   /* ================================================================ router */
 
-  var routes = { '': 'home', profile: 'profile', roadmap: 'roadmap', lesson: 'lesson', lab: 'lab', practice: 'practice', me: 'me', settings: 'settings', prompts: 'prompts', tools: 'tools' };
-  var navOf = { '': 'home', lesson: 'roadmap' };
+  var routes = { '': 'home', profile: 'profile', roadmap: 'roadmap', lesson: 'lesson', lab: 'lab', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
+    me: 'me', settings: 'settings', prompts: 'prompts', tools: 'tools' };
+  var navOf = { '': 'home', lesson: 'roadmap', collection: 'feed' };
 
   function parse() {
     var parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean).map(function (s) {
@@ -484,6 +490,8 @@
 
   function render() {
     if (DA.drill && DA.drill.leave) DA.drill.leave(); // leaving a practice round releases held celebrations
+    if (DA.feed && DA.feed.leave) DA.feed.leave();
+    if (DA.arcade && DA.arcade.leave) DA.arcade.leave();
     var r = parse(), view = V[routes[r.name]] || V.notFound, node;
     try { node = view(r.params); } catch (err) {
       if (window.console) console.error(err);
@@ -499,7 +507,7 @@
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     var more = document.getElementById('menuBtn');
-    if (more) more.classList.toggle('active', ['me', 'settings', 'prompts', 'tools', 'profile'].indexOf(nav) >= 0);
+    if (more) more.classList.toggle('active', ['me', 'settings', 'prompts', 'tools', 'profile', 'lab', 'arcade'].indexOf(nav) >= 0);
     var t = document.getElementById('view-title');
     document.title = (t ? t.textContent.replace(/\s+/g, ' ').trim() + ' · ' : '') + 'Data Analyst Path';
     window.scrollTo(0, 0);
@@ -519,6 +527,13 @@
       DA.pwa.register();
       document.addEventListener('pwa-installable', function () { if (parse().name === '') render(); });
     }
+    var boostWas = false;
+    setInterval(function () { // keep the double-XP countdown fresh, and clear it when it ends
+      var on = DA.game.boostLeft() > 0;
+      if (on || boostWas) ui.refreshChrome();
+      boostWas = on;
+    }, 20000);
+    if (DA.reminder) DA.reminder.sync();
     var mb = document.getElementById('menuBtn');
     mb.addEventListener('click', function () {
       var open = document.body.classList.toggle('menu-open');

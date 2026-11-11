@@ -70,7 +70,8 @@ async function playRound(page, wrongAt = []) {
   /* ---------- first visit and onboarding ---------- */
   await page.goto(BASE + '/index.html');
   ok((await txt(page, 'h1')).startsWith('Become a data analyst'), 'first visit shows the welcome hero');
-  await page.click('text=Start: tell me your background');
+  ok(await page.locator('.hero .mascot').count() === 1, 'Dot the mascot greets a new visitor');
+  await page.click('.dot-bubble a:has-text("Start")');
   await page.click('label.bg-card:has-text("Sports, fitness")');
   await page.selectOption('#lang', 'Spanish');
   await page.fill('#goal', 'Sports analyst');
@@ -175,6 +176,125 @@ async function playRound(page, wrongAt = []) {
   ok((await txt(page, '.heat-caption')).includes('XP'), 'tapping a day shows its XP');
   await page.screenshot({ path: path.join(SHOTS, 'desktop-me.png'), fullPage: true });
 
+  /* ---------- home: mascot, boost, week race, teaser ---------- */
+  await page.goto(BASE + '/index.html#/');
+  await page.waitForSelector('.hero-card');
+  ok(await page.locator('.hero-card .dot-bubble').count() === 1 && (await txt(page, '.hero-card .dot-bubble')).length > 20, 'home: Dot says something useful: "' + (await txt(page, '.hero-card .dot-bubble p')).slice(0, 60) + '…"');
+  ok(await page.locator('.hud-chip.boost').count() >= 1, 'double-XP boost is running after the quest chest (shown in the HUD)');
+  ok(await page.locator('.race .race-row').count() >= 1 && await page.locator('.teaser .teaser-card').count() === 3, 'home shows the week race and three Discover picks');
+  ok(await page.locator('.next-card').count() === 1 && await page.locator('.arcade-tiles .game-tile').count() === 2, 'home shows the next lesson and the arcade');
+
+  /* ---------- Discover feed ---------- */
+  const mult = async () => page.evaluate(() => (DA.game.boostLeft() > 0 ? 2 : 1));
+  await page.goto(BASE + '/index.html#/feed/card/s-wald');
+  await page.waitForSelector('.fcard[data-id="s-wald"]');
+  ok((await txt(page, '.fcard[data-id="s-wald"] .fc-title')) === 'The bullet holes that were missing', 'feed opens on the linked card');
+  const xpF = await page.evaluate(() => DA.game.totalXp()), m1 = await mult();
+  await page.waitForFunction(() => !!DA.ui.state.cards['s-wald'], null, { timeout: 6000 });
+  ok(await page.locator('.fcard[data-id="s-wald"].got').count() === 1, 'staying on a card collects it');
+  ok((await page.evaluate(() => DA.game.totalXp())) - xpF === 2 * m1, 'collecting pays ' + (2 * m1) + ' XP' + (m1 === 2 ? ' (doubled by the boost)' : ''));
+  await dismissModals(page, 900);
+  await page.click('.fcard[data-id="s-wald"] .fc-act >> nth=0');
+  ok(await page.evaluate(() => DA.feed.isSaved('s-wald')), 'the save button bookmarks the card');
+  const snap = await page.evaluate(async () => {
+    const f = document.querySelector('.feed'), before = f.scrollTop;
+    f.focus();
+    return { h: f.clientHeight, before, snapType: getComputedStyle(f).scrollSnapType, cards: f.querySelectorAll('.fcard').length };
+  });
+  await page.keyboard.press('ArrowDown');
+  await page.waitForFunction((h) => Math.abs(document.querySelector('.feed').scrollTop - h) < 3, snap.h, { timeout: 4000 });
+  ok(snap.snapType.includes('y') && snap.cards >= 3, 'arrow key moves exactly one card (scroll snap ' + snap.snapType + ')');
+  await page.evaluate(() => { const f = document.querySelector('.feed'); f.scrollTop = f.scrollHeight; });
+  await page.waitForFunction((n) => document.querySelectorAll('.feed .fcard').length > n, snap.cards, { timeout: 4000 });
+  ok(true, 'more cards load as you scroll');
+  // a review question inside the feed
+  const quizInfo = await page.evaluate(() => {
+    const el = document.querySelector('.feed .k-quiz');
+    if (!el) return null;
+    el.scrollIntoView();
+    const q = DA.drill.bank().find((x) => x.q === el.querySelector('.fc-title').textContent);
+    const opts = [...el.querySelectorAll('.opt-text')].map((o) => o.textContent);
+    return { id: q.id, right: opts.indexOf(q.options[q.answer]) };
+  });
+  ok(!!quizInfo && quizInfo.right >= 0, 'the feed mixes in a review question');
+  await page.locator('.feed .k-quiz').first().locator('.quiz-opt').nth(quizInfo.right).click();
+  await page.waitForSelector('.feed .k-quiz .quiz-fb .callout.ok');
+  ok(await page.evaluate((id) => !!DA.ui.state.xp['fq:' + DA.ui.today() + ':' + id] && !!DA.ui.state.srs[id], quizInfo.id), 'answering it pays XP once and feeds the review schedule');
+  await dismissModals(page, 900);
+  // myth or fact
+  await page.goto(BASE + '/index.html#/feed/card/m-left');
+  await page.waitForSelector('.fcard[data-id="m-left"] .mf');
+  await page.click('.fcard[data-id="m-left"] .mf >> nth=0'); // "Myth" is the wrong answer here
+  await page.waitForSelector('.fcard[data-id="m-left"] .fc-verdict .callout');
+  ok((await txt(page, '.fcard[data-id="m-left"] .fc-verdict')).includes('It is a fact'), 'myth-or-fact card reveals the answer and explains it');
+  await dismissModals(page, 900);
+  // chart crime
+  await page.goto(BASE + '/index.html#/feed/card/h-truncate');
+  await page.waitForSelector('.fcard[data-id="h-truncate"] svg.crime-chart');
+  ok((await txt(page, '.fcard[data-id="h-truncate"] .crime-tag')) === 'CRIME', 'chart-crime card starts with the crime');
+  await page.click('.fcard[data-id="h-truncate"] button:has-text("Show the fix")');
+  ok((await txt(page, '.fcard[data-id="h-truncate"] .crime-tag')) === 'FIXED' && await page.evaluate(() => !!DA.ui.state.cards['h-truncate']), 'the fix toggles, and seeing it collects the card');
+  await dismissModals(page, 900);
+  // daily five and the collection
+  await page.evaluate(() => { ['q-box', 'w-grain'].forEach((id) => DA.feed.markRead(id)); });
+  await dismissModals(page, 1200);
+  ok(await page.evaluate(() => DA.feed.readToday() >= 5 && !!DA.ui.state.xp['feed5:' + DA.ui.today()]), 'five new cards in a day pays the Discover bonus');
+  await page.goto(BASE + '/index.html#/collection');
+  await page.waitForSelector('.col-grid');
+  ok(await page.locator('.col-card.got').count() === 5 && await page.locator('.col-card').count() === 131, 'collection shows 5 of 131 cards');
+  await page.goto(BASE + '/index.html#/feed/Saved');
+  await page.waitForSelector('.fcard');
+  ok(await page.locator('.fcard[data-id]').count() === 1, 'Saved shows only the bookmarked card');
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-feed.png') });
+
+  /* ---------- learning path ---------- */
+  await page.goto(BASE + '/index.html#/roadmap');
+  await page.waitForSelector('.unit');
+  const pathInfo = await page.evaluate(() => ({ units: document.querySelectorAll('.unit').length, lessons: document.querySelectorAll('a.node[href^="#/lesson/"]').length, current: document.querySelectorAll('.node.current').length, done: document.querySelectorAll('.node.done:not(.chest)').length }));
+  ok(pathInfo.units === 9 && pathInfo.lessons === 29 && pathInfo.current === 1 && pathInfo.done === 1, 'path: 9 units, 29 lesson stops, one done, one marked as next');
+  await page.click('.node.current');
+  await page.waitForSelector('.lesson');
+  ok((await txt(page, 'h1')).includes('Learn with AI'), 'the pulsing stop opens the next lesson');
+
+  /* ---------- arcade ---------- */
+  await page.goto(BASE + '/index.html#/arcade/corr');
+  await page.waitForSelector('.scatter');
+  ok(await page.locator('.scatter .sc-pt').count() === 40, 'correlation game draws 40 points');
+  for (let i = 0; i < 40 && !(await page.locator('.results').count()); i++) {
+    await page.click('.qcard button:has-text("Guess")');
+    await page.waitForSelector('.quiz-fb .callout');
+    if (i === 0) ok(/r = -?\d\.\d\d/.test(await txt(page, '.quiz-fb .callout')) && await page.locator('.scatter .sc-line').count() === 1, 'a guess reveals the real correlation and the trend line');
+    await page.click('.quiz-fb .btn');
+  }
+  await page.waitForSelector('.results');
+  ok(await page.evaluate(() => DA.ui.state.stats.corrGames === 1), 'the game ends after three misses and the score is saved');
+  await dismissModals(page, 900);
+  await page.goto(BASE + '/index.html#/arcade/blocks');
+  await page.waitForSelector('.bank .tile');
+  await page.waitForFunction(() => !!window.initSqlJs, null, { timeout: 15000 });
+  await page.waitForTimeout(400);
+  for (let i = 0; i < 5; i++) {
+    await page.waitForSelector('.bank .tile:not([disabled])');
+    const ask = await txt(page, '.qtext');
+    const tiles = await page.evaluate((a) => DA.puzzles.find((p) => p.ask === a).tiles, ask);
+    if (i === 0) { // a wrong answer first: only the first tile
+      await page.evaluate((t) => [...document.querySelectorAll('.bank .tile:not([disabled])')].find((b) => b.textContent === t).click(), tiles[0]);
+      await page.click('button:has-text("Check")');
+      await page.waitForSelector('.quiz-fb .callout.warn');
+      ok((await txt(page, '.quiz-fb .callout.warn')).length > 12, 'SQL blocks: an unfinished query is rejected with the reason: "' + (await txt(page, '.quiz-fb .callout.warn')).slice(0, 70) + '"');
+      await page.click('button:has-text("Clear")');
+    }
+    for (const t of tiles) await page.evaluate((text) => [...document.querySelectorAll('.bank .tile:not([disabled])')].find((b) => b.textContent === text).click(), t);
+    await page.click('button:has-text("Check")');
+    await page.waitForSelector('.quiz-fb .callout.ok');
+    await page.click('.quiz-fb .btn.big');
+    await dismissModals(page, 500);
+  }
+  await page.waitForSelector('.results');
+  ok(await page.evaluate(() => Object.keys(DA.ui.state.blocks).length === 5 && DA.ui.state.stats.blockRounds === 1), 'SQL blocks: five puzzles solved by tapping tiles, checked by running the query');
+  await dismissModals(page, 1200);
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-blocks-results.png') });
+
   /* ---------- settings: goal, theme, reminder ---------- */
   await page.goto(BASE + '/index.html#/settings');
   await page.waitForSelector('.settings');
@@ -214,7 +334,7 @@ async function playRound(page, wrongAt = []) {
 
   /* ---------- phone layout ---------- */
   const sizes = {};
-  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/lab/s2'], ['me', '#/me'], ['settings', '#/settings'], ['roadmap', '#/roadmap'], ['prompts', '#/prompts']]) {
+  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/lab/s2'], ['me', '#/me'], ['settings', '#/settings'], ['roadmap', '#/roadmap'], ['prompts', '#/prompts'], ['feed', '#/feed'], ['collection', '#/collection'], ['arcade', '#/arcade'], ['blocks', '#/arcade/blocks'], ['corr', '#/arcade/corr']]) {
     await phone.goto(BASE + '/index.html' + hash);
     await phone.waitForSelector('main .view');
     if (name === 'lab') await phone.waitForSelector('.callout.ok', { timeout: 20000 });
@@ -224,7 +344,16 @@ async function playRound(page, wrongAt = []) {
     await phone.screenshot({ path: path.join(SHOTS, 'phone-' + name + '.png'), fullPage: name === 'home' });
   }
   ok(Object.values(sizes).every((s) => s.over <= 1), 'no horizontal scrolling on phone: ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.over]))));
-  ok(Object.values(sizes).every((s) => s.tab), 'bottom tab bar on every phone page');
+  ok(Object.entries(sizes).every(([k, s]) => s.tab || k === 'blocks' || k === 'corr'), 'bottom tab bar on every phone page (hidden only inside a game)');
+  // the feed on a phone: full-height cards, no top bar, one swipe = one card
+  await phone.goto(BASE + '/index.html#/feed');
+  await phone.waitForSelector('.feed .fcard');
+  const pf = await phone.evaluate(() => { const f = document.querySelector('.feed'), c = f.querySelector('.fcard'); return { feed: f.clientHeight, card: Math.round(c.getBoundingClientRect().height), vh: window.innerHeight, top: getComputedStyle(document.querySelector('.topbar')).display, innerFits: c.querySelector('.fc-inner').scrollHeight <= c.querySelector('.fc-inner').clientHeight + 1 }; });
+  ok(pf.card === pf.feed && pf.feed > pf.vh * 0.75 && pf.top === 'none', 'phone feed: each card fills the screen (' + pf.card + ' of ' + pf.vh + 'px), top bar hidden');
+  await phone.evaluate(() => { const f = document.querySelector('.feed'); f.scrollBy({ top: f.clientHeight * 0.6 }); });
+  await phone.waitForFunction(() => { const f = document.querySelector('.feed'); return Math.abs(f.scrollTop - f.clientHeight) < 3; }, null, { timeout: 4000 });
+  ok(true, 'phone feed: a partial swipe snaps to the next card');
+  await phone.screenshot({ path: path.join(SHOTS, 'phone-feed-second.png') });
   await phone.goto(BASE + '/index.html#/');
   await phone.waitForSelector('.today');
   const small = await phone.evaluate(() => [...document.querySelectorAll('.tabbar a, .tabbar button, .today .btn, .quests .btn')].filter((e) => { const r = e.getBoundingClientRect(); return r.height < 40 || r.width < 40; }).length);
