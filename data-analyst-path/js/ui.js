@@ -106,6 +106,13 @@
     note: 5,
     sql: function (level) { return 15 * level; },
     goalBonus: 10,
+    card: 2,         // reading (collecting) a feed card, once per card
+    cardRight: 2,    // extra for getting a myth-or-fact card right
+    feedQuiz: 5,     // a review question answered correctly in the feed (once per question per day)
+    feedFive: 10,    // reading five new cards in a day
+    block: 6,        // solving a SQL blocks puzzle for the first time
+    module: 25,      // finishing every lesson of a module
+    gameCap: 20,     // most XP a mini-game can pay per day (they are endless)
   };
 
   /* ---------- saved state ---------- */
@@ -116,15 +123,20 @@
   function fresh() {
     return {
       v: 2,
-      profile: { bg: '', custom: '', lang: 'English', hours: 8, goal: '', dailyGoal: 40, theme: 'auto', sound: false, haptics: true },
+      profile: { bg: '', custom: '', lang: 'English', hours: 8, goal: '', dailyGoal: 40, theme: 'auto', sound: false, haptics: true, remind: false, remindAt: '19:00' },
       done: {}, quiz: {}, notes: {}, sql: {},
       xp: {},      // award key -> {d: 'YYYY-MM-DD' ('' for carried-over XP), n}. A ledger, so two devices can be merged.
       met: {},     // date -> true when that day's XP goal was reached (streaks are derived from this)
       quests: {},  // date -> {lesson, drill, sql: true, chest: bonus XP}
       srs: {},     // question id -> {box 1..5, due date, t: ms of last review}
       badges: {},  // badge id -> date earned
-      stats: { drills: 0, perfect: 0, answers: 0, correct: 0, queries: 0, bestCombo: 0, questsAll: 0 },
+      stats: { drills: 0, perfect: 0, answers: 0, correct: 0, queries: 0, bestCombo: 0, questsAll: 0, corrBest: 0, corrGames: 0, blockRounds: 0 },
       seen: {},    // one-time hints
+      cards: {},   // feed card id -> date it was first read ("collected")
+      saved: {},   // feed card id -> true (bookmarked)
+      blocks: {},  // SQL blocks puzzle id -> true (solved)
+      repaired: {},// date -> true: a missed day bridged by a streak repair
+      boost: 0,    // time (ms) until which XP is doubled
     };
   }
 
@@ -148,6 +160,8 @@
     if (p.theme === 'light' || p.theme === 'dark' || p.theme === 'auto') s.profile.theme = p.theme;
     if (typeof p.sound === 'boolean') s.profile.sound = p.sound;
     if (typeof p.haptics === 'boolean') s.profile.haptics = p.haptics;
+    if (typeof p.remind === 'boolean') s.profile.remind = p.remind;
+    if (typeof p.remindAt === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.remindAt)) s.profile.remindAt = p.remindAt;
 
     eachKey(src.done, function (id, v) { if (v === true && DA.lessonById[id]) s.done[id] = true; });
     eachKey(src.sql, function (id, v) { if (v === true && DA.challenges.some(function (c) { return c.id === id; })) s.sql[id] = true; });
@@ -175,6 +189,12 @@
     var st = src.stats && typeof src.stats === 'object' ? src.stats : {};
     Object.keys(s.stats).forEach(function (k) { var n = Math.floor(Number(st[k])); if (n > 0 && n < 1e7) s.stats[k] = n; });
     eachKey(src.seen, function (k, v) { if (v === true) s.seen[k] = true; }, 100);
+    eachKey(src.cards, function (id, d) { if (isDate(d) && (!DA.feedById || DA.feedById[id])) s.cards[id] = d; }, 1000);
+    eachKey(src.saved, function (id, v) { if (v === true && (!DA.feedById || DA.feedById[id])) s.saved[id] = true; }, 1000);
+    eachKey(src.blocks, function (id, v) { if (v === true && (!DA.puzzleById || DA.puzzleById[id])) s.blocks[id] = true; }, 500);
+    eachKey(src.repaired, function (d, v) { if (isDate(d) && v === true) s.repaired[d] = true; }, 800);
+    var boost = Math.floor(Number(src.boost));
+    if (boost > 0 && boost < 1e14) s.boost = boost;
 
     // Progress saved by the first release had no XP: carry it over so nothing is lost.
     if (!(src.v >= 2)) {

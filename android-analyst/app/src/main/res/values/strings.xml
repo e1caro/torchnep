@@ -4,4 +4,6 @@
     <string name="saved">Saved</string>
     <string name="save_failed">Could not save the file</string>
     <string name="copied">Copied</string>
+    <string name="channel_name">Daily reminder</string>
+    <string name="reminder_text">Your daily round is ready. Two minutes keeps the habit going.</string>
 </resources>

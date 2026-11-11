@@ -54,6 +54,9 @@
   var drafts = {};     // typed queries, kept while the page is open
   var attempts = {};   // challenge id → number of checks (gates "show solution")
 
+  // Shared with the SQL blocks game, which checks answers by running them.
+  DA.sqlEngine = { load: loadEngine, ref: getRef };
+
   DA.views.lab = function (params) {
     var dsId = params[0] && DA.datasets[params[0]] ? params[0] : ui.defaultDataset();
     var ds = DA.datasets[dsId];

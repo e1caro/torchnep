@@ -50,7 +50,7 @@ test('index.html loads only files that exist, and loads every script', () => {
 test('every user-facing page has a route and a view', () => {
   const app = fs.readFileSync(path.join(root, 'js/app.js'), 'utf8');
   const routes = [...app.match(/var routes = \{([^}]*)\}/)[1].matchAll(/(\w+|'')\s*:\s*'(\w+)'/g)].map((m) => m[2]);
-  const views = fs.readFileSync(path.join(root, 'js/app.js'), 'utf8') + ['drill', 'me', 'settings', 'sqllab'].map((f) => fs.readFileSync(path.join(root, 'js/' + f + '.js'), 'utf8')).join('');
+  const views = fs.readdirSync(path.join(root, 'js')).filter((f) => f.endsWith('.js')).map((f) => fs.readFileSync(path.join(root, 'js', f), 'utf8')).join('');
   routes.forEach((r) => assert.ok(new RegExp('V\\.' + r + '\\s*=|views\\.' + r + '\\s*=').test(views), 'no view defined for route ' + r));
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   [...html.matchAll(/href="#\/(\w*)/g)].forEach((m) => assert.ok(routes.includes(m[1] || 'home') || m[1] === '', 'nav links to unknown route ' + m[1]));

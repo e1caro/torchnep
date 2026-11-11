@@ -48,6 +48,11 @@
     });
     Object.keys(out.stats).forEach(function (k) { out.stats[k] = Math.max(out.stats[k], b.stats[k]); });
     Object.keys(b.seen).forEach(function (k) { out.seen[k] = true; });
+    Object.keys(b.cards).forEach(function (id) { if (!out.cards[id] || b.cards[id] < out.cards[id]) out.cards[id] = b.cards[id]; });
+    Object.keys(b.saved).forEach(function (id) { out.saved[id] = true; });
+    Object.keys(b.blocks).forEach(function (id) { out.blocks[id] = true; });
+    Object.keys(b.repaired).forEach(function (d) { out.repaired[d] = true; });
+    out.boost = Math.max(a.boost, b.boost);
     out.v = 2;
     return ui.sanitize(out);
   };
