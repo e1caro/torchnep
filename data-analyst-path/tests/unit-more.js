@@ -74,3 +74,18 @@ test('mastery counts questions in box 3 or higher', () => {
 test('combo XP ladder', () => {
   assert.deepStrictEqual([1, 2, 3, 4, 5, 6, 10].map(D.xpFor), [8, 8, 10, 12, 14, 16, 16]);
 });
+
+test('answer options do not give the answer away (length or "always/never")', () => {
+  const bank = DA.drill.bank();
+  let longest = 0;
+  const tooLong = [], absolute = [];
+  bank.forEach((q) => {
+    const L = q.options.map((o) => o.length), right = L[q.answer], wrong = L.filter((_, i) => i !== q.answer), max = Math.max(...wrong);
+    if (right > max) longest++;
+    if (right > max * 1.2 + 4) tooLong.push(q.id + ': ' + q.options[q.answer]);
+    q.options.forEach((o, i) => { if (i !== q.answer && /\b(always|never)\b/i.test(o)) absolute.push(q.id + ': ' + o); });
+  });
+  assert.deepStrictEqual(tooLong, [], 'the right answer is much longer than every wrong one');
+  assert.ok(longest / bank.length <= 0.3, 'the right answer is the longest in ' + longest + ' of ' + bank.length + ' questions (chance would be about 25%)');
+  assert.deepStrictEqual(absolute, [], '"always" and "never" only in wrong options are a giveaway');
+});
