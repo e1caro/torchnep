@@ -1,306 +1,236 @@
+/* DotSheets: the spreadsheet lab view (world map, challenge page with grid, formula bar and ribbon). */
 (function () {
   'use strict';
   var DA = (window.DA = window.DA || {});
-  var ui = DA.ui, h = ui.h;
+  var ui = DA.ui, h = ui.h, L = DA.labgame;
   DA.views = DA.views || {};
   var S = DA.sheets;
+  var lab = null, books = {};
 
-  var attempts = {}; // challengeId -> count of misses
+  function getLab() {
+    if (!lab) {
+      DA.labSheets.worlds.forEach(function (w) { w.levels.forEach(function (lv) { lv.challenges = lv.challenges.filter(Boolean); }); });
+      lab = L.register(DA.labSheets);
+    }
+    return lab;
+  }
+
+  function fromLesson(lessonId) {
+    var lb = getLab(), all = [];
+    lb.levels.forEach(function (lv) { all = all.concat(lv.challenges); });
+    return all.filter(function (c) { return c.lessonId === lessonId; })[0] || null;
+  }
 
   DA.views.sheets = function (params) {
-    var datasetId = params[0] || 'retail';
-    var lessonId = params[1] || 'l1-1';
-
-    // Find all challenges for this lesson (or fallback)
-    var allChallenges = DA.sheetsChallenges || [];
-    var lessonChallenges = allChallenges.filter(function (c) {
-      return c.lessonId === lessonId;
-    });
-    if (!lessonChallenges.length && allChallenges.length) {
-      lessonChallenges = allChallenges.slice(0, 3);
+    var lb = getLab();
+    if (params[0] === 'play') {
+      var c = lb.byId[params[1]];
+      if (!c) return L.mapView(lb);
+      return L.isUnlocked(lb, c) ? page(lb, c) : L.lockedView(lb, c);
     }
+    if (params[1]) {
+      var fromOld = fromLesson(params[1]);
+      if (fromOld && L.isUnlocked(lb, fromOld)) return page(lb, fromOld);
+      if (fromOld) setTimeout(function () { ui.toast('This lesson\'s challenges are in Level ' + fromOld.level.world.n + '.' + fromOld.level.n + ': solve the levels before it to open them.'); }, 50);
+    }
+    return L.mapView(lb);
+  };
 
-    var activeChalIdx = 0;
-    var curChal = lessonChallenges[activeChalIdx] || null;
+  function page(lb, c) {
+    var P = L.page(lb, c, { wide: true, useExample: function (ex) { useExample(ex); } });
+    var work = P.work;
+    var wb = books[c.id] || (books[c.id] = S.datasetWorkbook(c.ds));
+    var grid = null, lastField = null;
 
-    var root = h('div', { class: 'view sheetslab' });
+    var nameBox = h('input', { class: 'sheets-name-box', 'aria-label': 'Cell address. Type an address and press Enter to go there.', value: 'A1' });
+    var fx = h('input', { class: 'sheets-fx-input', 'aria-label': 'Formula bar', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', placeholder: 'Type a value or a formula like =SUM(H2:H100)' });
+    work.appendChild(h('div', { class: 'sheets-fx-bar' }, nameBox, h('span', { class: 'sheets-fx-label', 'aria-hidden': 'true', text: 'fx' }), fx));
 
-    // Top Header
-    root.appendChild(h('div', { class: 'row between' },
-      h('div', null,
-        h('h1', { id: 'view-title', tabindex: '-1', text: 'DotSheets' }),
-        h('p', { class: 'lead', text: 'Spreadsheet Lab — Excel-compatible formulas, dynamic arrays, lookups and modeling.' })),
-      h('div', { class: 'row' },
-        h('button', { class: 'btn ghost', type: 'button', onclick: function () {
-          alert('DotSheets Help:\n\n• Works offline from vendor/.\n• Features include full dynamic arrays (FILTER, SORT, UNIQUE), XLOOKUP, INDEX/MATCH, SUMIFS, COUNTIFS.\n• Exercises auto-verify results, awarding XP to your progress ledger.');
-        } }, 'ℹ Help'))
-    ));
+    function field() {
+      if (grid && grid.editing && document.activeElement === grid.editor) return grid.editor;
+      if (document.activeElement === fx || lastField === fx) return fx;
+      return grid && grid.editing ? grid.editor : fx;
+    }
+    function insert(tok, back) {
+      var f = field();
+      if (f === fx && !grid.editing) grid.beginEdit(S.cellText(wb.activeSheet().getCell(grid.cursor.r, grid.cursor.c)), 'edit', true);
+      var a = f.selectionStart === null ? f.value.length : f.selectionStart, b = f.selectionEnd === null ? a : f.selectionEnd, v = f.value;
+      if (!v.trim() && /^[A-Z]/.test(tok)) { tok = '=' + tok; }
+      f.value = v.slice(0, a) + tok + v.slice(b);
+      var pos = a + tok.length - (back || 0);
+      f.focus({ preventScroll: true });
+      try { f.setSelectionRange(pos, pos); } catch (e) { }
+      sync(f);
+    }
+    function sync(from) {
+      if (!grid) return;
+      if (from === fx) { if (grid.editing) grid.editor.value = fx.value; }
+      else fx.value = grid.editor.value;
+    }
+    var KEYS = [['=', '='], ['SUM()', 'SUM()', 1], ['AVERAGE()', 'AVERAGE()', 1], ['COUNTIF()', 'COUNTIF()', 1], ['SUMIFS()', 'SUMIFS()', 1], ['IF()', 'IF()', 1],
+      ['XLOOKUP()', 'XLOOKUP()', 1], ['FILTER()', 'FILTER()', 1], ['UNIQUE()', 'UNIQUE()', 1], ['SORT()', 'SORT()', 1], ['ROUND()', 'ROUND()', 1],
+      [':', ':'], [',', ', '], ['$', '$'], ['"', '""', 1], ['(', '('], [')', ')'], ['+', '+'], ['-', '-'], ['*', '*'], ['/', '/'], ['>=', '>='], ['&', '&']];
+    work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Formula shortcuts' },
+      KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
 
-    // Ribbon Toolbar
+    var ribbonBar = h('div', { class: 'sheets-ribbon-bar row' });
+    var tabsRow = h('div', { class: 'tabs sheets-tabs', role: 'tablist', 'aria-label': 'Ribbon' });
     var activeTab = 'Home';
-    var ribbon = h('div', { class: 'sheets-ribbon' });
-    var ribbonBar = h('div', { class: 'sheets-ribbon-bar' });
-    var tabs = ['Home', 'Insert', 'Formulas', 'Data', 'View'];
+    ['Home', 'Formulas', 'Data', 'Insert'].forEach(function (t) {
+      tabsRow.appendChild(h('button', { class: 'tab' + (t === activeTab ? ' active' : ''), type: 'button', role: 'tab', 'aria-selected': t === activeTab ? 'true' : 'false', onclick: function () {
+        activeTab = t;
+        Array.prototype.forEach.call(tabsRow.children, function (b) { var on = b.textContent === t; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+        paintRibbon();
+      } }, t));
+    });
+    var ribbon = h('details', { class: 'sheets-ribbon' }, h('summary', null, 'Ribbon: formats, functions, data tools'), tabsRow, ribbonBar);
+    if (!(window.matchMedia && window.matchMedia('(max-width: 700px)').matches)) ribbon.open = true;
+    work.appendChild(ribbon);
 
-    var tabHeader = h('div', { class: 'tabs', role: 'group' },
-      tabs.map(function (t) {
-        return h('button', {
-          class: 'tab' + (t === activeTab ? ' active' : ''),
-          type: 'button',
-          onclick: function () { activeTab = t; renderRibbon(); }
-        }, t);
-      })
-    );
-    ribbon.appendChild(tabHeader);
-    ribbon.appendChild(ribbonBar);
-    root.appendChild(ribbon);
-
-    // Formula Bar
-    var nameBox = h('input', { class: 'sheets-name-box', readonly: true, value: 'A1' });
-    var formulaInput = h('input', { class: 'sheets-fx-input', placeholder: 'Enter value or formula (=SUM(...))' });
-    var formulaBar = h('div', { class: 'sheets-fx-bar' },
-      nameBox,
-      h('span', { class: 'sheets-fx-label', text: 'fx' }),
-      formulaInput
-    );
-    root.appendChild(formulaBar);
-
-    // Phone Toolbar (quick formula tokens & symbols like SQLab)
-    function insertFormulaToken(tok) {
-      formulaInput.value = (formulaInput.value || '') + tok;
-      formulaInput.focus();
-    }
-    var phoneKeys = [
-      ['=', '='], ['SUM()', '=SUM()'], ['XLOOKUP()', '=XLOOKUP()'], ['FILTER()', '=FILTER()'],
-      ['UNIQUE()', '=UNIQUE()'], ['SORT()', '=SORT()'], ['AVERAGE()', '=AVERAGE()'], ['COUNT()', '=COUNT()'],
-      ['IF()', '=IF()'], ['LET()', '=LET()'], ['+', ' + '], ['-', ' - '], ['*', ' * '], ['/', ' / '],
-      ['$', '$'], [':', ':'], [',', ', '], ['"', '""'], ['(', '('], [')', ')']
-    ];
-    var phoneToolbar = h('div', { class: 'sql-keys sheets-phone-toolbar', role: 'toolbar', 'aria-label': 'Formula shortcuts' },
-      phoneKeys.map(function (k) {
-        return h('button', {
-          class: 'key',
-          type: 'button',
-          onclick: function () { insertFormulaToken(k[1]); }
-        }, k[0]);
-      })
-    );
-    root.appendChild(phoneToolbar);
-
-    // Main Workspace Layout
-    var workspace = h('div', { class: 'sheets-workspace' });
-    var canvasWrap = h('div', { class: 'sheets-canvas-wrap' });
-    var canvas = h('canvas', { class: 'sheets-canvas' });
-    canvasWrap.appendChild(canvas);
-    workspace.appendChild(canvasWrap);
-
-    // Side Task & Exercises Panel
-    var taskPanel = h('aside', { class: 'sheets-task-panel' });
-    var feedbackBox = h('div', { class: 'feedback', role: 'status', 'aria-live': 'polite' });
-    var hintBox = h('div', { class: 'callout tip hidden' });
-
-    function renderTaskPanel() {
-      ui.clear(taskPanel);
-      if (!curChal) return;
-
-      var isSolved = !!(ui.state.sheets && ui.state.sheets[curChal.id]);
-
-      var chalSelector = h('div', { class: 'row', style: 'margin-bottom: 8px;' },
-        lessonChallenges.map(function (c, idx) {
-          var solvedMark = (ui.state.sheets && ui.state.sheets[c.id]) ? '✔ ' : '';
-          return h('button', {
-            class: 'btn tiny ' + (idx === activeChalIdx ? 'accent' : 'ghost'),
-            type: 'button',
-            onclick: function () {
-              activeChalIdx = idx;
-              curChal = lessonChallenges[activeChalIdx];
-              ui.clear(feedbackBox);
-              hintBox.classList.add('hidden');
-              renderTaskPanel();
-            }
-          }, solvedMark + 'Task ' + (idx + 1));
-        })
-      );
-
-      var checkBtn = h('button', { class: 'btn accent small', type: 'button', onclick: runCheck }, '✓ Check exercise');
-      var hintBtn = h('button', { class: 'btn ghost small', type: 'button', onclick: function () {
-        hintBox.classList.toggle('hidden');
-      } }, 'Show hint');
-
-      var taskBox = h('div', { class: 'task' },
-        chalSelector,
-        h('div', { class: 'task-head' },
-          h('span', { class: 'badge level' + curChal.level, text: 'Level ' + curChal.level }),
-          h('strong', { text: curChal.title }),
-          isSolved ? h('span', { class: 'badge ok', text: '✔ Solved' }) : null
-        ),
-        h('p', { html: curChal.task }),
-        h('div', { class: 'row', style: 'margin-top: 10px;' }, checkBtn, hintBtn),
-        hintBox,
-        feedbackBox
-      );
-
-      taskPanel.appendChild(taskBox);
-      ui.clear(hintBox);
-      hintBox.appendChild(h('strong', { text: 'Hint. ' }));
-      hintBox.appendChild(document.createTextNode(curChal.hint));
-    }
-
-    function runCheck() {
-      if (!curChal) return;
-      wb.recalc();
-      grid.render();
-
-      var res = curChal.check(wb);
-      attempts[curChal.id] = (attempts[curChal.id] || 0) + 1;
-
-      ui.clear(feedbackBox);
-      if (res.ok) {
-        var firstTime = !(ui.state.sheets && ui.state.sheets[curChal.id]);
-        ui.state.sheets = ui.state.sheets || {};
-        ui.state.sheets[curChal.id] = true;
-        ui.save();
-
-        DA.game.award('sheet:' + curChal.id, ui.XP.sheet(curChal.level), 'Spreadsheet solved');
-        DA.game.quest('lesson');
-        DA.game.sound('done');
-        DA.game.buzz(30);
-        DA.game.confetti(false);
-
-        feedbackBox.appendChild(h('div', { class: 'callout ok' }, '✔ ' + res.message));
-        renderTaskPanel();
-      } else {
-        feedbackBox.appendChild(h('div', { class: 'callout bad' }, '✗ ' + res.message));
-        if (attempts[curChal.id] >= 2) {
-          hintBox.classList.remove('hidden');
-        }
+    function rb(label, fn) { return h('button', { class: 'btn tiny ghost', type: 'button', onclick: fn }, label); }
+    function selRange() { var s = grid.sel; return { r1: Math.min(s.r1, s.r2), c1: Math.min(s.c1, s.c2), r2: Math.max(s.r1, s.r2), c2: Math.max(s.c1, s.c2) }; }
+    function setFmt(fmt, label) {
+      var s = selRange(), sh = wb.activeSheet(), changes = [];
+      for (var r = s.r1; r <= s.r2; r++) for (var cc = s.c1; cc <= s.c2; cc++) {
+        var before = S.snapshot(sh, r, cc);
+        if (!before) continue;
+        sh.ensureCell(r, cc).fmt = fmt;
+        changes.push({ r: r, c: cc, before: before, after: S.snapshot(sh, r, cc) });
       }
+      grid.apply(changes); grid.canvas.focus(); ui.toast('Format: ' + label);
     }
-
-    workspace.appendChild(taskPanel);
-    root.appendChild(workspace);
-
-    // Bottom Sheet Tabs Bar
-    var sheetTabs = h('div', { class: 'sheets-bottom-bar' },
-      h('button', { class: 'btn tiny ghost', text: '+ New Sheet', onclick: function () {
-        wb.addSheet('Sheet' + (wb.sheets.length + 1));
-        ui.toast('New sheet created.');
-      } }, '+ New Sheet'),
-      h('span', { class: 'sheets-tab active', text: 'Sheet1' }),
-      h('span', { class: 'grow' }),
-      h('span', { class: 'muted small', text: 'Offline ready' })
-    );
-    root.appendChild(sheetTabs);
-
-    // Model & Grid Setup
-    var wb = new S.Workbook();
-    var grid = null;
-
-    var csvText = (datasetId === 'messy') ? DA.gen.messyCsv() : DA.gen.retailCsv();
-    var lines = csvText.trim().split('\n');
-    var sh = wb.activeSheet();
-    for (var r = 0; r < lines.length && r < 500; r++) {
-      var rowVals = lines[r].split(',');
-      for (var c = 0; c < rowVals.length; c++) {
-        var val = S.parseInput(rowVals[c].replace(/^"|"$/g, ''));
-        sh.ensureCell(r, c).value = val;
-        sh.ensureCell(r, c).raw = val;
-      }
-    }
-
-    function renderRibbon() {
+    function dataEnd() { return S.usedRange(wb.activeSheet()); }
+    function paintRibbon() {
       ui.clear(ribbonBar);
       if (activeTab === 'Home') {
-        ribbonBar.appendChild(h('div', { class: 'row' },
-          h('button', { class: 'btn tiny ghost', type: 'button' }, 'Bold'),
-          h('button', { class: 'btn tiny ghost', type: 'button' }, 'Italic'),
-          h('button', { class: 'btn tiny ghost', type: 'button' }, 'Currency $'),
-          h('button', { class: 'btn tiny ghost', type: 'button' }, 'Percent %')
-        ));
+        [['General', null], ['0.00', '0.00'], ['Currency', '$#,##0.00'], ['Percent', '0.0%'], ['Date', 'yyyy-mm-dd']].forEach(function (f) {
+          ribbonBar.appendChild(rb(f[0], function () { setFmt(f[1], f[0]); }));
+        });
+        ribbonBar.appendChild(rb('↶ Undo', function () { grid.undo(); grid.canvas.focus(); }));
+        ribbonBar.appendChild(rb('↷ Redo', function () { grid.redo(); grid.canvas.focus(); }));
       } else if (activeTab === 'Formulas') {
-        ribbonBar.appendChild(h('div', { class: 'row' },
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { formulaInput.value = '=SUM('; formulaInput.focus(); } }, '∑ AutoSum'),
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { formulaInput.value = '=XLOOKUP('; formulaInput.focus(); } }, 'XLOOKUP'),
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { formulaInput.value = '=FILTER('; formulaInput.focus(); } }, 'FILTER'),
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { formulaInput.value = '=UNIQUE('; formulaInput.focus(); } }, 'UNIQUE'),
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { formulaInput.value = '=SORT('; formulaInput.focus(); } }, 'SORT')
-        ));
+        ['SUM', 'AVERAGE', 'COUNTIFS', 'SUMIFS', 'XLOOKUP', 'INDEX', 'MATCH', 'FILTER', 'UNIQUE', 'SORT', 'LET'].forEach(function (f) {
+          ribbonBar.appendChild(rb(f, function () { insert(f + '()', 1); }));
+        });
       } else if (activeTab === 'Data') {
-        ribbonBar.appendChild(h('div', { class: 'row' },
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-            S.sortRange(sh, 1, 0, 100, 10, grid.cursor.c, true);
-            wb.recalc(); grid.render(); ui.toast('Column sorted ascending.');
-          } }, 'Sort A-Z'),
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-            var res = S.removeDuplicates(sh, 1, 0, 100, 10, [grid.cursor.c]);
-            wb.recalc(); grid.render(); ui.toast('Removed ' + res.removed + ' duplicate rows.');
-          } }, 'Remove Duplicates'),
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-            S.textToColumns(sh, 1, grid.cursor.c, 100, ',');
-            wb.recalc(); grid.render(); ui.toast('Text split to columns.');
-          } }, 'Text to Columns')
-        ));
+        ribbonBar.appendChild(rb('Sort A→Z', function () { sortBy(true); }));
+        ribbonBar.appendChild(rb('Sort Z→A', function () { sortBy(false); }));
+        ribbonBar.appendChild(rb('Remove duplicates', function () {
+          var u = dataEnd(), res = S.removeDuplicates(wb.activeSheet(), 1, 0, u.r2, u.c2, [grid.cursor.c]);
+          grid.history = new S.History(); wb.recalc(); grid.render(); ui.toast('Removed ' + res.removed + ' rows with a repeated ' + S.colName(grid.cursor.c) + ' value.');
+        }));
+        ribbonBar.appendChild(rb('Text to columns', function () {
+          var u = dataEnd(); S.textToColumns(wb.activeSheet(), 1, grid.cursor.c, u.r2, ',');
+          grid.history = new S.History(); wb.recalc(); grid.render(); ui.toast('Column ' + S.colName(grid.cursor.c) + ' split at the commas.');
+        }));
       } else if (activeTab === 'Insert') {
-        ribbonBar.appendChild(h('div', { class: 'row' },
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-            var res = S.buildPivot(sh, 0, 0, 50, 8, { rowCol: 2, valCol: 7, aggFn: 'SUM' });
-            var psh = wb.addSheet('Pivot1');
-            for (var r = 0; r < res.length; r++) {
-              for (var c = 0; c < res[r].length; c++) psh.ensureCell(r, c).value = res[r][c];
-            }
-            wb.recalc(); grid.render(); ui.toast('Pivot table created on Pivot1 tab.');
-          } }, '📊 Pivot Table'),
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-            // Export workbook to XLSX download
-            S.exportXlsx(wb).then(function (bytes) {
-              if (ui.downloadBinary) {
-                ui.downloadBinary('workbook.xlsx', bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-              } else {
-                var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-                var url = URL.createObjectURL(blob);
-                var a = document.createElement('a'); a.href = url; a.download = 'workbook.xlsx'; a.click();
-              }
-              ui.toast('Exported workbook.xlsx');
-            });
-          } }, '💾 Export .XLSX')
-        ));
+        ribbonBar.appendChild(rb('Pivot: quantity by this column', function () {
+          var sh = wb.activeSheet(), u = dataEnd();
+          var res = S.buildPivot(sh, 0, 0, u.r2, u.c2, { rowCol: grid.cursor.c, valCol: 7, aggFn: 'SUM' });
+          var psh = wb.addSheet('Pivot' + wb.sheets.length);
+          res.forEach(function (row, r) { row.forEach(function (v, cc) { S.setInput(psh, r, cc, typeof v === 'number' ? String(v) : v); }); });
+          showSheet(wb.sheets.length - 1); ui.toast('Pivot table added on a new sheet.');
+        }));
+        ribbonBar.appendChild(rb('Export .xlsx', function () {
+          S.exportXlsx(wb).then(function (bytes) { ui.downloadBinary('dotsheets.xlsx', bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); ui.toast('Exported dotsheets.xlsx'); },
+            function () { ui.toast('Export failed.'); });
+        }));
       }
     }
+    function sortBy(asc) {
+      var u = dataEnd();
+      S.sortRange(wb.activeSheet(), 1, 0, u.r2, u.c2, grid.cursor.c, asc);
+      grid.history = new S.History(); wb.recalc(); grid.render(); ui.toast('Rows sorted by column ' + S.colName(grid.cursor.c) + (asc ? ' A→Z' : ' Z→A') + '.');
+    }
+    paintRibbon();
 
-    renderRibbon();
-    renderTaskPanel();
+    var canvas = h('canvas', { class: 'sheets-canvas' });
+    var wrap = h('div', { class: 'sheets-canvas-wrap' }, canvas);
+    work.appendChild(wrap);
+
+    var tabsBar = h('div', { class: 'sheets-bottom-bar', role: 'tablist', 'aria-label': 'Sheets in this workbook' });
+    work.appendChild(tabsBar);
+    function paintTabs() {
+      ui.clear(tabsBar);
+      wb.sheets.forEach(function (sh, i) {
+        tabsBar.appendChild(h('button', { class: 'sheets-tab' + (i === wb.activeSheetIdx ? ' active' : ''), type: 'button', role: 'tab', 'aria-selected': i === wb.activeSheetIdx ? 'true' : 'false', onclick: function () { showSheet(i); } }, sh.name));
+      });
+      tabsBar.appendChild(h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { wb.addSheet(); showSheet(wb.sheets.length - 1); } }, '+ Sheet'));
+    }
+    function showSheet(i) {
+      if (grid.editing) grid.commit(null);
+      wb.activeSheetIdx = i; grid.scrollX = 0; grid.scrollY = 0; grid.history = new S.History();
+      paintTabs(); grid.goTo(0, 0); grid.canvas.focus();
+    }
+
+    var checkBtn = h('button', { class: 'btn accent', type: 'button', onclick: check }, '✓ Check');
+    var armed = false;
+    var resetBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () {
+      if (!armed) { armed = true; resetBtn.textContent = 'Press again to reset'; setTimeout(function () { armed = false; resetBtn.textContent = 'Reset sheet'; }, 3000); return; }
+      books[c.id] = S.datasetWorkbook(c.ds); DA.render();
+      ui.toast('Original data reloaded.');
+    } }, 'Reset sheet');
+    work.appendChild(h('div', { class: 'row actions' }, checkBtn, resetBtn, h('span', { class: 'muted small grow', text: c.ds === 'messy' ? 'Data: messy hand-typed orders' : 'Data: café orders (first ' + (S.ROWS_LOADED - 1) + ' lines)' })));
+
+    function check() {
+      if (grid.editing) grid.commit(null);
+      wb.recalc(); grid.render();
+      var res = c.check(wb);
+      P.verdict(res);
+    }
+
+    function useExample(ex) {
+      var m = /^([A-Z]+\d+):\s*(.*)$/.exec(ex.code);
+      if (!m) return;
+      var a = S.parseAddr(m[1]);
+      if (wb.activeSheetIdx !== 0) showSheet(0);
+      grid.goTo(a.r, a.c);
+      grid.beginEdit(m[2], 'edit');
+      ui.toast('Example typed into ' + m[1] + '. Press Enter to keep it, Escape to cancel.');
+    }
+
+    nameBox.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      var a = S.parseAddr(nameBox.value.trim().toUpperCase());
+      if (a) { grid.goTo(a.r, a.c); grid.canvas.focus(); } else ui.toast('Type an address like B12.');
+    });
+    fx.addEventListener('focus', function () { lastField = fx; });
+    fx.addEventListener('input', function () {
+      if (!grid.editing) grid.beginEdit(fx.value, 'edit', true);
+      else grid.editor.value = fx.value;
+      grid.render();
+    });
+    fx.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        var move = e.key === 'Enter' ? (e.shiftKey ? 'up' : 'down') : (e.shiftKey ? 'left' : 'right');
+        if (grid.editing) grid.commit(move, fx.value); else grid.enterText(fx.value, move);
+        grid.canvas.focus();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        grid.cancel();
+        fx.value = S.cellText(wb.activeSheet().getCell(grid.cursor.r, grid.cursor.c));
+      } else if (e.key === 'F4') {
+        e.preventDefault();
+        fx.value = S.toggleF4(fx.value);
+        sync(fx);
+      }
+    });
 
     setTimeout(function () {
+      if (!canvas.isConnected) return;
       grid = new S.Grid(canvas, wb);
-      grid.resize();
-      window.addEventListener('resize', function () { if (grid) grid.resize(); });
-
-      grid.onSelect = function (cell, r, c) {
-        nameBox.value = S.addr(r, c);
-        formulaInput.value = cell ? (cell.formula || S.toStr(cell.raw)) : '';
+      grid.keepEditing = function () { return document.activeElement === fx; };
+      grid.onSelect = function (cell, r, cc) {
+        nameBox.value = S.addr(r, cc);
+        if (document.activeElement !== fx) fx.value = S.cellText(cell);
+        lastField = null;
       };
-
-      formulaInput.addEventListener('keydown', function (e) {
-        if (e.key === 'F4') {
-          e.preventDefault();
-          formulaInput.value = S.toggleF4(formulaInput.value);
-        } else if (e.key === 'Enter') {
-          var text = formulaInput.value.trim();
-          var cur = grid.cursor;
-          var cell = sh.ensureCell(cur.r, cur.c);
-          if (text.startsWith('=')) {
-            cell.formula = text;
-            cell.raw = text;
-          } else {
-            cell.formula = null;
-            cell.raw = S.parseInput(text);
-          }
-          wb.recalc();
-          grid.render();
-        }
-      });
-    }, 20);
-
-    return root;
-  };
+      grid.onEditText = function (text) { fx.value = text; };
+      grid.goTo(0, 0);
+      paintTabs();
+    }, 0);
+    return P.root;
+  }
 })();

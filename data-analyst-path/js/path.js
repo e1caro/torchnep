@@ -54,6 +54,10 @@
       if (DA.drill.topics().indexOf(m.cat) >= 0) {
         stop({ href: '#/practice/play/' + encodeURIComponent(m.cat), icon: '⚡', state: 'extra', kind: 'practice', kicker: 'Spaced practice', label: 'Practise ' + m.cat, aria: 'Practice round: ' + m.cat });
       }
+      var LN = DA.labgame ? DA.labgame.names : { sheets: 'DotSheets', python: 'DotPython', bi: 'DotBI' };
+      if (m.id === 'm1') stop({ href: '#/sheets', icon: '📊', state: 'extra', kind: 'practice', kicker: 'Spreadsheet lab', label: LN.sheets, aria: LN.sheets + ' challenges' });
+      if (m.id === 'm3') stop({ href: '#/python', icon: '🐍', state: 'extra', kind: 'practice', kicker: 'pandas lab', label: LN.python, aria: LN.python + ' challenges' });
+      if (m.id === 'm5') stop({ href: '#/bi', icon: '📈', state: 'extra', kind: 'practice', kicker: 'DAX and Tableau lab', label: LN.bi, aria: LN.bi + ' challenges' });
       if (m.id === 'm2') {
         stop({ href: '#/arcade/blocks', icon: '🧱', state: 'extra', kind: 'practice', kicker: 'Tap-tile puzzles', label: 'SQL blocks', aria: 'Game: SQL blocks' });
         stop({ href: '#/lab', icon: '🗄️', state: 'extra', kind: 'practice', kicker: 'Interactive SQLite', label: 'SQLab', aria: 'SQLab challenges' });

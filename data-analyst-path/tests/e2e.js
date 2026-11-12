@@ -397,6 +397,91 @@ async function playRound(page, wrongAt = []) {
   await phone.waitForSelector('.quiz-fb .callout');
   await phone.screenshot({ path: path.join(SHOTS, 'phone-round-answered.png') });
 
+  /* ---------- DotSheets, DotPython, DotBI ---------- */
+  for (const [route, name] of [['sheets', 'DotSheets'], ['python', 'DotPython'], ['bi', 'DotBI']]) {
+    await page.goto(BASE + '/index.html#/' + route);
+    await page.waitForSelector('.lab-world');
+    const seen = await page.evaluate((r) => ({ h1: document.querySelector('h1').textContent, title: document.title, menu: document.querySelector('.nav a[data-nav="' + r + '"]').textContent.trim(), open: document.querySelectorAll('a.lab-level').length, locked: document.querySelectorAll('.lab-level.locked').length }), route);
+    ok(seen.h1 === name && seen.title.startsWith(name) && seen.menu === name, route + ': opens with its name "' + name + '" in the heading, page title and menu');
+    ok(seen.open >= 1 && seen.locked >= 12, route + ': world map with 16 levels, later ones locked (' + seen.locked + ' locked)');
+  }
+  await page.goto(BASE + '/index.html#/sheets/play/s_l1_2_1');
+  await page.waitForSelector('.sheets-canvas');
+  await sleep(300);
+  const cv = await page.locator('.sheets-canvas').boundingBox();
+  await page.mouse.click(cv.x + 46 + 40, cv.y + 26 + 12);
+  ok(await page.inputValue('.sheets-name-box') === 'A1', 'DotSheets: clicking a cell selects it');
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowRight');
+  ok(await page.inputValue('.sheets-name-box') === 'B2', 'DotSheets: arrow keys move the selection');
+  await page.keyboard.press('Control+Home');
+  await page.keyboard.type('42'); await page.keyboard.press('Enter');
+  const afterEnter = await page.inputValue('.sheets-name-box');
+  await page.keyboard.press('ArrowUp');
+  ok(afterEnter === 'A2' && await page.inputValue('.sheets-fx-input') === '42', 'DotSheets: typing 42 + Enter fills A1 and moves to A2');
+  await page.keyboard.press('F2'); await page.keyboard.type('9'); await page.keyboard.press('Escape');
+  ok(await page.inputValue('.sheets-fx-input') === '42', 'DotSheets: F2 edits, Escape cancels');
+  await page.keyboard.press('Tab');
+  ok(await page.inputValue('.sheets-name-box') === 'B1', 'DotSheets: Tab moves right');
+  async function sheetsSolve(id, at, formula) {
+    await page.goto(BASE + '/index.html#/sheets');
+    await page.goto(BASE + '/index.html#/sheets/play/' + id);
+    await page.waitForSelector('.sheets-canvas'); await sleep(200);
+    await dismissModals(page, 400);
+    await page.fill('.sheets-name-box', at); await page.press('.sheets-name-box', 'Enter');
+    await page.keyboard.type(formula); await page.keyboard.press('Enter');
+    await dismissModals(page, 300);
+    await page.click('.lab-work button:has-text("Check")');
+    await page.waitForSelector('.feedback .callout');
+    await dismissModals(page, 600);
+    return txt(page, '.feedback');
+  }
+  ok((await sheetsSolve('s_l1_2_1', 'J2', '=H2*I3')).startsWith('✗'), 'DotSheets: a wrong formula fails the check');
+  ok((await sheetsSolve('s_l1_2_1', 'J2', '=H2*I2')).startsWith('✔'), 'DotSheets: the right formula passes');
+  ok(/unlocked/.test(await sheetsSolve('sx_w1_1', 'K2', '=I2*1.1')), 'DotSheets: solving 2 of 3 unlocks level 1.2');
+  async function codeSolve(route, sel, id, code) {
+    await page.goto(BASE + '/index.html#/' + route);
+    await page.goto(BASE + '/index.html#/' + route + '/play/' + id);
+    await page.waitForSelector(sel);
+    await dismissModals(page, 400);
+    await page.fill(sel, code);
+    await page.click('.lab-work button:has-text("Check")');
+    await page.waitForSelector('.feedback .callout');
+    await dismissModals(page, 600);
+    return txt(page, '.feedback');
+  }
+  ok((await codeSolve('python', '.py-editor', 'py01', 'print("hello")')).startsWith('✗'), 'DotPython: printing something is not enough');
+  ok((await codeSolve('python', '.py-editor', 'py01', 'result = df.shape[1]')).startsWith('✗'), 'DotPython: a wrong answer fails');
+  ok((await codeSolve('python', '.py-editor', 'py01', 'result = len(df)')).startsWith('✔'), 'DotPython: the right answer passes');
+  ok(/unlocked/.test(await codeSolve('python', '.py-editor', 'py02', 'rows, cols = df.shape\nresult = cols')), 'DotPython: solving 2 of 3 unlocks level 1.2');
+  ok((await codeSolve('bi', '.bi-editor', 'bi01', 'COUNTROWS(Sales)')).startsWith('✗'), 'DotBI: a different measure fails');
+  ok((await codeSolve('bi', '.bi-editor', 'bi01', 'SUM(Sales[qty])')).startsWith('✔'), 'DotBI: the right measure passes');
+  ok(/unlocked/.test(await codeSolve('bi', '.bi-editor', 'bi02', 'AVERAGE(Sales[unit_price])')), 'DotBI: solving 2 of 3 unlocks level 1.2');
+  await page.goto(BASE + '/index.html#/bi/play/bi04');
+  await page.waitForSelector('.lab-task');
+  ok(true, 'DotBI: level 1.2 can be opened');
+  await page.reload();
+  await page.waitForSelector('.lab-task');
+  const kept = await page.evaluate(() => ({ labs: DA.ui.state.labs, xp: !!(DA.ui.state.xp['py:py01'] && DA.ui.state.xp['bi:bi01'] && DA.ui.state.xp['sheet:s_l1_2_1']) }));
+  ok(Object.keys(kept.labs.sheets).length >= 2 && kept.labs.python.py01 >= 1 && kept.labs.bi.bi02 >= 1 && kept.xp, 'labs: stars and XP are still there after a reload (' + JSON.stringify(kept.labs.python) + ')');
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-dotbi.png') });
+  await phone.emulateMedia({ colorScheme: 'dark' });
+  for (const hash of ['#/sheets/play/s_l1_2_1', '#/python/play/py01', '#/bi/play/bi01', '#/sheets']) {
+    await phone.goto(BASE + '/index.html' + hash);
+    await phone.waitForSelector('main .view');
+    await sleep(300);
+    const over = await phone.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    ok(over <= 1, 'phone ' + hash + ': no sideways scrolling in dark mode (' + over + ')');
+    await phone.screenshot({ path: path.join(SHOTS, 'phone-dark-' + hash.replace(/[#/]+/g, '-') + '.png') });
+  }
+  await phone.goto(BASE + '/index.html#/sheets/play/s_l1_2_1');
+  await phone.waitForSelector('.sheets-canvas'); await sleep(300);
+  await phone.locator('.sheets-canvas').scrollIntoViewIfNeeded();
+  await phone.tap('.sheets-canvas', { position: { x: 46 + 120, y: 26 + 36 } });
+  const tapped = await phone.inputValue('.sheets-name-box');
+  await phone.tap('.sheets-canvas', { position: { x: 46 + 120, y: 26 + 36 } });
+  ok(tapped === 'B2' && await phone.evaluate(() => document.activeElement.className === 'sheets-cell-editor'), 'phone DotSheets: a tap selects, a second tap opens the cell editor (keyboard)');
+  await phone.emulateMedia({ colorScheme: 'light' });
+
   /* ---------- PWA: manifest, service worker, offline ---------- */
   const manifest = await page.evaluate(async () => { const r = await fetch('manifest.webmanifest'); return r.json(); });
   ok(manifest.display === 'standalone' && manifest.icons.some((i) => i.purpose === 'maskable') && manifest.start_url, 'manifest is valid and has a maskable icon');

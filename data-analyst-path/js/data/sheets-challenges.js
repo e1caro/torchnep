@@ -1,4 +1,4 @@
-/* Sheets Lab Challenges and Auto-checker.
+/* DotSheets: the original 21 challenges and their checkers (organised into worlds in lab-sheets.js).
  * Each exercise tests cell values and formula logic (not rigid string equality).
  * At least 3 exercises per lesson in Module m1 (l1-1 through l1-7).
  */
