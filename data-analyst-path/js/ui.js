@@ -105,6 +105,7 @@
     quiz: 10,
     note: 5,
     sql: function (level) { return 15 * level; },
+    sheet: function (level) { return 15 * level; },
     goalBonus: 10,
     card: 2,         // reading (collecting) a feed card, once per card
     cardRight: 2,    // extra for getting a myth-or-fact card right
@@ -126,7 +127,7 @@
     return {
       v: 2,
       profile: { bg: '', custom: '', lang: 'English', hours: 8, goal: '', dailyGoal: 40, theme: 'auto', sound: false, haptics: true, remind: false, remindAt: '19:00' },
-      done: {}, quiz: {}, notes: {}, sql: {},
+      done: {}, quiz: {}, notes: {}, sql: {}, sheets: {},
       xp: {},      // award key -> {d: 'YYYY-MM-DD' ('' for carried-over XP), n}. A ledger, so two devices can be merged.
       met: {},     // date -> true when that day's XP goal was reached (streaks are derived from this)
       quests: {},  // date -> {lesson, drill, sql: true, chest: bonus XP}
@@ -166,6 +167,7 @@
     if (typeof p.remindAt === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.remindAt)) s.profile.remindAt = p.remindAt;
 
     eachKey(src.done, function (id, v) { if (v === true && DA.lessonById[id]) s.done[id] = true; });
+    eachKey(src.sheets, function (id, v) { if (v === true) s.sheets[id] = true; });
     eachKey(src.sql, function (id, v) { if (v === true && DA.challenges.some(function (c) { return c.id === id; })) s.sql[id] = true; });
     eachKey(src.quiz, function (id, q) {
       var l = DA.lessonById[id];

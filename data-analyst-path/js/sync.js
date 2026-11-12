@@ -24,6 +24,7 @@
     if (!a.profile.bg && b.profile.bg) out.profile = copy(b.profile);
 
     Object.keys(b.done).forEach(function (id) { out.done[id] = true; });
+    Object.keys(b.sheets || {}).forEach(function (id) { out.sheets = out.sheets || {}; out.sheets[id] = true; });
     Object.keys(b.sql).forEach(function (id) { out.sql[id] = true; });
     Object.keys(b.quiz).forEach(function (id) {
       if (!out.quiz[id] || (b.quiz[id].ok && !out.quiz[id].ok)) out.quiz[id] = copy(b.quiz[id]);

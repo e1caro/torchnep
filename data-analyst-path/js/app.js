@@ -312,6 +312,15 @@
     var tools = [];
     if (l.download === 'retail') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('retail_orders.csv', DA.gen.retailCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded retail_orders.csv'); } }, '⬇ Download café sales CSV (≈6,500 rows)'));
     if (l.download === 'messy') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('messy_orders.csv', '﻿' + DA.gen.messyCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded messy_orders.csv'); } }, '⬇ Download messy orders CSV'));
+    if (l.module && l.module.id === 'm1') {
+      tools.push(link('#/sheets/' + (l.download || 'retail') + '/' + l.id, 'btn small accent', '📊 Open in Sheets Lab'));
+    }
+    if (l.module && l.module.id === 'm3') {
+      tools.push(link('#/python/' + l.id, 'btn small accent', '🐍 Open in Python Lab'));
+    }
+    if (l.module && l.module.id === 'm5') {
+      tools.push(link('#/bi/' + l.id, 'btn small accent', '📈 Open in BI Lab'));
+    }
     if (l.lab) {
       var dsId = l.lab === 'auto' ? ui.defaultDataset() : l.lab;
       tools.push(link('#/lab/' + dsId, 'btn small accent', '🗄️ Open SQLab · ' + DA.datasets[dsId].title));
@@ -478,7 +487,7 @@
 
   /* ================================================================ router */
 
-  var routes = { '': 'home', profile: 'profile', roadmap: 'roadmap', lesson: 'lesson', lab: 'lab', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
+  var routes = { '': 'home', profile: 'profile', roadmap: 'roadmap', lesson: 'lesson', lab: 'lab', sheets: 'sheets', python: 'python', bi: 'bi', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
     me: 'me', settings: 'settings', prompts: 'prompts', tools: 'tools' };
   var navOf = { '': 'home', lesson: 'roadmap', collection: 'feed' };
 
@@ -508,7 +517,7 @@
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     var more = document.getElementById('menuBtn');
-    if (more) more.classList.toggle('active', ['me', 'settings', 'prompts', 'tools', 'profile', 'lab', 'arcade'].indexOf(nav) >= 0);
+    if (more) more.classList.toggle('active', ['me', 'settings', 'prompts', 'tools', 'profile', 'lab', 'sheets', 'python', 'bi', 'arcade'].indexOf(nav) >= 0);
     var t = document.getElementById('view-title');
     document.title = (t ? t.textContent.replace(/\s+/g, ' ').trim() + ' · ' : '') + 'Data Analyst Path';
     window.scrollTo(0, 0);

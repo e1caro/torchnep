@@ -115,7 +115,27 @@ body {
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
 }
-/* Custom in-code vector SVG icons */
+/* Sheets Lab / DotSheets Styles */
+.sheetslab { display: flex; flex-direction: column; gap: 8px; min-height: 600px; height: calc(100vh - 120px); }
+.sheets-ribbon { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 12px; }
+.sheets-ribbon-bar { margin-top: 6px; }
+.sheets-fx-bar { display: flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 4px 8px; }
+.sheets-name-box { width: 60px; font-weight: 600; text-align: center; border: 1px solid var(--line); border-radius: 6px; padding: 4px; background: var(--surface-2); }
+.sheets-fx-label { font-weight: bold; font-style: italic; color: var(--muted); }
+.sheets-fx-input { flex: 1; border: 1px solid var(--line); border-radius: 6px; padding: 4px 8px; font-family: var(--mono); }
+.sheets-workspace { display: flex; gap: 12px; flex: 1; min-height: 420px; }
+.sheets-canvas-wrap { flex: 1; min-width: 0; min-height: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; position: relative; }
+.sheets-canvas { width: 100%; height: 100%; min-height: 380px; display: block; }
+.sheets-task-panel { width: 300px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px; overflow-y: auto; }
+.sheets-bottom-bar { display: flex; align-items: center; gap: 8px; padding: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+.sheets-tab { padding: 4px 12px; border-radius: 6px; font-weight: 500; cursor: pointer; }
+.sheets-tab.active { background: var(--accent-soft); color: var(--accent); font-weight: bold; }
+@media (max-width: 900px) {
+  .sheetslab { height: auto; min-height: auto; }
+  .sheets-workspace { flex-direction: column; min-height: auto; }
+  .sheets-task-panel { width: 100%; height: auto; }
+}
+
 .da-ico {
   width: 1.2em;
   height: 1.2em;
