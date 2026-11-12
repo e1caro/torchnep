@@ -74,10 +74,15 @@ window.rtAdd = (id, exId) => {
 };
 window.rtComplete = id => {
   const r = rtGet(id); if (!r) return;
-  const worked = new Set(r.items.flatMap(it => BY[it.id]?.m || []));
-  const targets = ['abdominals', 'chest', 'lats', 'quadriceps', 'shoulders', 'hamstrings', 'glutes', 'biceps', 'triceps'];
+  const strItems = r.items.filter(it => BY[it.id]?.c !== 'stretching' && BY[it.id]?.c !== 'cardio');
+  const stItems = r.items.filter(it => BY[it.id]?.c === 'stretching');
+  const worked = new Set(strItems.flatMap(it => BY[it.id]?.m || []));
+  const targets = ['abdominals', 'chest', 'lats', 'quadriceps', 'shoulders', 'hamstrings', 'glutes'];
   const missing = targets.filter(m => !worked.has(m));
-  const want = !worked.has('abdominals') ? ['abdominals', ...missing.filter(m => m !== 'abdominals').slice(0, Math.max(0, 6 - r.items.length))] : missing.slice(0, Math.max(1, 7 - r.items.length));
+  const needStr = Math.max(0, 5 - strItems.length);
+  const want = !worked.has('abdominals')
+    ? ['abdominals', ...missing.filter(m => m !== 'abdominals').slice(0, Math.max(0, needStr - 1))]
+    : missing.slice(0, needStr);
   const pool = EX.filter(e => e.c === 'strength' && haveEq(e) && !r.items.some(it => it.id === e.id));
   let added = 0;
   want.forEach(m => {
@@ -88,8 +93,19 @@ window.rtComplete = id => {
       added++;
     }
   });
-  if (added) { rtSave(); toast('Routine completed with core & balanced exercises'); routineView(id); }
-  else toast('Your routine already covers all main muscle groups.');
+  const stPool = EX.filter(e => e.c === 'stretching' && haveEq(e) && !r.items.some(it => it.id === e.id));
+  const stTargets = [...worked, 'lower back', 'hamstrings', 'shoulders', 'chest'];
+  for (let k = stItems.length; k < 3 && stPool.length; k++) {
+    const wantM = stTargets[k % stTargets.length];
+    const c = stPool.filter(e => e.m[0] === wantM && !r.items.some(it => it.id === e.id));
+    const pick = (c.length ? c : stPool.filter(e => !r.items.some(it => it.id === e.id)))[0];
+    if (pick) {
+      r.items.push({ id: pick.id, sets: 2, reps: '30s', rest: 10 });
+      added++;
+    }
+  }
+  if (added) { rtSave(); toast('Routine balanced: abs + 3 stretches included'); routineView(id); }
+  else toast('Your routine already has balanced exercises, abs and stretches.');
 };
 window.rtDelete = id => {
   if (rtDel !== id) { rtDel = id; routineView(id); return; }
