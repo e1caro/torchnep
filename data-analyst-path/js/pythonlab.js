@@ -1,122 +1,116 @@
+/* DotPython: the pandas lab view (world map, challenge page with editor, output and checker). */
 (function () {
   'use strict';
   var DA = (window.DA = window.DA || {});
-  var ui = DA.ui, h = ui.h;
+  var ui = DA.ui, h = ui.h, L = DA.labgame, P = DA.python;
   DA.views = DA.views || {};
+  var lab = null, drafts = {};
+  var MEM = 'data-analyst-path.py-drafts.v1';
+  try { drafts = JSON.parse(localStorage.getItem(MEM) || '{}') || {}; } catch (e) { drafts = {}; }
+  function saveDrafts() { try { localStorage.setItem(MEM, JSON.stringify(drafts)); } catch (e) { } }
+
+  function getLab() { return lab || (lab = L.register(DA.labPython)); }
 
   DA.views.python = function (params) {
-    var lessonId = params[0] || 'l3-1';
-    var root = h('div', { class: 'view lab pythonlab' });
+    var lb = getLab();
+    if (params[0] === 'play') {
+      var c = lb.byId[params[1]];
+      if (!c) return L.mapView(lb);
+      return L.isUnlocked(lb, c) ? page(lb, c) : L.lockedView(lb, c);
+    }
+    return L.mapView(lb);
+  };
 
-    // Header
-    root.appendChild(h('div', { class: 'row between' },
-      h('div', null,
-        h('h1', { id: 'view-title', tabindex: '-1', text: 'Python Lab' }),
-        h('p', { class: 'lead', text: 'Interactive in-browser pandas & Python data notebook environment.' })),
-      h('button', { class: 'btn ghost', type: 'button', onclick: function () {
-        alert('Python Lab:\n• Client-side pandas DataFrame execution.\n• df.groupby(), df.merge(), .apply(), .shift(), .rolling().\n• Exercises auto-check your output against reference data.');
-      } }, 'ℹ Help')
-    ));
+  function starter() { return '# df, customers, stores and messy are loaded\nresult = '; }
 
-    var layout = h('div', { class: 'lab-layout' });
-    var side = h('aside', { class: 'lab-side' });
-    var main = h('section', { class: 'lab-main' });
-    layout.appendChild(side);
-    layout.appendChild(main);
-    root.appendChild(layout);
+  function page(lb, c) {
+    var P2 = L.page(lb, c, { useExample: function (ex) { setCode(ex.code); ui.toast('Example loaded. Press Run (Ctrl+Enter).'); } });
+    var work = P2.work;
+    var editor = h('textarea', { class: 'sql-editor py-editor', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', rows: '9', 'aria-label': 'Python code. Tab indents, Ctrl+Enter runs.' });
+    editor.value = drafts[c.id] !== undefined ? drafts[c.id] : starter(c);
+    var undo = [editor.value], redo = [];
 
-    // Initial code
-    var editor = h('textarea', {
-      class: 'sql-editor', rows: '8', spellcheck: 'false',
-      placeholder: '# Write your pandas code here\n# df is loaded with retail orders\nprint(df.head(5))\n'
-    });
-    editor.value = 'print("DataFrame shape:", df.shape())\nprint(df.head(3))\n';
-
+    function setCode(v) { undo.push(editor.value); editor.value = v; remember(); editor.focus({ preventScroll: true }); }
+    function remember() { drafts[c.id] = editor.value; saveDrafts(); }
     function insert(text, back) {
       var a = editor.selectionStart, b = editor.selectionEnd, v = editor.value;
-      var nextVal = v.slice(0, a) + text + v.slice(b);
+      undo.push(v); redo = [];
+      editor.value = v.slice(0, a) + text + v.slice(b);
       var pos = a + text.length - (back || 0);
-      editor.value = nextVal;
       editor.selectionStart = editor.selectionEnd = pos;
       editor.focus({ preventScroll: true });
+      remember();
     }
-    var PY_KEYS = [
-      ['print()', 'print()', 1],
-      ['df.head()', 'df.head()', 1],
-      ['df.shape', 'df.shape()', 0],
-      ['groupby()', 'df.groupby("")', 2],
-      ['.agg()', '.agg({})', 2],
-      ['.sum()', '.sum()', 0],
-      ['.mean()', '.mean()', 0],
-      ['sort_values()', '.sort_values("", false)', 9],
-      ['[" "]', '[""]', 2],
-      [',', ', '],
-      ['==', ' == ']
-    ];
-    var keys = h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Python shortcuts' },
-      PY_KEYS.map(function (k) {
-        return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]);
-      })
-    );
+    var KEYS = [['df', 'df'], ['["col"]', '[""]', 2], ['[[ ]]', '[[""]]', 3], ['.head()', '.head()', 1], ['.shape', '.shape'], ['.groupby()', '.groupby("")', 2],
+      ['.agg()', '.agg()', 1], ['.sum()', '.sum()'], ['.mean()', '.mean()'], ['.value_counts()', '.value_counts()'], ['.sort_values()', '.sort_values("", ascending=False)', 20],
+      ['ascending=False', 'ascending=False'], ['.merge()', '.merge(, on="")', 7], ['pd.to_datetime()', 'pd.to_datetime()', 1], ['.str.', '.str.'], ['.dt.', '.dt.'],
+      ['==', ' == '], ['>=', ' >= '], ['&', ' & '], ['|', ' | '], ['( )', '()', 1], ['"', '""', 1], ['print()', 'print()', 1], ['result =', 'result = ']];
+    work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Python shortcuts' },
+      KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
+    work.appendChild(editor);
 
-    var runBtn = h('button', { class: 'btn', type: 'button' }, '▶ Run code');
-    var checkBtn = h('button', { class: 'btn accent', type: 'button' }, '✓ Check exercise');
-    var outputBox = h('div', { class: 'result' });
-    var feedbackBox = h('div', { class: 'feedback', role: 'status', 'aria-live': 'polite' });
+    var out = h('div', { class: 'result', 'aria-live': 'polite' });
+    var runBtn = h('button', { class: 'btn', type: 'button', onclick: function () { run(false); } }, '▶ Run');
+    var checkBtn = h('button', { class: 'btn accent', type: 'button', onclick: function () { run(true); } }, '✓ Check');
+    var resetBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () { setCode(starter(c)); ui.clear(out); } }, 'Reset code');
+    work.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, resetBtn, h('span', { class: 'muted small', text: 'Ctrl+Enter runs' })));
+    work.appendChild(h('details', { class: 'schema' }, h('summary', null, h('strong', { text: '📋 Data you can use' })),
+      h('ul', { class: 'small' },
+        h('li', null, h('code', { text: 'df' }), ' café order lines: order_id, order_date, store_city, channel, customer_id, product, category, qty, unit_price'),
+        h('li', null, h('code', { text: 'customers' }), ' customer_id, signup_date, city, segment'),
+        h('li', null, h('code', { text: 'stores' }), ' store_id, city, opened_year'),
+        h('li', null, h('code', { text: 'messy' }), ' hand-typed orders with gaps and typos: Order ID, Date, Customer, Product, Qty, Price, City'))));
+    work.appendChild(out);
 
-    main.appendChild(keys);
-    main.appendChild(editor);
-    main.appendChild(h('div', { class: 'row actions', style: 'margin-top: 8px;' }, runBtn, checkBtn));
-    main.appendChild(feedbackBox);
-    main.appendChild(outputBox);
-
-    // Side panel task
-    var taskFold = h('details', { class: 'side-collapse', open: 'true' },
-      h('summary', null, h('strong', { text: 'Lesson Tasks (Module 3)' }))
-    );
-    var tasks = [
-      { id: 'py_1', title: 'Inspect DataFrame', desc: 'Run <code>print(df.head(5))</code> to inspect rows.' },
-      { id: 'py_2', title: 'Category aggregation', desc: 'Compute total quantity by category: <code>df.groupby("category").agg({"qty": "sum"})</code>' },
-      { id: 'py_3', title: 'Sort top sales', desc: 'Sort orders by quantity descending: <code>df.sort_values("qty", false)</code>' }
-    ];
-    tasks.forEach(function (t) {
-      taskFold.appendChild(h('div', { class: 'task-head' },
-        h('strong', { class: 'small', text: t.title }),
-        h('p', { class: 'muted small', html: t.desc })
-      ));
+    editor.addEventListener('input', function () { remember(); });
+    editor.addEventListener('keydown', function (e) {
+      var ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key === 'Enter') { e.preventDefault(); run(false); return; }
+      if (ctrl && !e.shiftKey && (e.key === 'z' || e.key === 'Z') && undo.length > 1) { e.preventDefault(); redo.push(editor.value); editor.value = undo.pop(); remember(); return; }
+      if (ctrl && (e.key === 'y' || e.key === 'Y' || (e.shiftKey && (e.key === 'z' || e.key === 'Z'))) && redo.length) { e.preventDefault(); undo.push(editor.value); editor.value = redo.pop(); remember(); return; }
+      var a = editor.selectionStart, b = editor.selectionEnd, v = editor.value;
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var ls = v.lastIndexOf('\n', a - 1) + 1;
+        if (e.shiftKey) {
+          var cut = /^ {1,4}/.exec(v.slice(ls)); if (!cut) return;
+          undo.push(v); editor.value = v.slice(0, ls) + v.slice(ls + cut[0].length);
+          editor.selectionStart = editor.selectionEnd = Math.max(ls, a - cut[0].length);
+        } else if (a !== b && v.slice(a, b).indexOf('\n') >= 0) {
+          undo.push(v);
+          var block = v.slice(ls, b).replace(/^/gm, '    ');
+          editor.value = v.slice(0, ls) + block + v.slice(b);
+          editor.selectionStart = ls; editor.selectionEnd = ls + block.length;
+        } else { insert('    '); }
+        remember();
+        return;
+      }
+      if (e.key === 'Enter' && !e.shiftKey && !ctrl) {
+        var lineStart = v.lastIndexOf('\n', a - 1) + 1, line = v.slice(lineStart, a), ind = /^\s*/.exec(line)[0];
+        if (/:\s*$/.test(line)) ind += '    ';
+        if (ind) { e.preventDefault(); insert('\n' + ind); }
+      }
     });
-    side.appendChild(taskFold);
 
-    // Prepare DataFrame
-    var csv = DA.gen.retailCsv();
-    var df = DA.python.pd.read_csv(csv);
-
-    function runCode() {
-      ui.clear(outputBox);
-      var code = editor.value;
-      var res = DA.python.execute(code, { df: df });
-      if (!res.ok) {
-        outputBox.appendChild(h('div', { class: 'callout bad' }, 'Python error: ' + res.error));
-      } else {
-        outputBox.appendChild(h('pre', { class: 'prompt-text', text: res.output || '(Execution finished with no output)' }));
-      }
-      return res;
+    function show(res) {
+      ui.clear(out);
+      if (res.output) out.appendChild(h('pre', { class: 'py-out', tabindex: '0', 'aria-label': 'Output', text: res.output }));
+      if (!res.ok) out.appendChild(h('div', { class: 'callout bad' }, h('strong', { text: (res.line ? 'Line ' + res.line + ': ' : '') }), res.error));
+      else if (!res.output) out.appendChild(h('p', { class: 'muted small', text: 'Ran with no output. Print something, or end with an expression (like df.head()) to see it.' }));
     }
 
-    runBtn.onclick = runCode;
-    checkBtn.onclick = function () {
-      var res = runCode();
-      ui.clear(feedbackBox);
-      if (res.ok && res.output) {
-        DA.game.award('python:' + lessonId, 30, 'Python challenge solved');
-        DA.game.sound('done');
-        DA.game.confetti(false);
-        feedbackBox.appendChild(h('div', { class: 'callout ok' }, '✔ Exercise output verified! +30 XP awarded.'));
-      } else {
-        feedbackBox.appendChild(h('div', { class: 'callout warn' }, 'Write code that produces valid output and click Check.'));
-      }
-    };
-
-    return root;
-  };
+    function run(check) {
+      var code = editor.value;
+      if (!check) { show(P.run(code, { echo: true })); return; }
+      var res = P.run(code, { echo: true });
+      show(res);
+      if (!res.ok) { P2.verdict({ ok: false, message: 'Your code stopped with an error. Fix it first: ' + res.error }); return; }
+      var want = P.run(c.solution).env.result;
+      var got = Object.prototype.hasOwnProperty.call(res.env, 'result') ? res.env.result : undefined;
+      if (got === undefined) { P2.verdict({ ok: false, message: 'There is no variable called result. Finish with result = ... (your answer).' }); return; }
+      if (got === null && want !== null) { P2.verdict({ ok: false, message: 'result is still empty (None). Put your answer after result = .' }); return; }
+      P2.verdict(P.compareResult(got, want, c.ordered));
+    }
+    return P2.root;
+  }
 })();

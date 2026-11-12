@@ -7,7 +7,11 @@ A free, static web app that teaches you to become a data analyst **starting from
 **Learn**
 - **Personalised.** Pick your background (science, engineering, finance, marketing, healthcare, sport, teaching, software, operations, humanities, or describe your own). Analogies, practice data, portfolio ideas, CV examples and every AI prompt adapt to it.
 - **A realistic roadmap.** 9 modules, 29 lessons, about 130 hours: spreadsheets, SQL, Python/pandas, statistics, dashboards, AI-assisted analysis, portfolio, job search. Each lesson has key ideas, a hands-on task, an AI prompt, a quiz and notes.
-- **SQL Lab.** Real SQLite in the browser (sql.js / WebAssembly), two practice databases, 16 challenges checked automatically. On a phone it has a keyword/table/column toolbar so you rarely need the keyboard for syntax.
+- **SQLab.** Real SQLite in the browser (sql.js / WebAssembly), two practice databases, 16 challenges checked automatically. On a phone it has a keyword/table/column toolbar so you rarely need the keyboard for syntax.
+- **DotSheets, DotPython and DotBI.** Three more labs with the same layout as SQLab, each with 4 worlds × 4 levels × 3 challenges (48 each) and a world map. Solving 2 of the 3 challenges in a level opens the next one; each challenge earns 1 to 3 stars (★ solved, ★ no hint, ★ first try), XP once, and has a hint, a worked example per level and a solution shown after the first check. Progress is saved in the same state as everything else, so it syncs between devices.
+  - **DotSheets** is a real spreadsheet on a canvas: click or arrow keys to move, Shift+arrows to select, type to replace a cell, F2 or double-click to edit, Enter/Tab to save and move, Escape to cancel, Delete, Ctrl+C/V/Z/Y, Ctrl+arrows to jump to the data edge, Home, Ctrl+Home, PageUp/PageDown. On a phone, tap to select and tap again to type. Checks compare your cell with the reference formula computed on the same data.
+  - **DotPython** runs a safe subset of Python with real pandas syntax (`df.shape`, `sort_values("qty", ascending=False)`, `df[df["qty"] >= 2]`, groupby/agg, merge, `.str`, `.dt`, pivot_table). Tab indents, Ctrl+Enter runs. Your answer goes in `result` and is compared with the reference result.
+  - **DotBI** evaluates DAX measures with real filter context (CALCULATE, FILTER, ALL, SUMX, RELATED, VAR/RETURN, relationships) and Tableau calculations (IIF, DATEPART, `{ FIXED ... }`). The Rows shelf splits the measure into a matrix and a chart; the check compares your measure with the answer in total and in every row.
 - **Prompt library and AI rules.** 50 prompts with fill-in blanks, *Copy*, *Open in ChatGPT / Claude*, and answers in any of 12 languages.
 
 **Discover (the scroll feed)**
@@ -50,7 +54,7 @@ python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
-Everything except the SQL Lab, offline mode and installing also works by double-clicking `index.html` (browsers block WebAssembly and service workers on `file://` pages; the Lab explains this).
+Everything except SQLab, offline mode and installing also works by double-clicking `index.html` (browsers block WebAssembly and service workers on `file://` pages; the Lab explains this).
 
 ## Put it on your phone
 
@@ -66,15 +70,17 @@ files, copying, sharing and the calendar reminder go through a small native brid
 ## Tests
 
 ```bash
-node tests/unit.js                                   # 72 tests, Node only
+node tests/unit.js                                   # 73 tests, Node only
+node tests/unit-labs.js                              # the three labs: rules, keyboard logic, all 144 challenge checkers
 BASE=http://localhost:8000 node tests/e2e.js          # real browser (needs: npm i -g playwright)
 BASE=http://localhost:8000 node tests/e2e-cloud.js    # a computer and a phone syncing through a fake account service
 ```
 
+- `tests/unit-labs.js`, `unit-python-bi.js`, `unit-sheets*.js` (run on their own): unlock rules and stars, saving and merging lab progress, DotSheets navigation and editing (arrows, Ctrl+arrows, Enter/Tab, copy/paste with shifted references, undo/redo), the Python interpreter (pandas syntax, errors, sandbox), DAX and Tableau evaluation, and every challenge: each one fails without work and passes with its solution.
 - `tests/unit-cloud.js` (part of `unit.js`): sign up / sign in on two devices against a fake Supabase, nothing lost in either direction, no writes when nothing changed, one sync per burst of changes, expired and revoked sessions, offline, clear error messages, account deletion.
 - `tests/unit-v3.js` (part of `unit.js`): feed content rules and sequencing, double XP, streak repair, week race, the correlation generator (the answer shown is the true correlation of the picture) and every SQL blocks puzzle executed on the practice database.
 - `tests/unit.js`: XP, levels, streaks and freezes (with a fake clock and daylight-saving edges), quests, badges, the review schedule, the question bank, state merging (idempotent, commutative, no double-counted XP), transfer codes, the calendar file, and static checks that `sw.js`, the manifest and `index.html` agree with the files on disk.
-- `tests/e2e.js`: plays a practice round, completes a lesson and a SQL challenge, checks quests, chest and badges, moves progress from a desktop to a phone profile, checks the phone layout (no sideways scrolling, tab bar, touch targets), then goes offline and checks the app, the SQL engine and practice still work.
+- `tests/e2e.js`: plays a practice round, completes a lesson and a SQL challenge, checks quests, chest and badges, moves progress from a desktop to a phone profile, checks the phone layout (no sideways scrolling, tab bar, touch targets), opens the three labs (name, world map), types into DotSheets with the keyboard, solves two challenges in each lab and sees the next level open, reloads to check stars and XP, checks the labs at phone width in dark mode, then goes offline and checks the app, the SQL engine and practice still work.
 
 ## Editing the site
 
@@ -107,7 +113,12 @@ js/cloud.js             automatic sync with an account (Supabase REST)
 js/pwa.js               service worker, install prompt, update notice
 js/me.js                You page: level, streak calendar, weekly chart, badges
 js/settings.js          daily goal, theme, reminder, devices, reset
-js/sqllab.js            the SQL Lab         js/app.js   other pages and the router
+js/sqllab.js            SQLab               js/app.js   other pages and the router
+js/labgame.js           shared progression of the three labs: worlds, levels, stars, unlocks, map, task card
+js/sheetslab.js js/sheets/   DotSheets (grid.js canvas grid, edit.js keyboard and editing logic, engine.js formulas)
+js/pythonlab.js js/python/   DotPython (interp.js Python subset, engine.js pandas subset)
+js/bilab.js js/bi/           DotBI (engine.js DAX and Tableau)
+js/data/lab-*.js        the worlds, levels and challenges of the three labs
 js/data/                backgrounds, curriculum, prompts, questions, feed cards, SQL block puzzles, datasets and SQL challenges
 vendor/sql.js/          sql.js 1.15.2 (MIT), SQLite compiled to WebAssembly
 tests/  tools/          unit and browser tests; service-worker and icon generators (not published)

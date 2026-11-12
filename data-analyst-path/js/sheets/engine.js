@@ -70,6 +70,42 @@
   };
 
   // Evaluator
+  S.binary = function (op, l, r) {
+    if (l instanceof S.Err) return l;
+    if (r instanceof S.Err) return r;
+    if (op === '&') { var ls = S.toStr(l), rs = S.toStr(r); return ls instanceof S.Err ? ls : rs instanceof S.Err ? rs : ls + rs; }
+    if (op === '=') return S.cmp(l, r) === 0;
+    if (op === '<>') return S.cmp(l, r) !== 0;
+    if (op === '<') return S.cmp(l, r) < 0;
+    if (op === '<=') return S.cmp(l, r) <= 0;
+    if (op === '>') return S.cmp(l, r) > 0;
+    if (op === '>=') return S.cmp(l, r) >= 0;
+    var a = S.toNum(l), b = S.toNum(r);
+    if (a instanceof S.Err) return a;
+    if (b instanceof S.Err) return b;
+    if (op === '+') return a + b;
+    if (op === '-') return a - b;
+    if (op === '*') return a * b;
+    if (op === '/') return b === 0 ? S.E.DIV0 : a / b;
+    if (op === '^') return Math.pow(a, b);
+    return S.E.VALUE;
+  };
+
+  S.broadcast = function (op, l, r) {
+    var A = Array.isArray(l) ? l : [[l]], B = Array.isArray(r) ? r : [[r]];
+    var rows = Math.max(A.length, B.length), cols = Math.max(A[0].length, B[0].length), out = [];
+    function at(M, i, j) {
+      var ii = M.length === 1 ? 0 : i, jj = M[0].length === 1 ? 0 : j;
+      return ii < M.length && jj < M[0].length ? M[ii][jj] : S.E.NA;
+    }
+    for (var i = 0; i < rows; i++) {
+      var row = [];
+      for (var j = 0; j < cols; j++) row.push(S.binary(op, at(A, i, j), at(B, i, j)));
+      out.push(row);
+    }
+    return out;
+  };
+
   Workbook.prototype.evalNode = function (node, sheet, env, callStack) {
     if (!node) return null;
     callStack = callStack || new Set();
@@ -89,27 +125,9 @@
     if (node.type === 'BINARY') {
       var l = this.evalNode(node.left, sheet, env, callStack);
       var r = this.evalNode(node.right, sheet, env, callStack);
-      if (l instanceof S.Err) return l;
-      if (r instanceof S.Err) return r;
-
-      var op = node.op;
-      if (op === '+') return S.toNum(l) + S.toNum(r);
-      if (op === '-') return S.toNum(l) - S.toNum(r);
-      if (op === '*') return S.toNum(l) * S.toNum(r);
-      if (op === '/') {
-        var divisor = S.toNum(r);
-        return divisor === 0 ? S.E.DIV0 : S.toNum(l) / divisor;
-      }
-      if (op === '^') return Math.pow(S.toNum(l), S.toNum(r));
-      if (op === '&') return S.toStr(l) + S.toStr(r);
-      if (op === '=') return S.cmp(l, r) === 0;
-      if (op === '<>') return S.cmp(l, r) !== 0;
-      if (op === '<') return S.cmp(l, r) < 0;
-      if (op === '<=') return S.cmp(l, r) <= 0;
-      if (op === '>') return S.cmp(l, r) > 0;
-      if (op === '>=') return S.cmp(l, r) >= 0;
+      if (Array.isArray(l) || Array.isArray(r)) return S.broadcast(node.op, l, r);
+      return S.binary(node.op, l, r);
     }
-
     if (node.type === 'RANGE_OP') {
       var lRef = (node.left.type === 'REF') ? node.left.ref : null;
       var rRef = (node.right.type === 'REF') ? node.right.ref : null;
@@ -208,19 +226,25 @@
         }
       });
 
-      // Pass 1: compute cell formulas
+      // Pass 1: compute cell formulas, repeating until values settle (formulas can read other formulas)
       var keys = Object.keys(sheet.cells);
-      for (var i = 0; i < keys.length; i++) {
-        var cell = sheet.cells[keys[i]];
-        if (cell.formula) {
-          var ast = S.parseFormula(cell.formula, sheet.name, this.argSep);
-          var coords = keys[i].split(',').map(Number);
-          try {
-            cell.value = this.evalNode(ast, sheet, null, new Set());
-          } catch (e) {
-            cell.value = S.E.VALUE;
+      var sig = function (v) { return Array.isArray(v) ? JSON.stringify(v.map(function (r) { return r.map(String); })) : String(v); };
+      for (var pass = 0; pass < 8; pass++) {
+        var changed = false;
+        for (var i = 0; i < keys.length; i++) {
+          var cell = sheet.cells[keys[i]];
+          if (cell && cell.formula) {
+            var before = sig(cell.value), val;
+            try {
+              val = this.evalNode(S.parseFormula(cell.formula, sheet.name, this.argSep), sheet, null, new Set());
+            } catch (e) {
+              val = S.E.VALUE;
+            }
+            cell.value = val;
+            if (sig(val) !== before) changed = true;
           }
         }
+        if (!changed && pass > 0) break;
       }
 
       // Pass 2: dynamic arrays spilling

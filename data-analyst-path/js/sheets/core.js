@@ -134,8 +134,18 @@
     if (v === null || v === undefined) return 0;
     if (typeof v === 'boolean') return v ? 1 : 0;
     if (v instanceof Err) return v;
-    if (typeof v === 'string') { var n = S.parseNumber ? S.parseNumber(v) : (v.trim() !== '' && isFinite(+v) ? +v : null); return n === null ? E.VALUE : n; }
+    if (typeof v === 'string') { var n = S.parseNumber ? S.parseNumber(v) : (v.trim() !== '' && isFinite(+v) ? +v : null); if (n === null) n = S.textDate(v); return n === null ? E.VALUE : n; }
     return E.VALUE;
+  };
+  var MON = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  S.textDate = function (v) {
+    var s = String(v).trim(), m, y, mo, d;
+    if ((m = /^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})$/.exec(s))) { y = +m[1]; mo = +m[2]; d = +m[3]; }
+    else if ((m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(s))) { d = +m[1]; mo = +m[2]; y = +m[3]; }
+    else if ((m = /^([A-Za-z]{3})[a-z]*\.? (\d{1,2}),? (\d{4})$/.exec(s)) && MON[m[1].toLowerCase()]) { mo = MON[m[1].toLowerCase()]; d = +m[2]; y = +m[3]; }
+    else return null;
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+    return S.serial(y, mo, d);
   };
   S.toStr = function (v) {
     if (typeof v === 'string') return v;

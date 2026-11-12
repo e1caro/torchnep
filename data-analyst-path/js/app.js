@@ -313,13 +313,13 @@
     if (l.download === 'retail') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('retail_orders.csv', DA.gen.retailCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded retail_orders.csv'); } }, '⬇ Download café sales CSV (≈6,500 rows)'));
     if (l.download === 'messy') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('messy_orders.csv', '﻿' + DA.gen.messyCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded messy_orders.csv'); } }, '⬇ Download messy orders CSV'));
     if (l.module && l.module.id === 'm1') {
-      tools.push(link('#/sheets/' + (l.download || 'retail') + '/' + l.id, 'btn small accent', '📊 Open in Sheets Lab'));
+      tools.push(link('#/sheets/' + (l.download || 'retail') + '/' + l.id, 'btn small accent', '📊 Open in ' + DA.labgame.names.sheets));
     }
     if (l.module && l.module.id === 'm3') {
-      tools.push(link('#/python/' + l.id, 'btn small accent', '🐍 Open in Python Lab'));
+      tools.push(link('#/python/' + l.id, 'btn small accent', '🐍 Open in ' + DA.labgame.names.python));
     }
     if (l.module && l.module.id === 'm5') {
-      tools.push(link('#/bi/' + l.id, 'btn small accent', '📈 Open in BI Lab'));
+      tools.push(link('#/bi/' + l.id, 'btn small accent', '📈 Open in ' + DA.labgame.names.bi));
     }
     if (l.lab) {
       var dsId = l.lab === 'auto' ? ui.defaultDataset() : l.lab;
@@ -527,6 +527,7 @@
     if (mb) mb.setAttribute('aria-expanded', 'false');
   }
 
+  DA.render = function () { render(); };
   document.addEventListener('DOMContentLoaded', function () {
     ui.applyTheme();
     if (window.matchMedia) {
