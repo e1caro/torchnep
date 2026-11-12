@@ -111,6 +111,8 @@
     feedQuiz: 5,     // a review question answered correctly in the feed (once per question per day)
     feedFive: 10,    // reading five new cards in a day
     block: 6,        // solving a SQL blocks puzzle for the first time
+    blockStar: 3,    // the first time a SQL blocks puzzle gets 3 stars
+    blockLevel: 15,  // solving every puzzle of a SQL blocks level
     module: 25,      // finishing every lesson of a module
     gameCap: 20,     // most XP a mini-game can pay per day (they are endless)
   };
@@ -134,7 +136,7 @@
       seen: {},    // one-time hints
       cards: {},   // feed card id -> date it was first read ("collected")
       saved: {},   // feed card id -> true (bookmarked)
-      blocks: {},  // SQL blocks puzzle id -> true (solved)
+      blocks: {},  // SQL blocks puzzle id -> stars (1 to 3)
       repaired: {},// date -> true: a missed day bridged by a streak repair
       boost: 0,    // time (ms) until which XP is doubled
     };
@@ -191,7 +193,8 @@
     eachKey(src.seen, function (k, v) { if (v === true) s.seen[k] = true; }, 100);
     eachKey(src.cards, function (id, d) { if (isDate(d) && (!DA.feedById || DA.feedById[id])) s.cards[id] = d; }, 1000);
     eachKey(src.saved, function (id, v) { if (v === true && (!DA.feedById || DA.feedById[id])) s.saved[id] = true; }, 1000);
-    eachKey(src.blocks, function (id, v) { if (v === true && (!DA.puzzleById || DA.puzzleById[id])) s.blocks[id] = true; }, 500);
+    // SQL blocks: stars 1-3 per solved puzzle (older saves stored true, which counts as 1 star)
+    eachKey(src.blocks, function (id, v) { var n = v === true ? 1 : Math.floor(Number(v)); if (n >= 1 && n <= 3 && (!DA.puzzleById || DA.puzzleById[id])) s.blocks[id] = n; }, 500);
     eachKey(src.repaired, function (d, v) { if (isDate(d) && v === true) s.repaired[d] = true; }, 800);
     var boost = Math.floor(Number(src.boost));
     if (boost > 0 && boost < 1e14) s.boost = boost;

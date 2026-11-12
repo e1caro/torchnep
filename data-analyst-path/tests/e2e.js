@@ -270,6 +270,9 @@ async function playRound(page, wrongAt = []) {
   ok(await page.evaluate(() => DA.ui.state.stats.corrGames === 1), 'the game ends after three misses and the score is saved');
   await dismissModals(page, 900);
   await page.goto(BASE + '/index.html#/arcade/blocks');
+  await page.waitForSelector('.level-card');
+  ok(await page.locator('.level-card').count() === 8 && (await txt(page, '.blocks-totals')).includes('0 / ' + (await page.evaluate(() => DA.puzzles.length))), 'SQL blocks: a map of 8 levels with totals');
+  await page.click('.blocks-map .next-card');
   await page.waitForSelector('.bank .tile');
   await page.waitForFunction(() => !!window.initSqlJs, null, { timeout: 15000 });
   await page.waitForTimeout(400);
@@ -292,8 +295,29 @@ async function playRound(page, wrongAt = []) {
   }
   await page.waitForSelector('.results');
   ok(await page.evaluate(() => Object.keys(DA.ui.state.blocks).length === 5 && DA.ui.state.stats.blockRounds === 1), 'SQL blocks: five puzzles solved by tapping tiles, checked by running the query');
+  const bst = await page.evaluate(() => DA.ui.state.blocks);
+  ok(Object.values(bst).filter((n) => n === 3).length === 4 && Object.values(bst).includes(2), 'SQL blocks: 3 stars at the first try, 2 after a wrong Check (' + JSON.stringify(bst) + ')');
+  ok((await page.locator('.results .round-list li').count()) === 5 && /★/.test(await txt(page, '.results .big-stars')), 'SQL blocks: results list the stars of each puzzle');
   await dismissModals(page, 1200);
   await page.screenshot({ path: path.join(SHOTS, 'desktop-blocks-results.png') });
+  // a "fix the bug" puzzle: the broken query is already in the tray
+  await page.evaluate(() => { DA.arcade.levelPuzzles(1).forEach((p) => { if (!p.fix) DA.ui.state.blocks[p.id] = DA.ui.state.blocks[p.id] || 3; }); DA.ui.save(); });
+  await page.goto(BASE + '/index.html#/arcade/blocks');
+  await page.click('.level-card >> nth=0');
+  await page.waitForSelector('.badge.bug');
+  await page.waitForSelector('.target summary');
+  ok((await txt(page, '.target summary')).includes('3 rows'), 'SQL blocks: the target result is shown (' + (await txt(page, '.target summary')) + ')');
+  const trayText = await page.evaluate(() => [...document.querySelectorAll('.tray .tile')].map((b) => b.textContent).join(' '));
+  ok(/ORDER BY price DESC LIMIT 3/.test(trayText), 'SQL blocks: a bug puzzle starts with the broken query');
+  await page.click('button:has-text("Hint")');
+  ok((await page.locator('.tray .tile.marked').innerText()) === 'DESC', 'SQL blocks: the hint marks the wrong tile');
+  await page.screenshot({ path: path.join(SHOTS, 'desktop-blocks-fix.png') });
+  await page.click('.tray .tile.marked');
+  await page.click('button:has-text("Check")');
+  await page.waitForSelector('.quiz-fb .callout.ok');
+  ok(await page.evaluate(() => DA.ui.state.blocks[DA.puzzles.find((p) => p.fix && p.lv === 1).id] === 2), 'SQL blocks: fixed with one hint = 2 stars');
+  await page.goto(BASE + '/index.html#/');
+  await dismissModals(page, 1200);
 
   /* ---------- settings: goal, theme, reminder ---------- */
   await page.goto(BASE + '/index.html#/settings');

@@ -213,15 +213,15 @@ test('module bonus is paid once, when the last lesson of a module is done', () =
 
 test('new state survives sanitize and merges without loss', () => {
   const a = ui.sanitize({ v: 2, cards: { 's-wald': '2026-11-05', bogus: '2026-11-05', 's-snow': 'yesterday' }, saved: { 's-mars': true, nope: true },
-    blocks: { b01: true, b99: true }, repaired: { '2026-11-08': true, x: true }, boost: 1700000000000, stats: { corrBest: 6 } });
+    blocks: { b01: true, b03: 3, b04: 7, b05: 'x', b99: 2 }, repaired: { '2026-11-08': true, x: true }, boost: 1700000000000, stats: { corrBest: 6 } });
   assert.deepStrictEqual(a.cards, { 's-wald': '2026-11-05' }); assert.deepStrictEqual(a.saved, { 's-mars': true });
-  assert.deepStrictEqual(a.blocks, { b01: true }); assert.deepStrictEqual(a.repaired, { '2026-11-08': true });
+  assert.deepStrictEqual(a.blocks, { b01: 1, b03: 3 }, 'old saves (true) count as 1 star; bad values and unknown puzzles are dropped'); assert.deepStrictEqual(a.repaired, { '2026-11-08': true });
   assert.strictEqual(a.boost, 1700000000000);
-  const b = ui.sanitize({ v: 2, cards: { 's-wald': '2026-11-02', 'q-box': '2026-11-06' }, saved: { 'q-box': true }, blocks: { b02: true }, repaired: { '2026-10-01': true }, boost: 5, stats: { corrBest: 9 } });
+  const b = ui.sanitize({ v: 2, cards: { 's-wald': '2026-11-02', 'q-box': '2026-11-06' }, saved: { 'q-box': true }, blocks: { b02: 2, b01: 3, b03: 1 }, repaired: { '2026-10-01': true }, boost: 5, stats: { corrBest: 9 } });
   const m = Y.merge(a, b);
   assert.deepStrictEqual(m.cards, { 's-wald': '2026-11-02', 'q-box': '2026-11-06' });
   assert.deepStrictEqual(Object.keys(m.saved).sort(), ['q-box', 's-mars']);
-  assert.deepStrictEqual(Object.keys(m.blocks).sort(), ['b01', 'b02']);
+  assert.deepStrictEqual(m.blocks, { b01: 3, b02: 2, b03: 3 }, 'merging keeps the best stars of each puzzle');
   assert.deepStrictEqual(Object.keys(m.repaired).sort(), ['2026-10-01', '2026-11-08']);
   assert.strictEqual(m.boost, 1700000000000); assert.strictEqual(m.stats.corrBest, 9);
   assert.deepStrictEqual(Y.merge(m, a), m); assert.deepStrictEqual(Y.merge(b, a).cards, m.cards);
@@ -244,24 +244,81 @@ test('guess the correlation: the answer shown is the true correlation of the pic
   assert.strictEqual(A.corrWord(0.05), 'almost no relationship'); assert.strictEqual(A.corrWord(-0.7), 'a strong negative relationship'); assert.strictEqual(A.corrWord(0.2), 'a weak positive relationship');
 });
 
-test('SQL blocks: every puzzle is well-formed and unsolved ones come first', () => {
-  assert.ok(DA.puzzles.length >= 20);
-  DA.puzzles.forEach((p) => {
-    assert.strictEqual(p.sql, p.tiles.join(' ')); assert.ok(p.ask && p.why && p.extra.length >= 2, p.id);
-    assert.ok(DA.datasets[p.ds], p.id + ' dataset'); assert.ok(p.tiles.length >= 4 && p.tiles.length <= 12, p.id + ' has ' + p.tiles.length + ' tiles');
-    const t = A.blockTiles(p);
-    assert.strictEqual(t.length, p.tiles.length + p.extra.length);
-    assert.deepStrictEqual(t.map((x) => x.text).sort(), p.tiles.concat(p.extra).sort());
+test('SQL blocks: 90+ puzzles in 8 levels, well-formed, with fix-the-bug puzzles in every level', () => {
+  assert.ok(DA.puzzles.length >= 90, DA.puzzles.length + ' puzzles');
+  assert.strictEqual(DA.blockLevels.length, 8);
+  const ids = new Set(), asks = new Set();
+  DA.puzzles.forEach((p, i) => {
+    assert.strictEqual(p.id, 'b' + String(i + 1).padStart(2, '0'), 'ids are permanent and in order');
+    assert.ok(!asks.has(p.ask), 'duplicate question: ' + p.ask); asks.add(p.ask); ids.add(p.id);
+    assert.strictEqual(p.sql, p.tiles.join(' ')); assert.ok(p.ask && p.why, p.id);
+    assert.ok(p.extra.length >= (p.fix ? 1 : 2), p.id + ' needs tempting wrong tiles');
+    assert.ok(DA.datasets[p.ds], p.id + ' dataset'); assert.ok(p.tiles.length >= 4 && p.tiles.length <= 18, p.id + ' has ' + p.tiles.length + ' tiles');
+    assert.ok(p.lv >= 1 && p.lv <= 8, p.id + ' level');
+    const t = A.blockTiles(p), pool = A.blockPool(p);
+    assert.strictEqual(t.length, pool.length);
+    assert.deepStrictEqual(t.map((x) => x.text).sort(), pool.slice().sort());
+    if (p.fix) {
+      assert.notStrictEqual(p.fix.join(' '), p.sql, p.id + ' broken query is different');
+      assert.deepStrictEqual(A.blockStart(p, t).map((x) => x.text), p.fix, p.id + ' starts with the broken query in the tray');
+    } else assert.deepStrictEqual(A.blockStart(p, t), []);
   });
-  assert.deepStrictEqual(A.blockRound().map((p) => p.id), ['b01', 'b02', 'b03', 'b04', 'b05']);
-  ['b01', 'b02', 'b03', 'b04', 'b05'].forEach((id) => { ui.state.blocks[id] = true; });
-  assert.deepStrictEqual(A.blockRound().map((p) => p.id), ['b06', 'b07', 'b08', 'b09', 'b10']);
-  DA.puzzles.forEach((p) => { ui.state.blocks[p.id] = true; });
-  assert.strictEqual(A.blockRound().length, 5);
+  // the tiles of the answer are always all there, for both kinds
+  DA.puzzles.forEach((p) => { const pool = A.blockPool(p).slice(); p.tiles.forEach((x) => { const k = pool.indexOf(x); assert.ok(k >= 0, p.id + ' misses ' + x); pool.splice(k, 1); }); });
+  DA.blockLevels.forEach((l) => {
+    const ps = A.levelPuzzles(l.n);
+    assert.ok(ps.length >= 10, 'level ' + l.n + ' has ' + ps.length);
+    assert.ok(ps.some((p) => p.fix), 'level ' + l.n + ' has a bug to fix');
+  });
+});
+
+test('SQL blocks: rounds, levels, stars and "continue"', () => {
+  A.rand = () => 0.42;
+  const l1 = A.levelPuzzles(1).map((p) => p.id);
+  assert.deepStrictEqual(A.blockRound(1).map((p) => p.id), l1.slice(0, 5), 'unsolved ones first, in order');
+  assert.strictEqual(A.nextLevel(), 1);
+  l1.slice(0, 5).forEach((id) => { ui.state.blocks[id] = 3; });
+  assert.deepStrictEqual(A.blockRound(1).map((p) => p.id), l1.slice(5, 10));
+  A.levelPuzzles(1).forEach((p) => { ui.state.blocks[p.id] = 3; });
+  ui.state.blocks[l1[2]] = 1;
+  assert.strictEqual(A.blockRound(1)[0].id, l1[2], 'once all are solved, the ones with fewest stars come back first');
+  assert.strictEqual(A.nextLevel(), 2, 'continue goes to the first level not cleared');
+  assert.deepStrictEqual(A.blockRound().map((p) => p.lv), [2, 2, 2, 2, 2]);
+  const st = A.levelStats(1);
+  assert.ok(st.cleared && st.solved === st.total && st.stars === st.max - 2);
+  const mix = A.blockRound('mix');
+  assert.strictEqual(mix.length, 5); assert.ok(mix.every((p) => ui.state.blocks[p.id]), 'mixed review only uses solved puzzles');
+  ui.state.blocks = {};
+  assert.ok(A.blockRound('mix').every((p) => p.lv === 1), 'mixed review with nothing solved falls back to "continue"');
+  DA.puzzles.forEach((p) => { ui.state.blocks[p.id] = 3; });
+  ui.state.blocks[A.levelPuzzles(6)[0].id] = 2;
+  assert.strictEqual(A.nextLevel(), 6, 'all cleared: continue goes where stars are missing');
+  const T = A.totals();
+  assert.strictEqual(T.solved, DA.puzzles.length); assert.strictEqual(T.levels, 8); assert.strictEqual(T.fixed, T.fixes); assert.strictEqual(T.stars, T.max - 1);
+  // stars
+  assert.deepStrictEqual([[1, 0], [2, 0], [1, 1], [3, 0], [2, 1], [1, 2], [6, 4]].map(([c, hn]) => A.starsFor(c, hn)), [3, 2, 2, 1, 1, 1, 1]);
+  assert.strictEqual(A.stars('b01', { blocks: { b01: true } }), 1, 'old saves count as one star');
   // tiles are never handed out already in order
   A.rand = () => 0.999999; // a "shuffle" that changes nothing
   const p = DA.puzzles[0], order = A.blockTiles(p).map((x) => x.i).join();
-  assert.notStrictEqual(order, p.tiles.concat(p.extra).map((_, k) => k).join());
+  assert.notStrictEqual(order, A.blockPool(p).map((_, k) => k).join());
+  A.rand = Math.random;
+});
+
+test('SQL blocks: hints point at the wrong tile or the next one, and tiles get a colour by kind', () => {
+  const p = DA.puzzles.find((x) => x.fix && x.ask.includes('3 CHEAPEST'));
+  const h1 = A.blockHint(p, p.fix);
+  assert.strictEqual(h1.text, 'DESC', 'in the broken query the hint points at the bug');
+  const h2 = A.blockHint(p, p.tiles.slice(0, 3));
+  assert.strictEqual(h2.next, p.tiles[3]);
+  assert.ok(/Check/.test(A.blockHint(p, p.tiles).say));
+  assert.strictEqual(A.blockHint(p, p.tiles.concat(['ASC'])).text, 'ASC', 'an extra tile at the end is pointed out');
+  const kinds = { SELECT: 'kw', 'GROUP BY': 'kw', 'LIMIT 3': 'kw', 'WITH per AS': 'kw', 'COUNT(*)': 'fn', "channel = 'delivery'": 'cond', 'price > 4': 'cond', 'orders o': 'tbl', products: 'tbl', 'name ,': 'col', '(SELECT AVG(price) FROM products)': 'sub' };
+  Object.entries(kinds).forEach(([t, k]) => assert.strictEqual(A.tileKind(t), k, t));
+  // row order matters only when the final result is sorted
+  assert.ok(A.sortsResult('SELECT a FROM t ORDER BY a'));
+  assert.ok(!A.sortsResult('SELECT a , RANK() OVER (ORDER BY a) FROM t'));
+  assert.ok(A.sortsResult('WITH m AS (SELECT x FROM t ORDER BY x) SELECT x FROM m ORDER BY x'));
 });
 
 test('SQL blocks: every reference query runs on the practice data, and answers are judged by their result', async () => {
@@ -275,6 +332,8 @@ test('SQL blocks: every reference query runs on the practice data, and answers a
     assert.strictEqual(A.blockCheck(p, p.tiles, runner(p.ds)).ok, true, p.id);
     assert.strictEqual(A.blockCheck(p, p.tiles, null).ok, true, p.id + ' (no engine)');
     assert.strictEqual(A.blockCheck(p, p.tiles.slice(0, -1), runner(p.ds)).ok, false, p.id + ' accepts an incomplete query');
+    if (p.fix) assert.strictEqual(A.blockCheck(p, p.fix, runner(p.ds)).ok, false, p.id + ': the "broken" query is accepted as right');
+    if (p.fix) assert.strictEqual(A.blockCheck(p, p.fix, null).ok, false);
   });
   const byAsk = (t) => DA.puzzles.find((p) => p.ask.includes(t));
   // an equivalent arrangement is accepted (conditions swapped around AND)

@@ -19,9 +19,10 @@ A free, static web app that teaches you to become a data analyst **starting from
 **Come back every day**
 - **Daily goal** (20, 40 or 80 XP) with a progress ring, and **three daily quests** (learn, practise, code). Finishing all three opens a surprise chest of bonus XP.
 - **Practice rounds.** Five questions, about two minutes, from a bank of 91 (29 lesson quizzes plus 62 more). Combo bonus, a second chance for every miss, and a **spaced-repetition schedule**: a question you get right returns after 1, 3, 7, 14, then 30 days; a miss returns sooner. "Mastered" means you answered it right on several different days.
-- **XP, levels and titles** (Curious Beginner → Query Cadet → Junior Analyst → Data Legend), **streaks** with freezes, a 12-week **activity calendar**, a weekly chart and **32 badges**.
+- **XP, levels and titles** (Curious Beginner → Query Cadet → Junior Analyst → Data Legend), **streaks** with freezes, a 12-week **activity calendar**, a weekly chart and **43 badges**.
 - **Learning path.** Every lesson is a stop on a winding, colour-coded road: finished stops are ticked, the next one pulses, and each unit ends with practice and a +25 XP chest. Nothing is locked.
-- **Arcade.** *Guess the correlation* (read a scatter plot, three lives) and *SQL blocks* (build a query by tapping tiles: no typing, checked by running it on the practice database, so any equivalent query passes). A round of SQL blocks counts for the daily "Code" quest, which makes that quest phone-friendly.
+- **Arcade.** *Guess the correlation* (read a scatter plot, three lives) and *SQL blocks*.
+- **SQL blocks: 95 puzzles in 8 levels** (pick and sort → filter rows → count and sum → groups → joins → dates and CASE → subqueries and CTEs → window functions). Build a query by tapping colour-coded tiles (keywords, functions, conditions, tables, columns, subqueries): no typing. Every answer is checked by running it on the practice database, so any equivalent query passes. 🐞 *Fix the bug* puzzles (two or more per level) start with a broken query: tap the wrong tile to take it out and tap the right one to drop it in at the cursor. Each puzzle shows the result to aim for, has a hint that points at the wrong tile or the next one, and earns 1 to 3 stars (each extra Check or hint costs one). A level map with stars per level, "Continue", replays that bring back low-star puzzles first, and a mixed review. XP: 6 per puzzle once, +3 for three stars, +15 per level cleared; badges for clearing a level, fixing 8 bugs and collecting 150 stars. A round counts for the daily "Code" quest.
 - **Double XP.** Opening the quest chest starts 15 minutes of double XP.
 - **Streak repair.** Losing a long streak to one missed day makes people quit, so the day after a miss you can win it back by earning twice your daily goal (once, the next day only, for runs of 3+ days).
 - **You vs. last week.** An honest league: this week's XP against where you were at the same point last week. No invented rivals.
@@ -65,7 +66,7 @@ files, copying, sharing and the calendar reminder go through a small native brid
 ## Tests
 
 ```bash
-node tests/unit.js                                   # 70 tests, Node only
+node tests/unit.js                                   # 72 tests, Node only
 BASE=http://localhost:8000 node tests/e2e.js          # real browser (needs: npm i -g playwright)
 BASE=http://localhost:8000 node tests/e2e-cloud.js    # a computer and a phone syncing through a fake account service
 ```
@@ -120,7 +121,7 @@ tests/  tools/          unit and browser tests; service-worker and icon generato
 - **A SQL challenge or dataset:** `js/data/datasets.js`. The reference `solution` defines the expected result; the task text must name the output columns in order, because the checker compares values, not column names.
 - **A badge:** add an entry to the list in `js/game.js`.
 - **A Discover card:** one line in `js/data/feed.js` (`story`, `idea`, `tip`, `myth`, `chart`, `quote` or `word`). Keep it under 70 words and check the facts; the tests enforce the length and the links.
-- **A SQL blocks puzzle:** `P(dataset, question, answer tiles, extra tiles, why)` in `js/data/puzzles.js`. The tests run every reference query on the practice data.
+- **A SQL blocks puzzle:** `P(level, dataset, question, answer tiles, extra tiles, why)`, or `F(level, dataset, question, answer tiles, broken tiles, extra tiles, why)` for a bug to fix, at the END of `js/data/puzzles.js` (ids are saved progress). The tests run every reference query on the practice data and check that every broken query really is broken.
 
 The practice data is generated in the browser from a fixed seed, so everyone gets identical data and answers stay checkable.
 

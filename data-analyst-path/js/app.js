@@ -80,7 +80,7 @@
       { done: qs.lesson, icon: '📘', name: 'Learn', text: 'Finish a lesson, a quiz or a note', href: nx ? '#/lesson/' + nx.id : '#/roadmap', cta: 'Go' },
       { done: qs.drill, icon: '⚡', name: 'Practise', text: due ? due + ' due for review · one 5-question round' : 'One 5-question round, about 2 minutes', href: '#/practice/play', cta: 'Start' },
       touch
-        ? { done: qs.sql, icon: '🧱', name: 'Code', text: 'Solve 3 puzzles in a round of SQL blocks (no typing)', href: '#/arcade/blocks', cta: 'Build' }
+        ? { done: qs.sql, icon: '🧱', name: 'Code', text: 'Solve 3 puzzles in a round of SQL blocks (no typing)', href: '#/arcade/blocks/next', cta: 'Build' }
         : { done: qs.sql, icon: '🗄️', name: 'Code', text: sq ? 'Solve a SQL challenge: ' + sq.title : 'Practise in the SQL Lab', href: sq ? '#/lab/' + sq.ds + '/' + sq.id : '#/lab', cta: 'Open' },
     ];
     return h('section', { class: 'card today', 'aria-labelledby': 'today-h' },
