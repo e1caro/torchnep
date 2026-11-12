@@ -3,9 +3,9 @@ const assert = require('assert');
 const { DA, test } = require('./harness');
 const ui = DA.ui, D = DA.drill;
 
-test('question bank: 29 lesson quizzes + extras, all well-formed', () => {
+test('question bank: all lesson quizzes + extras, all well-formed', () => {
   const bank = D.bank();
-  assert.strictEqual(bank.length, 29 + DA.extraQuestions.length);
+  assert.strictEqual(bank.length, DA.lessons.length + DA.extraQuestions.length);
   assert.ok(DA.extraQuestions.length >= 60);
   assert.strictEqual(new Set(bank.map((q) => q.id)).size, bank.length, 'unique ids');
   bank.forEach((q) => {

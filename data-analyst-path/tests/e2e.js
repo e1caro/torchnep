@@ -251,7 +251,7 @@ async function playRound(page, wrongAt = []) {
   await page.goto(BASE + '/index.html#/roadmap');
   await page.waitForSelector('.unit');
   const pathInfo = await page.evaluate(() => ({ units: document.querySelectorAll('.unit').length, lessons: document.querySelectorAll('a.node[href^="#/lesson/"]').length, current: document.querySelectorAll('.node.current').length, done: document.querySelectorAll('.node.done:not(.chest)').length }));
-  ok(pathInfo.units === 9 && pathInfo.lessons === 29 && pathInfo.current === 1 && pathInfo.done === 1, 'path: 9 units, 29 lesson stops, one done, one marked as next');
+  ok(pathInfo.units === 9 && pathInfo.lessons === 41 && pathInfo.current === 1 && pathInfo.done === 1, 'path: 9 units, 41 lesson stops, one done, one marked as next');
   await page.click('.node.current');
   await page.waitForSelector('.lesson');
   ok((await txt(page, 'h1')).includes('Learn with AI'), 'the pulsing stop opens the next lesson');

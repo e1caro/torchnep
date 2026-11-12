@@ -263,5 +263,191 @@
   Q('Learning', 'Why is writing a 3-line summary at the end of a lesson worth the extra minute?', 'Translating an idea into your own words exposes gaps immediately', ['It counts as extra characters in your browser\'s local storage file', 'It lets you skip all the hands-on exercises in the next module', 'It is only useful if you plan to publish a textbook later on'],
     'Generation and synthesis lock concepts into long-term memory.');
 
+  /* ================================================================ Excel & Google Sheets competence exercises */
+  Q('Spreadsheets', 'What does this Excel formula return?',
+    'A live array of unique cities sorted alphabetically',
+    ['A single text string joining all city names with commas', 'The count of distinct city names in the range A2:A500', 'An error unless you press Ctrl+Shift+Enter in Excel 365'],
+    'UNIQUE extracts distinct values and SORT orders the spilled dynamic array automatically.',
+    '=SORT(UNIQUE(A2:A500))');
+
+  Q('Spreadsheets', 'In Excel, what causes a #SPILL! error when using FILTER or UNIQUE?',
+    'Non-empty cells or merged cells are blocking the output range below',
+    ['The source table has more than 1,000 rows on another worksheet tab', 'The lookup column is positioned to the left of the return column', 'The formula references a structured Excel Table instead of A1 cells'],
+    'Dynamic arrays need empty cells to spill into; clearing the blocking cells immediately restores the output.');
+
+  Q('Spreadsheets', 'What does the 4th argument ("Not Found") do in this XLOOKUP formula?',
+    'Returns "Not Found" instead of #N/A when the ID in E2 is missing',
+    ['Searches for the literal text "Not Found" inside column A2:A500', 'Skips the first four rows of the table before starting the lookup', 'Forces an approximate match sorted in descending alphabetical order'],
+    'XLOOKUP includes a built-in if_not_found parameter so you do not need an outer IFERROR wrapper.',
+    '=XLOOKUP(E2, A2:A500, C2:C500, "Not Found", 0)');
+
+  Q('Spreadsheets', 'How do you perform a two-way matrix lookup (matching both row and column headers) in Excel or Sheets?',
+    'Combine INDEX with two MATCH functions—one for row, one for column',
+    ['Use VLOOKUP with a negative column index number for the header row', 'Nest three HLOOKUP formulas inside a SUMIF across the whole table', 'Use COUNTIFS with the row name first and the column name second'],
+    'INDEX(grid, MATCH(row_key, rows, 0), MATCH(col_key, cols, 0)) pinpoints the exact intersection cell.');
+
+  Q('Spreadsheets', 'Why use LET(rev, SUM(B2:B99), cost, SUM(C2:C99), (rev - cost) / rev) in Excel?',
+    'It calculates each sum once and gives it a clear name inside the formula',
+    ['It locks the cells so other users cannot edit columns B and C in the sheet', 'It exports the variables rev and cost to a separate Python script file', 'It converts text numbers into currency format across the entire workbook'],
+    'LET improves both readability and calculation speed by avoiding repeated evaluation of the same expression.');
+
+  Q('Spreadsheets', 'In Excel Power Query, what does "Unpivot Other Columns" do to a wide table with Jan..Dec columns?',
+    'Reshapes the 12 month columns into two columns: Attribute (Month) and Value',
+    ['Deletes all twelve monthly columns and keeps only the final grand total column', 'Transposes the entire worksheet so product IDs become the top column header row', 'Merges all twelve monthly numeric columns into one comma-separated text column'],
+    'Unpivoting converts human-readable wide cross-tabs into tidy long tables ready for PivotTables and Power BI.');
+
+  Q('Spreadsheets', 'In Power Query, which Merge join kind finds rows in Table A that have NO match in Table B?',
+    'Left Anti Join (rows only in first table)',
+    ['Inner Join (only matching rows from both tables)', 'Full Outer Join (all rows from both tables combined)', 'Right Outer Join (all rows from second table plus matches)'],
+    'A Left Anti Join is the fastest way to audit orphan invoices or uncategorized SKUs without writing VLOOKUPs.');
+
+  Q('Spreadsheets', 'In Google Sheets, what does this QUERY formula return?',
+    'Total sales per region (column B), sorted highest first',
+    ['Every individual row where column B is greater than the sum of column D across rows', 'Only the top row of data because GROUP BY requires adding an explicit LIMIT 1 clause', 'A formula parse error because Google Sheets QUERY does not support GROUP BY clauses'],
+    'Google Sheets QUERY() brings SQL-style SELECT, WHERE, GROUP BY, and ORDER BY directly into a cell.',
+    '=QUERY(A1:E500, "SELECT B, SUM(D) WHERE E = \'Closed\' GROUP BY B ORDER BY SUM(D) DESC", 1)');
+
+  Q('Spreadsheets', 'In Google Sheets, why wrap a calculation in =ARRAYFORMULA(IF(A2:A="", "", B2:B * C2:C))?',
+    'One header formula computes every row and leaves empty rows blank',
+    ['It locks the entire sheet so editors cannot sort or filter columns in the browser', 'It rounds every calculated number in columns B and C to the nearest whole integer', 'It duplicates the entire worksheet tab every time someone edits a cell in row 2'],
+    'A single header-level ARRAYFORMULA cannot be accidentally skipped when new form responses or rows arrive.');
+
+  Q('Spreadsheets', 'What does =REGEXEXTRACT(A2, "INV-(\\d+)") return when cell A2 contains "Order INV-4082 paid"?',
+    'The captured digits "4082" as text',
+    ['The boolean value TRUE because the pattern matches', 'The character position 7 where "INV-" starts in A2', 'The original string with "INV-4082" deleted from it'],
+    'Parentheses in REGEXEXTRACT define a capture group, extracting just the number after INV-.');
+
+  Q('Spreadsheets', 'In Excel financial modeling, what is Goal Seek used for?',
+    'Finding the exact input value (like price) needed to hit a target formula output',
+    ['Automatically fixing broken #REF! and #NAME? errors across all worksheet tabs', 'Importing live stock prices and currency exchange rates from an external web API', 'Highlighting duplicate customer email addresses in red across two worksheets'],
+    'Goal Seek works backwards from a desired bottom-line result to solve for a single input assumption.');
+
+  Q('Spreadsheets', 'What does =SUMPRODUCT(B2:B100, C2:C100) / SUM(B2:B100) compute when B is quantity and C is unit price?',
+    'The quantity-weighted average unit price across all rows',
+    ['The simple unweighted average of the unit prices in column C', 'The median order value excluding the highest and lowest rows', 'The ratio of total quantity sold to the number of distinct products'],
+    'SUMPRODUCT multiplies each row\'s quantity by its unit price and sums the products in one step.');
+
+  /* ================================================================ Python, pandas, seaborn & automation exercises */
+  Q('Python', 'How do you compute each row\'s share of its category total in pandas without losing rows?',
+    'df["rev"] / df.groupby("cat")["rev"].transform("sum")',
+    ['df["rev"] / df.groupby("cat")["rev"].sum()', 'df.groupby("cat")["rev"].apply(lambda x: x.sum())', 'df["rev"].divide(df["cat"].value_counts(), axis=0)'],
+    'transform("sum") returns a Series aligned with df\'s original index so element-wise division works directly.');
+
+  Q('Python', 'What does df.sort_values("date").groupby("user_id")["spend"].shift(1) give you?',
+    'Each user\'s previous order spend (like LAG in SQL)',
+    ['Each user\'s first-ever order spend repeated on every row', 'The cumulative sum of spend for each user up to that date', 'A table shifted one column to the right with user_id dropped'],
+    'Grouping before .shift(1) ensures the lag never leaks values across two different users.');
+
+  Q('Python', 'Why pass min_periods=1 to df["sales"].rolling(7, min_periods=1).mean()?',
+    'So the first 6 rows get a partial average instead of NaN',
+    ['So the rolling window automatically skips every row where sales is equal to zero', 'So the moving window looks forward 7 calendar days instead of looking backward', 'So pandas resamples the index from daily transactions into weekly total buckets'],
+    'By default rolling(7) needs 7 full points and returns NaN for the first 6 rows; min_periods=1 avoids leading NaNs.');
+
+  Q('Python', 'Which pandas function is best for multi-condition tiering (like CASE WHEN in SQL) across 4 conditions?',
+    'np.select(conditions, choices, default="Standard")',
+    ['df.iterrows() with nested if/elif statements in a loop', 'pd.merge() with a cross join across all four condition lists', 'df.dropna() followed by four separate .replace() calls'],
+    'np.select evaluates a list of boolean masks vectorized in C—much faster and cleaner than .apply(axis=1).');
+
+  Q('Python', 'What does df.set_index("order_date").resample("MS")["revenue"].sum() do?',
+    'Aggregates revenue by Month-Start, keeping empty months as 0',
+    ['Filters the DataFrame to keep only orders placed on the very first day of a month', 'Computes the millisecond-level rolling average of revenue across all order rows', 'Sorts the DataFrame by total revenue descending within each calendar month'],
+    'Resampling on a DatetimeIndex builds a continuous time grid so missing months are never silently skipped.');
+
+  Q('Python', 'In a cohort retention matrix, why divide each row by cohort_pivot.iloc[:, 0]?',
+    'Column 0 holds Month-0 cohort size, turning counts into retention %',
+    ['Column 0 holds the overall company revenue across every user cohort combined', 'iloc[:, 0] deletes the oldest cohort column so the chart begins at Month 1', 'Dividing by column 0 sorts the customer cohorts from highest to lowest churn'],
+    'Every cohort\'s subsequent active user counts are normalized by how many users started in that cohort at Month 0.');
+
+  Q('Python', 'What does pd.qcut(df["monetary"], q=5, labels=[1, 2, 3, 4, 5]) do in RFM segmentation?',
+    'Splits customers into 5 equal-count quantile bins (20% each)',
+    ['Splits the dollar range into 5 equal-width currency intervals from min to max', 'Filters the DataFrame to retain only the top 5 highest-spending VIP customers', 'Rounds every monetary value upward to the nearest multiple of five dollars'],
+    'qcut cuts by sample quantiles (equal counts per bin), whereas cut slices by equal numeric width.');
+
+  Q('Python', 'In Seaborn, why add estimator="sum" and errorbar=None to sns.barplot(data=df, x="region", y="rev")?',
+    'Seaborn defaults to the mean with CI bars; this plots clean sums',
+    ['Seaborn throws a ValueError if you pass a numeric column without estimator="sum"', 'It converts a static bar chart into an interactive 3D Plotly scatter visualization', 'It automatically sorts categories alphabetically and hides all tick labels'],
+    'Be explicit about whether your bar chart represents the mean or the sum of the rows in each category.');
+
+  Q('Python', 'What does sns.despine() do to a Matplotlib / Seaborn chart?',
+    'Removes the top and right border lines so the data stands out cleanly',
+    ['Deletes outlier points that sit more than 3 standard deviations from the mean', 'Converts a vertical bar chart into a horizontal bar chart automatically', 'Removes the colour legend and replaces it with a greyscale palette'],
+    'Stripping non-data ink (top/right spines and heavy gridlines) is a core principle of publication-quality charts.');
+
+  Q('Python', 'You receive nested JSON from a REST API where each order has {"customer": {"id": 9, "tier": "Pro"}}. Which pandas function flattens it?',
+    'pd.json_normalize(payload)',
+    ['pd.read_fwf(payload, colspecs="infer")', 'pd.to_numeric(payload, errors="ignore")', 'pd.factorize(payload, sort=True)'],
+    'pd.json_normalize expands nested dictionaries into flat dot-separated columns like customer.id and customer.tier.');
+
+  Q('Python', 'How do you export three different DataFrames to three named tabs in a single .xlsx file in Python?',
+    'Use pd.ExcelWriter("report.xlsx") with each df.to_excel(w, sheet_name=...)',
+    ['Call df.to_excel("report.xlsx") three times in a row using mode="overwrite"', 'Concatenate the three DataFrames vertically into one table and save as a CSV file', 'Pass a Python list of DataFrames directly to pd.read_excel("report.xlsx")'],
+    'pd.ExcelWriter keeps the workbook open while you write each DataFrame to its own sheet_name.');
+
+  Q('Python', 'Why pass bbox_inches="tight" and dpi=300 when calling fig.savefig("chart.png")?',
+    'Prevents clipped axis labels and saves at crisp 300-DPI resolution',
+    ['Compresses the exported PNG image under 300 bytes for quick mobile messaging', 'Crops the output figure to a fixed 300x300 pixel square without axis titles', 'Embeds the chart inside an editable native Microsoft Excel workbook on save'],
+    'Without bbox_inches="tight", Matplotlib often cuts off long horizontal bar labels or multi-line titles.');
+
+  /* ================================================================ Power BI & Tableau competence exercises */
+  Q('Visualization', 'In a Power BI Star Schema, what belongs in a Fact table versus a Dimension table?',
+    'Fact tables hold numeric events and keys; Dimensions hold attributes',
+    ['Fact tables store unique product names and descriptions; Dimension tables store daily sales rows', 'Fact tables must hold fewer than 100 summary rows; Dimension tables store millions of raw logs', 'Fact tables are only used for dropdown slicers; Dimension tables hold every DAX measure'],
+    'Keeping narrow numeric Fact tables separate from wide descriptive Dimension tables makes DAX simple and fast.');
+
+  Q('Visualization', 'Why do you mark a dedicated Calendar table and set Month Name\'s "Sort By Column" to Month Number in Power BI?',
+    'So months sort chronologically (Jan, Feb) instead of A-Z (Apr, Aug)',
+    ['Because Power BI visuals cannot render text category labels on horizontal bar axes', 'So the Calendar table automatically deletes weekend dates from FactSales on load', 'Because DAX time-intelligence functions only execute when month names are sorted A-Z'],
+    'Sorting Month Name by Month Number (1–12) fixes alphabetical month ordering across every chart in the report.');
+
+  Q('Visualization', 'In Power BI DAX, what is the critical difference between a Calculated Column and a Measure?',
+    'Calculated Columns store row values in RAM; Measures compute dynamically',
+    ['Calculated Columns support SUM() and AVERAGE(), whereas Measures evaluate one single row at a time', 'Measures increase the saved .pbix file size sharply, while Calculated Columns use zero RAM', 'Calculated Columns update interactively on every slicer click; Measures stay frozen until refresh'],
+    'Always write ratios and percentages (like Margin %) as Measures so the numerator and denominator sum before dividing.');
+
+  Q('Visualization', 'What does CALCULATE([Total Revenue], ALL(DimProduct)) return in Power BI DAX?',
+    'Total revenue across all products, ignoring current product filters',
+    ['Zero whenever a report viewer selects a single product category inside a page slicer', 'A list of product names that recorded zero revenue in the selected calendar quarter', 'Total revenue for the single top-selling product only, hiding every other item row'],
+    'ALL(DimProduct) strips the product filter context inside CALCULATE, giving you the grand total denominator for % of Total.');
+
+  Q('Visualization', 'In DAX, how does SUMX(FactSales, FactSales[Qty] * FactSales[UnitPrice]) work?',
+    'It iterates row by row, multiplies Qty by UnitPrice on each row, and sums the results',
+    ['It sums the entire Qty column first, sums UnitPrice second, and multiplies the two totals', 'It creates a permanent physical column in the SQL database before loading into Power BI', 'It returns the average unit price weighted by the number of distinct product categories'],
+    'Functions ending in X (SUMX, AVERAGEX) are iterators that evaluate an expression row-by-row in the current filter context.');
+
+  Q('Visualization', 'Why use DIVIDE([Profit], [Total Revenue], 0) in DAX instead of the slash operator [Profit] / [Total Revenue]?',
+    'DIVIDE safely returns 0 (or BLANK) on zero denominators cleanly',
+    ['The slash operator / is only allowed inside Power Query M and triggers a DAX syntax error', 'DIVIDE automatically multiplies the quotient by 100 and formats the result with a % sign', 'The slash operator rounds both numerator and denominator to whole integers before dividing'],
+    'DIVIDE handles zero denominators gracefully without needing an verbose IF([Total Revenue] = 0, ...) check.');
+
+  Q('Visualization', 'In Tableau, what do a Blue pill (Discrete) and a Green pill (Continuous) actually control on a shelf?',
+    'Blue creates discrete headers; Green draws a continuous numeric/date axis',
+    ['Blue pills originate from local CSV or Excel files, while Green pills come from SQL warehouses', 'Blue pills may only be placed on the Filters shelf; Green pills may only go on Rows or Columns', 'Blue pills represent dimensions that cannot be counted; Green pills represent string categories'],
+    'Remember: Blue = Discrete headers (sortable buckets); Green = Continuous axis (unbroken scale).');
+
+  Q('Visualization', 'In Tableau, how do you let the viewer switch a chart between Revenue, Profit, and Orders with one dropdown?',
+    'Use a String Parameter inside a CASE calculated field on the shelf',
+    ['Duplicate the entire dashboard tab three times and ask readers to switch workbook pages', 'Drag all three measures onto the Color shelf simultaneously and hide the colour legend', 'Write a custom SQL UNION stacking the table three times with an extra metric_name column'],
+    'Parameters are user-driven variables that become interactive when wired into a Calculated Field or Reference Line.');
+
+  Q('Visualization', 'What does the Tableau LOD expression { FIXED [Customer ID] : MIN([Order Date]) } compute?',
+    'Each customer\'s first order date regardless of sheet dimensions',
+    ['The single earliest order date across the entire company dataset for all customers combined', 'The most recent order date per customer restricted to the currently visible chart month', 'A boolean flag returning True whenever a customer places multiple orders on the same day'],
+    'FIXED Level of Detail expressions compute at the exact dimension grain you list before the colon, enabling cohort analysis.');
+
+  Q('Visualization', 'In Tableau\'s Order of Operations, why must you click "Add to Context" on a Region filter when using a FIXED LOD or Top 10 filter?',
+    'Context filters run BEFORE FIXED LODs and Top N; normal filters run AFTER',
+    ['Promoting a filter to Context converts a static Tableau extract into a live SQL connection', 'Without Context, Tableau permanently deletes rows outside that Region from the underlying CSV', 'Context filters switch the dashboard colour palette to a high-contrast greyscale appearance'],
+    'Context filters execute before Top N sets and FIXED LOD expressions, scoping them to the filtered subset.');
+
+  Q('Visualization', 'In a Tableau or Power BI executive dashboard, what happens if you turn every chart into a cross-filter without clear labels?',
+    'Users accidentally click a bar, silently filter the whole page, and misread the KPIs',
+    ['The BI tool automatically deletes all DAX measures and LOD expressions to save memory', 'The charts stop rendering bars and convert into raw comma-separated text tables', 'The database connection locks up permanently until an administrator restarts the server'],
+    'Limit interactive filter actions to 1–2 obvious master visuals and display a dynamic subtitle showing what is currently filtered.');
+
+  Q('Visualization', 'When comparing monthly revenue against a monthly target across 12 sales teams, which visual is clearest in Power BI or Tableau?',
+    'Horizontal bars with target reference lines (or bullet charts)',
+    ['Twelve separate 3D pie charts arranged in a circle using bright rainbow slice palettes', 'A word cloud where each sales team name is scaled by its ratio of revenue to target', 'A geographic office map placing spinning speedometer gauges over each regional city'],
+    'Bullet charts and bars with reference lines let the eye compare actual vs target on a shared linear scale immediately.');
+
   DA.extraQuestions = list;
 })();

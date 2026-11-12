@@ -101,8 +101,8 @@
 
     /* ------------------------------------------------------------------ 1 */
     {
-      id: 'm1', icon: '📊', cat: 'Spreadsheets', title: 'Spreadsheets and tidy data',
-      goal: 'Clean a messy file and answer a question with formulas and a pivot table.',
+      id: 'm1', icon: '📊', cat: 'Spreadsheets', title: 'Excel, Google Sheets and tidy data',
+      goal: 'Master Excel and Google Sheets: clean messy files, write XLOOKUP, dynamic arrays, QUERY(), Power Query ETL and build scenario models.',
       lessons: [
         {
           id: 'l1-1', title: 'Tidy data and cleaning', hours: 4, download: 'messy',
@@ -176,6 +176,112 @@
             options: ['Here is a pivot table of sales by category, month and store', 'Sales were different across the months of the year in all stores', 'Coffee earns nearly 3× bakery revenue: test a coffee + croissant bundle', 'Total revenue was 41,250 this year, split across four product categories'],
             answer: 2,
             why: 'It has a number, a comparison and a recommended action.',
+          },
+          links: [],
+        },
+        {
+          id: 'l1-4', title: 'Excel Mastery: Dynamic Arrays, XLOOKUP, INDEX/MATCH and LET', hours: 4.5, download: 'retail',
+          why: 'Modern Excel formulas spill entire tables from a single cell, replacing fragile copy-pasted formulas.',
+          learn: [
+            '<b>Dynamic array functions</b> spill results automatically: <code>UNIQUE</code> lists distinct values, <code>SORT</code> orders a range, and <code>FILTER</code> returns all matching rows.',
+            '<code>XLOOKUP(lookup, key_range, return_range, "missing", match_mode, search_mode)</code> looks left or right, handles missing keys cleanly, and can search bottom-to-top (<code>search_mode = -1</code>) to find the latest order.',
+            '<code>INDEX(return_range, MATCH(key, lookup_range, 0))</code> is the classic compatible equivalent that works in every spreadsheet version.',
+            '<code>LET(name1, value1, calculation)</code> names intermediate steps inside a formula so it runs faster and reads like code.',
+            'Reference a spilled range with the hash operator (e.g. <code>G2#</code>) so downstream charts and summaries resize automatically.',
+          ],
+          code: {
+            lang: 'excel', title: 'Modern Excel dynamic array patterns',
+            text: '=SORT(UNIQUE(Sales[store_city]))\n=FILTER(Sales, (Sales[store_city]="Madrid") * (Sales[qty]>=3), "No rows")\n=XLOOKUP(A2, Orders[customer_id], Orders[order_date], "None", 0, -1)  -- last order date\n=LET(rev, Sales[qty]*Sales[unit_price], AVG_REV, AVERAGE(rev), FILTER(Sales, rev > AVG_REV*2))',
+          },
+          doit: 'Open the café sales CSV in Excel. 1) In cell K2, use <code>=SORT(UNIQUE(Sales[product]))</code> to generate a live product list. 2) Next to it, use <code>=SUMIFS(Sales[revenue], Sales[product], K2#)</code> so one single formula spills totals for every product. 3) Build an interactive filter block using <code>=FILTER(...)</code> that shows all orders above €15 in a chosen city.',
+          ai: {
+            title: 'Upgrade my nested Excel formula with LET and Dynamic Arrays',
+            text: "Here is a spreadsheet task or an old formula I wrote:\n[[PASTE FORMULA OR TASK]]\n\nShow me how to write it cleanly in modern Excel using XLOOKUP, FILTER, UNIQUE, SORT or LET, plus a classic INDEX/MATCH fallback. Explain how the spill range (#) works and how to verify there are no #SPILL! or #N/A bugs.\n{{lang}}",
+          },
+          quiz: {
+            q: 'In FILTER(Sales, (Sales[city]="Madrid") * (Sales[qty]>2)), why multiply the two conditions?',
+            options: ['Multiplication acts as AND logic on arrays of TRUE (1) and FALSE (0)', 'Excel requires multiplication whenever text and numbers are mixed', 'It multiplies the quantity column by the number of stores in Madrid', 'Addition (+) and multiplication (*) do the exact same thing in FILTER'],
+            answer: 0,
+            why: 'In array formulas, TRUE*TRUE = 1 (AND), whereas (cond1)+(cond2) > 0 acts as OR.',
+          },
+          links: [{ label: 'Exceljet: Dynamic Array Formulas', url: 'https://exceljet.net/dynamic-array-formulas-in-excel' }],
+        },
+        {
+          id: 'l1-5', title: 'Excel Power Query: Repeatable ETL Without Code', hours: 4.5, download: 'messy',
+          why: 'Power Query records every cleaning step as a recipe: next month you click Refresh instead of cleaning the file again.',
+          learn: [
+            '<b>Power Query</b> (Data → Get &amp; Transform Data) connects to CSVs, folders, databases and web pages, cleans the data in a staging pipeline, and loads a clean table or Pivot cache.',
+            '<b>Unpivot Other Columns</b> turns wide report tables (<code>Jan, Feb, Mar…</code> columns) into tidy rows (<code>Month | Revenue</code>) in two clicks.',
+            '<b>Merge Queries</b> is a visual SQL JOIN (Left Outer, Inner, Anti-join to find unmatched rows); <b>Append Queries</b> stacks monthly files like <code>UNION ALL</code>.',
+            'Every click is recorded in the <b>Applied Steps</b> pane (backed by the M language). You can rename, reorder or delete any step without touching the source file.',
+            'Set column types explicitly in the first steps and check the <b>Column Quality</b> bar (Valid / Error / Empty %) before loading.',
+          ],
+          code: {
+            lang: 'powerquery', title: 'Typical Power Query M steps (generated by the UI)',
+            text: 'let\n  Source = Csv.Document(File.Contents("messy_orders.csv"), [Delimiter=",", Encoding=65001]),\n  Promoted = Table.PromoteHeaders(Source, [PromoteAllScalars=true]),\n  Trimmed = Table.TransformColumns(Promoted, {{"City", Text.Trim}, {"City", Text.Proper}}),\n  Unpivoted = Table.UnpivotOtherColumns(Trimmed, {"Store", "Category"}, "Month", "Revenue")\nin\n  Unpivoted',
+          },
+          doit: 'Import <code>messy_orders.csv</code> into Excel via Data → From Text/CSV → Transform Data. Clean whitespace, fix case, split or parse dates, filter out blank rows, and Close &amp; Load to a PivotTable. Then edit one row in the CSV file on disk, click Data → Refresh All in Excel, and watch the PivotTable update in 1 second.',
+          ai: {
+            title: 'Design a Power Query cleaning pipeline',
+            text: "I receive a messy spreadsheet every week with this layout:\n[[DESCRIBE LAYOUT, e.g. merged headers, months across columns, totals at the bottom]]\n\nGive me the exact click-by-click Power Query steps to turn it into a clean, tidy table that updates on Refresh, including how to handle errors and new columns.\n{{lang}}",
+          },
+          quiz: {
+            q: 'A report has Store in column A and 12 month columns (Jan to Dec). Which Power Query feature makes it tidy?',
+            options: ['Transpose the whole table so stores become column headers', 'Select Store and click Unpivot Other Columns', 'Group By Store and sum each of the 12 month columns', 'Split Column by Delimiter on the twelve month headers'],
+            answer: 1,
+            why: 'Unpivot Other Columns keeps Store fixed and turns every month column into (Month, Value) rows.',
+          },
+          links: [{ label: 'Microsoft Learn: Power Query documentation', url: 'https://learn.microsoft.com/en-us/power-query/' }],
+        },
+        {
+          id: 'l1-6', title: 'Google Sheets Mastery: QUERY(), ARRAYFORMULA and Regex', hours: 4.5, download: 'retail',
+          why: 'Google Sheets has a built-in SQL engine (QUERY) and cloud connectors that make collaborative analytics effortless.',
+          learn: [
+            '<code>=QUERY(data, "SELECT C, SUM(H) WHERE G = \'Coffee\' GROUP BY C ORDER BY SUM(H) DESC LABEL SUM(H) \'Total\'", 1)</code> runs SQL-style aggregation directly inside a sheet.',
+            '<code>ARRAYFORMULA(E2:E1000 * F2:F1000)</code> computes an entire column from a single top-cell formula so nadie can accidentally overwrite row 412.',
+            'Text extraction at scale: <code>REGEXEXTRACT(A2, "ORD-(\\d+)")</code>, <code>REGEXMATCH</code> and <code>REGEXREPLACE</code> clean messy logs and URLs in one step.',
+            '<code>IMPORTRANGE(spreadsheet_url, "Sales!A1:I5000")</code> links live tables across separate Google Sheets; combine it with <code>QUERY({Sheet1!A2:F; Sheet2!A2:F}, ...)</code> to stack tabs.',
+          ],
+          code: {
+            lang: 'excel', title: 'Google Sheets superpower formulas',
+            text: '=QUERY(A1:I6500, "SELECT C, G, SUM(H*I) WHERE C IS NOT NULL GROUP BY C, G PIVOT D", 1)\n=ARRAYFORMULA(IF(ROW(A2:A)=2, "Revenue", IF(A2:A="", "", H2:H * I2:I)))\n=REGEXEXTRACT(B2, "@([a-zA-Z0-9.-]+)")   -- extract email domain\n=SPARKLINE(B2:M2, {"charttype","column"; "highcolor","#2158d6"})',
+          },
+          doit: 'Import the café CSV into Google Sheets. 1) Use a single <code>=QUERY(...)</code> formula to build a summary of total quantity and average price by category, sorted highest first. 2) Use a second <code>=QUERY(...)</code> with <code>PIVOT</code> to cross-tabulate city vs. channel. 3) Add inline <code>=SPARKLINE(...)</code> mini-charts next to each store.',
+          ai: {
+            title: 'Translate my question into a Google Sheets QUERY() formula',
+            text: "My Google Sheet tab 'Orders' has columns A (order_id), B (order_date), C (city), D (channel), E (customer_id), F (product), G (category), H (qty), I (unit_price).\n\nWrite a Google Sheets =QUERY() formula for: [[YOUR QUESTION]]. Explain every clause (SELECT, WHERE, GROUP BY, PIVOT, LABEL, FORMAT) and how date filtering works in QUERY().\n{{lang}}",
+          },
+          quiz: {
+            q: 'What does the Google Sheets QUERY() function let you do inside a single cell?',
+            options: ['Filter, group, aggregate and pivot a range using SQL-like syntax', 'Connect directly to a remote Oracle or PostgreSQL server without an add-on', 'Run Python pandas scripts directly inside the spreadsheet formula bar', 'Automatically fix spelling mistakes across all sheets in the workbook'],
+            answer: 0,
+            why: 'QUERY() uses the Google Visualization API Query Language (SELECT, WHERE, GROUP BY, PIVOT, ORDER BY, LIMIT).',
+          },
+          links: [{ label: 'Ben Collins: Google Sheets QUERY guide', url: 'https://www.benlcollins.com/spreadsheets/google-sheets-query-sql/' }],
+        },
+        {
+          id: 'l1-7', title: 'Spreadsheet Modeling: Scenarios, Cohorts and Error-Proofing', hours: 4,
+          why: 'Decision-makers ask "what if price rises 10% or churn drops 2 points?". A clean model answers live in the meeting.',
+          learn: [
+            'Separate <b>Inputs / Assumptions</b> (blue font, in one dedicated block), <b>Calculations</b> (black formulas) and <b>Outputs / KPIs</b> (summary cards and charts).',
+            'Never hard-code constants inside formulas (<code>=B5*0.21</code>); point to an assumption cell (<code>=B5*$C$2</code> or a named range <code>TaxRate</code>).',
+            'Use <b>What-If Data Tables</b>, <b>Scenario Manager</b> and <b>Goal Seek</b> ("what conversion rate do we need to break even?") to stress-test decisions.',
+            'Build <b>reconciliation checks</b> right into the sheet: <code>=IF(ABS(SUM(G2:G12)-TotalRev)&gt;0.01, "⚠️ CHECK", "OK")</code> so broken totals are caught immediately.',
+          ],
+          code: {
+            lang: 'excel', title: 'Scenario & reconciliation patterns',
+            text: '=CHOOSE(ScenarioPick, BaseGrowth, UpsideGrowth, DownsideGrowth)\n=IFERROR(NetProfit / Revenue, 0)\n=IF(ABS(SUM(MonthlyRev) - AnnualTotal) < 0.01, "✓ Balanced", "⚠️ Off by " & TEXT(SUM(MonthlyRev)-AnnualTotal, "0.00"))',
+          },
+          doit: 'Build a 12-month coffee-shop profit model in Excel or Google Sheets with 3 adjustable inputs (monthly orders growth %, average basket €, gross margin %) and 3 scenarios (Base, Optimistic, Conservative). Use Goal Seek to find the minimum basket size needed to reach €10,000 monthly profit.',
+          ai: {
+            title: 'Audit my spreadsheet model for fragile formulas',
+            text: "I built a spreadsheet model for [[PURPOSE]]. Here are my inputs, key formulas and layout:\n[[DESCRIBE MODEL]]\n\nAudit it like a senior financial/business analyst: 1) spot hard-coded assumptions or fragile references, 2) suggest 3 sanity/reconciliation check cells to add, 3) suggest a 2-variable sensitivity table that would help the decision-maker.\n{{lang}}",
+          },
+          quiz: {
+            q: 'Which Excel tool finds the exact input value needed to hit a target formula result?',
+            options: ['Goal Seek (under What-If Analysis)', 'Consolidate (under Data Tools)', 'Conditional Formatting Color Scales', 'Subtotals (under Outline)'],
+            answer: 0,
+            why: 'Goal Seek varies one input cell automatically until a dependent formula reaches your target number.',
           },
           links: [],
         },
@@ -287,8 +393,8 @@
 
     /* ------------------------------------------------------------------ 3 */
     {
-      id: 'm3', icon: '🐍', cat: 'Python', title: 'Python and pandas',
-      goal: 'Load, clean, summarise and plot data in a notebook, with AI as your pair-programmer.',
+      id: 'm3', icon: '🐍', cat: 'Python', title: 'Python, pandas and automation',
+      goal: 'Load, clean, model, visualise and automate data workflows in Python with pandas, seaborn and APIs.',
       lessons: [
         {
           id: 'l3-1', title: 'Notebooks and your first DataFrame', hours: 6, download: 'retail',
@@ -366,6 +472,110 @@
             why: 'Same fan-out as in SQL joins: a key that is not unique on the right side repeats left rows.',
           },
           links: [{ label: 'Seaborn tutorial', url: 'https://seaborn.pydata.org/tutorial.html' }],
+        },
+        {
+          id: 'l3-4', title: 'Advanced pandas: Window Functions, transform and Vectorised Logic', hours: 5, download: 'retail',
+          why: 'Just like window functions in SQL, pandas transform, shift and rolling let you compare every row to its group or history at full speed.',
+          learn: [
+            '<code>df.groupby("store_city")["revenue"].transform("sum")</code> computes the group total and broadcasts it back to every row—perfect for computing each row\'s % share of its city.',
+            '<code>.shift(1)</code> and <code>.pct_change()</code> are pandas\' <code>LAG</code> and period-over-period growth; <code>.rolling(7).mean()</code> smooths noisy daily series.',
+            'Avoid slow <code>.iterrows()</code> loops: use vectorised <code>np.where(cond, a, b)</code> or <code>np.select([c1, c2], [v1, v2], default=v3)</code> (the pandas equivalent of <code>CASE WHEN</code>).',
+            'Chain clean pipelines with <code>.assign(...)</code> and <code>.query(...)</code> so transformations don\'t mutate intermediate variables.',
+          ],
+          code: {
+            lang: 'python', title: 'Window functions & vectorised segmentation in pandas',
+            text: "import numpy as np\n\ndf['city_total'] = df.groupby('store_city')['revenue'].transform('sum')\ndf['share_of_city'] = df['revenue'] / df['city_total']\ndf['tier'] = np.select(\n    [df['revenue'] >= 20, df['revenue'] >= 10],\n    ['High', 'Medium'],\n    default='Standard'\n)\ndaily = df.groupby('order_date')['revenue'].sum().to_frame()\ndaily['rolling_7d'] = daily['revenue'].rolling(7, min_periods=1).mean()",
+          },
+          doit: 'Using the café CSV in Colab: 1) Add each customer\'s first order date using <code>groupby("customer_id")["order_date"].transform("min")</code>. 2) Flag every order as "New" or "Returning" using <code>np.where</code>. 3) Plot daily revenue alongside its 7-day rolling mean.',
+          ai: {
+            title: 'Refactor my slow pandas loop into vectorised code',
+            text: "Here is my pandas code (or SQL query I want to write in pandas):\n[[PASTE CODE]]\n\nRewrite it using idiomatic vectorised pandas (.groupby().transform(), np.select, .rolling(), .shift(), method chaining). Explain why each step is faster and easier to verify.\n{{lang}}",
+          },
+          quiz: {
+            q: 'Which pandas method works like SQL SUM(rev) OVER (PARTITION BY city), returning a Series aligned with df?',
+            options: ['df.groupby("city")["rev"].transform("sum")', 'df.groupby("city")["rev"].agg("sum")', 'df.pivot_table(index="city", values="rev")', 'df.sort_values("city")["rev"].cumsum()'],
+            answer: 0,
+            why: 'transform() returns a Series with the same index and length as the original DataFrame.',
+          },
+          links: [{ label: 'pandas User Guide: GroupBy transform', url: 'https://pandas.pydata.org/docs/user_guide/groupby.html#transformation' }],
+        },
+        {
+          id: 'l3-5', title: 'Time Series, Cohort Retention and RFM Segmentation in Python', hours: 5.5, download: 'retail',
+          why: 'Retention cohorts and RFM customer segments are two of the highest-impact analyses in e-commerce, SaaS and retail.',
+          learn: [
+            '<b>Resampling time series</b>: set or use a datetime column with <code>df.resample("MS", on="order_date")["revenue"].sum()</code> to aggregate cleanly by month start, week or quarter.',
+            '<b>Cohort analysis</b> groups customers by the month of their first purchase (<code>cohort_month</code>) and tracks what % return in month +1, +2, +3… using a pivot table.',
+            '<b>RFM segmentation</b> scores every customer on <b>Recency</b> (days since last order), <b>Frequency</b> (order count) and <b>Monetary</b> (total spend) using <code>pd.qcut</code> quartiles.',
+            'Visualise cohort retention triangles with <code>sns.heatmap(retention, annot=True, fmt=".0%", cmap="Blues")</code>.',
+          ],
+          code: {
+            lang: 'python', title: 'Cohort retention matrix in 10 lines of pandas',
+            text: "df['order_month'] = df['order_date'].dt.to_period('M')\ndf['cohort'] = df.groupby('customer_id')['order_month'].transform('min')\ndf['month_n'] = (df['order_month'] - df['cohort']).apply(lambda x: x.n)\ncohorts = df.groupby(['cohort', 'month_n'])['customer_id'].nunique().unstack()\nretention = cohorts.divide(cohorts[0], axis=0).round(3)",
+          },
+          doit: 'Run the cohort retention code on the café sales CSV in Colab and plot it as a seaborn heatmap. Then build an RFM table per <code>customer_id</code> (Recency in days, Frequency of distinct orders, Monetary total spend) and identify the top "Champions" segment vs. "At-Risk" high-spend customers who haven\'t ordered in 60+ days.',
+          ai: {
+            title: 'Interpret my cohort & RFM tables for a business team',
+            text: "Here are my cohort retention numbers / RFM segment counts:\n[[PASTE TABLE]]\n\nHelp me interpret them for a marketing & operations team: 1) where is the biggest drop-off in retention, 2) what concrete campaign or action fits each RFM segment, 3) what data caveats should I check first.\n{{lang}}",
+          },
+          quiz: {
+            q: 'In a customer cohort retention table, how is each row\'s cohort typically defined?',
+            options: ['By the period of the customer\'s very first purchase or sign-up', 'By the main product category where the customer spent the most money', 'By the calendar month in which the customer last opened the mobile app', 'By the store city that recorded the highest average order value overall'],
+            answer: 0,
+            why: 'Grouping users by their start period lets you compare Month +1, +2, +3 retention fairly across cohorts.',
+          },
+          links: [],
+        },
+        {
+          id: 'l3-6', title: 'Publication-Quality Charts in Python: Seaborn, Matplotlib and Plotly', hours: 5, download: 'retail',
+          why: 'Default matplotlib plots look unfinished. A few lines of styling and annotation turn notebook output into executive-ready visuals.',
+          learn: [
+            '<b>Seaborn</b> handles statistical plots and small multiples in one call: <code>sns.relplot</code>, <code>sns.catplot</code>, <code>sns.boxplot</code> and <code>FacetGrid</code>.',
+            'Use <code>fig, ax = plt.subplots(figsize=(9, 4.5), dpi=120)</code>, remove top/right spines with <code>sns.despine()</code>, and format axes with <code>matplotlib.ticker</code>.',
+            'Highlight the story: plot comparison series in muted grey (<code>#94a3b8</code>) and the focal series in bold accent colour with <code>ax.annotate(...)</code>.',
+            'Use <b>Plotly Express</b> (<code>px.line</code>, <code>px.bar</code>, <code>px.scatter</code>) when stakeholders want interactive hover tooltips and zoomable HTML charts.',
+          ],
+          code: {
+            lang: 'python', title: 'Clean, annotated executive chart in matplotlib / seaborn',
+            text: "import matplotlib.pyplot as plt\nimport seaborn as sns\n\nfig, ax = plt.subplots(figsize=(8.5, 4.2), dpi=120)\nfor cat, grp in monthly.groupby('category'):\n    is_top = (cat == 'Coffee')\n    ax.plot(grp['month'], grp['revenue'], lw=2.8 if is_top else 1.4,\n            color='#2158d6' if is_top else '#94a3b8', label=cat)\nax.set_title('Coffee drives 54% of revenue and peaks in Q4', loc='left', fontweight='bold')\nsns.despine()",
+          },
+          doit: 'Take one chart from your notebook and upgrade it to publication quality: remove top/right borders, grey out context series, highlight the key series in blue, add a direct label at the end of the line, and add a callout annotation pointing to the highest month.',
+          ai: {
+            title: 'Turn my basic matplotlib plot into an executive chart',
+            text: "Here is my current Python plotting code:\n[[PASTE CODE]]\n\nThe main insight I want the reader to see in 5 seconds is: [[INSIGHT]].\nRewrite the code using matplotlib/seaborn so it uses a clear hierarchy (accent colour vs grey context, despine, direct labels, an annotation on the key point, and an insight title).\n{{lang}}",
+          },
+          quiz: {
+            q: 'What does sns.despine() do to a matplotlib / seaborn chart?',
+            options: ['Removes the top and right border lines to reduce visual clutter', 'Deletes outlier points that sit more than 3 standard deviations away', 'Converts a vertical bar chart into a horizontal bar chart', 'Normalises the y-axis so all series start at 100'],
+            answer: 0,
+            why: 'Removing unnecessary box borders (spines) keeps attention on the data.',
+          },
+          links: [{ label: 'Python Graph Gallery', url: 'https://python-graph-gallery.com' }],
+        },
+        {
+          id: 'l3-7', title: 'Automating Reports, APIs and Excel Exports in Python', hours: 4.5,
+          why: 'Turning a manual Monday-morning report into a one-click script saves hours every week and impresses every team.',
+          learn: [
+            'Fetch live data from web APIs with <code>requests.get(url, params=..., timeout=10).json()</code> and flatten nested JSON into a table with <code>pd.json_normalize(data)</code>.',
+            'Combine multiple CSVs in a folder automatically with <code>pathlib.Path("data/").glob("*.csv")</code> and <code>pd.concat(..., ignore_index=True)</code>.',
+            'Export multi-tab Excel workbooks with <code>pd.ExcelWriter("weekly_report.xlsx")</code>—writing Summary, By_Store and Raw_Clean sheets in one run.',
+            'Add basic assertions (<code>assert df["order_id"].is_unique</code>, <code>assert df["revenue"].ge(0).all()</code>) so the script stops loudly if upstream data is corrupted.',
+          ],
+          code: {
+            lang: 'python', title: 'Automated validation + multi-sheet Excel export',
+            text: "from pathlib import Path\nimport pandas as pd\n\nfiles = sorted(Path('monthly_csvs').glob('*.csv'))\ndf = pd.concat([pd.read_csv(f) for f in files], ignore_index=True)\nassert df['qty'].gt(0).all(), 'Found non-positive quantities!'\n\nwith pd.ExcelWriter('cafe_executive_report.xlsx') as writer:\n    summary.to_excel(writer, sheet_name='Summary', index=False)\n    by_store.to_excel(writer, sheet_name='By_Store', index=False)",
+          },
+          doit: 'Write a clean Python function <code>build_weekly_report(csv_path)</code> that loads the café CSV, runs 3 data-quality assertions, computes city and category summaries, and exports a 3-tab Excel file (<code>Executive_Summary</code>, <code>City_Breakdown</code>, <code>Data_Quality_Log</code>).',
+          ai: {
+            title: 'Write a repeatable Python reporting script with data assertions',
+            text: "I want to automate a recurring report in Python. Source data: [[CSV / Excel / JSON API]]. Outputs needed: [[DESCRIBE TABLES / SHEETS]].\nWrite a clean, well-structured script with: 1) data loading, 2) 4 data-quality assertions, 3) summary tables, and 4) multi-sheet Excel export. Explain how I can schedule or run it safely every week.\n{{lang}}",
+          },
+          quiz: {
+            q: 'Which pandas function flattens nested JSON records from an API into a flat DataFrame?',
+            options: ['pd.json_normalize(data)', 'pd.read_html(data)', 'df.to_json(orient="records")', 'pd.melt(data)'],
+            answer: 0,
+            why: 'pd.json_normalize unpacks nested dictionaries into dot-separated columns.',
+          },
+          links: [],
         },
       ],
     },
@@ -476,8 +686,8 @@
 
     /* ------------------------------------------------------------------ 5 */
     {
-      id: 'm5', icon: '📈', cat: 'Visualization', title: 'Visualisation and dashboards',
-      goal: 'Choose the right chart, build a clear dashboard and tell a story with data.',
+      id: 'm5', icon: '📈', cat: 'Visualization', title: 'Power BI, Tableau and storytelling',
+      goal: 'Choose the right chart, model star schemas, write DAX and Tableau LODs, and tell a clear story with data.',
       lessons: [
         {
           id: 'l5-1', title: 'Choosing the right chart', hours: 4,
@@ -550,6 +760,110 @@
             why: 'Busy people need the answer first. The evidence is there to back it up.',
           },
           links: [{ label: 'Storytelling with Data', url: 'https://www.storytellingwithdata.com' }],
+        },
+        {
+          id: 'l5-4', title: 'Power BI Deep Dive: Star Schema Data Modeling & Relationships', hours: 5, download: 'retail', concept: 'join',
+          why: '90% of slow, broken DAX formulas are actually data-model problems. A clean Star Schema makes DAX simple and fast.',
+          learn: [
+            'A <b>Star Schema</b> separates <b>Fact tables</b> (events/transactions: <code>Orders</code>, <code>Order_Items</code>, many rows, numeric amounts and foreign keys) from <b>Dimension tables</b> (who/what/where/when: <code>Customers</code>, <code>Products</code>, <code>Stores</code>, <code>Calendar</code>, unique primary keys).',
+            'Connect dimensions to facts with <b>1-to-many (1:*) single-direction relationships</b> so filters flow downhill from Dimension → Fact.',
+            'Create a dedicated <b>Calendar (Date) table</b> with continuous dates, Year, Quarter, MonthName and MonthNumber, and click <b>Mark as date table</b>.',
+            'Hide foreign keys on the fact table in Report View so users filter by Dimension columns instead of Fact keys.',
+          ],
+          code: {
+            lang: 'dax', title: 'Power BI Calendar table in DAX',
+            text: 'Calendar = \nADDCOLUMNS (\n    CALENDARAUTO(),\n    "Year", YEAR ( [Date] ),\n    "MonthNum", MONTH ( [Date] ),\n    "Month", FORMAT ( [Date], "yyyy-mm" ),\n    "Quarter", "Q" & FORMAT ( [Date], "q" )\n)',
+          },
+          doit: 'In Power BI Desktop, load the café dataset split into <code>Stores</code>, <code>Products</code>, <code>Customers</code> and <code>Sales</code> (or build the dimensions in Power Query via Remove Duplicates). Create a DAX <code>Calendar</code> table, connect all four dimensions 1:* to <code>Sales</code> in Model View, and verify that slicing by <code>Calendar[Month]</code> and <code>Stores[city]</code> filters revenue properly.',
+          ai: {
+            title: 'Turn my flat table into a Power BI Star Schema',
+            text: "I have a flat dataset with these columns:\n[[PASTE COLUMNS]]\n\nShow me how to split it into Fact and Dimension tables for a Power BI Star Schema: 1) which tables to create and their primary keys, 2) the 1:* relationships and filter directions, 3) how to sort Month names chronologically using Sort By Column.\n{{lang}}",
+          },
+          quiz: {
+            q: 'In a Power BI Star Schema, how should relationships between Dimension and Fact tables be set up?',
+            options: ['One-to-many (1:*) from Dimension to Fact, with single-direction filtering', 'Many-to-many (*:*) between all tables, with bi-directional filtering on', 'One-to-one (1:1) from the Fact table directly to another Fact table', 'No relationships in the model: use VLOOKUP-style calculated columns instead'],
+            answer: 0,
+            why: '1:* single-direction relationships from dimensions to facts avoid ambiguous filter paths and keep DAX fast.',
+          },
+          links: [{ label: 'Microsoft Learn: Understand star schema in Power BI', url: 'https://learn.microsoft.com/en-us/power-bi/guidance/star-schema' }],
+        },
+        {
+          id: 'l5-5', title: 'Power BI DAX Mastery: CALCULATE, Filter Context & Time Intelligence', hours: 5.5, download: 'retail',
+          why: 'DAX is the formula language of Power BI, Excel Power Pivot and Analysis Services. Understanding Filter Context is the key to mastering it.',
+          learn: [
+            'Write <b>explicit measures</b> (<code>Total Revenue = SUM(Sales[revenue])</code>) instead of relying on implicit drag-and-drop sums, and use <code>DIVIDE(num, den)</code> to handle division by zero safely.',
+            '<b>Row context</b> iterates row by row (calculated columns and <code>SUMX</code>); <b>Filter context</b> is the set of active slicers, rows and columns filtering a visual.',
+            '<code>CALCULATE(expression, filter1, …)</code> is the most important function in DAX: it evaluates a measure inside a modified filter context.',
+            'Use <code>ALL(TableOrCol)</code> inside <code>CALCULATE</code> to remove filters and compute <b>% of Grand Total</b>, and use Time Intelligence (<code>TOTALYTD</code>, <code>SAMEPERIODLASTYEAR</code>, <code>DATEADD</code>) for YoY growth.',
+          ],
+          code: {
+            lang: 'dax', title: 'Essential DAX measures every analyst writes',
+            text: 'Total Revenue = SUMX ( Sales, Sales[qty] * Sales[unit_price] )\n\nRevenue % of All Stores = \nDIVIDE (\n    [Total Revenue],\n    CALCULATE ( [Total Revenue], ALL ( Stores ) )\n)\n\nRevenue YoY % = \nVAR CurrRev = [Total Revenue]\nVAR PrevRev = CALCULATE ( [Total Revenue], SAMEPERIODLASTYEAR ( \'Calendar\'[Date] ) )\nRETURN DIVIDE ( CurrRev - PrevRev, PrevRev )',
+          },
+          doit: 'Add five explicit DAX measures to your Power BI café model: <code>Total Revenue</code>, <code>Total Orders</code> (<code>DISTINCTCOUNT</code>), <code>Avg Order Value</code> (<code>DIVIDE</code>), <code>Category Share %</code> (using <code>CALCULATE</code> + <code>ALL</code>), and <code>Month-over-Month Growth %</code> (using <code>DATEADD(\'Calendar\'[Date], -1, MONTH)</code>).',
+          ai: {
+            title: 'Write and explain a DAX measure (Filter vs Row Context)',
+            text: "My Power BI model has Fact table [[FACT]] and Dimensions [[DIMENSIONS]].\nI need a DAX measure for: [[DESCRIBE METRIC, e.g. % of total, rolling 3-month average, returning customers]].\nWrite the DAX using VAR / RETURN, explain how Filter Context and CALCULATE work step by step, and tell me how to test that the total row of a matrix visual is right.\n{{lang}}",
+          },
+          quiz: {
+            q: 'What does CALCULATE([Total Revenue], ALL(Products[Category])) return in a matrix visual?',
+            options: ['Total revenue across all product categories, ignoring the category row filter', 'Zero on every single detail row except the Grand Total row at the bottom', 'The average revenue per product category across the whole published report', 'An error, because ALL() is restricted to Power Query M and cannot run in DAX'],
+            answer: 0,
+            why: 'ALL(Products[Category]) strips the filter on Category so you can divide row revenue by total revenue.',
+          },
+          links: [{ label: 'SQLBI: DAX Guide', url: 'https://dax.guide' }],
+        },
+        {
+          id: 'l5-6', title: 'Tableau Deep Dive: Blue vs Green Pills, Table Calculations & Parameters', hours: 5, download: 'retail',
+          why: 'Once you understand how Tableau thinks about Discrete (blue) vs Continuous (green) fields, you can build any visual in minutes.',
+          learn: [
+            '<b>Dimensions</b> slice and group the data (headers); <b>Measures</b> are aggregated (<code>SUM</code>, <code>AVG</code>, <code>COUNTD</code>).',
+            '<b>Blue pills (Discrete)</b> create distinct headers and sortable categories; <b>Green pills (Continuous)</b> draw continuous numeric or date axes and colour gradients.',
+            '<b>Quick Table Calculations</b> compute on the visual\'s table after aggregation: Running Total, Percent of Total, Difference, Rank and Moving Average. Check <b>Compute Using</b> (Table Across vs Pane Down).',
+            '<b>Parameters</b> let the viewer dynamically switch the metric shown (e.g. Revenue vs Orders vs Margin) or adjust a top-N threshold across the whole dashboard.',
+          ],
+          code: {
+            lang: 'sql', title: 'Tableau Calculated Fields & Parameter switcher',
+            text: '// Dynamic Metric Switcher (linked to [Choose Metric] parameter)\nCASE [Choose Metric]\n  WHEN "Revenue" THEN SUM([qty] * [unit_price])\n  WHEN "Orders"  THEN COUNTD([order_id])\n  WHEN "AOV"     THEN SUM([qty] * [unit_price]) / COUNTD([order_id])\nEND\n\n// YoY Difference Table Calculation\n(ZN(SUM([Revenue])) - LOOKUP(ZN(SUM([Revenue])), -12)) / ABS(LOOKUP(ZN(SUM([Revenue])), -12))',
+          },
+          doit: 'In Tableau Public (free), load the café CSV. 1) Build a monthly trend using a Continuous (green) Month date axis. 2) Add a Quick Table Calculation for Running Total and Moving Average. 3) Create a string Parameter <code>Select Metric</code> ("Revenue", "Orders", "AOV") and a calculated field so one chart switches metrics on click.',
+          ai: {
+            title: 'Tableau calculated field & Table Calculation helper',
+            text: "I'm building a view in Tableau with [[ROWS / COLUMNS / MARKS]].\nI want to calculate: [[YOUR GOAL]].\nTell me: 1) whether to use a basic calculated field, a Table Calculation or an LOD expression, 2) the exact formula, 3) how to set 'Compute Using' (addressing and partitioning) so the numbers are accurate.\n{{lang}}",
+          },
+          quiz: {
+            q: 'In Tableau, what is the difference between a blue pill (Discrete) and a green pill (Continuous)?',
+            options: ['Blue pills create distinct headers; green pills draw a continuous axis', 'Blue pills come from local CSV files; green pills come from SQL databases', 'Blue pills can only go on Rows; green pills can only go on the Marks card', 'Blue pills are raw database fields; green pills are table calculations only'],
+            answer: 0,
+            why: 'Discrete (blue) values are separate items with headers; Continuous (green) values form an unbroken axis.',
+          },
+          links: [{ label: 'Tableau Public (free)', url: 'https://public.tableau.com' }],
+        },
+        {
+          id: 'l5-7', title: 'Tableau LOD Expressions (FIXED, INCLUDE, EXCLUDE) & Dashboard Actions', hours: 5, download: 'retail',
+          why: 'Level of Detail (LOD) expressions let you compute at any granularity—like customer cohort dates—regardless of what is on the chart.',
+          learn: [
+            '<code>{ FIXED [customer_id] : MIN([order_date]) }</code> computes each customer\'s first order date at the customer grain, even on a monthly summary chart.',
+            '<code>INCLUDE</code> computes at a finer grain than the view (e.g. average of customer totals per store); <code>EXCLUDE</code> omits a dimension from the view to compute a parent total.',
+            '<b>Tableau\'s Order of Operations</b>: Context Filters (grey pills) run <b>before</b> <code>FIXED</code> LODs, while regular Dimension Filters (blue pills) run <b>after</b> <code>FIXED</code> LODs.',
+            'Use <b>Dashboard Filter and Highlight Actions</b> so clicking a store bar filters the trend line and product breakdown below it.',
+          ],
+          code: {
+            lang: 'sql', title: 'Classic Tableau LOD expressions',
+            text: '// Customer First Order Date (Cohort)\n{ FIXED [customer_id] : MIN([order_date]) }\n\n// Is Repeat Customer?\n{ FIXED [customer_id] : COUNTD([order_id]) } > 1\n\n// Store Share of Overall Revenue (ignoring Store filter if not in Context)\nSUM([Revenue]) / SUM({ FIXED : SUM([Revenue]) })',
+          },
+          doit: 'In Tableau, write a <code>FIXED</code> LOD for <code>First Order Date</code> per customer, then build a stacked bar chart of monthly revenue split by New vs. Returning customers. Add a Store filter and test what happens to a <code>{ FIXED : SUM([Revenue]) }</code> calculation before and after clicking "Add to Context" on the filter.',
+          ai: {
+            title: 'Master Tableau LODs and Order of Operations',
+            text: "Explain how to solve this in Tableau using a Level of Detail (LOD) expression: [[DESCRIBE QUESTION, e.g. customer lifetime value, cohort retention, % of parent category]].\nWrite the { FIXED / INCLUDE / EXCLUDE } formula, explain why it works at a different grain than the chart, and warn me if any filter needs 'Add to Context'.\n{{lang}}",
+          },
+          quiz: {
+            q: 'In Tableau, a dimension filter is NOT affecting your { FIXED ... } LOD result. How do you make the filter apply before the FIXED LOD?',
+            options: ['Right-click the filter pill and select Add to Context', 'Change the pill colour from Discrete blue to Continuous green', 'Move the dimension from the Filters shelf onto the Tooltip card', 'Replace the FIXED keyword with the TABLE_AVG() calculation'],
+            answer: 0,
+            why: 'In Tableau\'s Order of Operations, Context Filters execute before FIXED LOD expressions.',
+          },
+          links: [{ label: 'Tableau: Top 15 LOD Expressions', url: 'https://www.tableau.com/blog/LOD-expressions' }],
         },
       ],
     },

@@ -45,6 +45,14 @@
       cat: 'Spreadsheets', title: 'Debug my formula',
       text: "My [[Excel / Google Sheets]] formula is not working.\nFormula: [[FORMULA]]\nWhat I expected: [[EXPECTED]]\nWhat I get: [[ACTUAL / ERROR]]\n\nFind the cause, explain it in simple words, give the fixed formula and tell me how to avoid this error in the future.\n{{lang}}",
     },
+    {
+      cat: 'Spreadsheets', title: 'Power Query ETL recipe (Excel / Power BI)',
+      text: "I receive a messy [[Excel / CSV]] file every week with this layout: [[DESCRIBE HEADERS, WIDE COLUMNS, SUBTOTAL ROWS]].\nGive me a step-by-step Power Query click-path (and the M code) to clean and unpivot it into a tidy table, plus a reconciliation check to verify no revenue was lost.\n{{lang}}",
+    },
+    {
+      cat: 'Spreadsheets', title: 'Google Sheets QUERY() and ARRAYFORMULA builder',
+      text: "In Google Sheets, my tab [[TAB NAME]] has columns A to [[COL]]: [[COLUMN NAMES]].\nWrite a =QUERY() formula and an =ARRAYFORMULA() to compute [[GOAL]]. Explain how it handles blank rows and mixed data types.\n{{lang}}",
+    },
 
     // SQL
     {
@@ -73,6 +81,14 @@
       cat: 'Python', title: 'Turn my messy notebook into clean steps',
       text: "Here is my notebook code. Without changing results, propose a cleaner structure: functions for loading, cleaning and analysis, clear names and short comments. Explain every change so I learn the pattern.\n\n[[PASTE CODE]]\n{{lang}}",
     },
+    {
+      cat: 'Python', title: 'Cohort retention & RFM segmentation in pandas',
+      text: "My orders DataFrame has columns [[customer_id, order_date, revenue]]. Write clean pandas code to build: (1) a monthly cohort retention matrix (% of Month-0 users active in Month 1..N) with a Seaborn heatmap, and (2) an RFM customer segmentation using pd.qcut. Explain how to interpret both for a marketing team.\n{{lang}}",
+    },
+    {
+      cat: 'Python', title: 'Automate a multi-tab Excel report from Python',
+      text: "Write a clean Python script using pandas and pd.ExcelWriter that reads [[SOURCE]], validates data quality (missing keys, negative values), and exports a multi-sheet .xlsx file with Summary, Cleaned_Data and Exceptions tabs.\n{{lang}}",
+    },
 
     // Statistics
     {
@@ -88,6 +104,14 @@
     {
       cat: 'Visualization', title: 'Make my chart insight-first',
       text: "Here is my chart description and data: [[DESCRIBE]]. Suggest: a title that states the insight, what to highlight in colour, what to remove, how to label directly, and one annotation. Then give the code in [[matplotlib / seaborn / Plotly]] for the improved version.\n{{lang}}",
+    },
+    {
+      cat: 'Visualization', title: 'Design a Power BI Star Schema & DAX measures',
+      text: "I am building a Power BI report from these source tables/columns: [[DESCRIBE TABLES]].\n1. Propose a clean Star Schema (Fact table grain, Dimension tables, 1:* relationship keys).\n2. Write the core DAX measures (Total, YoY %, % of Grand Total using CALCULATE and DIVIDE) and explain how filter context works on a matrix visual.\n{{lang}}",
+    },
+    {
+      cat: 'Visualization', title: 'Write a Tableau LOD expression & check filter order',
+      text: "In Tableau, my dataset has one row per [[ROW GRAIN]] and my view is grouped by [[VIEW DIMENSIONS]].\nI want to calculate: [[GOAL, e.g. customer cohort first order date / share of regional total]].\nWrite the exact Tableau LOD expression (FIXED, INCLUDE or EXCLUDE), explain how it works, and tell me which filters on my sheet need 'Add to Context'.\n{{lang}}",
     },
 
     // AI workflow

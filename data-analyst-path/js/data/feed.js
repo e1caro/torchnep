@@ -705,6 +705,75 @@
   word('w-provenance', 'Career', 'Data lineage', 'Where a number came from: which source system recorded it, which scripts transformed it and which filters were applied.',
     'When two dashboards disagree, tracing lineage is how you find why.', 'l1-1');
 
+  /* ------------------------------------------------------------------ Excel, Google Sheets, Power BI, Tableau & Python cards */
+  tip('t-sh-spill', 'Sheets', '🌊', 'Spill dynamic arrays with FILTER and UNIQUE',
+    ['In modern Excel and Google Sheets, one formula in the top cell can spill an entire live table that grows and shrinks automatically.'],
+    'Reference a spilled range with a hash (#), like =COUNTA(F2#).', 'l1-4',
+    '=SORT(UNIQUE(FILTER(Orders[City], Orders[Revenue] >= 1000, "None")))');
+  tip('t-sh-let', 'Sheets', '🏷️', 'Name intermediate steps in Excel with LET()',
+    ['Instead of repeating the same XLOOKUP or SUMIFS three times inside an IF formula, bind it to a short variable name with LET().'],
+    'LET makes long spreadsheet formulas readable and twice as fast.', 'l1-4',
+    '=LET(rev, SUM(B2:B100), cost, SUM(C2:C100), IF(rev=0, 0, (rev-cost)/rev))');
+  tip('t-sh-pq-unpivot', 'Sheets', '🔄', 'Unpivot wide month columns in Power Query',
+    ['When a finance report has Jan, Feb, Mar... across 12 columns, select the ID columns in Power Query and click "Unpivot Other Columns".'],
+    'Never fix 12 monthly columns by hand—unpivot once and click Refresh next month.', 'l1-5');
+  tip('t-sh-gs-query', 'Sheets', '🔍', 'Write SQL inside Google Sheets with QUERY()',
+    ['Google Sheets has a built-in SQL engine: =QUERY(data, "SELECT B, SUM(D) WHERE E = \'Paid\' GROUP BY B ORDER BY SUM(D) DESC", 1).'],
+    'Use PIVOT inside QUERY() to generate live cross-tabs in a single formula.', 'l1-6',
+    '=QUERY(A1:F500, "SELECT B, SUM(D) WHERE C IS NOT NULL GROUP BY B PIVOT E", 1)');
+  tip('t-sh-gs-array', 'Sheets', '⚡', 'Lock column logic with ARRAYFORMULA in Sheets',
+    ['Put =ARRAYFORMULA(IF(A2:A="", "", B2:B * C2:C)) in row 2 so new rows added at the bottom are calculated automatically.'],
+    'One header formula beats 5,000 dragged cells.', 'l1-6');
+  tip('t-sh-sensitivity', 'Sheets', '🎛️', 'Stress-test assumptions with a 2-way table',
+    ['Before presenting a revenue forecast, show a 5x5 matrix of outcomes across Price Change (-10% to +10%) and Churn Rate (2% to 6%).'],
+    'Decision-makers trust a range of scenarios far more than a single point guess.', 'l1-7');
+
+  tip('t-py-transform', 'Python', '🪞', 'Window functions in pandas with .transform()',
+    ['df.groupby("region")["rev"].transform("sum") returns the regional total aligned with every original row—just like SUM() OVER (PARTITION BY region).'],
+    'Divide a column by its .transform("sum") for instant within-group shares.', 'l3-4',
+    'df["share"] = df["rev"] / df.groupby("region")["rev"].transform("sum")');
+  tip('t-py-npselect', 'Python', '🗂️', 'Vectorized CASE WHEN in Python with np.select',
+    ['Avoid slow df.apply(axis=1) loops for multi-condition tiers. Pass a list of boolean masks and labels to np.select(conds, choices, default="Other").'],
+    'np.select runs at C speed and reads just like a SQL CASE statement.', 'l3-4',
+    'df["tier"] = np.select([df["rev"]>=1000, df["rev"]>=250], ["VIP", "Core"], default="New")');
+  tip('t-py-cohort', 'Python', '📅', 'Cohort retention heatmaps in 5 lines of pandas',
+    ['Compare signup month with order month, pivot counts into a triangle matrix, and divide every column by column 0 (Month 0 cohort size).'],
+    'Cohorts reveal whether product retention is improving for newer users.', 'l3-5');
+  tip('t-py-seaborn', 'Python', '🎨', 'Highlight one bar and grey out the rest',
+    ['Build a palette dictionary that colours your focal category in deep blue and every other bar in muted light grey, then call sns.despine().'],
+    'Visual hierarchy turns a noisy chart into an instant story.', 'l3-6');
+  tip('t-py-excelwriter', 'Python', '📤', 'Automate multi-tab Excel reports from Python',
+    ['Use pd.ExcelWriter("weekly_kpi.xlsx") in a with-block to export Raw_Cleaned, Summary_By_Region and Exceptions tabs in one run.'],
+    'Automating Monday reports frees your week for real analysis.', 'l3-7',
+    'with pd.ExcelWriter("kpi_pack.xlsx") as w:\n    summary.to_excel(w, sheet_name="Summary", index=False)\n    raw.to_excel(w, sheet_name="Cleaned", index=False)');
+
+  tip('t-ch-starschema', 'Charts', '⭐', 'Build a Star Schema before writing DAX',
+    ['Split flat tables into a narrow numeric Fact table (orders) and clean Dimension tables (Calendar, Customer, Product) linked by 1-to-many relationships.'],
+    'A clean Star Schema makes 90% of Power BI and Tableau calculations effortless.', 'l5-4');
+  tip('t-ch-dax-calc', 'Charts', '🧮', 'CALCULATE is the superpower of Power BI DAX',
+    ['CALCULATE([Total Revenue], ALL(DimProduct)) ignores the product filter in the current visual so you can divide each row by the grand total.'],
+    'Always write ratios as Measures (DIVIDE), never as Calculated Columns.', 'l5-5',
+    'Product Share % = DIVIDE([Total Revenue], CALCULATE([Total Revenue], ALL(DimProduct)), 0)');
+  tip('t-ch-tab-pills', 'Charts', '💊', 'Tableau Blue vs Green pills: Discrete vs Continuous',
+    ['Blue pills are Discrete (they draw distinct headers you can sort); Green pills are Continuous (they draw an unbroken axis).'],
+    'Check pill colour first whenever a Tableau chart draws axes instead of bars.', 'l5-6');
+  tip('t-ch-tab-lod', 'Charts', '🔒', 'Lock calculation grain in Tableau with FIXED LOD',
+    ['{ FIXED [Customer ID] : MIN([Order Date]) } finds each customer\'s first order date regardless of which dimensions are on the sheet.'],
+    'Right-click dimension filters and select "Add to Context" when they must filter a FIXED LOD.', 'l5-7',
+    '{ FIXED [Customer ID] : MIN([Order Date]) }');
+
+  myth('m-dax-col', 'Charts', 'Power BI Calculated Column ratios (Profit / Revenue) give the right total margin on a chart.', false,
+    'A Calculated Column computes row by row and sums the ratios! You must write Margin % as a Measure: DIVIDE(SUM(Profit), SUM(Revenue)).', 'l5-5');
+  myth('m-tab-context', 'Charts', 'In Tableau, a normal blue Dimension filter always filters rows before a { FIXED } LOD expression runs.', false,
+    'FIXED LODs run BEFORE normal Dimension filters in Tableau\'s Order of Operations. Promote the filter to a grey Context Filter if it should apply first.', 'l5-7');
+
+  word('w-star-schema', 'Charts', 'Star schema', 'A data model with a central Fact table of numeric events surrounded by Dimension tables of who, what, where and when.',
+    'The gold standard for Power BI, Tableau and analytical warehouses.', 'l5-4');
+  word('w-dax-context', 'Charts', 'Filter context', 'The active set of filters (from rows, columns, slicers and CALCULATE) applied before a Power BI DAX measure is evaluated.',
+    'Every cell in a Power BI matrix has its own filter context.', 'l5-5');
+  word('w-lod', 'Charts', 'LOD expression', 'Level of Detail expression in Tableau (FIXED, INCLUDE, EXCLUDE) that computes an aggregate at a grain different from the visual.',
+    'Essential for customer acquisition cohorts and percent-of-total benchmarks.', 'l5-7');
+
   DA.feedCards = cards;
   DA.feedById = {};
   cards.forEach(function (c) { DA.feedById[c.id] = c; });
