@@ -281,7 +281,7 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .odd small{display:block;font-size:10px;font-weight:600;opacity:.75;margin-top:1px}
 .odd.tot{background:color-mix(in srgb,var(--acc2) 18%,var(--card2))}
 
-/* ---- V4 Studio RPG Polish: Glassmorphic Depth, Specular Highlights & Trophy Cards ---- */
+/* ---- V5 Studio RPG Polish: Glassmorphic Depth, Specular Highlights & Trophy Cards ---- */
 body{
   background:
     radial-gradient(85% 45% at 18% -5%,color-mix(in srgb,var(--acc) 16%,var(--glow)) 0,transparent 65%),
@@ -290,7 +290,7 @@ body{
 }
 .card,.quest,.mkt,.stat,.hud{
   position:relative;
-  box-shadow:0 10px 28px -10px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.07);
+  box-shadow:0 12px 30px -10px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08);
 }
 .hud{
   background:
@@ -325,10 +325,40 @@ body{
 }
 .sw:not(.locked){
   background:
-    radial-gradient(85% 85% at 50% 0%,color-mix(in srgb,var(--acc) 16%,transparent),transparent 68%),
-    linear-gradient(180deg,color-mix(in srgb,var(--card2) 45%,var(--card)),var(--card));
+    radial-gradient(85% 85% at 50% 0%,color-mix(in srgb,var(--acc) 18%,transparent),transparent 68%),
+    linear-gradient(180deg,color-mix(in srgb,var(--card2) 48%,var(--card)),var(--card));
   border-color:color-mix(in srgb,var(--acc) 42%,var(--line));
 }
-.sw:not(.locked) .avbig .gi{
-  filter:drop-shadow(0 4px 10px color-mix(in srgb,var(--acc) 45%,transparent));
+.sw:not(.locked) .avbig .gi,
+.pbadge .gi,
+.pstat .gi,
+.qi .gi,
+.dgi .gi,
+.mi .gi{
+  filter:drop-shadow(0 3px 8px color-mix(in srgb,var(--acc) 38%,transparent));
+}
+.quest,.mkt,.meal,.lookt,.pstat,.pbadge{
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+}
+.quest:active,.mkt:active,.lookt:active,.opt:active{
+  transform:scale(.985);
+}
+.sets th{
+  color:var(--mut);
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  font-size:11.5px;
+  font-weight:700;
+}
+.sets input{
+  font-variant-numeric:tabular-nums;
+  font-weight:600;
+}
+.thumb{
+  box-shadow:0 4px 12px rgba(0,0,0,.35);
+  border:1px solid rgba(255,255,255,.08);
+}
+.demo{
+  box-shadow:0 10px 26px -8px rgba(0,0,0,.5);
+  border:1px solid var(--line);
 }
