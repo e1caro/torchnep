@@ -2,7 +2,7 @@
   "id": "./index.html",
   "name": "Data Analyst Path",
   "short_name": "Analyst Path",
-  "description": "Learn data analysis from your own background: daily practice, SQL lab, streaks and AI tutor prompts. Works offline.",
+  "description": "Learn data analysis from your own background: daily practice, SQLab, streaks and AI tutor prompts. Works offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -18,6 +18,6 @@
   ],
   "shortcuts": [
     { "name": "Practice round", "short_name": "Practice", "url": "./index.html#/practice/play", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "SQL Lab", "short_name": "SQL Lab", "url": "./index.html#/lab", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "SQLab", "short_name": "SQLab", "url": "./index.html#/lab", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }

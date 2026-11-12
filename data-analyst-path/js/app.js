@@ -82,7 +82,7 @@
       { done: qs.drill, icon: '⚡', name: 'Practise', text: due ? due + ' due for review · one 5-question round' : 'One 5-question round, about 2 minutes', href: '#/practice/play', cta: 'Start' },
       touch
         ? { done: qs.sql, icon: '🧱', name: 'Code', text: 'Solve 3 puzzles in a round of SQL blocks (no typing)', href: '#/arcade/blocks/next', cta: 'Build' }
-        : { done: qs.sql, icon: '🗄️', name: 'Code', text: sq ? 'Solve a SQL challenge: ' + sq.title : 'Practise in the SQL Lab', href: sq ? '#/lab/' + sq.ds + '/' + sq.id : '#/lab', cta: 'Open' },
+        : { done: qs.sql, icon: '🗄️', name: 'Code', text: sq ? 'Solve a SQL challenge: ' + sq.title : 'Practise in SQLab', href: sq ? '#/lab/' + sq.ds + '/' + sq.id : '#/lab', cta: 'Open' },
     ];
     return h('section', { class: 'card today', 'aria-labelledby': 'today-h' },
       h('div', { class: 'today-top' },
@@ -113,7 +113,7 @@
       root.appendChild(h('section', { class: 'hero' },
         h('p', { class: 'eyebrow', text: 'Free · hands-on · AI-assisted' }),
         title('Become a data analyst, starting from what you already know.'),
-        h('p', { class: 'lead', text: 'A step-by-step path built around your own background, in ten minutes a day: bite-size lessons, a feed of data stories, quick games, a SQL lab and an AI tutor you know how to use.' }),
+        h('p', { class: 'lead', text: 'A step-by-step path built around your own background, in ten minutes a day: bite-size lessons, a feed of data stories, quick games, SQLab and an AI tutor you know how to use.' }),
         DA.mascot.say('happy', 'Hi, I\'m Dot. Tell me where you come from and I will tune everything to you.', link('#/profile', 'btn accent', 'Start (1 minute)')),
         h('div', { class: 'row' },
           link('#/feed', 'btn big ghost', 'Peek at Discover'),
@@ -314,7 +314,7 @@
     if (l.download === 'messy') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('messy_orders.csv', '﻿' + DA.gen.messyCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded messy_orders.csv'); } }, '⬇ Download messy orders CSV'));
     if (l.lab) {
       var dsId = l.lab === 'auto' ? ui.defaultDataset() : l.lab;
-      tools.push(link('#/lab/' + dsId, 'btn small accent', '🗄️ Open the SQL Lab · ' + DA.datasets[dsId].title));
+      tools.push(link('#/lab/' + dsId, 'btn small accent', '🗄️ Open SQLab · ' + DA.datasets[dsId].title));
     }
     root.appendChild(h('section', { class: 'block' }, h('h2', { text: '2 · Do it' }), h('div', { class: 'doit' }, h('p', { html: l.doit })), tools.length ? h('div', { class: 'row' }, tools) : null));
 

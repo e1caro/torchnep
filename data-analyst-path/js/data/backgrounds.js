@@ -213,7 +213,7 @@
       projects: [
         'Training-load vs. performance analysis from wearable or public sport data, with a coaching recommendation.',
         'Athlete monitoring dashboard: weekly load, readiness and injury flags.',
-        'Compare two training programmes (like the SQL Lab study dataset) with effect sizes and caveats.',
+        'Compare two training programmes (like the SQLab study dataset) with effect sizes and caveats.',
       ],
       resume: [
         'Programmed training for 50+ athletes → "Used performance data to personalise programmes; improved target metrics by X%".',

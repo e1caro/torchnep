@@ -1,4 +1,4 @@
-/* SQL Lab: practise SQL in the browser (SQLite compiled to WebAssembly via sql.js).
+/* SQLab: practise SQL in the browser (SQLite compiled to WebAssembly via sql.js).
  * Challenges are checked by running a reference query and comparing the two results.
  */
 (function () {
@@ -48,11 +48,59 @@
     });
   }
 
-  /* ---------- view ---------- */
+  /* ---------- editor memory & undo/redo store ---------- */
 
-  var LEVELS = { 1: 'Level 1: warm-up', 2: 'Level 2: core analyst skills', 3: 'Level 3: interview level' };
-  var drafts = {};     // typed queries, kept while the page is open
+  var MEM_KEY = 'data-analyst-path.sql-mem.v1';
+  var LEVELS = DA.sqlLevels || {
+    1: 'Level 1: Foundations — SELECT, WHERE & ORDER BY',
+    2: 'Level 2: Aggregations — COUNT, SUM, AVG & GROUP BY',
+    3: 'Level 3: Multi-Table Joins & HAVING',
+    4: 'Level 4: Dates, CASE WHEN & Conditional Metrics',
+    5: 'Level 5: Subqueries, CTEs (WITH) & Anti-Joins',
+    6: 'Level 6: Window Functions — Ranking & Running Totals',
+    7: 'Level 7: Time-Series, LAG/LEAD & Repeat Behavior',
+    8: 'Level 8: Staff Analyst & Executive Case Studies',
+  };
+  var drafts = {};     // typed queries, kept in memory & localStorage
+  var histories = {};  // draftKey -> { stack: [{v, s, e}], idx: number, lastTs: number }
+  var recentQueries = {}; // dsId -> [sql, ...]
   var attempts = {};   // challenge id → number of checks (gates "show solution")
+
+  function loadMem() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(MEM_KEY) || 'null');
+      if (!raw || typeof raw !== 'object') return;
+      if (raw.drafts && typeof raw.drafts === 'object') {
+        Object.keys(raw.drafts).slice(0, 200).forEach(function (k) {
+          if (typeof raw.drafts[k] === 'string') drafts[k] = raw.drafts[k].slice(0, 8000);
+        });
+      }
+      if (raw.histories && typeof raw.histories === 'object') {
+        Object.keys(raw.histories).slice(0, 200).forEach(function (k) {
+          var hObj = raw.histories[k];
+          if (hObj && Array.isArray(hObj.stack) && hObj.stack.length) {
+            var clean = hObj.stack.slice(-60).map(function (st) {
+              return { v: String(st && st.v || '').slice(0, 8000), s: Number(st && st.s) || 0, e: Number(st && st.e) || 0 };
+            });
+            histories[k] = { stack: clean, idx: Math.max(0, Math.min(clean.length - 1, Number(hObj.idx) || 0)), lastTs: 0 };
+          }
+        });
+      }
+      if (raw.recent && typeof raw.recent === 'object') {
+        Object.keys(raw.recent).forEach(function (ds) {
+          if (Array.isArray(raw.recent[ds])) {
+            recentQueries[ds] = raw.recent[ds].filter(function (q) { return typeof q === 'string' && q.trim(); }).slice(0, 15);
+          }
+        });
+      }
+    } catch (e) { /* storage unavailable */ }
+  }
+  function saveMem() {
+    try {
+      localStorage.setItem(MEM_KEY, JSON.stringify({ drafts: drafts, histories: histories, recent: recentQueries }));
+    } catch (e) { /* storage full or blocked */ }
+  }
+  loadMem();
 
   // Shared with the SQL blocks game, which checks answers by running them.
   DA.sqlEngine = { load: loadEngine, ref: getRef };
@@ -61,12 +109,13 @@
     var dsId = params[0] && DA.datasets[params[0]] ? params[0] : ui.defaultDataset();
     var ds = DA.datasets[dsId];
     var list = DA.challenges.filter(function (c) { return c.ds === dsId; });
+    var examples = (DA.sqlExamples || []).filter(function (ex) { return ex.ds === dsId; });
     var cur = list.filter(function (c) { return c.id === params[1]; })[0] || null;
     var draftKey = dsId + ':' + (cur ? cur.id : 'free');
-    var SQL = null, dirty = false, lastError = '', lastRun = null;
+    var SQL = null, dirty = false, lastError = '', lastRun = null, activePreviewTable = null;
 
     var root = h('div', { class: 'view lab' });
-    root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'SQL Lab' }));
+    root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'SQLab' }));
     root.appendChild(h('p', { class: 'lead lab-lead', text: 'Practise real SQL on a real database, in your browser. Nothing is uploaded: the database is created on your computer each time you open this page.' }));
 
     // dataset tabs
@@ -87,21 +136,109 @@
     layout.appendChild(main);
     root.appendChild(layout);
 
-    /* editor */
+    /* editor + undo/redo memory */
     var editor = h('textarea', {
       class: 'sql-editor', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', rows: '9',
-      'aria-label': 'SQL query', placeholder: 'Write your SQL here, then press Run (Ctrl/Cmd + Enter).',
+      'aria-label': 'SQL query', placeholder: 'Write your SQL here, then press Run (Ctrl/Cmd + Enter). Undo any time with Ctrl/Cmd + Z or ↶ Undo.',
     });
-    editor.value = drafts[draftKey] !== undefined ? drafts[draftKey] : (cur ? '' : 'SELECT * FROM ' + ds.tables[0].name + ' LIMIT 10;');
-    editor.addEventListener('input', function () { drafts[draftKey] = editor.value; });
+    var initVal = drafts[draftKey] !== undefined ? drafts[draftKey] : '';
+    editor.value = initVal;
+
+    function getHistory() {
+      if (!histories[draftKey] || !histories[draftKey].stack || !histories[draftKey].stack.length) {
+        histories[draftKey] = { stack: [{ v: editor.value, s: editor.value.length, e: editor.value.length }], idx: 0, lastTs: 0 };
+      }
+      return histories[draftKey];
+    }
+
+    var undoBtn = h('button', { class: 'btn ghost', type: 'button', title: 'Undo (Ctrl/Cmd + Z)', 'aria-label': 'Undo', onclick: function () { undo(); } }, '↶ Undo');
+    var redoBtn = h('button', { class: 'btn ghost', type: 'button', title: 'Redo (Ctrl/Cmd + Y)', 'aria-label': 'Redo', onclick: function () { redo(); } }, '↷ Redo');
+
+    function syncUndoButtons() {
+      var hist = getHistory();
+      undoBtn.disabled = hist.idx <= 0;
+      redoBtn.disabled = hist.idx >= hist.stack.length - 1;
+    }
+
+    function recordEdit(forceNewStep) {
+      var hist = getHistory();
+      var curSt = hist.stack[hist.idx];
+      var v = editor.value, s = editor.selectionStart || 0, e = editor.selectionEnd || 0;
+      drafts[draftKey] = v;
+      if (curSt && curSt.v === v) {
+        curSt.s = s; curSt.e = e;
+        return;
+      }
+      var now = Date.now();
+      var boundary = forceNewStep || (now - (hist.lastTs || 0) > 450) || /[\s;,\n()]$/.test(v);
+      hist.stack = hist.stack.slice(0, hist.idx + 1);
+      if (!boundary && hist.stack.length > 1) {
+        hist.stack[hist.idx] = { v: v, s: s, e: e };
+      } else {
+        hist.stack.push({ v: v, s: s, e: e });
+        if (hist.stack.length > 60) hist.stack.shift();
+        hist.idx = hist.stack.length - 1;
+      }
+      hist.lastTs = now;
+      syncUndoButtons();
+      saveMem();
+    }
+
+    function applyValueWithMemory(newVal, selStart, selEnd) {
+      recordEdit(true);
+      editor.value = newVal;
+      var s = selStart !== undefined ? selStart : newVal.length;
+      var e = selEnd !== undefined ? selEnd : s;
+      editor.selectionStart = s;
+      editor.selectionEnd = e;
+      recordEdit(true);
+    }
+
+    function undo() {
+      var hist = getHistory();
+      if (hist.idx <= 0) return;
+      hist.idx--;
+      var st = hist.stack[hist.idx];
+      editor.value = st.v;
+      editor.selectionStart = st.s;
+      editor.selectionEnd = st.e;
+      drafts[draftKey] = st.v;
+      hist.lastTs = 0;
+      syncUndoButtons();
+      saveMem();
+      editor.focus({ preventScroll: true });
+    }
+
+    function redo() {
+      var hist = getHistory();
+      if (hist.idx >= hist.stack.length - 1) return;
+      hist.idx++;
+      var st = hist.stack[hist.idx];
+      editor.value = st.v;
+      editor.selectionStart = st.s;
+      editor.selectionEnd = st.e;
+      drafts[draftKey] = st.v;
+      hist.lastTs = 0;
+      syncUndoButtons();
+      saveMem();
+      editor.focus({ preventScroll: true });
+    }
+
+    syncUndoButtons();
+
+    editor.addEventListener('input', function () { recordEdit(false); });
     editor.addEventListener('keydown', function (e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); run(false); }
-      else if (e.key === 'Tab' && !e.shiftKey) {
+      else if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'z' || e.key === 'Z')) {
+        e.preventDefault();
+        if (e.shiftKey) redo(); else undo();
+      } else if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 'y' || e.key === 'Y')) {
+        e.preventDefault();
+        redo();
+      } else if (e.key === 'Tab' && !e.shiftKey) {
         e.preventDefault();
         var s = editor.selectionStart, t = editor.selectionEnd;
-        editor.value = editor.value.slice(0, s) + '  ' + editor.value.slice(t);
-        editor.selectionStart = editor.selectionEnd = s + 2;
-        drafts[draftKey] = editor.value;
+        applyValueWithMemory(editor.value.slice(0, s) + '  ' + editor.value.slice(t), s + 2, s + 2);
       }
     });
 
@@ -114,7 +251,9 @@
     var aiBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () { showAi(false); } }, '🤖 Ask AI for help');
 
     var feedback = h('div', { class: 'feedback', role: 'status', 'aria-live': 'polite' });
+    var previewBox = h('div', { class: 'table-preview-box' });
     var resultBox = h('div', { class: 'result' });
+    var recentBox = h('div', { class: 'recent-queries-box' });
     var aiBox = h('div', { class: 'ai-box' });
 
     /* task panel */
@@ -137,7 +276,7 @@
         hintBox, solBox));
     } else {
       main.appendChild(h('div', { class: 'task' }, h('strong', { text: 'Free exploration' }),
-        h('p', { class: 'muted', text: 'Pick a challenge from the list, or explore: look at each table, count rows, find the oldest or newest date, find NULLs. Good analysts always do this first.' })));
+        h('p', { class: 'muted', text: 'Pick a challenge from Levels 1–8, inspect any table below with one click, or explore freely.' })));
     }
 
     // Typing SQL on a phone is slow: one-tap keywords, table names and symbols (the editor keeps focus, so the keyboard stays open).
@@ -145,9 +284,9 @@
       var a = editor.selectionStart, b = editor.selectionEnd, v = editor.value, prev = v.charAt(a - 1);
       // keep words apart: "SELECT *" + "FROM" must not become "SELECT *FROM"
       if (a > 0 && !/[\s(.]/.test(prev) && /^[A-Za-z*]/.test(text)) text = ' ' + text;
-      editor.value = v.slice(0, a) + text + v.slice(b);
-      editor.selectionStart = editor.selectionEnd = a + text.length - (back || 0);
-      drafts[draftKey] = editor.value;
+      var nextVal = v.slice(0, a) + text + v.slice(b);
+      var pos = a + text.length - (back || 0);
+      applyValueWithMemory(nextVal, pos, pos);
       editor.focus({ preventScroll: true });
     }
     var KEYS = [['SELECT', 'SELECT '], ['FROM', 'FROM '], ['WHERE', 'WHERE '], ['JOIN', 'JOIN '], ['ON', 'ON '], ['GROUP BY', 'GROUP BY '], ['ORDER BY', 'ORDER BY '], ['HAVING', 'HAVING '],
@@ -158,14 +297,112 @@
       KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); }));
     main.appendChild(keys);
     main.appendChild(editor);
-    main.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, resetBtn, aiBtn, schemaBtn));
+    main.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
+
+    // Quick table viewer bar: shows any table directly without writing anything into the SQL editor
+    var tableBtns = {};
+    var tableBar = h('div', { class: 'row table-peek-bar', role: 'group', 'aria-label': 'Inspect database tables' },
+      h('span', { class: 'muted small', text: '📋 View tables:' }),
+      ds.tables.map(function (t) {
+        var b = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
+          if (activePreviewTable === t.name) showTablePreview(null);
+          else showTablePreview(t.name, 15);
+        } }, '👁 ' + t.name);
+        tableBtns[t.name] = b;
+        return b;
+      }));
+    main.appendChild(tableBar);
+    main.appendChild(previewBox);
     main.appendChild(feedback);
     main.appendChild(resultBox);
+    main.appendChild(recentBox);
     main.appendChild(aiBox);
 
-    /* side: schema + challenge list (collapsible on small screens so the editor comes first) */
+    /* Direct table preview without touching editor.value */
+    function showTablePreview(tableName, limit) {
+      ui.clear(previewBox);
+      activePreviewTable = tableName || null;
+      Object.keys(tableBtns).forEach(function (k) {
+        tableBtns[k].classList.toggle('active', k === activePreviewTable);
+      });
+      if (!tableName) return;
+      var tbl = ds.tables.filter(function (t) { return t.name === tableName; })[0];
+      if (!tbl) return;
+      var maxRows = limit || 15;
+      var cols = tbl.cols.map(function (c) { return c[0]; });
+      var allRows = (ds.data() && ds.data()[tableName]) || [];
+      if (SQL && dirty) {
+        try {
+          var live = lastResult(getDb(SQL, dsId, false).exec('SELECT * FROM ' + tableName));
+          if (live) { cols = live.columns; allRows = live.values; }
+        } catch (e) { /* fallback to dataset rows */ }
+      }
+      var shown = allRows.slice(0, maxRows);
+      var tableEl = h('table', { class: 'result-table' },
+        h('thead', null, h('tr', null, cols.map(function (c) { return h('th', { scope: 'col', text: c }); }))),
+        h('tbody', null, shown.map(function (row) {
+          return h('tr', null, row.map(function (v) {
+            return v === null ? h('td', { class: 'null', text: 'NULL' }) : h('td', { class: typeof v === 'number' ? 'num' : '', text: String(v) });
+          }));
+        })));
+      previewBox.appendChild(h('div', { class: 'card preview-card' },
+        h('div', { class: 'row between' },
+          h('div', null,
+            h('strong', { text: '📋 Table: ' + tbl.name }),
+            h('span', { class: 'muted small', text: ' · ' + tbl.note + ' (' + allRows.length + ' rows total, showing first ' + shown.length + ')' })),
+          h('div', { class: 'row' },
+            allRows.length > maxRows ? h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { showTablePreview(tableName, maxRows + 35); } }, 'Show more rows') : null,
+            h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { showTablePreview(null); } }, '✕ Hide table'))),
+        h('div', { class: 'table-wrap', tabindex: '0', role: 'region', 'aria-label': 'Preview of table ' + tbl.name }, tableEl)));
+    }
+
+    function showExamplePreview(ex) {
+      ui.clear(previewBox);
+      activePreviewTable = null;
+      Object.keys(tableBtns).forEach(function (k) { tableBtns[k].classList.remove('active'); });
+      if (!SQL) { ui.toast('Wait a moment for the SQL engine to finish loading.'); return; }
+      var res;
+      try { res = lastResult(getRef(SQL, dsId).exec(ex.sql)); } catch (e) { return; }
+      if (!res) return;
+      var shown = res.values.slice(0, 25);
+      var tableEl = h('table', { class: 'result-table' },
+        h('thead', null, h('tr', null, res.columns.map(function (c) { return h('th', { scope: 'col', text: c }); }))),
+        h('tbody', null, shown.map(function (row) {
+          return h('tr', null, row.map(function (v) {
+            return v === null ? h('td', { class: 'null', text: 'NULL' }) : h('td', { class: typeof v === 'number' ? 'num' : '', text: String(v) });
+          }));
+        })));
+      previewBox.appendChild(h('div', { class: 'card preview-card' },
+        h('div', { class: 'row between' },
+          h('div', null,
+            h('span', { class: 'badge level' + ex.level, text: 'Level ' + ex.level }), ' ',
+            h('strong', { text: 'Example: ' + ex.title }),
+            h('span', { class: 'muted small', text: ' · ' + res.values.length + ' rows' })),
+          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { ui.clear(previewBox); } }, '✕ Close preview')),
+        h('p', { class: 'muted small', text: ex.explain }),
+        h('div', { class: 'table-wrap', tabindex: '0', role: 'region', 'aria-label': 'Example result' }, tableEl)));
+    }
+
+    function paintRecent() {
+      ui.clear(recentBox);
+      var listRec = recentQueries[dsId] || [];
+      if (!listRec.length) return;
+      recentBox.appendChild(h('details', { class: 'card fold recent-fold' },
+        h('summary', null, h('strong', { text: '🕘 Recent queries memory (' + listRec.length + ')' })),
+        h('div', { class: 'recent-list' }, listRec.map(function (qText) {
+          return h('div', { class: 'row between recent-item' },
+            h('code', { class: 'small', text: qText.replace(/\s+/g, ' ').slice(0, 95) + (qText.length > 95 ? '…' : '') }),
+            h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
+              applyValueWithMemory(qText);
+              ui.toast('Query restored to editor (press ↶ Undo to revert)');
+            } }, 'Restore'));
+        }))));
+    }
+    paintRecent();
+
+    /* side: schema + worked examples + 8-level challenge list */
     var inner = h('div', { class: 'side-inner' });
-    var sideBox = h('details', { class: 'side-collapse' }, h('summary', null, '📋 Tables and challenges'), inner);
+    var sideBox = h('details', { class: 'side-collapse' }, h('summary', null, '📋 Tables, examples and challenges'), inner);
     side.appendChild(sideBox);
     var narrow = window.matchMedia ? window.matchMedia('(max-width: 1100px)') : null;
     function syncSide() { sideBox.open = narrow && narrow.matches ? !cur : true; }
@@ -179,16 +416,36 @@
           return h('li', null, h('button', { class: 'col-key', type: 'button', title: 'Insert ' + c[0], 'aria-label': 'Insert column ' + c[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(c[0]); } }, c[0]), ' ', h('span', { class: 'muted small', text: c[1] + (c[2] ? ' · ' + c[2] : '') }));
         })),
         h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-          editor.value = 'SELECT * FROM ' + t.name + ' LIMIT 10;'; drafts[draftKey] = editor.value; editor.focus();
-          if (SQL) run(false);
+          showTablePreview(t.name, 15);
         } }, 'Preview rows')));
     });
-    inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges' }));
+
+    if (examples.length) {
+      var exDetails = h('details', { class: 'schema examples-drawer' },
+        h('summary', null, h('strong', { text: '📖 Worked examples (Levels 1–8)' })));
+      examples.forEach(function (ex) {
+        exDetails.appendChild(h('div', { class: 'example-item' },
+          h('div', { class: 'task-head' },
+            h('span', { class: 'badge level' + ex.level, text: 'L' + ex.level }),
+            h('strong', { class: 'small', text: ex.title })),
+          h('p', { class: 'muted small', text: ex.explain }),
+          ui.codeBlock({ lang: 'sql', title: ex.concept, text: ex.sql }),
+          h('div', { class: 'row' },
+            h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { showExamplePreview(ex); } }, '👁 Preview output'),
+            h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
+              applyValueWithMemory(ex.sql);
+              ui.toast('Example loaded into editor (↶ Undo to go back)');
+            } }, '📋 Use in editor'))));
+      });
+      inner.appendChild(exDetails);
+    }
+
+    inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges (8 Levels)' }));
     inner.appendChild(h('a', { class: 'chal' + (!cur ? ' active' : ''), href: '#/lab/' + dsId }, h('span', { class: 'mark', text: '·' }), 'Free exploration'));
-    [1, 2, 3].forEach(function (lv) {
+    [1, 2, 3, 4, 5, 6, 7, 8].forEach(function (lv) {
       var items = list.filter(function (c) { return c.level === lv; });
       if (!items.length) return;
-      inner.appendChild(h('div', { class: 'level-label', text: LEVELS[lv] }));
+      inner.appendChild(h('div', { class: 'level-label', text: LEVELS[lv] || ('Level ' + lv) }));
       items.forEach(function (c) {
         inner.appendChild(h('a', { class: 'chal' + (cur && cur.id === c.id ? ' active' : ''), href: '#/lab/' + dsId + '/' + c.id, 'aria-current': cur && cur.id === c.id ? 'page' : null },
           h('span', { class: 'mark', text: ui.state.sql[c.id] ? '✔' : '○' }), c.title));
@@ -219,12 +476,22 @@
       resultBox.appendChild(h('div', { class: 'table-wrap', tabindex: '0', role: 'region', 'aria-label': 'Query result' }, table));
     }
 
+    function rememberQuery(sql) {
+      if (!sql) return;
+      var arr = (recentQueries[dsId] || []).filter(function (q) { return q !== sql; });
+      arr.unshift(sql);
+      recentQueries[dsId] = arr.slice(0, 15);
+      saveMem();
+      paintRecent();
+    }
+
     function run(check) {
       if (!SQL) return;
       var sql = editor.value.trim();
       ui.clear(aiBox);
       lastError = '';
       if (!sql) { setFeedback('warn', 'Write a query first.'); return; }
+      rememberQuery(sql);
       var db = getDb(SQL, dsId, false);
       var res, t0 = performance.now();
       ui.state.stats.queries++;
@@ -286,11 +553,13 @@
       aiBox.appendChild(ui.promptCard({ title: review ? 'Review my solution' : 'Help me without spoiling it', text: parts.join('\n\n') }, { prefilled: true }));
     }
 
+    if (!cur) showTablePreview(ds.tables[0].name, 10);
+
     /* start the engine */
     if (location.protocol === 'file:') {
       status.className = 'callout warn';
       ui.clear(status);
-      status.appendChild(h('div', null, h('strong', { text: 'Open this site through a local server to use the SQL Lab. ' }),
+      status.appendChild(h('div', null, h('strong', { text: 'Open this site through a local server to use SQLab. ' }),
         'Browsers block WebAssembly on file:// pages. In the folder that contains index.html run: ',
         h('code', { text: 'python3 -m http.server 8000' }), ' and open ', h('code', { text: 'http://localhost:8000' }), '. Everything else on the site works without it.'));
     } else {

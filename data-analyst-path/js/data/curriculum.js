@@ -185,7 +185,7 @@
     /* ------------------------------------------------------------------ 2 */
     {
       id: 'm2', icon: '🗄️', cat: 'SQL', title: 'SQL',
-      goal: 'Write queries with joins, grouping, CTEs and window functions. Practised in the built-in SQL Lab.',
+      goal: 'Write queries with joins, grouping, CTEs and window functions. Practised in the built-in SQLab.',
       lessons: [
         {
           id: 'l2-1', title: 'SELECT, WHERE and ORDER BY', hours: 3, lab: 'auto',
@@ -198,7 +198,7 @@
             'Format queries over several lines with consistent capitalisation. You will thank yourself later.',
           ],
           code: { lang: 'sql', title: 'Example', text: "SELECT name, category, price\nFROM products\nWHERE category = 'Coffee' AND price < 4\nORDER BY price DESC\nLIMIT 5;" },
-          doit: 'Open the SQL Lab and solve the Level 1 challenges. Then explore freely: what do the tables contain? Write 3 questions of your own and answer them.',
+          doit: 'Open SQLab and solve the Level 1 challenges. Then explore freely: what do the tables contain? Write 3 questions of your own and answer them.',
           ai: {
             title: 'Get a hint, not the solution',
             text: "I'm learning SQL. The task I'm trying to solve: [[TASK]]\nSchema:\n[[PASTE SCHEMA]]\nMy query:\n[[YOUR QUERY]]\nError or wrong result:\n[[ERROR]]\n\nDon't write the solution yet. 1) Explain what my query does in plain language. 2) Tell me what is wrong and why. 3) Give me one hint for the next step.\n{{lang}}",
@@ -569,7 +569,7 @@
             'Ask the model to <b>state its assumptions</b> and list what could go wrong.',
             'Ask for explanations so that you can defend every line in an interview.',
           ],
-          doit: 'Take a SQL Lab challenge you have not solved yet. Write a prompt with the structure below (the Lab can copy the schema for you) and run what the AI gives you in the lab: does it pass? Compare with a vague "write me a query" prompt.',
+          doit: 'Take a SQLab challenge you have not solved yet. Write a prompt with the structure below (SQLab can copy the schema for you) and run what the AI gives you in the lab: does it pass? Compare with a vague "write me a query" prompt.',
           ai: {
             title: 'The full analysis prompt',
             text: "ROLE: You are a senior data analyst helping a junior (me). My background: {{bg}}.\nCONTEXT: [[BUSINESS QUESTION AND WHO WILL USE THE ANSWER]]\nDATA: tables and columns (no real data):\n[[SCHEMA]]\nTASK: [[WHAT I WANT]]\nCONSTRAINTS: use [[SQLite / PostgreSQL / pandas]]; state your assumptions.\nOUTPUT: first a 3-step plan, then the code, then how I can verify the result.\n{{lang}}",
@@ -752,7 +752,7 @@
             'Case questions ("sales dropped 10%, how do you investigate?"): clarify the metric → segment (time, region, product, channel) → check data quality → hypotheses → recommendation.',
             'Behavioural: tell stories with STAR (situation, task, action, result), including a data mistake and what you learned.',
           ],
-          doit: 'Do a 30-minute mock interview with AI: 3 SQL, 2 statistics, 1 case and 1 behavioural question. Add your weak topics to your error log and drill them in the SQL Lab.',
+          doit: 'Do a 30-minute mock interview with AI: 3 SQL, 2 statistics, 1 case and 1 behavioural question. Add your weak topics to your error log and drill them in SQLab.',
           ai: {
             title: 'Run a mock interview',
             text: "Run a realistic data-analyst interview for me for a junior role in [[INDUSTRY]]. My background: {{bg}}. Ask one question at a time: 3 SQL (on a schema you give me), 2 statistics, 1 business case and 1 behavioural. Wait for my answer before continuing. After each answer, grade it 1 to 5, say what a strong answer includes, then move on. At the end, summarise my weak topics and give me a 1-week study plan.\n{{lang}}",

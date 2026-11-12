@@ -56,7 +56,7 @@
       }
       if (m.id === 'm2') {
         stop({ href: '#/arcade/blocks', icon: '🧱', state: 'extra', kind: 'practice', kicker: 'Tap-tile puzzles', label: 'SQL blocks', aria: 'Game: SQL blocks' });
-        stop({ href: '#/lab', icon: '🗄️', state: 'extra', kind: 'practice', kicker: 'Interactive SQLite', label: 'SQL Lab', aria: 'SQL Lab challenges' });
+        stop({ href: '#/lab', icon: '🗄️', state: 'extra', kind: 'practice', kicker: 'Interactive SQLite', label: 'SQLab', aria: 'SQLab challenges' });
       }
       stop({ icon: all ? '🏆' : '🎁', state: all ? 'done chest' : 'chest', kicker: all ? 'Unit complete' : 'Finish the unit', label: all ? '+' + ui.XP.module + ' XP earned' : '+' + ui.XP.module + ' XP bonus', aria: all ? 'Unit complete, bonus earned' : 'Unit bonus: ' + ui.XP.module + ' XP when every lesson is done' });
       unit.appendChild(road);
