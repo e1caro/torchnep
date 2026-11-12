@@ -8,7 +8,7 @@ const { DA, test, runAll } = require('./harness');
 const root = path.join(__dirname, '..');
 ['js/sheets/core.js', 'js/sheets/format.js', 'js/sheets/names-es.js', 'js/sheets/parser.js', 'js/sheets/fn-core.js', 'js/sheets/fn-catalog.js', 'js/sheets/engine.js',
   'js/sheets/datatools.js', 'js/sheets/edit.js', 'js/data/sheets-challenges.js', 'js/data/lab-sheets.js', 'js/python/engine.js', 'js/python/interp.js',
-  'js/data/lab-python.js', 'js/bi/engine.js', 'js/data/lab-bi.js', 'js/labgame.js'].forEach((f) => (0, eval)(fs.readFileSync(path.join(root, f), 'utf8') + '\n//# sourceURL=' + f));
+  'js/data/lab-python.js', 'js/bi/engine.js', 'js/data/lab-bi.js', 'js/data/lab-sql.js', 'js/labgame.js'].forEach((f) => (0, eval)(fs.readFileSync(path.join(root, f), 'utf8') + '\n//# sourceURL=' + f));
 
 const ui = DA.ui, L = DA.labgame, S = DA.sheets, P = DA.python, BI = DA.bi;
 DA.labSheets.worlds.forEach((w) => w.levels.forEach((lv) => { lv.challenges = lv.challenges.filter(Boolean); }));
@@ -74,6 +74,30 @@ test('labs: progress survives saving, sanitising and merging two devices; old Do
   const reloaded = ui.sanitize(JSON.parse(localStorage.getItem('data-analyst-path.v1')));
   assert.deepStrictEqual(reloaded.labs.python, { py01: 3, py05: 1 });
   assert.ok(reloaded.sql && reloaded.sheets.s_l1_1_1, 'SQLab and old sheets progress untouched');
+});
+
+test('SQLab: 64 existing challenges in 4 worlds x 4 levels; old progress keeps its stars, levels and XP', () => {
+  const lab = L.register(DA.buildSqlLab());
+  assert.strictEqual(lab.worlds.length, 4);
+  assert.strictEqual(lab.levels.length, 16);
+  assert.strictEqual(Object.keys(lab.byId).length, DA.challenges.length);
+  lab.levels.forEach((lv) => { assert.ok(lv.challenges.length >= 3 && lv.example, lv.title); assert.ok(lv.challenges.every((c) => c.src.level === lv.sqlLevel && c.src.ds === lv.ds)); });
+  assert.ok(DA.challenges.every((c) => typeof c.level === 'number'), 'the SQLab challenges themselves are not changed');
+  ui.state = ui.sanitize({ v: 2, sql: { r1: true, r33: true } });
+  assert.strictEqual(L.stars('sql', 'r1'), 1, 'a challenge solved before counts as 1 star');
+  const r33 = lab.byId.r33.level;
+  assert.ok(L.levelState(lab, r33).unlocked, 'a level where something was already solved stays open');
+  assert.ok(!L.levelState(lab, lab.levels[1]).unlocked, 'other levels follow the unlock rule');
+  assert.strictEqual(L.href(lab, lab.byId.s1), '#/lab/lab/s1');
+  ui.state.xp['sql:r1'] = { d: '2026-11-01', n: 15 };
+  const r = L.record(lab, lab.byId.r1, { hinted: false, tries: 1 });
+  assert.strictEqual(r.xp, 0, 'no XP twice for a challenge solved before the worlds existed');
+  assert.strictEqual(L.stars('sql', 'r1'), 3);
+  const first = lab.levels[0].challenges;
+  first.slice(1, 4).forEach((c) => L.record(lab, c, { hinted: true, tries: 2 }));
+  assert.ok(L.levelState(lab, lab.levels[1]).unlocked, '4 of 5 opens the next level');
+  assert.strictEqual(ui.state.sql[first[1].id], true, 'solving still marks the old SQLab progress (badges, quests)');
+  assert.deepStrictEqual(DA.sync.merge(ui.sanitize({ v: 2, labs: { sql: { r1: 1, r2: 2 } } }), ui.state).labs.sql.r1, 3);
 });
 
 /* ---------------------------------------------------------------- DotSheets keyboard and editing */

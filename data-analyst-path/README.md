@@ -8,6 +8,7 @@ A free, static web app that teaches you to become a data analyst **starting from
 - **Personalised.** Pick your background (science, engineering, finance, marketing, healthcare, sport, teaching, software, operations, humanities, or describe your own). Analogies, practice data, portfolio ideas, CV examples and every AI prompt adapt to it.
 - **A realistic roadmap.** 9 modules, 29 lessons, about 130 hours: spreadsheets, SQL, Python/pandas, statistics, dashboards, AI-assisted analysis, portfolio, job search. Each lesson has key ideas, a hands-on task, an AI prompt, a quiz and notes.
 - **SQLab.** Real SQLite in the browser (sql.js / WebAssembly), two practice databases, 16 challenges checked automatically. On a phone it has a keyword/table/column toolbar so you rarely need the keyboard for syntax.
+- **Worlds in SQLab too.** SQLab's 64 challenges are grouped into 4 worlds × 4 levels (one level per SQL level and database) with the same map, stars and unlocking as the other labs (solve 2 of 3, 3 of 4 or 4 of 5 to open the next level). Challenges solved before count as 1 star, a level where you already solved something stays open, and free exploration of each database is always open.
 - **DotSheets, DotPython and DotBI.** Three more labs with the same layout as SQLab, each with 4 worlds × 4 levels × 3 challenges (48 each) and a world map. Solving 2 of the 3 challenges in a level opens the next one; each challenge earns 1 to 3 stars (★ solved, ★ no hint, ★ first try), XP once, and has a hint, a worked example per level and a solution shown after the first check. Progress is saved in the same state as everything else, so it syncs between devices.
   - **DotSheets** is a real spreadsheet on a canvas: click or arrow keys to move, Shift+arrows to select, type to replace a cell, F2 or double-click to edit, Enter/Tab to save and move, Escape to cancel, Delete, Ctrl+C/V/Z/Y, Ctrl+arrows to jump to the data edge, Home, Ctrl+Home, PageUp/PageDown. On a phone, tap to select and tap again to type. Checks compare your cell with the reference formula computed on the same data.
   - **DotPython** runs a safe subset of Python with real pandas syntax (`df.shape`, `sort_values("qty", ascending=False)`, `df[df["qty"] >= 2]`, groupby/agg, merge, `.str`, `.dt`, pivot_table). Tab indents, Ctrl+Enter runs. Your answer goes in `result` and is compared with the reference result.
@@ -118,7 +119,7 @@ js/labgame.js           shared progression of the three labs: worlds, levels, st
 js/sheetslab.js js/sheets/   DotSheets (grid.js canvas grid, edit.js keyboard and editing logic, engine.js formulas)
 js/pythonlab.js js/python/   DotPython (interp.js Python subset, engine.js pandas subset)
 js/bilab.js js/bi/           DotBI (engine.js DAX and Tableau)
-js/data/lab-*.js        the worlds, levels and challenges of the three labs
+js/data/lab-*.js        the worlds, levels and challenges of the labs (lab-sql.js groups SQLab's existing challenges)
 js/data/                backgrounds, curriculum, prompts, questions, feed cards, SQL block puzzles, datasets and SQL challenges
 vendor/sql.js/          sql.js 1.15.2 (MIT), SQLite compiled to WebAssembly
 tests/  tools/          unit and browser tests; service-worker and icon generators (not published)
