@@ -139,17 +139,24 @@ async function playRound(page, wrongAt = []) {
 
   /* ---------- SQL lab: XP, third quest, chest ---------- */
   await page.goto(BASE + '/index.html#/lab/lab/s1');
+  await page.waitForSelector('.callout.warn');
+  ok(/locked/.test(await txt(page, '.callout.warn')), 'SQLab: a challenge in a locked level shows the lock, not the editor');
+  await page.goto(BASE + '/index.html#/lab');
+  await page.waitForSelector('.lab-world');
+  ok(await page.locator('.lab-world').count() === 5 && await page.locator('.lab-level').count() === 16, 'SQLab: a world map with 4 worlds, 16 levels and free exploration');
+  await page.goto(BASE + '/index.html#/lab/retail/r1');
   await page.waitForSelector('.callout.ok', { timeout: 20000 });
   ok(await page.locator('.sql-keys .key').count() > 15, 'SQL shortcut keys are shown');
   await page.fill('.sql-editor', '');
   await page.click('.sql-keys .key:has-text("SELECT")');
   await page.click('.sql-keys .key >> text="*"');
   await page.click('.sql-keys .key:has-text("FROM")');
-  await page.click('.sql-keys .table-key:has-text("participants")');
-  ok((await page.inputValue('.sql-editor')).trim() === 'SELECT * FROM participants', 'shortcut keys type SQL: "' + (await page.inputValue('.sql-editor')).trim() + '"');
-  await page.fill('.sql-editor', "SELECT participant_id, age, site FROM participants WHERE group_name='intervention' AND age>40 ORDER BY age, participant_id");
+  await page.click('.sql-keys .table-key:has-text("orders")');
+  ok((await page.inputValue('.sql-editor')).trim() === 'SELECT * FROM orders', 'shortcut keys type SQL: "' + (await page.inputValue('.sql-editor')).trim() + '"');
+  await page.fill('.sql-editor', await page.evaluate(() => DA.challenges.find((c) => c.id === 'r1').solution));
   await page.click('button:has-text("Check my answer")');
   await page.waitForSelector('.feedback .callout.ok');
+  ok(/★/.test(await txt(page, '.feedback')) && await page.evaluate(() => DA.ui.state.labs.sql.r1 === 3 && DA.ui.state.sql.r1 === true), 'SQLab: solving at the first try gives 3 stars and keeps the old solved mark');
   const q3 = await page.evaluate(() => DA.game.quests());
   ok(q3.sql && q3.all && q3.chest >= 15 && q3.chest <= 40, 'all quests done, chest XP ' + q3.chest);
   const m2 = await dismissModals(page, 2500);
@@ -358,7 +365,7 @@ async function playRound(page, wrongAt = []) {
 
   /* ---------- phone layout ---------- */
   const sizes = {};
-  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/lab/s2'], ['me', '#/me'], ['settings', '#/settings'], ['roadmap', '#/roadmap'], ['prompts', '#/prompts'], ['feed', '#/feed'], ['collection', '#/collection'], ['arcade', '#/arcade'], ['blocks', '#/arcade/blocks'], ['corr', '#/arcade/corr']]) {
+  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/retail/r1'], ['me', '#/me'], ['settings', '#/settings'], ['roadmap', '#/roadmap'], ['prompts', '#/prompts'], ['feed', '#/feed'], ['collection', '#/collection'], ['arcade', '#/arcade'], ['blocks', '#/arcade/blocks'], ['corr', '#/arcade/corr']]) {
     await phone.goto(BASE + '/index.html' + hash);
     await phone.waitForSelector('main .view');
     if (name === 'lab') await phone.waitForSelector('.callout.ok', { timeout: 20000 });
@@ -384,7 +391,7 @@ async function playRound(page, wrongAt = []) {
   ok(small === 0, 'main touch targets are at least 40px');
   ok((await txt(phone, '#hudTop')).includes('Lv'), 'top bar shows streak, level and goal on the phone');
   // lab on phone: editor should be above the fold, side panel collapsed
-  await phone.goto(BASE + '/index.html#/lab/lab/s2');
+  await phone.goto(BASE + '/index.html#/lab/retail/r1');
   await phone.waitForSelector('.callout.ok', { timeout: 20000 });
   const lab = await phone.evaluate(() => ({ editorTop: document.querySelector('.sql-editor').getBoundingClientRect().top, vh: window.innerHeight, sideOpen: document.querySelector('.side-collapse').open }));
   ok(!lab.sideOpen && lab.editorTop < lab.vh, 'phone lab: side panel collapsed, editor visible without scrolling (top ' + Math.round(lab.editorTop) + ' of ' + lab.vh + ')');

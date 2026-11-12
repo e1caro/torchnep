@@ -37,8 +37,11 @@
     var v = st.labs && st.labs[labId] && st.labs[labId][id];
     if (v) return v;
     if (labId === 'sheets' && st.sheets && st.sheets[id]) return 1;
+    if (labId === 'sql' && st.sql && st.sql[id]) return 1;
     return 0;
   };
+
+  L.href = function (lab, c) { return lab.playHref ? lab.playHref(c) : '#/' + lab.route + '/play/' + c.id; };
 
   L.need = function (lv) { return Math.ceil(lv.challenges.length * L.NEED); };
 
@@ -46,7 +49,7 @@
     var solved = 0, stars = 0;
     lv.challenges.forEach(function (c) { var k = L.stars(lab.id, c.id, s); if (k) solved++; stars += k; });
     var prev = lab.levels[lv.index - 1];
-    var unlocked = !prev || L.levelState(lab, prev, s).passed;
+    var unlocked = !prev || solved > 0 || L.levelState(lab, prev, s).passed;
     return { solved: solved, total: lv.challenges.length, stars: stars, max: lv.challenges.length * 3, passed: solved >= L.need(lv), complete: solved === lv.challenges.length, unlocked: unlocked };
   };
 
@@ -94,6 +97,7 @@
     var wasPassed = L.levelState(lab, c.level).passed;
     if (stars > (st[c.id] || 0)) st[c.id] = stars;
     if (lab.id === 'sheets') { ui.state.sheets = ui.state.sheets || {}; ui.state.sheets[c.id] = true; }
+    if (lab.id === 'sql') { ui.state.sql = ui.state.sql || {}; ui.state.sql[c.id] = true; }
     ui.save();
     var xp = DA.game.award(lab.xpKey(c), lab.xp(c), lab.name + ' solved');
     var nl = lab.levels[c.level.index + 1];
@@ -136,8 +140,9 @@
     root.appendChild(h('div', { class: 'lab-totals' },
       h('div', { class: 'stat' }, h('b', { text: T.solved + ' / ' + T.total }), h('span', { text: 'challenges solved' })),
       h('div', { class: 'stat' }, h('b', { text: '★ ' + T.stars + ' / ' + T.max }), h('span', { text: 'stars' }))));
-    root.appendChild(h('a', { class: 'btn big accent lab-continue', href: '#/' + lab.route + '/play/' + cur.id }, (T.solved ? 'Continue: ' : 'Start: ') + cur.title + ' ▶'));
-    root.appendChild(h('p', { class: 'muted small', text: 'Solve ' + Math.round(L.NEED * 3) + ' of the 3 challenges in a level to open the next one. Stars: ★ solved, ★ no hint, ★ first try.' }));
+    root.appendChild(h('a', { class: 'btn big accent lab-continue', href: L.href(lab, cur) }, (T.solved ? 'Continue: ' : 'Start: ') + cur.title + ' ▶'));
+    var sizes = lab.levels.map(function (lv) { return lv.challenges.length; }).filter(function (n, i, a) { return a.indexOf(n) === i; }).sort();
+    root.appendChild(h('p', { class: 'muted small', text: 'Solve ' + sizes.map(function (n) { return Math.ceil(n * L.NEED) + ' of ' + n; }).join(', ') + ' challenges in a level to open the next one. Stars: ★ solved, ★ no hint, ★ first try.' }));
     lab.worlds.forEach(function (w) {
       var ws = L.worldState(lab, w);
       var sec = h('section', { class: 'lab-world' + (ws.unlocked ? '' : ' locked') + (ws.complete ? ' complete' : ''), 'aria-label': 'World ' + w.n + ': ' + w.title },
@@ -154,7 +159,7 @@
         var inner = [h('span', { class: 'lab-level-num', text: (st.unlocked ? '' : '🔒 ') + 'Level ' + w.n + '.' + lv.n }), h('strong', { text: lv.title }), dots,
           h('span', { class: 'small muted', text: !st.unlocked ? 'Solve ' + L.need(lab.levels[lv.index - 1]) + ' in the level before' : '★ ' + st.stars + ' / ' + st.max })];
         grid.appendChild(st.unlocked
-          ? h('a', { class: 'lab-level ' + state, href: '#/' + lab.route + '/play/' + lv.challenges.filter(function (c) { return !L.stars(lab.id, c.id); }).concat(lv.challenges)[0].id, 'aria-label': label }, inner)
+          ? h('a', { class: 'lab-level ' + state, href: L.href(lab, lv.challenges.filter(function (c) { return !L.stars(lab.id, c.id); }).concat(lv.challenges)[0]), 'aria-label': label }, inner)
           : h('div', { class: 'lab-level locked', 'aria-label': label, role: 'group' }, inner));
       });
       sec.appendChild(grid);
@@ -169,8 +174,8 @@
     root.appendChild(L.header(lab, 'World ' + c.level.world.n + ' · Level ' + c.level.world.n + '.' + c.level.n));
     var prev = lab.levels[c.level.index - 1];
     root.appendChild(h('div', { class: 'callout warn' }, h('strong', { text: '🔒 This level is locked. ' }),
-      'Solve ' + L.need(prev) + ' of the 3 challenges in "' + prev.title + '" to open it.'));
-    root.appendChild(h('a', { class: 'btn accent', href: '#/' + lab.route + '/play/' + L.current(lab).id }, 'Go to your current challenge'));
+      'Solve ' + L.need(prev) + ' of the ' + prev.challenges.length + ' challenges in "' + prev.title + '" to open it.'));
+    root.appendChild(h('a', { class: 'btn accent', href: L.href(lab, L.current(lab)) }, 'Go to your current challenge'));
     return root;
   };
 
@@ -195,7 +200,7 @@
     inner.appendChild(h('h2', { class: 'side-title', text: 'Level ' + w.n + '.' + lv.n + ': ' + lv.title }));
     lv.challenges.forEach(function (x) {
       var k = L.stars(lab.id, x.id);
-      inner.appendChild(h('a', { class: 'chal' + (x === c ? ' active' : ''), href: '#/' + lab.route + '/play/' + x.id, 'aria-current': x === c ? 'page' : null },
+      inner.appendChild(h('a', { class: 'chal' + (x === c ? ' active' : ''), href: L.href(lab, x), 'aria-current': x === c ? 'page' : null },
         h('span', { class: 'mark', text: k ? '✔' : '○' }), h('span', { class: 'grow', text: x.title }), k ? h('span', { class: 'lab-stars small', text: starText(k) }) : null));
     });
     var nextLv = lab.levels[lv.index + 1];
@@ -262,7 +267,7 @@
           r.xp ? h('span', { class: 'small', text: ' +' + r.xp + ' XP' }) : null),
         r.unlocked ? h('p', { class: 'small lab-unlocked' }, h('strong', { text: '🔓 Level ' + r.unlocked.world.n + '.' + r.unlocked.n + ' unlocked: ' }), r.unlocked.title) : null,
         h('div', { class: 'row' },
-          nx ? h('a', { class: 'btn small accent', href: '#/' + lab.route + '/play/' + nx.id }, 'Next challenge →') : null,
+          nx ? h('a', { class: 'btn small accent', href: L.href(lab, nx) }, 'Next challenge →') : null,
           h('a', { class: 'btn small ghost', href: '#/' + lab.route }, 'Levels'))));
       var mark = side.querySelector('a.chal.active .mark');
       if (mark) mark.textContent = '✔';

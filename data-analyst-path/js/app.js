@@ -40,10 +40,11 @@
   }
 
   // First unsolved SQL challenge, preferring the dataset that fits the learner's background; cycles back once all are solved.
+  function open(x) { if (!DA.sqlLab) return true; var lab = DA.sqlLab(); return DA.labgame.isUnlocked(lab, lab.byId[x.id]); }
   function nextChallenge() {
     var order = [ui.defaultDataset()].concat(Object.keys(DA.datasets).filter(function (d) { return d !== ui.defaultDataset(); }));
     for (var i = 0; i < order.length; i++) {
-      var c = DA.challenges.filter(function (x) { return x.ds === order[i] && !ui.state.sql[x.id]; })[0];
+      var c = DA.challenges.filter(function (x) { return x.ds === order[i] && !ui.state.sql[x.id] && open(x); })[0];
       if (c) return c;
     }
     var pool = DA.challenges.filter(function (x) { return x.ds === order[0]; });

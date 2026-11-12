@@ -105,18 +105,26 @@
   // Shared with the SQL blocks game, which checks answers by running them.
   DA.sqlEngine = { load: loadEngine, ref: getRef };
 
+  var sqlLab = null;
+  function getSqlLab() { return sqlLab || (sqlLab = DA.labgame.register(DA.buildSqlLab())); }
+  DA.sqlLab = getSqlLab;
+
   DA.views.lab = function (params) {
+    var L = DA.labgame, lab = getSqlLab();
+    if (!params[0]) return L.mapView(lab);
     var dsId = params[0] && DA.datasets[params[0]] ? params[0] : ui.defaultDataset();
     var ds = DA.datasets[dsId];
     var list = DA.challenges.filter(function (c) { return c.ds === dsId; });
     var examples = (DA.sqlExamples || []).filter(function (ex) { return ex.ds === dsId; });
     var cur = list.filter(function (c) { return c.id === params[1]; })[0] || null;
+    var wcur = cur ? lab.byId[cur.id] : null;
+    if (wcur && !L.isUnlocked(lab, wcur)) return L.lockedView(lab, wcur);
+    var session = { hinted: false };
     var draftKey = dsId + ':' + (cur ? cur.id : 'free');
     var SQL = null, dirty = false, lastError = '', lastRun = null, activePreviewTable = null;
 
     var root = h('div', { class: 'view lab' });
-    root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'SQLab' }));
-    root.appendChild(h('p', { class: 'lead lab-lead', text: 'Practise real SQL on a real database, in your browser. Nothing is uploaded: the database is created on your computer each time you open this page.' }));
+    root.appendChild(L.header(lab, wcur ? 'World ' + wcur.level.world.n + ': ' + wcur.level.world.title + ' · Level ' + wcur.level.world.n + '.' + wcur.level.n + ': ' + wcur.level.title : 'Free exploration · ' + ds.title));
 
     // dataset tabs
     var tabs = h('div', { class: 'tabs', role: 'group', 'aria-label': 'Choose a dataset' },
@@ -262,21 +270,22 @@
       var solBox = h('div', { class: 'hidden' }, h('p', { class: 'muted small', text: 'Reference solution (there are often several valid queries):' }), ui.codeBlock({ lang: 'sql', title: 'Solution', text: cur.solution }));
       var solBtn = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
         if (!attempts[cur.id]) { ui.toast('Try the query and press "Check my answer" at least once first.'); return; }
+        session.hinted = true;
         solBox.classList.toggle('hidden');
       } }, 'Show solution');
       main.appendChild(h('div', { class: 'task' },
         h('div', { class: 'task-head' },
-          h('span', { class: 'badge level' + cur.level, text: 'Level ' + cur.level }),
+          h('span', { class: 'badge level' + cur.level, text: 'Level ' + wcur.level.world.n + '.' + wcur.level.n }),
           h('strong', { text: cur.title }),
           h('span', { class: 'muted small', text: cur.concept }),
-          ui.state.sql[cur.id] ? h('span', { class: 'badge ok', text: '✔ solved' }) : null),
+          L.stars('sql', cur.id) ? h('span', { class: 'lab-stars', 'aria-label': 'Best so far: ' + L.stars('sql', cur.id) + ' of 3 stars', text: L.starText(L.stars('sql', cur.id)) }) : h('span', { class: 'muted small', text: '+' + ui.XP.sql(cur.level) + ' XP' })),
         h('p', { html: cur.task }),
         h('div', { class: 'row' },
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { hintBox.classList.toggle('hidden'); } }, 'Show hint'), solBtn),
+          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { session.hinted = true; hintBox.classList.toggle('hidden'); } }, 'Show hint'), solBtn),
         hintBox, solBox));
     } else {
       main.appendChild(h('div', { class: 'task' }, h('strong', { text: 'Free exploration' }),
-        h('p', { class: 'muted', text: 'Pick a challenge from Levels 1–8, inspect any table below with one click, or explore freely.' })));
+        h('p', { class: 'muted', text: 'Try any query on this database, inspect a table below with one click, or pick a challenge on the levels map (🗺 Levels).' })));
     }
 
     // Typing SQL on a phone is slow: one-tap keywords, table names and symbols (the editor keeps focus, so the keyboard stays open).
@@ -440,15 +449,17 @@
       inner.appendChild(exDetails);
     }
 
-    inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges (8 Levels)' }));
+    inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges on this database' }));
     inner.appendChild(h('a', { class: 'chal' + (!cur ? ' active' : ''), href: '#/lab/' + dsId }, h('span', { class: 'mark', text: '·' }), 'Free exploration'));
     [1, 2, 3, 4, 5, 6, 7, 8].forEach(function (lv) {
       var items = list.filter(function (c) { return c.level === lv; });
       if (!items.length) return;
-      inner.appendChild(h('div', { class: 'level-label', text: LEVELS[lv] || ('Level ' + lv) }));
+      var wl = lab.byId[items[0].id].level, open = L.levelState(lab, wl).unlocked;
+      inner.appendChild(h('div', { class: 'level-label', text: (open ? '' : '🔒 ') + 'Level ' + wl.world.n + '.' + wl.n + ' · ' + (LEVELS[lv] || '').replace(/^Level \d+:\s*/, '') }));
       items.forEach(function (c) {
-        inner.appendChild(h('a', { class: 'chal' + (cur && cur.id === c.id ? ' active' : ''), href: '#/lab/' + dsId + '/' + c.id, 'aria-current': cur && cur.id === c.id ? 'page' : null },
-          h('span', { class: 'mark', text: ui.state.sql[c.id] ? '✔' : '○' }), c.title));
+        var k = L.stars('sql', c.id);
+        inner.appendChild(h('a', { class: 'chal' + (cur && cur.id === c.id ? ' active' : '') + (open ? '' : ' locked'), href: '#/lab/' + dsId + '/' + c.id, 'aria-current': cur && cur.id === c.id ? 'page' : null },
+          h('span', { class: 'mark', text: k ? '✔' : open ? '○' : '🔒' }), h('span', { class: 'grow', text: c.title }), k ? h('span', { class: 'lab-stars small', text: L.starText(k) }) : null));
       });
     });
 
@@ -517,14 +528,19 @@
       var cmp = DA.compareResults(res, want, { decimals: cur.decimals, ordered: /order\s+by/i.test(cur.solution) });
       if (cmp.ok) {
         var firstTime = !ui.state.sql[cur.id];
-        ui.state.sql[cur.id] = true; ui.save();
-        DA.game.award('sql:' + cur.id, ui.XP.sql(cur.level), 'SQL solved');
+        var rec = L.record(lab, wcur, { hinted: session.hinted, tries: attempts[cur.id] });
         DA.game.quest('sql');
-        DA.game.sound('done'); DA.game.buzz(30); DA.game.confetti(false);
-        var idx = list.indexOf(cur), next = list[(idx + 1) % list.length];
-        setFeedback('ok', '✔ ' + cmp.message, h('div', { class: 'row' },
-          next ? h('a', { class: 'btn small', href: '#/lab/' + dsId + '/' + next.id }, 'Next challenge →') : null,
-          h('button', { class: 'btn small ghost', type: 'button', onclick: function () { showAi(true); } }, '🤖 Ask AI to review my query')));
+        DA.game.sound('done'); DA.game.buzz(30); DA.game.confetti(rec.stars === 3);
+        var nx = L.next(lab, wcur);
+        setFeedback('ok', '✔ ' + cmp.message, h('div', null,
+          h('p', { class: 'lab-won' }, h('span', { class: 'lab-stars', 'aria-label': rec.stars + ' of 3 stars', text: L.starText(rec.stars) }),
+            rec.best > rec.stars ? h('span', { class: 'muted small', text: ' (best: ' + L.starText(rec.best) + ')' }) : null,
+            rec.xp ? h('span', { class: 'small', text: ' +' + rec.xp + ' XP' }) : null),
+          rec.unlocked ? h('p', { class: 'small lab-unlocked' }, h('strong', { text: '🔓 Level ' + rec.unlocked.world.n + '.' + rec.unlocked.n + ' unlocked: ' }), rec.unlocked.title) : null,
+          h('div', { class: 'row' },
+            nx ? h('a', { class: 'btn small accent', href: L.href(lab, nx) }, 'Next challenge →') : null,
+            h('a', { class: 'btn small ghost', href: '#/lab' }, 'Levels'),
+            h('button', { class: 'btn small ghost', type: 'button', onclick: function () { showAi(true); } }, '🤖 Ask AI to review my query'))));
         if (firstTime) {
           var mark = side.querySelector('a.chal.active .mark');
           if (mark) mark.textContent = '✔';

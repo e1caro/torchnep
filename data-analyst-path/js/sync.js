@@ -25,7 +25,7 @@
 
     Object.keys(b.done).forEach(function (id) { out.done[id] = true; });
     Object.keys(b.sheets || {}).forEach(function (id) { out.sheets = out.sheets || {}; out.sheets[id] = true; });
-    ['sheets', 'python', 'bi'].forEach(function (lab) {
+    ['sheets', 'python', 'bi', 'sql'].forEach(function (lab) {
       Object.keys((b.labs && b.labs[lab]) || {}).forEach(function (id) { out.labs[lab][id] = Math.max(out.labs[lab][id] || 0, b.labs[lab][id]); });
     });
     Object.keys(b.sql).forEach(function (id) { out.sql[id] = true; });
