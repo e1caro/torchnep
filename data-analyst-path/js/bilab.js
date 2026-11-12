@@ -32,9 +32,34 @@
     );
 
     // Canvas Chart Area
-    var chartCanvas = h('canvas', { style: 'width: 100%; height: 260px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;' });
+    var chartCanvas = h('canvas', { style: 'width: 100%; height: 260px; max-height: 38vh; background: var(--surface); border: 1px solid var(--line); border-radius: 8px;' });
     var daxInput = h('input', { class: 'sheets-fx-input', style: 'width: 100%; margin-top: 8px;', placeholder: 'Enter DAX Measure e.g. CALCULATE(SUM(Sales[qty]), Sales[store_city]="Madrid")' });
     daxInput.value = 'CALCULATE(SUM(Sales[qty]), Sales[store_city]="Madrid")';
+
+    function insert(text, back) {
+      var a = daxInput.selectionStart || daxInput.value.length, b = daxInput.selectionEnd || daxInput.value.length, v = daxInput.value;
+      var nextVal = v.slice(0, a) + text + v.slice(b);
+      var pos = a + text.length - (back || 0);
+      daxInput.value = nextVal;
+      daxInput.selectionStart = daxInput.selectionEnd = pos;
+      daxInput.focus({ preventScroll: true });
+    }
+    var BI_KEYS = [
+      ['CALCULATE()', 'CALCULATE()', 1],
+      ['SUM()', 'SUM()', 1],
+      ['DIVIDE()', 'DIVIDE()', 1],
+      ['FILTER()', 'FILTER()', 1],
+      ['ALL()', 'ALL()', 1],
+      ['{ FIXED : }', '{ FIXED : }', 2],
+      ['Sales[qty]', 'Sales[qty]'],
+      ['Sales[store_city]', 'Sales[store_city]'],
+      ['=', ' = ']
+    ];
+    var keys = h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'DAX and LOD shortcuts', style: 'margin-top: 6px;' },
+      BI_KEYS.map(function (k) {
+        return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]);
+      })
+    );
 
     var runDaxBtn = h('button', { class: 'btn', type: 'button', style: 'margin-top: 6px;' }, 'Evaluate DAX');
     var checkBtn = h('button', { class: 'btn accent', type: 'button', style: 'margin-top: 6px;' }, '✓ Check exercise');
@@ -43,24 +68,28 @@
 
     main.appendChild(rowShelf);
     main.appendChild(chartCanvas);
+    main.appendChild(keys);
     main.appendChild(daxInput);
     main.appendChild(h('div', { class: 'row actions' }, runDaxBtn, checkBtn));
     main.appendChild(feedbackBox);
     main.appendChild(resultBox);
 
     // Side panel tasks
-    side.appendChild(h('h2', { class: 'side-title', text: 'Visual & DAX Challenges' }));
+    var taskFold = h('details', { class: 'side-collapse', open: 'true' },
+      h('summary', null, h('strong', { text: 'Visual & DAX Challenges' }))
+    );
     var tasks = [
       { title: 'Dimensions vs Measures', desc: 'Distinguish discrete categories from continuous numeric measures.' },
       { title: 'Calculate Filter Context', desc: 'Compute revenue for Madrid using <code>CALCULATE(SUM(...))</code>.' },
       { title: 'Tableau LOD Expression', desc: 'Compute cohort minimum order date: <code>{ FIXED [customer_id] : MIN([order_date]) }</code>' }
     ];
     tasks.forEach(function (t) {
-      side.appendChild(h('div', { class: 'task-head' },
+      taskFold.appendChild(h('div', { class: 'task-head' },
         h('strong', { class: 'small', text: t.title }),
         h('p', { class: 'muted small', html: t.desc })
       ));
     });
+    side.appendChild(taskFold);
 
     // Model setup
     var csv = DA.gen.retailCsv();

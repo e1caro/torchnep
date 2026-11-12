@@ -149,7 +149,7 @@ public class MainActivity extends Activity {
         root.setBackgroundColor(getColor(R.color.bg));
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(root);
-        if (Build.VERSION.SDK_INT >= 35) {
+        if (Build.VERSION.SDK_INT >= 30) {
             root.setOnApplyWindowInsetsListener((v, in) -> {
                 Insets bars = in.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime());
                 v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
@@ -167,8 +167,34 @@ public class MainActivity extends Activity {
     }
 
     private void goBackOrFinish() {
-        if (web.canGoBack()) web.goBack();
-        else finish();
+        if (web == null) {
+            finish();
+            return;
+        }
+        web.evaluateJavascript(
+            "(function() {" +
+            "  if (document.body.classList.contains('menu-open')) {" +
+            "    document.body.classList.remove('menu-open');" +
+            "    var mb = document.getElementById('menuBtn'); if (mb) mb.setAttribute('aria-expanded', 'false');" +
+            "    return 'handled';" +
+            "  }" +
+            "  var modals = document.querySelectorAll('.modal-overlay:not(.hidden), [role=\"dialog\"]:not(.hidden)');" +
+            "  if (modals && modals.length > 0) {" +
+            "    for (var i = 0; i < modals.length; i++) modals[i].classList.add('hidden');" +
+            "    return 'handled';" +
+            "  }" +
+            "  return 'none';" +
+            "})()",
+            result -> {
+                if ("\"handled\"".equals(result)) {
+                    // Handled within page (closed drawer / modal)
+                } else if (web.canGoBack()) {
+                    web.goBack();
+                } else {
+                    finish();
+                }
+            }
+        );
     }
 
     // Older Android (and any version that does not use the callback above) calls this instead.
@@ -324,6 +350,29 @@ public class MainActivity extends Activity {
             if (Build.VERSION.SDK_INT < 33) return;
             prefs().edit().putBoolean("asked", true).apply();
             runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQ_NOTIFY));
+        }
+
+        @JavascriptInterface
+        public void vibrate(final long ms) {
+            try {
+                android.os.Vibrator v = (android.os.Vibrator) getSystemService(VIBRATOR_SERVICE);
+                if (v != null && v.hasVibrator()) {
+                    long duration = Math.max(10, Math.min(ms, 400));
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        v.vibrate(android.os.VibrationEffect.createOneShot(duration, android.os.VibrationEffect.DEFAULT_AMPLITUDE));
+                    } else {
+                        v.vibrate(duration);
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        @JavascriptInterface
+        public void saveBinaryFile(final String name, final String mime, final String base64) {
+            try {
+                final byte[] bytes = android.util.Base64.decode(base64, android.util.Base64.DEFAULT);
+                runOnUiThread(() -> askWhereToSave(name, mime, bytes));
+            } catch (Exception ignored) {}
         }
 
         @JavascriptInterface

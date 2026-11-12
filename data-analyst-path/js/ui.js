@@ -85,6 +85,28 @@
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   };
 
+  ui.downloadBinary = function (filename, uint8Arr, mime) {
+    var nat = ui.native();
+    if (nat && nat.saveBinaryFile) {
+      try {
+        var bin = '';
+        var chunk = 8192;
+        for (var i = 0; i < uint8Arr.length; i += chunk) {
+          bin += String.fromCharCode.apply(null, uint8Arr.subarray(i, i + chunk));
+        }
+        var b64 = btoa(bin);
+        nat.saveBinaryFile(filename, mime || 'application/octet-stream', b64);
+        return;
+      } catch (e) {}
+    }
+    var url = URL.createObjectURL(new Blob([uint8Arr], { type: mime || 'application/octet-stream' }));
+    var a = h('a', { href: url, download: filename });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+  };
+
   /* ---------- dates (local time) ---------- */
 
   function pad2(n) { return (n < 10 ? '0' : '') + n; }

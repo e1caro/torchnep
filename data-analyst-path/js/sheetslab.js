@@ -253,9 +253,13 @@
           h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
             // Export workbook to XLSX download
             S.exportXlsx(wb).then(function (bytes) {
-              var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-              var url = URL.createObjectURL(blob);
-              var a = document.createElement('a'); a.href = url; a.download = 'workbook.xlsx'; a.click();
+              if (ui.downloadBinary) {
+                ui.downloadBinary('workbook.xlsx', bytes, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+              } else {
+                var blob = new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a'); a.href = url; a.download = 'workbook.xlsx'; a.click();
+              }
               ui.toast('Exported workbook.xlsx');
             });
           } }, '💾 Export .XLSX')

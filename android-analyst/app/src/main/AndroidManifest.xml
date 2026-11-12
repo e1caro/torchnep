@@ -4,6 +4,7 @@
     <!-- The app makes no network requests of its own: every page is inside the APK. The permission only lets a
          WebView start reliably; links to other sites open in the phone's browser. -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <!-- the optional daily reminder (Settings): show one notification a day, and set it again after a restart -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />

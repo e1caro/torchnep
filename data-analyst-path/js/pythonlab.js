@@ -27,34 +27,65 @@
 
     // Initial code
     var editor = h('textarea', {
-      class: 'sql-editor', rows: '10', spellcheck: 'false',
+      class: 'sql-editor', rows: '8', spellcheck: 'false',
       placeholder: '# Write your pandas code here\n# df is loaded with retail orders\nprint(df.head(5))\n'
     });
     editor.value = 'print("DataFrame shape:", df.shape())\nprint(df.head(3))\n';
+
+    function insert(text, back) {
+      var a = editor.selectionStart, b = editor.selectionEnd, v = editor.value;
+      var nextVal = v.slice(0, a) + text + v.slice(b);
+      var pos = a + text.length - (back || 0);
+      editor.value = nextVal;
+      editor.selectionStart = editor.selectionEnd = pos;
+      editor.focus({ preventScroll: true });
+    }
+    var PY_KEYS = [
+      ['print()', 'print()', 1],
+      ['df.head()', 'df.head()', 1],
+      ['df.shape', 'df.shape()', 0],
+      ['groupby()', 'df.groupby("")', 2],
+      ['.agg()', '.agg({})', 2],
+      ['.sum()', '.sum()', 0],
+      ['.mean()', '.mean()', 0],
+      ['sort_values()', '.sort_values("", false)', 9],
+      ['[" "]', '[""]', 2],
+      [',', ', '],
+      ['==', ' == ']
+    ];
+    var keys = h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Python shortcuts' },
+      PY_KEYS.map(function (k) {
+        return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]);
+      })
+    );
 
     var runBtn = h('button', { class: 'btn', type: 'button' }, '▶ Run code');
     var checkBtn = h('button', { class: 'btn accent', type: 'button' }, '✓ Check exercise');
     var outputBox = h('div', { class: 'result' });
     var feedbackBox = h('div', { class: 'feedback', role: 'status', 'aria-live': 'polite' });
 
+    main.appendChild(keys);
     main.appendChild(editor);
     main.appendChild(h('div', { class: 'row actions', style: 'margin-top: 8px;' }, runBtn, checkBtn));
     main.appendChild(feedbackBox);
     main.appendChild(outputBox);
 
     // Side panel task
-    side.appendChild(h('h2', { class: 'side-title', text: 'Lesson Tasks (Module 3)' }));
+    var taskFold = h('details', { class: 'side-collapse', open: 'true' },
+      h('summary', null, h('strong', { text: 'Lesson Tasks (Module 3)' }))
+    );
     var tasks = [
       { id: 'py_1', title: 'Inspect DataFrame', desc: 'Run <code>print(df.head(5))</code> to inspect rows.' },
       { id: 'py_2', title: 'Category aggregation', desc: 'Compute total quantity by category: <code>df.groupby("category").agg({"qty": "sum"})</code>' },
       { id: 'py_3', title: 'Sort top sales', desc: 'Sort orders by quantity descending: <code>df.sort_values("qty", false)</code>' }
     ];
     tasks.forEach(function (t) {
-      side.appendChild(h('div', { class: 'task-head' },
+      taskFold.appendChild(h('div', { class: 'task-head' },
         h('strong', { class: 'small', text: t.title }),
         h('p', { class: 'muted small', html: t.desc })
       ));
     });
+    side.appendChild(taskFold);
 
     // Prepare DataFrame
     var csv = DA.gen.retailCsv();

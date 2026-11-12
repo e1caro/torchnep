@@ -373,7 +373,15 @@
   G.pop = pop;
 
   G.buzz = function (pattern) {
-    if (S().profile.haptics && typeof navigator !== 'undefined' && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) { /* ignore */ } }
+    if (!S().profile.haptics) return;
+    if (typeof window !== 'undefined' && window.AnalystNative && window.AnalystNative.vibrate) {
+      try {
+        var ms = Array.isArray(pattern) ? (pattern[0] || 35) : (pattern || 35);
+        window.AnalystNative.vibrate(ms);
+        return;
+      } catch (e) { /* fall back */ }
+    }
+    if (typeof navigator !== 'undefined' && navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) { /* ignore */ } }
   };
 
   var ac = null;

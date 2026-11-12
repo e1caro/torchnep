@@ -545,15 +545,35 @@
     }, 20000);
     if (DA.reminder) DA.reminder.sync();
     var mb = document.getElementById('menuBtn');
-    mb.addEventListener('click', function () {
-      var open = document.body.classList.toggle('menu-open');
-      mb.setAttribute('aria-expanded', open ? 'true' : 'false');
+    var closeMb = document.getElementById('sidebarCloseBtn');
+    function setMenu(open) {
+      document.body.classList.toggle('menu-open', !!open);
+      if (mb) mb.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    if (mb) {
+      mb.addEventListener('click', function () {
+        var open = !document.body.classList.contains('menu-open');
+        setMenu(open);
+        if (open) {
+          try { history.pushState({ menu: true }, ''); } catch (e) {}
+        }
+      });
+    }
+    if (closeMb) {
+      closeMb.addEventListener('click', function () {
+        setMenu(false);
+      });
+    }
+    window.addEventListener('popstate', function () {
+      if (document.body.classList.contains('menu-open')) {
+        setMenu(false);
+      }
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && document.body.classList.contains('menu-open')) { document.body.classList.remove('menu-open'); mb.setAttribute('aria-expanded', 'false'); mb.focus(); }
+      if (e.key === 'Escape' && document.body.classList.contains('menu-open')) { setMenu(false); if (mb) mb.focus(); }
     });
     var scrim = document.getElementById('scrim');
-    if (scrim) scrim.addEventListener('click', function () { document.body.classList.remove('menu-open'); mb.setAttribute('aria-expanded', 'false'); });
+    if (scrim) scrim.addEventListener('click', function () { setMenu(false); });
     window.addEventListener('hashchange', render);
     // Progress that arrives from another device: refresh the pages where nothing is being typed or played.
     document.addEventListener('cloud-merged', function () {

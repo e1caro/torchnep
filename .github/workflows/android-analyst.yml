@@ -13,6 +13,9 @@ name: android-analyst
 # update it (uninstall first; export your progress in Settings before).
 
 on:
+  push:
+    branches: [master]
+    paths: ["android-analyst/**", "data-analyst-path/**", ".github/workflows/android-analyst.yml"]
   pull_request:
     branches: [master]
     paths: ["android-analyst/**", "data-analyst-path/**", ".github/workflows/android-analyst.yml"]
@@ -92,14 +95,14 @@ jobs:
           path: AnalystPath-1.${{ github.run_number }}.apk
 
       - name: Publish the release
-        if: github.event_name == 'workflow_dispatch'
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: analyst-${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           name: Analyst Path 1.${{ github.run_number }}
           body: |
-            ${{ github.event.inputs.notes || 'Data Analyst Path for Android: learn data analysis with daily practice, a SQL lab and AI tutor prompts. Works offline.' }}
+            ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notes) || 'Data Analyst Path for Android: hands-on practice, SQLab, Sheets Lab, Python Lab and BI Lab on your phone, completely offline with updated icons and mobile UI enhancements.' }}
 
             **Install on Android:** download `AnalystPath-1.${{ github.run_number }}.apk` on your phone, open it and allow "Install unknown apps" for your browser when asked.
             **Instalar en Android:** descarga `AnalystPath-1.${{ github.run_number }}.apk` en el móvil, ábrelo y permite "Instalar apps desconocidas" para tu navegador cuando te lo pida.
