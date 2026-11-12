@@ -25,10 +25,12 @@ function routineView(id) {
   if (needProfile()) return;
   const r = rtGet(id); if (!r) { location.hash = '#/plan'; return; }
   const sets = r.items.reduce((a, it) => a + (+it.sets || 0), 0);
+  const hasAbs = r.items.some(it => BY[it.id]?.m?.includes('abdominals'));
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/plan'">${ic('back', 18)} Back</button><h1>Edit routine</h1>
   <div class="lbl">Name</div><input id="rt-name" value="${esc(r.name)}" maxlength="40">
   <div class="mut" style="margin-top:8px">${r.items.length} exercises · ${sets} sets · ~${Math.max(5, Math.round(sets * 2.2))} min</div>
-  ${r.items.length ? `<button class="btn" onclick="startRoutine('${r.id}')" style="margin-top:10px">Start routine</button>` : '<div class="card mut">No exercises yet. Add some below.</div>'}
+  <div class="row" style="margin-top:10px">${r.items.length ? `<button class="btn grow" onclick="startRoutine('${r.id}')">Start routine</button>` : ''}<button class="btn ghost sm" onclick="rtComplete('${r.id}')">${ic('plus', 16)} ${hasAbs ? 'Complete routine' : 'Add Abs & complete'}</button></div>
+  ${r.items.length ? '' : '<div class="card mut" style="margin-top:10px">No exercises yet. Add some below.</div>'}
   ${r.items.map((it, i) => { const e = BY[it.id]; if (!e) return ''; return `<section class="card rt-item"><div class="row"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><b>${esc(e.n)}</b><div class="mut">${e.m[0]} · ${e.e}</div></div></a></div>
     <div class="rt-grid"><label><span class="mut">Sets</span><input type="number" inputmode="numeric" min="1" max="10" value="${it.sets}" onchange="rtSet(${i},'sets',this.value)"></label>
     <label><span class="mut">Reps</span><input value="${esc(it.reps)}" onchange="rtSet(${i},'reps',this.value)" placeholder="10"></label>
@@ -69,6 +71,25 @@ window.rtAdd = (id, exId) => {
   const r = rtGet(id); if (!r || !BY[exId] || r.items.some(it => it.id === exId)) return;
   r.items.push(rtDefault(BY[exId])); rtSave(); toast(`Added ${BY[exId].n}`);
   const y = scrollY; routineView(id); scrollTo(0, y);
+};
+window.rtComplete = id => {
+  const r = rtGet(id); if (!r) return;
+  const worked = new Set(r.items.flatMap(it => BY[it.id]?.m || []));
+  const targets = ['abdominals', 'chest', 'lats', 'quadriceps', 'shoulders', 'hamstrings', 'glutes', 'biceps', 'triceps'];
+  const missing = targets.filter(m => !worked.has(m));
+  const want = !worked.has('abdominals') ? ['abdominals', ...missing.filter(m => m !== 'abdominals').slice(0, Math.max(0, 6 - r.items.length))] : missing.slice(0, Math.max(1, 7 - r.items.length));
+  const pool = EX.filter(e => e.c === 'strength' && haveEq(e) && !r.items.some(it => it.id === e.id));
+  let added = 0;
+  want.forEach(m => {
+    const c = pool.filter(e => e.m[0] === m && !r.items.some(it => it.id === e.id));
+    if (c.length) {
+      const pick = c[Math.floor(Math.random() * c.length)];
+      r.items.push({ id: pick.id, sets: 3, reps: m === 'abdominals' ? '12-15' : '10-12', rest: m === 'abdominals' ? 45 : 60 });
+      added++;
+    }
+  });
+  if (added) { rtSave(); toast('Routine completed with core & balanced exercises'); routineView(id); }
+  else toast('Your routine already covers all main muscle groups.');
 };
 window.rtDelete = id => {
   if (rtDel !== id) { rtDel = id; routineView(id); return; }
@@ -168,6 +189,9 @@ if (typeof i18nAdd === 'function') {
     'Remove from plan': 'Quitar del plan', 'Your plan needs at least one workout.': 'Tu plan necesita al menos un entrenamiento.', 'Keep only my routines in the plan': 'Dejar solo mis rutinas en el plan',
     "Bring back the coach's workouts ({n})": 'Recuperar los entrenamientos del entrenador ({n})',
     "Make your own plan: create routines, add them to your plan and remove the coach's days with ✕.": 'Hazte tu propio plan: crea rutinas, añádelas a tu plan y quita los días del entrenador con ✕.',
+    'Complete routine': 'Completar rutina', 'Add Abs & complete': 'Añadir abdominales y completar',
+    'Routine completed with core & balanced exercises': 'Rutina completada con abdominales y ejercicios equilibrados',
+    'Your routine already covers all main muscle groups.': 'Tu rutina ya cubre todos los grupos musculares principales.',
   });
   i18nPat(/^Added to (.+)$/, a => `Añadido a ${a}`);
   i18nPat(/^Added (.+)$/, a => `Añadido: ${tr(a)}`);

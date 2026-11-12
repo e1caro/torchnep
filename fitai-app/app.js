@@ -26,17 +26,17 @@ const LIMITS = {
 const SCHEME = { fat: [3, '12-15', 45], muscle: [3, '8-12', 75], strength: [4, '3-6', 150], general: [3, '10-12', 60] };
 const KIND_MUSCLES = {
   FULL: null,
-  UPPER: ['chest', 'lats', 'middle back', 'shoulders', 'biceps', 'triceps', 'traps', 'forearms'],
-  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'lower back', 'adductors', 'abductors'],
-  PUSH: ['chest', 'shoulders', 'triceps'],
-  PULL: ['lats', 'middle back', 'traps', 'biceps', 'forearms', 'lower back'],
+  UPPER: ['chest', 'lats', 'middle back', 'shoulders', 'biceps', 'triceps', 'traps', 'forearms', 'abdominals'],
+  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'lower back', 'adductors', 'abductors', 'abdominals'],
+  PUSH: ['chest', 'shoulders', 'triceps', 'abdominals'],
+  PULL: ['lats', 'middle back', 'traps', 'biceps', 'forearms', 'lower back', 'abdominals'],
 };
 const DAYS = {
-  FULL: ['quadriceps', 'chest', 'lats', 'shoulders', 'hamstrings', 'abdominals', 'biceps', 'triceps'],
-  UPPER: ['chest', 'lats', 'shoulders', 'middle back', 'biceps', 'triceps', 'chest', 'lats'],
-  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'abdominals', 'quadriceps', 'hamstrings', 'lower back'],
-  PUSH: ['chest', 'shoulders', 'chest', 'triceps', 'shoulders', 'triceps', 'chest', 'abdominals'],
-  PULL: ['lats', 'middle back', 'lats', 'biceps', 'traps', 'biceps', 'middle back', 'forearms'],
+  FULL: ['quadriceps', 'chest', 'lats', 'shoulders', 'hamstrings', 'abdominals', 'glutes', 'biceps', 'triceps', 'calves'],
+  UPPER: ['chest', 'lats', 'shoulders', 'middle back', 'biceps', 'triceps', 'abdominals', 'traps', 'chest', 'lats'],
+  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'abdominals', 'quadriceps', 'hamstrings', 'lower back', 'glutes'],
+  PUSH: ['chest', 'shoulders', 'triceps', 'chest', 'shoulders', 'abdominals', 'triceps', 'chest', 'abdominals'],
+  PULL: ['lats', 'middle back', 'biceps', 'traps', 'abdominals', 'lower back', 'biceps', 'forearms', 'lats'],
 };
 const KIND_NAME = { FULL: 'Full body', UPPER: 'Upper body', LOWER: 'Lower body', PUSH: 'Push', PULL: 'Pull' };
 const SPLITS = {
@@ -153,20 +153,20 @@ function allowed(e, p, have) {
   return !p.limits.some(l => LIMITS[l][1].test(e.n) || LIMITS[l][2].includes(e.m[0]));
 }
 
-// How long an exercise really takes: about 50 s per set plus its rest, and 2.5 minutes to set up and move on.
+// How long an exercise really takes: about 40 s per set plus its rest, and 1 minute to set up and move on.
 // Timed items ("8 min" of cardio, "30s" stretches) count their own time.
 function exSecs(it) {
   const m = String(it.reps).match(/^(\d+)\s*min/), s = String(it.reps).match(/^(\d+)\s*s/);
-  if (m) return +m[1] * 60 + 60;
-  if (s) return it.sets * (+s[1] + it.rest) - it.rest + 30; // holds and stretches move on quickly
-  return it.sets * (50 + it.rest) - it.rest + 150;
+  if (m) return +m[1] * 60 + 45;
+  if (s) return it.sets * (+s[1] + it.rest) - it.rest + 25; // holds and stretches move on quickly
+  return it.sets * (40 + it.rest) - it.rest + 60;
 }
-const WARMUP = 7 * 60;
+const WARMUP = 4 * 60;
 // cardio: none, at the start (it doubles as the warm-up) or at the end; fat loss defaults to the end
 // every plan includes cardio unless you turn it off; it and the stretching grow with the session
 const cardioPos = p => p.cardio || 'end';
 // cardio and stretching minutes: your choice, or "auto" to grow with the session
-const cardioAuto = p => (p.minutes <= 30 ? 8 : p.minutes <= 45 ? 10 : p.minutes <= 60 ? 12 : p.minutes <= 75 ? 15 : p.minutes <= 90 ? 20 : 25);
+const cardioAuto = p => (p.minutes <= 30 ? 6 : p.minutes <= 45 ? 8 : p.minutes <= 60 ? 10 : p.minutes <= 75 ? 12 : p.minutes <= 90 ? 15 : 20);
 const cardioMin = p => +p.cardioMin || cardioAuto(p);
 const stretchAuto = p => (p.minutes <= 30 ? 3 : p.minutes <= 45 ? 4 : p.minutes <= 60 ? 5 : p.minutes <= 75 ? 6 : p.minutes <= 90 ? 8 : 10);
 const stretchMin = p => +p.stretchMin || stretchAuto(p);
@@ -227,11 +227,12 @@ function generatePlan(p) {
     if (!c.length) return null;
     used.add(c[0].id); return c[0];
   };
+  const minStr = p.minutes <= 30 ? 5 : p.minutes <= 45 ? 6 : p.minutes <= 60 ? 7 : 8;
   const days = SPLITS[p.days].map((kind, di) => {
     const slots = [...DAYS[kind], ...DAYS[kind], ...DAYS[kind]], allow = KIND_MUSCLES[kind]; // long sessions go round the muscles again
     const extra = shuffle(focusMuscles.filter(m => !allow || allow.includes(m)), r).slice(0, 2);
     extra.forEach((m, i) => slots.splice(2 + i, 0, m));
-    // cardio and a stretch first take their time from the session; strength exercises fill what is left, at least 2
+    // cardio and a stretch first take their time from the session; strength exercises fill what is left
     const tail = [], pos = cardioPos(p), cIt = pos !== 'none' && cardio.length ? { id: shuffle(cardio, r)[0].id, sets: 1, reps: `${cardioMin(p)} min`, rest: 0 } : null;
     if (cIt) tail.push(cIt);
     const nStretch = stretchCount(p);
@@ -240,9 +241,15 @@ function generatePlan(p) {
     const items = [];
     for (const m of slots) {
       const e = pick(m, items); if (!e) continue;
-      const it = { id: e.id, sets: focusMuscles.includes(m) ? sets + 1 : sets, reps, rest };
-      if (items.length >= 2 && exSecs(it) > left) break;
+      const isAbs = m === 'abdominals' || e.m[0] === 'abdominals';
+      const it = { id: e.id, sets: focusMuscles.includes(m) ? sets + 1 : sets, reps: isAbs && p.goal === 'strength' ? '12-15' : reps, rest: isAbs ? Math.min(rest, 60) : rest };
+      if (items.length >= minStr && exSecs(it) > left) break;
       items.push(it); left -= exSecs(it);
+    }
+    // Guarantee every workout day includes at least one dedicated core/abdominals exercise
+    if (!items.some(it => BY[it.id]?.m[0] === 'abdominals')) {
+      const ab = pick('abdominals', items);
+      if (ab) items.push({ id: ab.id, sets: focusMuscles.includes('abdominals') ? sets + 1 : sets, reps: p.goal === 'strength' ? '12-15' : reps, rest: Math.min(rest, 60) });
     }
     if (cIt && pos === 'start') { items.unshift(cIt); tail.shift(); }
     // stretches for the muscles worked today, most worked first, one per muscle before repeating
@@ -267,7 +274,7 @@ function generatePlan(p) {
     for (let k = items.length - 1; k >= 0 && over() > 60; k--) if (!/min|s$/.test(String(items[k].reps)) && items[k].sets > 2) { items[k].sets--; k++; } // and one set less, down to 2
     return { name: `Day ${di + 1} · ${KIND_NAME[kind]}`, kind, items };
   });
-  return { created: Date.now(), days, timed: 1 };
+  return { created: Date.now(), days, timed: 1, ver: 2 };
 }
 
 // ---------- today's time ----------
@@ -306,14 +313,24 @@ function fitDay(di, minutes) {
   const used = () => fixed + str.reduce((a, it) => a + exSecs(it), 0), budget = minutes * 60;
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
   const slots = [...DAYS[base.kind], ...DAYS[base.kind], ...DAYS[base.kind]];
+  const minStr = minutes <= 30 ? 5 : minutes <= 45 ? 6 : minutes <= 60 ? 7 : 8;
   for (let k = 0; k < slots.length; k++) {
-    const c = shuffle(pool.filter(e => e.m[0] === slots[(k + str.length) % slots.length] && !str.some(x => x.id === e.id) && !S.plan.days[di].items.some(x => x.id === e.id)), r)[0];
+    const m = slots[(k + str.length) % slots.length];
+    const c = shuffle(pool.filter(e => e.m[0] === m && !str.some(x => x.id === e.id) && !S.plan.days[di].items.some(x => x.id === e.id)), r)[0];
     if (!c) continue;
-    const it = { id: c.id, sets, reps, rest };
-    if (used() + exSecs(it) > budget + 60) break;
+    const isAbs = m === 'abdominals' || c.m[0] === 'abdominals';
+    const it = { id: c.id, sets, reps: isAbs && p.goal === 'strength' ? '12-15' : reps, rest: isAbs ? Math.min(rest, 60) : rest };
+    if (str.length >= minStr && used() + exSecs(it) > budget + 60) break;
     str.push(it);
   }
-  while (used() > budget + 60 && str.length > 2) str.pop();
+  while (used() > budget + 60 && str.length > minStr) {
+    const idx = str.findLastIndex(it => BY[it.id]?.m[0] !== 'abdominals');
+    if (idx >= 0) str.splice(idx, 1); else break;
+  }
+  if (!str.some(it => BY[it.id]?.m[0] === 'abdominals')) {
+    const ab = shuffle(pool.filter(e => e.m[0] === 'abdominals' && !str.some(x => x.id === e.id)), r)[0];
+    if (ab) str.push({ id: ab.id, sets, reps: p.goal === 'strength' ? '12-15' : reps, rest: Math.min(rest, 60) });
+  }
   for (let k = str.length - 1; k >= 0 && used() > budget + 60; k--) if (str[k].sets > 2) { str[k].sets--; k++; }
   // short on time: shorter cardio, fewer stretches (only what is on "auto")
   if (cardio.length && !+p.cardioMin) while (used() > budget + 60 && parseInt(cardio[0].reps) > 5) cardio[0].reps = `${parseInt(cardio[0].reps) - 1} min`;
@@ -907,6 +924,25 @@ try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // th
     await langReady();
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }
   EX.forEach(e => { BY[e.id] = e; });
+  // Upgrade existing plans to v2 (complete routines + guaranteed core/abdominals on every workout day)
+  if (S.profile && S.plan && S.plan.ver !== 2) {
+    if (typeof RT !== 'undefined' && Array.isArray(RT)) {
+      const have = equipSet(S.profile);
+      const abPool = EX.filter(e => e.m[0] === 'abdominals' && e.c === 'strength' && allowed(e, S.profile, have));
+      RT.forEach((rt, idx) => {
+        if (rt.items?.length && !rt.items.some(it => BY[it.id]?.m?.includes('abdominals'))) {
+          const pickAb = abPool[idx % Math.max(1, abPool.length)] || EX.find(e => e.m[0] === 'abdominals');
+          if (pickAb) rt.items.push({ id: pickAb.id, sets: 3, reps: '12-15', rest: 45 });
+        }
+      });
+      if (typeof rtSave === 'function') rtSave();
+    }
+    S.plan = generatePlan(S.profile);
+    S.plan.ver = 2;
+    S.today = null;
+    save('plan', S.plan);
+    save('today', null);
+  }
   initGame();
   route(); resumeBar(); appUpdate();
 })();
