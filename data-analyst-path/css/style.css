@@ -750,9 +750,52 @@ h1 { font-weight: 800; }
 .tile { font: 650 .88rem/1.2 var(--mono); padding: 10px 12px; min-height: 42px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); box-shadow: 0 3px 0 var(--edge); cursor: pointer; transition: transform .06s ease, box-shadow .06s ease; margin-bottom: 3px; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
 .tile:active:not(:disabled) { transform: translateY(3px); box-shadow: none; }
 .tile.in { background: #e4ecfd; color: #172033; border-color: #2158d6; box-shadow: 0 3px 0 #173f9e; }
-.tile.used { visibility: hidden; }
+.tile.used { color: transparent; background: transparent; border: 1px dashed var(--line); border-left-width: 1px; box-shadow: none; }
 .tile:disabled { cursor: default; }
 .table-wrap.mini { max-height: 200px; margin: 8px 0 12px; }
+.tile { border-left: 5px solid var(--kc, var(--line)); }
+.tile.k-kw { --kc: #2563eb; font-weight: 800; }
+.tile.k-fn { --kc: #7c3aed; }
+.tile.k-cond { --kc: #c2410c; }
+.tile.k-tbl { --kc: #0d9488; }
+.tile.k-col { --kc: #64748b; }
+.tile.k-sub { --kc: #db2777; font-size: .8rem; }
+.tile.in { border-left-color: var(--kc, #2158d6); }
+.tile.marked { outline: 3px solid #dc2626; outline-offset: 2px; animation: tileshake .45s ease 2; }
+.tile.glow { outline: 3px solid #f59e0b; outline-offset: 2px; animation: tileglow 1s ease-in-out infinite; }
+@keyframes tileshake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+@keyframes tileglow { 50% { outline-color: rgba(245, 158, 11, .25); } }
+.caret { width: 3px; align-self: stretch; min-height: 36px; border-radius: 2px; background: #f59e0b; animation: caretblink 1s steps(1) infinite; }
+@keyframes caretblink { 50% { opacity: 0; } }
+.blocks-card .qmeta { flex-wrap: wrap; gap: 6px; }
+.badge.bug { background: #fde8e8; color: #9b1c1c; }
+.badge.lv-badge { background: var(--mc); color: #fff; }
+.fix-help { margin: -4px 0 10px; }
+.target { margin: 0 0 10px; }
+.target summary, .yours summary { cursor: pointer; font-size: .9rem; color: var(--muted); padding: 4px 0; }
+.stars { color: #f59e0b; letter-spacing: 1px; font-size: 1.05rem; white-space: nowrap; }
+.stars-won { text-align: center; margin: 6px 0 4px; }
+.stars-won .stars { font-size: 2.2rem; letter-spacing: 4px; display: inline-block; animation: starpop .5s ease; }
+@keyframes starpop { 0% { transform: scale(.3); opacity: 0; } 70% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+.big-stars { font: 800 1.6rem var(--display); margin: 2px 0 8px; }
+.round-list { list-style: none; padding: 0; margin: 8px auto 12px; max-width: 460px; text-align: left; }
+.round-list li { display: flex; gap: 10px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.round-list .stars { flex: none; min-width: 4.2em; }
+.lv-progress { max-width: 460px; margin: 0 auto 8px; }
+.blocks-totals { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 12px 0 4px; }
+.level-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin: 10px 0 20px; }
+.level-card { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px 16px; border-radius: 18px; background: var(--surface); border: 2px solid var(--line); border-top: 8px solid var(--mc); color: var(--text); text-decoration: none; box-shadow: 0 4px 0 var(--edge); transition: transform .06s ease, box-shadow .06s ease; margin-bottom: 4px; }
+.level-card:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--edge); }
+.level-card.current { border-color: var(--mc); box-shadow: 0 4px 0 var(--mcd); }
+.level-card .progress { height: 8px; margin: 4px 0 0; width: 100%; flex: none; align-self: stretch; }
+.lv-top { display: flex; align-items: center; gap: 8px; }
+.lv-icon { font-size: 1.5rem; }
+.lv-num { font: 800 .78rem var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--mc); }
+.lv-done { margin-left: auto; font-size: .75rem; font-weight: 800; color: var(--ok); }
+.lv-name { font-family: var(--display); font-size: 1.15rem; }
+.lv-stars { font-weight: 700; font-size: .9rem; }
+.btn.wide { width: 100%; justify-content: center; }
+@media (prefers-reduced-motion: reduce) { .tile.marked, .tile.glow, .caret, .stars-won .stars { animation: none; } }
 
 /* ---------- learning path ---------- */
 .pathview { max-width: 620px; }
