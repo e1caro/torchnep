@@ -65,25 +65,25 @@ const view = $('#view');
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 const round = (n, to = 1) => Math.round(n / to) * to;
 
-// ---------- icons (100% original custom in-code vector SVGs) ----------
+// ---------- icons ----------
 const ICONS = {
-  home: 'M3.5 11.2 12 3.8l8.5 7.4M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10A1.5 1.5 0 0 0 18.5 19V9.8M10 20.5v-5.5a2 2 0 0 1 4 0v5.5',
-  plan: 'M4 6.5h2.5v2.5H4zM9.5 7.8h10.5M4 11.8h2.5v2.5H4zM9.5 13h10.5M4 17h2.5v2.5H4zM9.5 18.2h10.5',
-  lib: 'M5 4.5A1.5 1.5 0 0 1 6.5 3h11A1.5 1.5 0 0 1 19 4.5v15a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 5 19.5zM10.2 9.2v5.6l4.8-2.8z',
-  chart: 'M4 19.5V4.5M4 19.5h16M7.5 15.5l3.2-4.2 3 2.4 4.8-6.2M15.5 7.5h3v3',
-  user: 'M12 11.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4.5 20.5c0-3.8 3.4-6.2 7.5-6.2s7.5 2.4 7.5 6.2',
-  back: 'M15 5l-7 7 7 7', close: 'M6 6l12 12M18 6 6 18', check: 'M4.5 12.5l4.8 4.8L19.5 7',
-  flame: 'M12.5 3c1.2 3.6 5 5.6 5 10.2a5.5 5.5 0 0 1-11 0c0-2.2 1-3.6 2.2-4.6.4 1.3 1.1 2.1 2.1 2.1-.5-3 .6-5.8 1.7-7.7z',
-  swap: 'M6.5 7.5h11l-3-3M17.5 16.5h-11l3 3', plus: 'M12 5v14M5 12h14',
-  edit: 'M4 20h4.2L19.2 9l-4.2-4.2L4 15.8zM13.5 6.5l4 4', up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6',
-  dungeon: 'M4 20V8l3 2V5l3 2 2-3 2 3 3-2v5l3-2v12zM10 20v-5.5a2 2 0 0 1 4 0V20',
-  gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2.5v2.8M12 18.7v2.8M2.5 12h2.8M18.7 12h2.8M5.3 5.3l2 2M16.7 16.7l2 2M5.3 18.7l2-2M16.7 7.3l2-2',
-  play: 'M7.5 5.2v13.6L19 12z',
-  users: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5M15.8 4.4a3.4 3.4 0 0 1 0 6.2M17.5 14.8c2.4.5 4 2.3 4 5.2',
-  bag: 'M5.5 8h13l-1 12H6.5zM9 8V6a3 3 0 0 1 6 0v2M9.5 11.5a2.5 2.5 0 0 0 5 0',
-  gift: 'M4.5 11h15v9h-15zM3.5 7h17v4h-17zM12 7v13M12 7c-1-3.5-5-3.5-5-.5M12 7c1-3.5 5-3.5 5-.5',
+  home: 'M3 11.5 12 4l9 7.5M5.5 10v10h13V10',
+  plan: 'M8 6h12M8 12h12M8 18h12M3.5 6h.01M3.5 12h.01M3.5 18h.01',
+  lib: 'M5 4h14v16H5zM10 9.5v5l4.5-2.5z',
+  chart: 'M4 19V5M4 19h16M8 15l3-4 3 2 4-6',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5',
+  back: 'M15 5l-7 7 7 7', close: 'M6 6l12 12M18 6 6 18', check: 'M5 12.5l4.5 4.5L19 7.5',
+  flame: 'M12 3c1 3.5 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 2-4 .3 1.2 1 2 2 2-.5-3 .5-6 1-8z',
+  swap: 'M7 7h11l-3-3M17 17H6l3 3', plus: 'M12 5v14M5 12h14',
+  edit: 'M4 20h4L19 9l-4-4L4 16zM14 6l4 4', up: 'M12 19V5M6 11l6-6 6 6', down: 'M12 5v14M6 13l6 6 6-6',
+  dungeon: 'M4 20V8l3 2V5l3 2 2-3 2 3 3-2v5l3-2v12zM10 20v-5h4v5',
+  gear: 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1',
+  play: 'M7 5v14l12-7z',
+  users: 'M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7M2.5 20c0-3.4 2.9-5.5 6.5-5.5s6.5 2.1 6.5 5.5M16 4.3a3.5 3.5 0 0 1 0 6.4M17.5 14.7c2.4.5 4 2.3 4 5.3',
+  bag: 'M5 8h14l-1 12H6zM9 8V6a3 3 0 0 1 6 0v2',
+  gift: 'M4 11h16v9H4zM3 7h18v4H3zM12 7v13M12 7C11 3.5 7 3.5 7 6.5M12 7c1-3.5 5-3.5 5-.5',
 };
-const ic = (n, s = 22) => `<svg class="ui-ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.95" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n] || ICONS.flame}"/></svg>`;
+const ic = (n, s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${ICONS[n]}"/></svg>`;
 document.querySelectorAll('#tabs a').forEach(a => { a.insertAdjacentHTML('afterbegin', ic(a.dataset.i)); });
 
 // ---------- demo media ----------

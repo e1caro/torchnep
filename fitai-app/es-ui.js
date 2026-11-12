@@ -77,7 +77,7 @@ i18nAdd({
   'Edit body data and training plan': 'Editar datos corporales y plan de entrenamiento', 'Export my data': 'Exportar mis datos', 'Reset everything': 'Borrarlo todo', 'Delete all data?': '¿Borrar todos los datos?', 'Cancel': 'Cancelar', 'Delete': 'Borrar',
   'FitQuest is free, with no ads and no payments. Coins and XP are just for fun. Everything stays on this device; there are no accounts, ads or payments. Estimates are guidance, not medical advice. Exercise photos: free-exercise-db (public domain).':
     'FitQuest es gratis, sin anuncios ni pagos. Las monedas y los XP son solo para divertirse. Todo se queda en este dispositivo; no hay cuentas, anuncios ni pagos. Las estimaciones son orientativas, no consejo médico. Fotos de ejercicios: free-exercise-db (dominio público).',
-  'Icons: 100% original custom vector SVGs created in code for FitQuest (public domain).': 'Iconos: SVG vectoriales 100 % originales creados en código para FitQuest (libres de derechos).',
+  'Icons by Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed and Carl Olsen from game-icons.net, CC BY 3.0.': 'Iconos de Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed y Carl Olsen, de game-icons.net, CC BY 3.0.',
   'Name': 'Nombre', 'Name saved': 'Nombre guardado', '{n} more in the Shop': '{n} más en la Tienda', 'Body and training': 'Cuerpo y entrenamiento', 'More titles come from badges.': 'Hay más títulos al conseguir insignias.',
   '{n} y · {n} cm · {n} kg': '{n} años · {n} cm · {n} kg', 'by level': 'por nivel', 'Plain ring': 'Anillo liso',
 });

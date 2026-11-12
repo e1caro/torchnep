@@ -175,7 +175,7 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .shop{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}.shop:last-child{border:0}.shop input{width:22px;height:22px;accent-color:var(--acc);flex:none}.shop input:checked~*{opacity:.45;text-decoration:line-through}
 .earnlist .row{padding:8px 0;border-bottom:1px solid var(--line);gap:12px;align-items:flex-start}.earnlist .row:last-child{border:0}.earnlist b{text-align:right;font-weight:500;max-width:55%}
 
-/* ---- icons (100% original custom in-code vector SVGs, public domain) ---- */
+/* ---- icons (game-icons.net, CC BY 3.0) ---- */
 .gi{display:inline-block;width:1em;height:1em;vertical-align:-.14em;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat;flex:none}
 .gi.hero{background:linear-gradient(135deg,var(--acc),var(--acc2))}
 .gi.cn{color:#ffc53d}
@@ -328,14 +328,6 @@ body{
     radial-gradient(85% 85% at 50% 0%,color-mix(in srgb,var(--acc) 18%,transparent),transparent 68%),
     linear-gradient(180deg,color-mix(in srgb,var(--card2) 48%,var(--card)),var(--card));
   border-color:color-mix(in srgb,var(--acc) 42%,var(--line));
-}
-.sw:not(.locked) .avbig .gi,
-.pbadge .gi,
-.pstat .gi,
-.qi .gi,
-.dgi .gi,
-.mi .gi{
-  filter:drop-shadow(0 3px 8px color-mix(in srgb,var(--acc) 38%,transparent));
 }
 .quest,.mkt,.meal,.lookt,.pstat,.pbadge{
   transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
