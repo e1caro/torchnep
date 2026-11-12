@@ -165,7 +165,7 @@
 
     /* side: schema + challenge list (collapsible on small screens so the editor comes first) */
     var inner = h('div', { class: 'side-inner' });
-    var sideBox = h('details', { class: 'side-collapse' }, h('summary', null, '📋 Tables and challenges · ', h('span', { class: 'muted', text: list.filter(function (c) { return ui.state.sql[c.id]; }).length + '/' + list.length + ' solved' })), inner);
+    var sideBox = h('details', { class: 'side-collapse' }, h('summary', null, '📋 Tables and challenges'), inner);
     side.appendChild(sideBox);
     var narrow = window.matchMedia ? window.matchMedia('(max-width: 1100px)') : null;
     function syncSide() { sideBox.open = narrow && narrow.matches ? !cur : true; }
@@ -184,9 +184,6 @@
         } }, 'Preview rows')));
     });
     inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges' }));
-    var solved = list.filter(function (c) { return ui.state.sql[c.id]; }).length;
-    inner.appendChild(h('p', { class: 'muted small', text: solved + ' of ' + list.length + ' solved' }));
-    inner.appendChild(ui.progressBar(100 * solved / list.length, 'Challenges solved'));
     inner.appendChild(h('a', { class: 'chal' + (!cur ? ' active' : ''), href: '#/lab/' + dsId }, h('span', { class: 'mark', text: '·' }), 'Free exploration'));
     [1, 2, 3].forEach(function (lv) {
       var items = list.filter(function (c) { return c.level === lv; });
@@ -257,9 +254,9 @@
         DA.game.award('sql:' + cur.id, ui.XP.sql(cur.level), 'SQL solved');
         DA.game.quest('sql');
         DA.game.sound('done'); DA.game.buzz(30); DA.game.confetti(false);
-        var idx = list.indexOf(cur), next = list[idx + 1];
+        var idx = list.indexOf(cur), next = list[(idx + 1) % list.length];
         setFeedback('ok', '✔ ' + cmp.message, h('div', { class: 'row' },
-          next ? h('a', { class: 'btn small', href: '#/lab/' + dsId + '/' + next.id }, 'Next challenge →') : h('span', { text: ' You finished every challenge in this dataset. 🎉' }),
+          next ? h('a', { class: 'btn small', href: '#/lab/' + dsId + '/' + next.id }, 'Next challenge →') : null,
           h('button', { class: 'btn small ghost', type: 'button', onclick: function () { showAi(true); } }, '🤖 Ask AI to review my query')));
         if (firstTime) {
           var mark = side.querySelector('a.chal.active .mark');

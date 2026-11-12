@@ -91,29 +91,28 @@
     var all = G.badges(), earned = all.filter(function (b) { return b.earned; }).sort(function (a, b) { return a.earned < b.earned ? 1 : -1; });
     var locked = all.filter(function (b) { return !b.earned; }).sort(function (a, b) { return b.cur / b.max - a.cur / a.max; });
     return h('section', { class: 'section' },
-      h('h2', { text: 'Badges · ' + earned.length + ' of ' + all.length }),
+      h('h2', { text: 'Badges' }),
       h('div', { class: 'badges' }, earned.concat(locked).map(function (b) {
         var got = !!b.earned;
         return h('div', { class: 'badge-card' + (got ? ' got' : '') },
           h('span', { class: 'b-icon', 'aria-hidden': 'true', html: ui.iconHtml(b.icon, 26) }),
           h('strong', { text: b.name }),
           h('span', { class: 'muted small', text: b.desc }),
-          got ? h('span', { class: 'small ok-text', text: '✓ ' + pretty(b.earned) }) : [ui.progressBar(100 * b.cur / b.max, b.name + ' progress'), h('span', { class: 'small muted', text: b.cur + ' / ' + b.max })]);
+          got ? h('span', { class: 'small ok-text', text: '✓ ' + pretty(b.earned) }) : [ui.progressBar(100 * b.cur / b.max, b.name + ' progress')]);
       })));
   }
 
   V.me = function () {
-    var root = h('div', { class: 'view me' }), st = ui.state.stats, m = DA.drill.mastery();
+    var root = h('div', { class: 'view me' }), st = ui.state.stats;
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'You' }));
     root.appendChild(levelCard());
     root.appendChild(streakCard());
     root.appendChild(weekCard());
     root.appendChild(badgesCard());
     var acc = st.answers ? Math.round(100 * st.correct / st.answers) + '%' : '–';
-    root.appendChild(h('section', { class: 'section' }, h('h2', { text: 'Your numbers' }),
+    root.appendChild(h('section', { class: 'section' }, h('h2', { text: 'Your highlights' }),
       h('div', { class: 'stat-row wide' }, [
-        ['Lessons done', ui.doneCount() + ' / ' + DA.lessons.length], ['SQL solved', Object.keys(ui.state.sql).length + ' / ' + DA.challenges.length],
-        ['Practice rounds', st.drills], ['First-try accuracy', acc], ['Questions mastered', m.mastered + ' / ' + m.total], ['Total XP', G.totalXp()],
+        ['First-try accuracy', acc], ['Best combo', st.bestCombo], ['Best streak', G.streak().best + 'd'], ['Total XP', G.totalXp()],
       ].map(function (x) { return h('div', { class: 'stat' }, h('b', { text: String(x[1]) }), h('span', { text: x[0] })); }))));
     root.appendChild(h('p', null, h('a', { class: 'btn ghost', href: '#/settings' }, '⚙️ Settings: daily goal, theme, reminders, devices')));
     return root;

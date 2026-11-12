@@ -293,22 +293,19 @@
     F.leave();
     var startId = params[0] === 'card' ? params[1] : '';
     var filter = !startId && params[0] && F.filters().indexOf(params[0]) >= 0 ? params[0] : 'For you';
-    var items = F.plan(filter, startId), rendered = 0;
+    var items = F.plan(filter, startId).filter(function (x) { return x.type !== 'caught' && x.type !== 'end'; });
+    var rendered = 0, cycleNum = 0;
     var root = h('div', { class: 'view feedview' }, h('h1', { id: 'view-title', class: 'sr-only', tabindex: '-1', text: 'Discover' }));
 
-    var dots = h('span', { class: 'five', 'aria-hidden': 'true' });
-    var count = h('a', { class: 'feed-count', href: '#/collection' });
+    var count = h('a', { class: 'feed-count', href: '#/collection', text: '🃏 Collection' });
     function status() {
-      var n = Math.min(F.DAILY, F.readToday());
-      ui.clear(dots);
-      for (var i = 0; i < F.DAILY; i++) dots.appendChild(h('i', { class: i < n ? 'on' : '' }));
-      count.textContent = '🃏 ' + F.collected() + '/' + DA.feedCards.length;
-      count.setAttribute('aria-label', F.collected() + ' of ' + DA.feedCards.length + ' cards collected. ' + n + ' of ' + F.DAILY + ' new cards read today.');
+      count.textContent = '🃏 Collection';
+      count.setAttribute('aria-label', 'Open card collection');
     }
     var chips = h('div', { class: 'feed-chips', role: 'group', 'aria-label': 'Topics' }, F.filters().map(function (f) {
       return h('a', { class: 'chip' + (f === filter && !startId ? ' active' : ''), href: f === 'For you' ? '#/feed' : '#/feed/' + encodeURIComponent(f), 'aria-current': f === filter ? 'page' : null, text: f === 'Saved' ? '♥ Saved' : f });
     }));
-    root.appendChild(h('div', { class: 'feed-top' }, chips, h('div', { class: 'feed-status' }, dots, count)));
+    root.appendChild(h('div', { class: 'feed-top' }, chips, h('div', { class: 'feed-status' }, count)));
 
     var feed = h('div', { class: 'feed', tabindex: '0', 'aria-label': 'Cards. Swipe up, or use the arrow keys.' });
     var sentinel = h('div', { class: 'feed-sentinel', 'aria-hidden': 'true' });
@@ -331,6 +328,10 @@
       });
     }, { root: feed, threshold: [0, 0.6, 1] });
     function more(n) {
+      if (rendered + n > items.length && !(items.length === 1 && items[0].type === 'empty')) {
+        var nextBatch = F.cycle ? F.cycle(filter, ++cycleNum) : [];
+        if (nextBatch.length) items = items.concat(nextBatch);
+      }
       for (var i = 0; i < n && rendered < items.length; i++, rendered++) {
         var el = itemEl(items[rendered]);
         feed.insertBefore(el, sentinel);
@@ -355,14 +356,13 @@
 
   V.collection = function () {
     F.leave();
-    var root = h('div', { class: 'view collection' }), total = DA.feedCards.length, have = F.collected();
+    var root = h('div', { class: 'view collection' });
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'My collection' }));
-    root.appendChild(h('p', { class: 'lead', text: have + ' of ' + total + ' cards collected. Read a card in Discover and it lands here.' }));
-    root.appendChild(ui.progressBar(100 * have / total, 'Cards collected'));
-    root.appendChild(h('div', { class: 'row' }, h('a', { class: 'btn accent', href: '#/feed' }, 'Open Discover'), h('a', { class: 'btn ghost', href: '#/feed/Saved' }, '♥ Saved (' + Object.keys(ui.state.saved).length + ')')));
+    root.appendChild(h('p', { class: 'lead', text: 'Read a card in Discover and it lands here for quick reference.' }));
+    root.appendChild(h('div', { class: 'row' }, h('a', { class: 'btn accent', href: '#/feed' }, 'Open Discover'), h('a', { class: 'btn ghost', href: '#/feed/Saved' }, '♥ Saved')));
     F.collection().forEach(function (g) {
       root.appendChild(h('section', { class: 'section col-sec' },
-        h('h2', null, g.cat, ' ', h('span', { class: 'muted small', text: g.have + ' / ' + g.cards.length })),
+        h('h2', null, g.cat),
         h('div', { class: 'col-grid' }, g.cards.map(function (c) {
           return ui.state.cards[c.id]
             ? h('a', { class: 'col-card got', href: '#/feed/card/' + c.id }, h('span', { class: 'col-icon', 'aria-hidden': 'true', text: c.icon }), h('span', { class: 'col-title', text: c.kind === 'quote' ? '“' + c.title + '”' : c.title }), h('span', { class: 'muted small', text: F.kindLabel(c) }))
@@ -375,9 +375,13 @@
   // Three of today's picks, for the home page.
   F.teaser = function () {
     var picks = F.fresh('').slice(0, 3);
+    if (picks.length < 3) {
+      var seen = ui.seededShuffle(DA.feedCards.filter(function (c) { return picks.indexOf(c) < 0; }), ui.today() + ':teaser');
+      picks = picks.concat(seen).slice(0, 3);
+    }
     if (!picks.length) return null;
     return h('section', { class: 'card teaser', 'aria-labelledby': 'teaser-h' },
-      h('div', { class: 'teaser-head' }, h('h2', { id: 'teaser-h', text: 'Discover today' }), h('span', { class: 'muted small', text: Math.min(F.DAILY, F.readToday()) + ' / ' + F.DAILY + ' read · ' + F.collected() + ' collected' })),
+      h('div', { class: 'teaser-head' }, h('h2', { id: 'teaser-h', text: 'Discover today' }), h('span', { class: 'muted small', text: 'Swipe through data stories & tips' })),
       h('div', { class: 'teaser-row' }, picks.map(function (c) {
         return h('a', { class: 'teaser-card k-' + c.kind, href: '#/feed/card/' + c.id }, h('span', { class: 'fc-icon', 'aria-hidden': 'true', text: c.icon }), h('small', { text: F.kindLabel(c) }), h('strong', { text: c.kind === 'quote' ? '“' + c.title + '”' : c.title }));
       })),

@@ -241,7 +241,7 @@ async function playRound(page, wrongAt = []) {
   ok(await page.evaluate(() => DA.feed.readToday() >= 5 && !!DA.ui.state.xp['feed5:' + DA.ui.today()]), 'five new cards in a day pays the Discover bonus');
   await page.goto(BASE + '/index.html#/collection');
   await page.waitForSelector('.col-grid');
-  ok(await page.locator('.col-card.got').count() === 5 && await page.locator('.col-card').count() === 131, 'collection shows 5 of 131 cards');
+  ok(await page.locator('.col-card.got').count() === 5 && await page.locator('.col-card').count() === (await page.evaluate(() => DA.feedCards.length)), 'collection shows all cards with 5 collected');
   await page.goto(BASE + '/index.html#/feed/Saved');
   await page.waitForSelector('.fcard');
   ok(await page.locator('.fcard[data-id]').count() === 1, 'Saved shows only the bookmarked card');
@@ -271,7 +271,7 @@ async function playRound(page, wrongAt = []) {
   await dismissModals(page, 900);
   await page.goto(BASE + '/index.html#/arcade/blocks');
   await page.waitForSelector('.level-card');
-  ok(await page.locator('.level-card').count() === 8 && (await txt(page, '.blocks-totals')).includes('0 / ' + (await page.evaluate(() => DA.puzzles.length))), 'SQL blocks: a map of 8 levels with totals');
+  ok(await page.locator('.level-card').count() === 8, 'SQL blocks: a map of 8 levels');
   await page.click('.blocks-map .next-card');
   await page.waitForSelector('.bank .tile');
   await page.waitForFunction(() => !!window.initSqlJs, null, { timeout: 15000 });

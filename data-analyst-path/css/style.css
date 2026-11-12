@@ -954,3 +954,245 @@ main:has(.feedview) { padding-top: 14px; padding-bottom: 14px; }
 }
 @media (max-height: 700px) { .fc-inner p { font-size: .96rem; line-height: 1.48; } .fc-inner { gap: 8px; } .crime-chart { max-height: 132px; } .fc-title { font-size: 1.3rem; } .fc-inner .fc-take { font-size: .92rem; padding: 8px 10px; } }
 @media (prefers-reduced-motion: reduce) { .mascot, .mascot *, .view, .node-start, .node.current .node-face::after, .hud-chip.boost, .fcard.just .fc-got { animation: none !important; } }
+
+/* =====================================================================
+   Version 4: Studio-Grade Visual Redesign — Elegant, Tactile & Intuitive
+   ===================================================================== */
+
+body {
+  background:
+    radial-gradient(65% 42% at 15% 0%, color-mix(in srgb, var(--accent) 11%, transparent) 0%, transparent 72%),
+    radial-gradient(55% 38% at 88% 8%, color-mix(in srgb, var(--teal) 10%, transparent) 0%, transparent 70%),
+    var(--bg) fixed;
+}
+
+/* Frosted glass navigation chrome */
+.sidebar {
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-right: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  box-shadow: 4px 0 28px -12px rgba(15, 23, 42, .08);
+}
+.nav a {
+  border-radius: 12px;
+  font-weight: 650;
+  transition: background .16s ease, color .16s ease, transform .12s ease;
+}
+.nav a:hover {
+  transform: translateX(2px);
+}
+.nav a.active {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 16%, var(--surface)), color-mix(in srgb, var(--teal) 10%, var(--surface)));
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+@media (max-width: 900px) {
+  .topbar {
+    background: color-mix(in srgb, var(--surface) 84%, transparent);
+    backdrop-filter: blur(18px) saturate(160%);
+    -webkit-backdrop-filter: blur(18px) saturate(160%);
+  }
+  .tabbar {
+    background: color-mix(in srgb, var(--surface) 86%, transparent);
+    backdrop-filter: blur(20px) saturate(170%);
+    -webkit-backdrop-filter: blur(20px) saturate(170%);
+    box-shadow: 0 -8px 28px -8px rgba(15, 23, 42, .14);
+  }
+}
+
+/* Refined Bento surfaces & interactive cards */
+.card, .qcard, .module, .lab-side, .task {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 96%, #fff 4%), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--line) 90%, transparent);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+.stat {
+  background: linear-gradient(160deg, var(--surface), color-mix(in srgb, var(--surface-2) 55%, var(--surface)));
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, .06);
+  transition: transform .16s ease, border-color .16s ease;
+}
+.stat:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+.stat b {
+  font-family: var(--display);
+  font-size: 1.55rem;
+  letter-spacing: -.02em;
+  background: linear-gradient(135deg, var(--text) 30%, var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Hero & Next Lesson spotlight */
+.hero-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 120% at 95% 0%, rgba(45, 212, 191, .35) 0%, transparent 60%),
+    linear-gradient(135deg, #1e3a8a 0%, #2563eb 52%, #0d9488 100%);
+  border: 1px solid rgba(255, 255, 255, .18);
+  box-shadow: 0 16px 38px -12px rgba(29, 78, 216, .42), inset 0 1px 0 rgba(255, 255, 255, .25);
+}
+.hero-level {
+  background: rgba(255, 255, 255, .16);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, .24);
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, .2);
+  transition: transform .15s ease, background .15s ease;
+}
+.hero-level:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, .22);
+}
+.next-card, .unit-banner {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(80% 120% at 100% 0%, rgba(255, 255, 255, .18), transparent 60%),
+    var(--mc);
+  border: 1px solid rgba(255, 255, 255, .18);
+}
+
+/* Discover Reels: immersive editorial cards */
+.fc-inner {
+  position: relative;
+  box-shadow: 0 18px 42px -12px rgba(8, 12, 24, .32), inset 0 1px 0 rgba(255, 255, 255, .22);
+}
+.k-story .fc-inner, .teaser-card.k-story {
+  background:
+    radial-gradient(90% 80% at 95% 5%, rgba(99, 102, 241, .42), transparent 60%),
+    linear-gradient(160deg, #172554 0%, #1e3a8a 48%, #312e81 100%);
+}
+.k-idea .fc-inner, .teaser-card.k-idea {
+  background:
+    radial-gradient(90% 80% at 95% 5%, rgba(45, 212, 191, .36), transparent 60%),
+    linear-gradient(160deg, #064e3b 0%, #0f766e 52%, #115e59 100%);
+}
+.k-tip .fc-inner, .teaser-card.k-tip {
+  background:
+    radial-gradient(90% 80% at 95% 5%, rgba(56, 189, 248, .28), transparent 60%),
+    linear-gradient(160deg, #0f172a 0%, #1e293b 52%, #334155 100%);
+}
+.k-myth .fc-inner, .teaser-card.k-myth {
+  background:
+    radial-gradient(90% 80% at 95% 5%, rgba(232, 121, 249, .32), transparent 60%),
+    linear-gradient(160deg, #3b0764 0%, #5b21b6 50%, #4c1d95 100%);
+}
+.k-chart .fc-inner, .teaser-card.k-chart {
+  background:
+    radial-gradient(90% 80% at 95% 5%, rgba(251, 113, 133, .34), transparent 60%),
+    linear-gradient(160deg, #4c0519 0%, #9f1239 50%, #881337 100%);
+}
+.k-quote .fc-inner, .teaser-card.k-quote {
+  background:
+    radial-gradient(90% 80% at 95% 5%, rgba(251, 191, 36, .32), transparent 60%),
+    linear-gradient(160deg, #451a03 0%, #92400e 52%, #78350f 100%);
+}
+.k-word .fc-inner, .teaser-card.k-word {
+  background:
+    radial-gradient(90% 80% at 95% 5%, rgba(74, 222, 128, .3), transparent 60%),
+    linear-gradient(160deg, #052e16 0%, #166534 52%, #14532d 100%);
+}
+.k-story .fc-take, .k-idea .fc-take, .k-tip .fc-take, .k-myth .fc-take, .k-chart .fc-take, .k-quote .fc-take, .k-word .fc-take {
+  background: rgba(255, 255, 255, .14);
+  border: 1px solid rgba(255, 255, 255, .2);
+  border-left: 4px solid rgba(255, 255, 255, .75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.k-story .fc-act, .k-idea .fc-act, .k-tip .fc-act, .k-myth .fc-act, .k-chart .fc-act, .k-quote .fc-act, .k-word .fc-act {
+  background: rgba(255, 255, 255, .15);
+  border: 1px solid rgba(255, 255, 255, .22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: transform .12s ease, background .15s ease, box-shadow .15s ease;
+}
+.k-story .fc-act:hover, .k-idea .fc-act:hover, .k-tip .fc-act:hover, .k-myth .fc-act:hover, .k-chart .fc-act:hover, .k-quote .fc-act:hover, .k-word .fc-act:hover {
+  background: rgba(255, 255, 255, .24);
+}
+.fc-act.on {
+  background: linear-gradient(135deg, #f43f5e, #fb7185) !important;
+  border-color: rgba(255, 255, 255, .4) !important;
+  box-shadow: 0 6px 18px -4px rgba(244, 63, 94, .55);
+}
+.fc-code {
+  border: 1px solid rgba(255, 255, 255, .14);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, .35);
+}
+.teaser-card {
+  border: 1px solid rgba(255, 255, 255, .16);
+  box-shadow: 0 8px 20px -6px rgba(15, 23, 42, .28);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+.teaser-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 26px -8px rgba(15, 23, 42, .36);
+}
+
+/* Practice topics, quizzes & SQL Blocks */
+.topic, .level-card {
+  transition: transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.topic:hover, .level-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.quiz-opt {
+  transition: transform .08s ease, box-shadow .08s ease, border-color .15s ease, background .15s ease;
+}
+.quiz-opt:not(:disabled):hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface));
+}
+.quiz-opt:not(:disabled):hover .letter {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.tray {
+  background:
+    radial-gradient(rgba(255, 255, 255, .06) 1px, transparent 1px) 0 0 / 16px 16px,
+    var(--code-bg);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, .35);
+}
+.sql-editor {
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, .35);
+}
+.sql-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent), inset 0 2px 8px rgba(0, 0, 0, .35);
+}
+
+/* Trophy-case badges in You tab */
+.badges {
+  grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
+  gap: 12px;
+}
+.badge-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 14px;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.badge-card.got {
+  background:
+    radial-gradient(85% 85% at 100% 0%, color-mix(in srgb, var(--teal) 16%, transparent), transparent 65%),
+    var(--surface);
+  border-color: color-mix(in srgb, var(--teal) 60%, var(--line));
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--teal) 24%, transparent);
+}
+.badge-card.got:hover {
+  transform: translateY(-2px);
+}
+.badge-card.got .b-icon {
+  filter: drop-shadow(0 3px 8px color-mix(in srgb, var(--teal) 35%, transparent));
+}

@@ -213,7 +213,7 @@ test('module bonus is paid once, when the last lesson of a module is done', () =
 
 test('new state survives sanitize and merges without loss', () => {
   const a = ui.sanitize({ v: 2, cards: { 's-wald': '2026-11-05', bogus: '2026-11-05', 's-snow': 'yesterday' }, saved: { 's-mars': true, nope: true },
-    blocks: { b01: true, b03: 3, b04: 7, b05: 'x', b99: 2 }, repaired: { '2026-11-08': true, x: true }, boost: 1700000000000, stats: { corrBest: 6 } });
+    blocks: { b01: true, b03: 3, b04: 7, b05: 'x', b999: 2 }, repaired: { '2026-11-08': true, x: true }, boost: 1700000000000, stats: { corrBest: 6 } });
   assert.deepStrictEqual(a.cards, { 's-wald': '2026-11-05' }); assert.deepStrictEqual(a.saved, { 's-mars': true });
   assert.deepStrictEqual(a.blocks, { b01: 1, b03: 3 }, 'old saves (true) count as 1 star; bad values and unknown puzzles are dropped'); assert.deepStrictEqual(a.repaired, { '2026-11-08': true });
   assert.strictEqual(a.boost, 1700000000000);

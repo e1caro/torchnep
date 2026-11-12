@@ -466,6 +466,245 @@
   word('w-yoy', 'Career', 'YoY and MoM', 'Year over year and month over month: comparing a period with the same period a year earlier, or with the previous month.',
     'YoY removes seasonality. December against November tells you little.', 'l4-4');
 
+  /* ------------------------------------------------------------------ extended stories, ideas, tips, myths, quotes & glossary */
+  story('s-minard-map', '🗺️', 'Six variables on one sheet of paper',
+    ['In 1869 Charles Joseph Minard drew Napoleon\'s 1812 Russian campaign on a single map: army size, route, direction, rivers, dates and winter temperatures.',
+     'The tan band starts at 422,000 men and returns as a thin black line of 10,000. Edward Tufte called it perhaps the best statistical graphic ever drawn.'],
+    'Great visuals combine context and numbers so the cause is visible at a glance.', 'l5-3');
+  story('s-cobra', '🐍', 'The cobra effect in Delhi',
+    ['British officials in colonial Delhi reportedly offered a bounty for every dead cobra to reduce the snake population.',
+     'Enterprising residents began breeding cobras for the reward. When the government cancelled the bounty, breeders released the worthless snakes, leaving more cobras than before.'],
+    'Before launching a KPI incentive, ask how a rational person could game it.', 'l5-2');
+  story('s-feynman', '🧊', 'A glass of ice water at a hearing',
+    ['During the Challenger inquiry, physicist Richard Feynman dropped a piece of rubber O-ring into a glass of ice water in front of the cameras.',
+     'It lost its resilience immediately. One clear physical demonstration cut through hundreds of pages of hedged management slides.'],
+    'Anchor abstract numbers in one concrete, undeniable example.', 'l5-3');
+  story('s-target', '🛒', 'When basket analysis knew too much',
+    ['In 2012 the New York Times reported how Target\'s statistician Andrew Pole found 25 products—like unscented lotion and mineral supplements—that predicted a shopper\'s due date.',
+     'The model worked so well that it sent baby coupons to a teenager before her family knew, sparking a national debate on privacy and predictive analytics.'],
+    'Just because a pattern is predictive does not mean every use of it is wise.', 'l6-2');
+  story('s-streetbump', '🕳️', 'The pothole map that skipped poor streets',
+    ['Boston\'s Street Bump app used smartphone accelerometers to detect potholes automatically as residents drove around the city.',
+     'At first it mostly mapped potholes in wealthier neighbourhoods—where more drivers owned smartphones in 2012. Working with researchers, the city corrected for device ownership.'],
+    'Passive sensor data reflects who carries the sensor, not the whole population.', 'l4-2');
+  story('s-ariane', '💥', '37 seconds and an overflow',
+    ['In 1996 the maiden flight of the Ariane 5 rocket veered off course and self-destructed 37 seconds after launch.',
+     'A 64-bit floating-point number for horizontal velocity was converted into a 16-bit signed integer reused from Ariane 4, triggering an overflow error.'],
+    'Data types and numeric ranges matter: what fit yesterday\'s scale can break tomorrow\'s.', 'l1-1');
+  story('s-london-whale', '🐋', 'Copy-paste in a multi-billion risk model',
+    ['In 2012 JPMorgan\'s Chief Investment Office lost over $6 billion in the "London Whale" trades.',
+     'An internal report later revealed that a value-at-risk Excel spreadsheet relied on manual copy-pasting and divided by a sum instead of an average, cutting perceived risk in half.'],
+    'Critical models belong in tested, version-controlled code, not manual spreadsheets.', 'l1-2');
+  story('s-bortkiewicz', '🐴', 'Horse kicks in the Prussian army',
+    ['In 1898 Ladislaus Bortkiewicz studied how many soldiers died from horse kicks across 14 Prussian army corps over 20 years.',
+     'Most corps had zero or one death a year, and the counts followed the Poisson distribution almost perfectly—showing that rare random events cluster by chance alone.'],
+    'Small counts fluctuate wildly by chance; do not overreact to a single spike.', 'l4-2');
+  story('s-quetelet', '📏', 'The invention of the "average man"',
+    ['In the 1830s Belgian astronomer Adolphe Quetelet measured Scottish soldiers\' chests and French conscripts\' heights and noticed the bell-shaped normal curve.',
+     'Later, US Air Force researcher Gilbert Daniels measured 4,063 pilots on 10 dimensions and found that zero pilots were within the middle 30% on all 10 at once.'],
+    'Designing for the "average" user often fits nobody in particular.', 'l4-1');
+  story('s-benford', '1️⃣', 'Dirty books caught by the first digit',
+    ['In 1881 Simon Newcomb noticed that the first pages of logarithm books were far more worn than the last. Leading digit 1 appears about 30% of the time in many natural datasets, while 9 appears under 5%.',
+     'Today auditors use Benford\'s law to flag invented expenses and invoice fraud, because humans guessing numbers spread digits too evenly.'],
+    'Real data has fingerprints that invented numbers rarely reproduce.', 'l4-1');
+  story('s-dr-fox', '🎭', 'Polished delivery, empty content',
+    ['In a famous 1970 experiment, an actor introduced as "Dr Myron L. Fox" gave a charismatic lecture full of contradictions and invented jargon to a room of professionals.',
+     'Audience ratings were glowing. Style and confidence had masked the lack of substance—until someone read the transcript closely.'],
+    'A slick dashboard can hide a hollow metric; always check the logic underneath.', 'l5-2');
+  story('s-pepsi', '🥤', 'One sip versus a whole can',
+    ['In blind "Pepsi Challenge" taste tests, shoppers taking a single sip tended to prefer the sweeter cola.',
+     'Author Malcolm Gladwell noted that drinking a whole can at home is a different experience from a single sip in a mall booth—a classic mismatch between test setup and real usage.'],
+    'Make sure your test measures the real behaviour you care about, not a proxy.', 'l4-3');
+
+  idea('i-pareto-8020', '⚖️', 'The 80/20 concentration check',
+    ['Vilfredo Pareto noticed that roughly 80% of land in Italy was owned by 20% of the population. In business, a small share of products, customers or bugs often drives most of the total.',
+     'Before treating all categories equally, sort them descending and plot cumulative share.'],
+    'Focus your action where the volume actually lives.', 'l4-1');
+  idea('i-mae-rmse', '🎯', 'MAE vs RMSE: how much do big misses hurt?',
+    ['Mean Absolute Error (MAE) averages the size of your forecast misses. Root Mean Squared Error (RMSE) squares each miss before averaging, so one huge error dominates the score.',
+     'Use MAE when a miss of 20 is twice as bad as 10; use RMSE when big misses are disastrous.'],
+    'Pick the error metric that matches the real business cost of being wrong.', 'l4-1');
+  idea('i-type12', '🚨', 'False alarms vs missed detections',
+    ['A Type I error (false positive) cries wolf when nothing changed. A Type II error (false negative) misses a real effect because the sample was too noisy or small.',
+     'Tightening one threshold loosens the other unless you collect more data.'],
+    'Ask which mistake is costlier: acting on noise or missing a real shift.', 'l4-3');
+  idea('i-seasonality', '🌦️', 'Seasonality vs real growth',
+    ['Ice-cream sales rise every July and gym sign-ups spike every January. Comparing January to December mistakes the calendar for strategy.',
+     'Compare each month with the same month last year (YoY) or use a 12-month rolling average.'],
+    'Separate the rhythm of the calendar from the effect of your team\'s work.', 'l4-4');
+  idea('i-novelty', '✨', 'The novelty effect in A/B tests',
+    ['When you change a button\'s colour or move a menu, curious regular users click it more in the first few days—or struggle with the new layout at first.',
+     'Segment results by new versus returning users and watch whether the lift fades in week two.'],
+    'First-week excitement is not long-term habit.', 'l4-3');
+  idea('i-ceiling', '🧱', 'Ceiling and floor effects',
+    ['If 96% of customers already rate checkout 5 out of 5, no redesign can raise the score by 15%. If a metric sits near zero, it cannot fall much further.',
+     'Check how much headroom a metric has before setting targets on it.'],
+    'Always inspect the scale bounds before promising a percentage lift.', 'l4-1');
+  idea('i-wide-long', '🔄', 'Wide tables vs long tables',
+    ['A wide table puts each month in its own column (Jan, Feb, Mar) so humans can read across. A long table has one column for month and one for value.',
+     'Databases, pivot tables and charting libraries almost always prefer long format.'],
+    'Store and analyse data long; reshape to wide only for the final table.', 'l1-1');
+  idea('i-quantile', '📊', 'Why p95 beats the average for speed',
+    ['If 95% of pages load in 0.2 seconds and 5% take 12 seconds, the average looks fine while one in twenty visitors is stuck waiting.',
+     'Engineering and operations teams track p90, p95 and p99 to see the worst real experience.'],
+    'When tail delays hurt users, track the 90th or 95th percentile.', 'l4-1');
+
+  tip('t-sql-coalesce', 'SQL', '🛟', 'Replace NULLs cleanly with COALESCE',
+    ['COALESCE(discount, 0) returns the first non-null value. In arithmetic, 100 - NULL is NULL, so one missing discount can wipe out a whole formula.'],
+    'Wrap nullable numbers in COALESCE before adding or subtracting them.', 'l2-1',
+    'SELECT price - COALESCE(discount, 0) AS net_price\nFROM orders;');
+  tip('t-sql-between', 'SQL', '📅', 'Be careful with BETWEEN on timestamps',
+    ['WHERE created_at BETWEEN \'2025-01-01\' AND \'2025-01-31\' often stops at midnight on the 31st, dropping the whole last day of orders.',
+     'Use >= start of the period and < start of the next period instead.'],
+    'Half-open date ranges (>= start AND < next_start) never miss afternoon rows.', 'l2-1',
+    "WHERE order_date >= '2025-01-01'\n  AND order_date <  '2025-02-01'");
+  tip('t-sql-exists', 'SQL', '🔎', 'NOT EXISTS vs NOT IN with NULLs',
+    ['If a subquery returns even one NULL, WHERE id NOT IN (subquery) returns zero rows in standard SQL because id <> NULL is unknown.',
+     'Filter WHERE col IS NOT NULL inside the subquery, or use NOT EXISTS / LEFT JOIN.'],
+    'Guard against NULLs whenever you write NOT IN.', 'l2-3');
+  tip('t-sql-qualify', 'SQL', '🥇', 'Deduplicate rows with ROW_NUMBER()',
+    ['When an export has duplicate customer rows, number them by latest update per customer_id and keep row_num = 1 in an outer query.'],
+    'ROW_NUMBER() OVER (PARTITION BY id ORDER BY updated_at DESC) is the cleanest deduplicator.', 'l2-4',
+    'WITH ranked AS (\n  SELECT *, ROW_NUMBER() OVER (\n    PARTITION BY customer_id ORDER BY signup_date DESC\n  ) AS rn FROM customers\n)\nSELECT * FROM ranked WHERE rn = 1;');
+  tip('t-sql-div-float', 'SQL', '➗', 'Avoid integer division traps',
+    ['In SQLite and Postgres, 1 / 2 equals 0 because both numbers are integers. Multiply by 1.0 or 100.0 first so you keep the decimals.'],
+    'Write 100.0 * part / total whenever you compute a percentage in SQL.', 'l2-2',
+    'SELECT ROUND(100.0 * COUNT(shipped_at) / COUNT(*), 1)\nFROM orders;');
+  tip('t-sql-order-null', 'SQL', '⬇️', 'Where do NULLs go when you sort?',
+    ['Sorting DESC in SQLite puts numbers above NULLs, while other engines put NULLs first. Never assume: filter NULLs or push them explicitly with CASE.'],
+    'When building a top-10 list, filter WHERE metric IS NOT NULL first.', 'l2-1');
+  tip('t-sql-selfjoin', 'SQL', '🪞', 'Join a table to itself for pairs',
+    ['To find products often bought together in the same order, join order_items a to order_items b on order_id with a.product_id < b.product_id.'],
+    'Using a.id < b.id avoids pairing an item with itself or counting pairs twice.', 'l2-3',
+    'SELECT a.product_id, b.product_id, COUNT(*) AS pairs\nFROM order_items a\nJOIN order_items b ON b.order_id = a.order_id\n  AND a.product_id < b.product_id\nGROUP BY 1, 2 ORDER BY pairs DESC;');
+
+  tip('t-sh-index', 'Sheets', '🧭', 'XLOOKUP and INDEX/MATCH beat VLOOKUP',
+    ['VLOOKUP breaks if someone inserts a column and cannot look to the left. XLOOKUP(key, lookup_col, return_col, "Missing") is safer and clearer.'],
+    'Lookup by column reference, never by a hard-coded column count.', 'l1-2');
+  tip('t-sh-trim', 'Sheets', '🧹', 'Invisible spaces break joins and lookups',
+    ['"Madrid " with a trailing space does not match "Madrid". Wrap imported text keys in =TRIM(CLEAN(A2)) before matching or pivoting.'],
+    'When a lookup says #N/A on a value you can see, check for trailing spaces.', 'l1-1');
+  tip('t-sh-freeze', 'Sheets', '❄️', 'Freeze headers and colour inputs',
+    ['Freeze row 1 so column names stay visible while scrolling. Financial analysts colour raw inputs blue and formulas black so nobody types over a formula.'],
+    'Separate raw data, calculations and summary tabs in every workbook.', 'l1-2');
+  tip('t-sh-named', 'Sheets', '🏷️', 'Use Tables (Ctrl+T) so ranges grow automatically',
+    ['A formula pointing to A2:A500 silently misses row 501 next week. Converting the range to a Table makes formulas expand as new rows arrive.'],
+    'Structured tables prevent the classic "forgot to drag the formula down" bug.', 'l1-2');
+  tip('t-sh-paste', 'Sheets', '📋', 'Paste Values before sharing a snapshot',
+    ['Live formulas linked to local files turn into #REF! on your manager\'s laptop. Keep your working file, and send a clean copy with values locked where needed.'],
+    'Test opening your file on another machine before a big presentation.', 'l1-3');
+
+  tip('t-py-valuecounts', 'Python', '🔢', 'normalize=True gives instant shares',
+    ['df["channel"].value_counts(normalize=True, dropna=False) shows the proportion of each category—including missing values—in one line.'],
+    'Add dropna=False so missing categories never hide.', 'l3-1',
+    'df["channel"].value_counts(normalize=True, dropna=False).round(3)');
+  tip('t-py-query-expr', 'Python', '⚡', 'Readable filtering with .query()',
+    ['Instead of repeating df[df["age"] > 30 & (df["site"] == "North")], write df.query("age > 30 and site == \'North\'") for clean, SQL-like filters.'],
+    'Readable code has fewer bracket bugs.', 'l3-1',
+    'df.query("age > 30 and site == \'North\'")');
+  tip('t-py-assign', 'Python', '⛓️', 'Chain steps cleanly with .assign()',
+    ['Building a pipeline of .query().assign().groupby() avoids ten temporary df2, df3 variables that get out of sync when you re-run cells out of order.'],
+    'Restart kernel and Run All before trusting any notebook result.', 'l3-2',
+    ' clean = (\n    df.dropna(subset=["price"])\n      .assign(revenue=lambda x: x["qty"] * x["price"])\n)');
+  tip('t-py-datetime', 'Python', '📆', 'Parse dates once with pd.to_datetime',
+    ['Once a column is datetime, .dt.to_period("M"), .dt.day_name() and date filtering work vectorized without slow Python loops.'],
+    'Convert date columns right after pd.read_csv.', 'l3-2',
+    'df["month"] = pd.to_datetime(df["order_date"]).dt.to_period("M")');
+  tip('t-py-mergevalidate', 'Python', '🛡️', 'Catch join explosions with validate=',
+    ['pd.merge(orders, customers, on="customer_id", validate="many_to_one") raises an error immediately if customer_id is duplicated in customers.'],
+    'One validate= argument saves hours of hunting inflated totals.', 'l3-2',
+    'pd.merge(orders, customers, on="customer_id", validate="many_to_one")');
+  tip('t-py-idxmax', 'Python', '🏆', 'Top row per group with sort + drop_duplicates',
+    ['Sort by your metric descending, then .drop_duplicates("category") keeps the highest row in each category cleanly and fast.'],
+    'Simple steps beat clever one-liners you cannot debug six months later.', 'l3-2',
+    'df.sort_values("revenue", ascending=False).drop_duplicates("category")');
+
+  tip('t-ch-direct', 'Charts', '🏷️', 'Label lines directly instead of using a legend',
+    ['When a chart has three lines and a colour legend in the corner, the reader\'s eyes bounce back and forth. Put the series name right at the end of each line.'],
+    'Direct labels cut eye travel and still work if printed in greyscale.', 'l5-1');
+  tip('t-ch-smallmult', 'Charts', '🪟', 'Small multiples beat spaghetti charts',
+    ['Ten overlapping lines on one plot look like tangled pasta. Draw ten small panels side by side on the same scale, each highlighting one series against grey context.'],
+    'When a chart gets crowded, split it into small multiples.', 'l5-1');
+  tip('t-ch-aspect', 'Charts', '📐', 'Aspect ratio changes how steep a trend looks',
+    ['Stretching a line chart tall makes a gentle 2% rise look like a rocket; squashing it flat makes a crisis look calm. Aim for slopes around 45° ("banking to 45°").'],
+    'Show the percent change in the subtitle so the geometry cannot mislead.', 'l5-1');
+  tip('t-ch-annot', 'Charts', '🖊️', 'Annotate the spike right on the canvas',
+    ['If orders jumped in November because a new store opened, write "Paris store opened" with a short pointer on the chart itself.'],
+    'A chart with one clear annotation answers the first question before it is asked.', 'l5-3');
+  tip('t-ch-colorblind', 'Charts', '🎨', 'Red-green palettes fail 1 in 12 men',
+    ['About 8% of men have red-green colour vision deficiency. Pair blue with orange, or add symbols, patterns and direct value labels alongside colour.'],
+    'Never rely on hue alone to tell "good" from "bad".', 'l5-1');
+
+  tip('t-ai-tests', 'AI', '🧪', 'Ask AI for three edge-case tests',
+    ['After writing a SQL query or Python function, ask: "Give me a tiny 5-row test table with NULLs, ties and zeros that could break this query."'],
+    'Using AI as a ruthless QA tester makes your own code much stronger.', 'l6-2');
+  tip('t-ai-rubric', 'AI', '📋', 'Give a strict rubric when classifying text',
+    ['"Classify sentiment" is vague. Define each label in one sentence with two borderline examples, and include an "Unclear" bucket so the model is not forced to guess.'],
+    'Clear category rules improve both human and AI agreement.', 'l6-3');
+  tip('t-ai-diff', 'AI', '🔍', 'Ask AI to explain the difference between two queries',
+    ['When two SQL queries return 3,180 and 3,200 rows, paste both schemas and queries and ask which 20 rows one keeps that the other drops.'],
+    'Great analysts investigate every discrepancy down to concrete example rows.', 'l6-1');
+  tip('t-ai-mock', 'AI', '🎤', 'Run a 10-minute mock interview with AI',
+    ['Paste the job description and your project summary, then ask the AI to play a sceptical hiring manager asking one follow-up question at a time.'],
+    'Practising out loud exposes weak explanations before the real interview.', 'l8-2');
+
+  tip('t-ca-log', 'Career', '📓', 'Keep a "brag doc" of numbers you moved',
+    ['Six months later you will forget how many hours your script saved or which decision your analysis changed. Write down one line every Friday with the metric.'],
+    'Your future CV writes itself when you log impact as it happens.', 'l8-1');
+  tip('t-ca-sanity', 'Career', '🧮', 'Do a back-of-the-envelope check first',
+    ['If a café chain has 5 stores open 12 hours a day, €500 million in annual coffee sales means €27,000 an hour per store—impossible. Catching that takes 10 seconds of mental arithmetic.'],
+    'Divide big totals by per-person or per-day units to see if they make physical sense.', 'l1-3');
+  tip('t-ca-caveat', 'Career', '⚠️', 'State the main limitation yourself',
+    ['Putting "Note: excludes refunded orders (1.8%)" on your slide builds instant trust. Waiting for someone in the room to point it out does the opposite.'],
+    'Owning your data\'s limits makes stakeholders trust your conclusions more.', 'l5-3');
+
+  myth('m-r2', 'Stats', 'A high correlation means you can accurately predict individual outcomes.', false,
+    'Even at r = 0.7, half the variance is still unexplained noise—individuals scatter widely around the trend line.', 'l4-4');
+  myth('m-normal', 'Stats', 'Most business metrics (spend, sessions, income) follow a normal bell curve.', false,
+    'Most user metrics are heavily right-skewed: many small values and a long tail of power users.', 'l4-1');
+  myth('m-distinct', 'SQL', 'Adding DISTINCT to every SELECT is a harmless safety habit.', false,
+    'Blind DISTINCT hides duplicate-join bugs you need to know about and forces an expensive sort.', 'l2-3');
+  myth('m-having-where', 'SQL', 'Putting a row filter in HAVING instead of WHERE gives the same speed and clarity.', false,
+    'WHERE filters rows before grouping; HAVING is for group aggregates like COUNT(*) > 5.', 'l2-2');
+  myth('m-3dchart', 'Charts', '3D bars and tilted pies make executive dashboards easier to read.', false,
+    'Perspective distortion warps heights and angles, making accurate visual comparison harder.', 'l5-1');
+  myth('m-moredata', 'Stats', 'Collecting ten times more rows fixes a biased sampling method.', false,
+    'More rows only shrink random noise around the same biased average.', 'l4-2');
+  myth('m-clean80', 'Career', 'Real analysts spend most of their time running complex machine-learning models.', false,
+    'Most real impact comes from defining metrics, cleaning messy tables, joining data accurately and communicating clearly.', 'l0-1');
+  myth('m-ab-peek', 'Stats', 'Stopping an A/B test the moment p drops below 0.05 keeps your false-positive rate at 5%.', false,
+    'Repeatedly peeking and stopping early can push false positives above 20% or 30%.', 'l4-3');
+
+  quote('q-tufte', 'Charts', 'Above all else show the data.', 'Edward Tufte, 1983',
+    'Every drop of ink that does not help the reader understand the numbers is clutter to remove.');
+  quote('q-nightingale', 'Stories', 'To understand God\'s thoughts we must study statistics, for these are the measure of His purpose.', 'Florence Nightingale',
+    'She saw clear data not as dry bookkeeping, but as a moral tool to save lives.');
+  quote('q-wald', 'Stats', 'You are counting the bullet holes on the planes that came home.', 'paraphrased from Abraham Wald, 1943',
+    'Whenever you analyse active users or closed deals, ask what happened to the ones who left.');
+  quote('q-feynman', 'AI', 'The first principle is that you must not fool yourself—and you are the easiest person to fool.', 'Richard Feynman, 1974',
+    'Try half as hard to break your favourite finding as you did to find it.');
+  quote('q-twain', 'Stats', 'Figures often beguile me, particularly when I have the arranging of them myself.', 'Mark Twain',
+    'Selection of time window, baseline and denominator can flip a story without changing a single row.');
+  quote('q-knuth', 'Python', 'Premature optimization is the root of all evil.', 'Donald Knuth, 1974',
+    'Make your query or notebook right and readable first; optimise only when it is actually slow.');
+
+  word('w-idempotent', 'Python', 'Idempotent', 'An operation or pipeline that produces the exact same result whether you run it once or five times in a row.',
+    'A script that appends rows without checking duplicates is NOT idempotent.', 'l3-2');
+  word('w-fanout', 'SQL', 'Join fan-out', 'When joining a one-row-per-order table to a many-rows-per-order table multiplies rows and inflates SUM(order_total).',
+    'Always check COUNT(*) and SUM() before and after a JOIN.', 'l2-3');
+  word('w-skew', 'Stats', 'Skewness', 'Asymmetry in a distribution. Right-skewed data has a long tail of high values that pulls the mean above the median.',
+    'Customer spend and house prices are almost always right-skewed.', 'l4-1');
+  word('w-attrition', 'Stats', 'Attrition bias', 'Distortion caused when participants or users drop out of a study or product non-randomly.',
+    'If unhappy users leave in week 2, week 12 satisfaction looks artificially high.', 'l4-2');
+  word('w-srm', 'Stats', 'Sample Ratio Mismatch', 'When a 50/50 A/B test ends up with, say, 52,000 users in A and 48,000 in B, signalling a tracking or redirect bug.',
+    'Always check the split ratio before trusting any A/B test metric.', 'l4-3');
+  word('w-granularity', 'SQL', 'Granularity', 'The level of detail in a table or chart: hourly vs daily vs monthly, or item-level vs order-level.',
+    'Never mix two granularities in one sum without aggregating first.', 'l2-1');
+  word('w-base-rate', 'Stats', 'Base rate', 'The overall prevalence of an event before you look at any subgroup or test result.',
+    'A "99% accurate" fraud flag still produces mostly false alarms if only 1 in 10,000 orders is fraud.', 'l4-2');
+  word('w-provenance', 'Career', 'Data lineage', 'Where a number came from: which source system recorded it, which scripts transformed it and which filters were applied.',
+    'When two dashboards disagree, tracing lineage is how you find why.', 'l1-1');
+
   DA.feedCards = cards;
   DA.feedById = {};
   cards.forEach(function (c) { DA.feedById[c.id] = c; });

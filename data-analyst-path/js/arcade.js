@@ -18,7 +18,7 @@
   /* ================================================================ lobby */
 
   A.tiles = function () {
-    var st = ui.state.stats, solved = Object.keys(ui.state.blocks).length;
+    var st = ui.state.stats;
     return h('div', { class: 'arcade-tiles' },
       h('a', { class: 'game-tile g-corr', href: '#/arcade/corr' },
         h('span', { class: 'gt-icon', 'aria-hidden': 'true', text: '🎯' }),
@@ -28,8 +28,8 @@
       h('a', { class: 'game-tile g-blocks', href: '#/arcade/blocks' },
         h('span', { class: 'gt-icon', 'aria-hidden': 'true', text: '🧱' }),
         h('strong', { text: 'SQL blocks' }),
-        h('span', { class: 'small', text: DA.puzzles.length + ' puzzles in 8 levels: build queries and fix bugs by tapping tiles.' }),
-        h('span', { class: 'gt-meta', text: '★ ' + A.totals().stars + ' · ' + solved + ' / ' + DA.puzzles.length + ' solved' })));
+        h('span', { class: 'small', text: '8 levels: build queries and fix bugs by tapping tiles.' }),
+        h('span', { class: 'gt-meta', text: '★ ' + A.totals().stars + ' stars' })));
   };
 
   function lobby() {
@@ -149,29 +149,27 @@
   function blocksMap() {
     var root = h('div', { class: 'view blocks-map' }), T = A.totals(), next = A.nextLevel(), nl = levelOf(next);
     root.appendChild(title('SQL blocks'));
-    root.appendChild(h('p', { class: 'lead', text: 'Build real queries by tapping tiles: no typing. ' + DA.puzzles.length + ' puzzles in 8 levels, from your first SELECT to window functions. Every answer is checked by running it on the practice database.' }));
-    root.appendChild(h('div', { class: 'blocks-totals' },
-      stat('stars', T.stars + ' / ' + T.max), stat('solved', T.solved + ' / ' + DA.puzzles.length), stat('bugs fixed', T.fixed + ' / ' + T.fixes), stat('levels cleared', T.levels + ' / 8')));
+    root.appendChild(h('p', { class: 'lead', text: 'Build real queries by tapping tiles: no typing. 8 levels, from your first SELECT to window functions. Every answer is checked by running it on the practice database.' }));
     var col = levelColor(next);
     root.appendChild(h('a', { class: 'next-card', href: '#/arcade/blocks/' + next, style: '--mc:' + col[0] + ';--mcd:' + col[1] },
       h('span', { class: 'gt-icon', 'aria-hidden': 'true', text: nl.icon }),
       h('span', { class: 'grow' }, h('span', { class: 'small', text: T.solved ? 'Continue · Level ' + next : 'Start · Level 1' }), h('strong', { class: 'next-title', text: nl.name })),
       h('span', { class: 'next-go', 'aria-hidden': 'true', text: '▶' })));
     root.appendChild(h('div', { class: 'level-grid' }, DA.blockLevels.map(function (l) {
-      var st = A.levelStats(l.n), c = levelColor(l.n), fixes = A.levelPuzzles(l.n).filter(function (p) { return p.fix; }).length;
+      var st = A.levelStats(l.n), c = levelColor(l.n);
       return h('a', { class: 'level-card' + (st.cleared ? ' cleared' : '') + (l.n === next ? ' current' : ''), href: '#/arcade/blocks/' + l.n, style: '--mc:' + c[0] + ';--mcd:' + c[1],
-        'aria-label': 'Level ' + l.n + ': ' + l.name + '. ' + st.solved + ' of ' + st.total + ' solved, ' + st.stars + ' of ' + st.max + ' stars.' },
+        'aria-label': 'Level ' + l.n + ': ' + l.name },
         h('span', { class: 'lv-top' }, h('span', { class: 'lv-icon', 'aria-hidden': 'true', text: l.icon }), h('span', { class: 'lv-num', text: 'Level ' + l.n }), st.cleared ? h('span', { class: 'lv-done', text: '✓ cleared' }) : null),
         h('strong', { class: 'lv-name', text: l.name }),
-        h('span', { class: 'small muted', text: l.teaches + ' · ' + st.total + ' puzzles' + (fixes ? ', ' + fixes + (fixes === 1 ? ' bug' : ' bugs') + ' to fix' : '') }),
+        h('span', { class: 'small muted', text: l.teaches }),
         ui.progressBar(100 * st.solved / st.total, 'Level ' + l.n + ' progress'),
-        h('span', { class: 'lv-stars' }, h('span', { class: 'stars', 'aria-hidden': 'true', text: '★' }), ' ' + st.stars + ' / ' + st.max));
+        h('span', { class: 'lv-stars' }, h('span', { class: 'stars', 'aria-hidden': 'true', text: '★' }), ' ' + st.stars));
     })));
     if (T.solved >= 5) {
-      root.appendChild(h('a', { class: 'btn big ghost wide', href: '#/arcade/blocks/mix' }, '🔀 Mixed review: 5 puzzles you have solved, from every level'));
+      root.appendChild(h('a', { class: 'btn big ghost wide', href: '#/arcade/blocks/mix' }, '🔀 Mixed review: puzzles from every level'));
     }
     root.appendChild(ui.callout('info', 'How it works. ',
-      'Get it right at the first Check with no hint for ★★★; each extra try or hint costs a star. Replay any puzzle to win more stars. 🐞 puzzles start with a broken query: tap the wrong tile to take it out, then tap the right one to drop it in the same place. Solving a puzzle pays ' + ui.XP.block + ' XP once, three stars ' + ui.XP.blockStar + ' more, and clearing a level ' + ui.XP.blockLevel + '. Solve 3 in a round for the daily "Code" quest.'));
+      'Get it right at the first Check with no hint for ★★★; each extra try or hint costs a star. Replay any puzzle to win more stars, and once you finish all puzzles in a level they cycle back in a fresh order.'));
     loadEngine(); // warm up the engine for the first round
     return root;
   }
@@ -196,8 +194,7 @@
       stage.appendChild(h('div', { class: 'round-head' },
         h('a', { class: 'icon-btn', href: '#/arcade/blocks', 'aria-label': 'Quit the round' }, '✕'),
         ui.progressBar(100 * idx / puzzles.length, 'Round progress'),
-        combo >= 2 ? h('span', { class: 'combo hot', text: '🔥 ' + combo }) : null,
-        h('span', { class: 'combo', text: (idx + 1) + ' / ' + puzzles.length })));
+        combo >= 2 ? h('span', { class: 'combo hot', text: '🔥 ' + combo }) : null));
       var tray = h('div', { class: 'tray', role: 'group', 'aria-label': 'Your query. Tap a tile to take it out; new tiles go where the cursor is.', onclick: function (e) {
         if (e.target === tray && !done) { caret = chosen.length; paint(); }
       } });
@@ -327,7 +324,7 @@
       if (solvedNow === puzzles.length) G.confetti(starsNow === puzzles.length * 3);
       G.sound('done');
       ui.clear(stage);
-      var ls = lv ? A.levelStats(lv) : null, nextLv = lv && ls.cleared && lv < 8 ? lv + 1 : null;
+      var ls = lv ? A.levelStats(lv) : null, nextLv = lv && ls.cleared ? (lv < 8 ? lv + 1 : 1) : null;
       var again = function () { var host = root.parentNode; if (host) { ui.clear(host); host.appendChild(blocksGame(level)); window.scrollTo(0, 0); } };
       stage.appendChild(h('div', { class: 'results' },
         M.svg(starsNow === puzzles.length * 3 ? 'cheer' : solvedNow >= 3 ? 'proud' : 'happy', 110),
@@ -336,8 +333,8 @@
         h('ul', { class: 'round-list' }, got.map(function (g) {
           return h('li', null, g.stars ? starsEl(g.stars) : h('span', { class: 'muted', text: 'shown' }), h('span', { class: 'small', text: (g.p.fix ? '🐞 ' : '') + g.p.ask }));
         })),
-        h('p', { class: 'muted', text: solvedNow + ' of ' + puzzles.length + ' solved' + (xp ? ' · +' + xp + ' XP' : '') + (bestCombo >= 2 ? ' · best streak 🔥 ' + bestCombo : '') }),
-        ls ? h('div', { class: 'lv-progress' }, h('p', { class: 'small', text: levelOf(lv).icon + ' Level ' + lv + ': ' + ls.solved + ' / ' + ls.total + ' solved · ★ ' + ls.stars + ' / ' + ls.max }), ui.progressBar(100 * ls.solved / ls.total, 'Level progress')) : null,
+        h('p', { class: 'muted', text: (xp ? '+' + xp + ' XP' : 'Round finished') + (bestCombo >= 2 ? ' · best streak 🔥 ' + bestCombo : '') }),
+        ls ? h('div', { class: 'lv-progress' }, h('p', { class: 'small', text: levelOf(lv).icon + ' Level ' + lv + ' · ★ ' + ls.stars }), ui.progressBar(100 * ls.solved / ls.total, 'Level progress')) : null,
         solvedNow >= 3 ? h('p', { class: 'muted small', text: 'That counts for today\'s "Code" quest.' }) : h('p', { class: 'muted small', text: 'Solve 3 in a round to complete today\'s "Code" quest.' }),
         h('div', { class: 'row center' },
           nextLv ? h('a', { class: 'btn big accent', href: '#/arcade/blocks/' + nextLv }, 'Level ' + nextLv + ': ' + levelOf(nextLv).name + ' ▶') : null,

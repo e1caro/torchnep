@@ -15,7 +15,7 @@
   var F = (DA.feed = {});
 
   F.DAILY = 5;
-  F.MAX = 260; // items in one plan: room for every card plus the questions and games between them
+  F.MAX = 450; // items in one plan: room for every card plus the questions and games between them
   var KIND_LABEL = { story: 'Data story', idea: 'In 30 seconds', tip: 'Tip', myth: 'Myth or fact?', chart: 'Chart crime', quote: 'Quote', word: 'Word of the day' };
   F.kindLabel = function (c) { return KIND_LABEL[c.kind] || ''; };
   F.filters = function () { return ['For you'].concat(DA.feedCats).concat(['Saved']); };
@@ -76,15 +76,35 @@
     return spread(shuffled);
   };
 
-  function reviewQuestions() {
-    var D = DA.drill, s = ui.state.srs, focus = {}, nx = ui.nextLesson();
+  function reviewQuestions(seedExtra) {
+    var D = DA.drill, s = ui.state.srs, focus = {}, nx = ui.nextLesson(), tag = (seedExtra || '');
     DA.modules.forEach(function (m) { if (m.lessons.some(function (l) { return ui.state.done[l.id]; })) focus[m.cat] = true; });
     if (nx) focus[nx.module.cat] = true;
-    var due = ui.seededShuffle(D.dueList(), ui.today() + ':due');
-    var unseen = ui.seededShuffle(D.bank().filter(function (q) { return !s[q.id]; }), ui.today() + ':new')
+    var due = ui.seededShuffle(D.dueList(), ui.today() + ':due' + tag);
+    var unseen = ui.seededShuffle(D.bank().filter(function (q) { return !s[q.id]; }), ui.today() + ':new' + tag)
       .sort(function (a, b) { return (focus[b.cat] ? 1 : 0) - (focus[a.cat] ? 1 : 0); });
-    return due.concat(unseen);
+    var rest = ui.seededShuffle(D.bank().filter(function (q) { return s[q.id] && s[q.id].due > ui.today(); }), ui.today() + ':rest' + tag);
+    return due.concat(unseen).concat(rest);
   }
+
+  // Endless cycle builder: once the user has seen all reels in a filter, restarts with a fresh cycle of seen cards.
+  F.cycle = function (filter, cycleNum) {
+    var items = [], cat = DA.feedCats.indexOf(filter) >= 0 ? filter : '', i;
+    if (filter === 'Saved') {
+      var savedCards = DA.feedCards.filter(function (c) { return ui.state.saved[c.id]; });
+      return spread(ui.seededShuffle(savedCards, ui.today() + ':saved:' + (cycleNum || 1))).map(function (c) { return { type: 'card', card: c }; });
+    }
+    var pool = DA.feedCards.filter(function (c) { return !cat || c.cat === cat; });
+    var cards = spread(ui.seededShuffle(pool, ui.today() + ':cycle:' + (cat || 'all') + ':' + (cycleNum || 1)));
+    var quizzes = cat ? [] : reviewQuestions(':c' + (cycleNum || 1)), qi = 0, slot = 0;
+    for (i = 0; i < cards.length; ) {
+      slot++;
+      if (!cat && slot % 10 === 0) { items.push({ type: 'game' }); continue; }
+      if (!cat && slot % 4 === 0 && qi < quizzes.length) { items.push({ type: 'quiz', q: quizzes[qi++] }); continue; }
+      items.push({ type: 'card', card: cards[i++] });
+    }
+    return items;
+  };
 
   // The list of feed items for a filter. Items: {type:'card', card} | {type:'quiz', q} | {type:'game'} | {type:'caught'} | {type:'end'} | {type:'empty'}
   F.plan = function (filter, startId) {

@@ -156,5 +156,112 @@
   Q('Learning', 'Why keep an error log?', 'Patterns in your mistakes show what to practise next', ['To remember how many mistakes you have made so far', 'To show interviewers how hard you have worked on it', 'Because AI tutors need it before they can help you'],
     'A short log of cause and fix is a very efficient revision tool.');
 
+  /* ---------- Extended Practice Bank (SQL, Python, Statistics, Spreadsheets, Visualization, AI, Career, Learning) ---------- */
+  Q('SQL', 'What does COALESCE(discount, 0) return when discount is NULL?', '0', ['NULL', '1', 'An error message from the database engine'],
+    'COALESCE returns its first non-null argument, which prevents NULL from wiping out arithmetic.');
+  Q('SQL', 'In SQLite, what does 3 / 4 evaluate to when both numbers are integers?', '0', ['0.75', '1', '0.7500000000000001'],
+    'Integer division truncates the decimal part. Write 3.0 / 4 or 1.0 * a / b to get a decimal.');
+  Q('SQL', 'Which window function gives 1, 2, 2, 4 when two rows tie for second place?', 'RANK()', ['DENSE_RANK()', 'ROW_NUMBER()', 'NTILE(4)'],
+    'RANK() skips the next number after a tie; DENSE_RANK() gives 1, 2, 2, 3; ROW_NUMBER() gives 1, 2, 3, 4.');
+  Q('SQL', 'Which window function gives 1, 2, 2, 3 when two rows tie for second place?', 'DENSE_RANK()', ['RANK()', 'ROW_NUMBER()', 'PERCENT_RANK()'],
+    'DENSE_RANK() leaves no gaps in the ranking numbers after a tie.');
+  Q('SQL', 'Why can WHERE id NOT IN (SELECT parent_id FROM items) return 0 rows unexpectedly?', 'If parent_id contains even one NULL, NOT IN evaluates to unknown', ['Because subqueries inside WHERE are limited to 100 rows at most in SQL', 'Because NOT IN requires both tables to be sorted by id first', 'Because NOT IN only works on text columns and fails on integers'],
+    'In three-valued SQL logic, x <> NULL is unknown. Filter WHERE parent_id IS NOT NULL in the subquery or use NOT EXISTS.');
+  Q('SQL', 'How do you count orders placed in March 2025 when order_date is a timestamp with hours and minutes?', "WHERE order_date >= '2025-03-01' AND order_date < '2025-04-01'", ["WHERE order_date BETWEEN '2025-03-01' AND '2025-03-31 00:00:00'", "WHERE order_date = '2025-03'", "WHERE HAVING strftime('%m', order_date) = 3"],
+    'A half-open interval (>= first day of month AND < first day of next month) includes all times on March 31.');
+  Q('SQL', 'What does SUM(CASE WHEN status = \'paid\' THEN 1 ELSE 0 END) calculate?', 'The number of rows where status is paid', ['The total revenue of all rows where status is paid', 'A boolean flag showing whether every row is paid', 'The share of rows where status is paid as a ratio'],
+    'Conditional aggregation with CASE inside SUM or COUNT lets you count specific subsets in a single pass.');
+  Q('SQL', 'You want each customer\'s latest order row. Which pattern is cleanest?', 'ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date DESC) = 1', ['SELECT DISTINCT customer_id, order_date FROM orders ORDER BY order_date DESC', 'GROUP BY customer_id HAVING order_date = MAX(order_date)', 'ORDER BY customer_id, order_date DESC LIMIT 1'],
+    'Numbering rows per customer from newest to oldest and filtering rn = 1 in a CTE keeps the exact latest row.');
+  Q('SQL', 'What happens if you omit the ON clause in a JOIN in SQLite?', 'It produces a Cartesian product (every row paired with every row)', ['It automatically joins on all columns that share the exact same name', 'It returns zero rows and prints a warning about missing keys', 'It defaults to joining on the primary key of the first table'],
+    'A join without a condition multiplies the row counts of both tables.');
+  Q('SQL', 'Which query finds products that have not been ordered even once?', 'SELECT p.product_id FROM products p LEFT JOIN order_items oi ON oi.product_id = p.product_id WHERE oi.product_id IS NULL', ['SELECT p.product_id FROM products p INNER JOIN order_items oi ON oi.product_id = p.product_id WHERE oi.qty IS NULL OR oi.qty = 0', 'SELECT product_id FROM order_items WHERE product_id IS NULL GROUP BY product_id', 'SELECT p.product_id FROM products p LEFT JOIN order_items oi ON oi.product_id = p.product_id WHERE oi.product_id = NULL'],
+    'LEFT JOIN keeps unmatched products and fills the right-side columns with NULL, which you test with IS NULL.');
+  Q('SQL', 'What does GROUP BY 1, 2 mean in a SELECT query?', 'Group by the first and second columns listed in SELECT', ['Group only the first two rows of the table together', 'Keep groups that have at least 1 or 2 matching rows', 'Round the grouped numbers to 1 and 2 decimal places'],
+    'Positional shorthand refers to the 1st and 2nd expressions in the SELECT list.');
+  Q('SQL', 'What does LEAD(price) OVER (ORDER BY day) return?', 'The price from the next row in day order', ['The highest price across the whole table', 'The price from the first row in the window', 'The price from the previous row in day order'],
+    'LEAD looks forward one row; LAG looks back one row.');
+
+  Q('Python', 'What does df["city"].value_counts(dropna=False) do?', 'Counts each unique city value, including NaN', ['Drops missing values and returns the city names sorted A to Z', 'Replaces missing cities with False and counts the remaining rows', 'Returns True if every city appears the same number of times'],
+    'By default value_counts skips NaNs; dropna=False reveals how many values are missing.');
+  Q('Python', 'Why pass validate="many_to_one" to pd.merge(orders, customers, on="customer_id")?', 'It raises an error if customer_id is duplicated in customers', ['It automatically deletes duplicate customer rows before merging', 'It speeds up the merge by skipping the index check on orders', 'It converts customer_id to an integer in both tables first'],
+    'Validating join cardinality catches unexpected duplicates before they inflate sums.');
+  Q('Python', 'What does df.duplicated(subset=["email"]).sum() return?', 'The number of duplicate rows sharing an earlier email', ['A list of all unique email addresses in the DataFrame', 'The DataFrame with duplicate email rows removed in place', 'The total number of non-null emails in the email column'],
+    'duplicated() marks repeat occurrences as True, and .sum() counts them.');
+  Q('Python', 'How do you extract the calendar month from a datetime column df["date"]?', 'df["date"].dt.month', ['df["date"].month()', 'df["date"].str.slice(0, 2)', 'pd.month(df["date"])'],
+    'The .dt accessor exposes date and time properties on datetime Series.');
+  Q('Python', 'What is the difference between df.loc[0:3] and df.iloc[0:3]?', 'iloc slices by integer position (3 rows); loc slices by label (inclusive)', ['loc is faster for numeric columns; iloc works only on text and date columns', 'iloc modifies the DataFrame in place; loc returns a read-only copy', 'There is no difference when the index is made of integers'],
+    'iloc uses half-open Python positions [0, 1, 2]; loc matches index labels and includes both endpoints.');
+  Q('Python', 'What does df.groupby("store")["sales"].transform("mean") return?', 'A Series of store means with the same length and index as df', ['A small summary table with one row per store and its mean sales', 'The overall mean of sales across all stores as one float', 'A boolean mask of rows where sales exceed the store mean'],
+    'transform() broadcasts the group result back to every original row—just like a SQL window function.');
+  Q('Python', 'Before trusting the output of a Jupyter notebook, what should you do?', 'Restart the kernel and Run All from top to bottom', ['Clear all cell outputs and save the file without running it', 'Run only the last three cells again to refresh the chart', 'Convert every code cell into a markdown cell for sharing'],
+    'Running cells out of order leaves stale variables in memory that make results irreproducible.');
+  Q('Python', 'What does df["price"].clip(lower=0, upper=100) do?', 'Caps values below 0 at 0 and values above 100 at 100', ['Deletes every row where price is below 0 or above 100', 'Selects only the rows where price sits between 0 and 100', 'Rescales the price column linearly so it spans 0 to 100'],
+    'Clipping (winsorizing) bounds extreme values without dropping the row.');
+
+  Q('Statistics', 'In an A/B test intended to be 50/50, group A has 52,400 users and group B has 47,600. What should you do?', 'Halt and investigate: a Sample Ratio Mismatch indicates a bug', ['Analyse as usual, since both groups have over 40,000 active users', 'Randomly delete 4,800 rows from group A so the sizes match', 'Weight group B by 1.10 and report the p-value as valid'],
+    'An uneven split in a 50/50 test usually means a broken redirect, bot traffic or logging failure in one arm.');
+  Q('Statistics', 'What does the 90th percentile (p90) of delivery time equal to 42 minutes mean?', '90% of deliveries arrive in 42 minutes or less, and 10% take longer', ['The average delivery takes 90% of 42 minutes, or about 38 minutes total', '90% of deliveries take exactly 42 minutes from order to door', 'Only 10% of deliveries arrive within the 42-minute target window'],
+    'Percentiles show the experience at the tail without being distorted by a single 5-hour outlier.');
+  Q('Statistics', 'You test 20 independent metrics at α = 0.05 when nothing actually changed. What is the chance of at least one "significant" result?', 'About 64% (nearly two in three)', ['Still 5%, because each test uses the same 0.05 threshold', 'Exactly 100%, because 20 times 0.05 equals 1.00 in total', 'About 0.25%, because testing more metrics lowers the risk'],
+    'This is the multiple-testing problem: 1 − 0.95^20 ≈ 0.64. Pick one primary metric in advance.');
+  Q('Statistics', 'Why do extreme top performers in week 1 often score closer to the average in week 2?', 'Regression to the mean: week 1 combined skill with good luck', ['Because top performers stop trying once they see the leaderboard', 'Because the measurement tool becomes less accurate in week 2', 'Because the overall average rises to match the top group in week 2'],
+    'When any metric includes random noise, an extreme reading usually has luck that does not repeat next time.');
+  Q('Statistics', 'Which measure of spread pairs naturally with the median for skewed data?', 'The interquartile range (IQR: 75th minus 25th percentile)', ['The standard deviation squared (the full sample variance)', 'The maximum minus the minimum across all rows', 'The standard error of the sample mean'],
+    'Like the median, the IQR ignores extreme outliers in the tails.');
+  Q('Statistics', 'A fraud detector is 99% accurate, but only 1 in 1,000 orders is actually fraud. If it flags an order, is it probably fraud?', 'No: false alarms from the 999 legitimate orders outnumber real frauds', ['Yes: there is a 99% probability that the flagged order is real fraud', 'Yes: only 1 in 1,000 flagged orders will turn out to be a mistake', 'It is 50/50, because the test either catches fraud or misses it'],
+    'Base-rate neglect: 1% false positives on 999 good orders is ~10 false alarms for every ~1 true fraud.');
+  Q('Statistics', 'What is a confounding variable?', 'A factor that affects both the exposure and the outcome, faking a link', ['A variable with too many missing values to include in a regression model', 'A random measurement error that makes the p-value larger than 0.05', 'A duplicate column that has been joined into the table twice'],
+    'For example, warmer weather increases both ice-cream sales and swimming accidents.');
+  Q('Statistics', 'When comparing monthly sales of a seasonal retail business, which comparison is fairest?', 'This October versus last October (Year-over-Year)', ['This October versus this September (Month-over-Month)', 'This October versus the average of July and August', 'This October annualized by multiplying the month by 12'],
+    'Year-over-Year compares the same point in the seasonal cycle.');
+
+  Q('Spreadsheets', 'Why do analysts prefer XLOOKUP or INDEX/MATCH over VLOOKUP?', 'Inserting a column does not break the column index, and it can look left', ['VLOOKUP is limited to 1,000 rows in modern desktop spreadsheet programs', 'XLOOKUP automatically removes duplicates from the source table', 'INDEX/MATCH works without needing a shared key between tables'],
+    'Hard-coded column numbers in VLOOKUP break silently when someone adds a column.');
+  Q('Spreadsheets', 'A lookup returns #N/A even though the text looks identical in both cells. What is the first thing to check?', 'Trailing spaces or numbers stored as text (use TRIM or VALUE)', ['Whether the font size and cell background colour match exactly', 'Whether the workbook file name contains spaces or hyphens', 'Whether the two sheets are in the right tab order at the bottom'],
+    '"1042" as text does not match 1042 as a number, and "Paris " does not match "Paris".');
+  Q('Spreadsheets', 'What does converting a range into a structured Table (Ctrl+T) prevent?', 'Formulas and pivots missing new rows added at the bottom later', ['Users typing numbers into cells that expect text category labels', 'Rounding differences between currencies in different columns', 'Accidental sorting of the whole table by a single column'],
+    'Structured table references expand automatically when you append data.');
+  Q('Spreadsheets', 'What does =COUNTIFS(A:A, "North", B:B, ">50") return?', 'The number of rows where column A is North AND column B is over 50', ['The number of rows where column A is North OR column B is over 50', 'The sum of column B on all rows where column A equals North', 'An error, because COUNTIFS only accepts one column at a time'],
+    'COUNTIFS applies all conditions with AND logic.');
+  Q('Spreadsheets', 'In a financial or operational model, why put assumptions (like tax rate = 21%) in dedicated cells instead of inside formulas?', 'So you can see, audit and update the assumption in one place', ['Because spreadsheet formulas cannot multiply by decimal literals', 'Because it makes the file size smaller when saved as .xlsx', 'Because pivot tables require every constant to have its own cell'],
+    'Hard-coding magic numbers inside 40 formulas guarantees you will miss one when the rate changes.');
+
+  Q('Visualization', 'A line chart has 11 overlapping coloured lines and a legend on the right. How do you make it readable?', 'Use small multiples, or grey out 10 lines and highlight + direct-label 1', ['Make every line thicker and add 3D drop shadows so they separate clearly', 'Switch to a 3D stacked area chart with a rainbow colour palette', 'Add data labels to every single point on all 11 lines at once'],
+    'Highlighting the focal series in accent colour against grey context—or splitting into small panels—removes visual tangles.');
+  Q('Visualization', 'Why put the label directly at the end of a line instead of in a separate legend box?', 'Readers see which line is which without jumping their eyes back and forth', ['It lets you fit twice as many gridlines onto the chart background canvas', 'It automatically scales the y-axis to start at the minimum value', 'Most business intelligence tools cannot export a separate legend'],
+    'Direct labelling reduces cognitive load and survives black-and-white printing.');
+  Q('Visualization', 'Which colour pair is safest for readers with red-green colour vision deficiency?', 'Blue and orange', ['Red and green', 'Light green and dark red', 'Lime and crimson'],
+    'Blue and orange remain distinct across the most common forms of colour blindness.');
+  Q('Visualization', 'You want to show how a $100M budget splits across 5 departments and their sub-teams. Which chart works well?', 'A sorted horizontal bar chart (or a treemap with clear labels)', ['A 3D exploding pie chart with 18 slices and a legend below it', 'A scatter plot with department name on the horizontal axis', 'A dual-axis line chart connecting the 5 departments in order'],
+    'Aligned bars make comparisons effortless across both main groups and subgroups.');
+  Q('Visualization', 'What is the main purpose of an annotation on a time-series chart?', 'To explain why a notable spike, drop or shift happened on that date', ['To repeat the axis numbers in a larger font above every data point', 'To fill empty whitespace in the corners of the chart canvas', 'To list all the SQL tables used to build the underlying query'],
+    'Context right on the spike turns a decorative chart into an answer.');
+
+  Q('AI workflow', 'How can you use an AI assistant to test a SQL query you just wrote?', 'Ask it to invent a 5-row edge-case table (NULLs, ties, 0s) that breaks it', ['Paste your production customer table and ask if the output looks right', 'Ask it to rate your query from 1 to 10 without showing the schema', 'Have it rewrite the query in three other languages to compare'],
+    'Adversarial edge-case generation is one of the safest, highest-leverage uses of AI.');
+  Q('AI workflow', 'Why include an "Unclear / Other" category when asking AI to classify customer tickets?', 'So the model is not forced to guess a wrong label on ambiguous text', ['Because language models require an odd number of categories to run', 'To make the prompt shorter and reduce the cost per thousand tokens', 'So you can delete all rows in that category without reading them'],
+    'Forcing a confident guess on vague tickets pollutes your real categories.');
+  Q('AI workflow', 'Two queries—yours and the AI\'s—disagree by 14 rows. What is the fastest way to find out why?', 'Inspect the 14 rows in one result but not the other (EXCEPT / anti-join)', ['Re-run the AI prompt three times and take the majority answer from those', 'Take the average of the two numbers so the error is halved', 'Assume the longer query is right because it has more clauses'],
+    'Looking at the actual differing records immediately reveals the edge case (e.g. NULLs or boundary dates).');
+  Q('AI workflow', 'When asking AI to help write a stakeholder summary, what must you provide yourself?', 'The verified numbers, the caveats, and the specific decision at stake', ['Only the raw database dump so the AI can choose the best story', 'A request to make the results sound as dramatic and certain as possible', 'Nothing: ask the AI what typical numbers in your industry look like'],
+    'Let AI polish the prose, never invent or select the facts.');
+
+  Q('Career', 'A manager asks: "Can you pull a quick list of all churned users?" What should you ask first?', '"How are we defining churned, and what action will we take with the list?"', ['"Which font and colour scheme would you like in the final spreadsheet?"', '"Should I use Python or SQL to export the CSV file for you?"', '"Can this wait until next month when the warehouse is faster?"'],
+    'Clarifying the definition (e.g. cancelled subscription vs 30 days inactive) prevents building the wrong thing.');
+  Q('Career', 'Your analysis shows a popular new feature actually reduced checkout conversion by 2%. What do you do?', 'Verify the data twice, then present the finding clearly and objectively', ['Filter out the worst days until the change looks positive or neutral', 'Keep quiet about conversion and only report the feature\'s click count', 'Wait a few months to see if the number improves on its own'],
+    'An analyst\'s value is trustworthiness—especially when the data is inconvenient.');
+  Q('Career', 'Why state the main limitation of your analysis on your own slide?', 'It builds credibility and prevents a stakeholder from derailing the meeting', ['It gives you an excuse if your SQL query had a join bug in it', 'It shows that the data team needs a bigger budget before deciding', 'It makes the presentation longer so there is less time for questions'],
+    'Proactively noting scope and caveats shows rigour and keeps the discussion focused.');
+  Q('Career', 'What makes a portfolio project stand out to a hiring manager?', 'A real question on messy data, a clear finding, and a concrete recommendation', ['Using ten different machine-learning libraries in a 2,000-line Jupyter notebook', 'Copying the standard Titanic or Iris tutorial with default charts', 'Building a dashboard with 25 charts and no written conclusion'],
+    'Hiring managers look for sound judgement, clean code and business communication.');
+  Q('Career', 'How do you sanity-check a surprisingly high total revenue figure before sending it?', 'Divide by orders or customers and compare with known per-unit averages', ['Format the number with two decimals and a bold currency symbol', 'Check that the SQL query ran in less than one second without errors', 'Ask a colleague if the font on the summary table looks professional'],
+    'Back-of-the-envelope division catches join fan-outs and unit mistakes in seconds.');
+
+  Q('Learning', 'You get stuck on a SQL challenge for 10 minutes. What is the most productive next step?', 'Run the inner SELECT first to inspect intermediate rows and column values', ['Delete the whole query and open the full reference solution right away', 'Switch to a completely different topic and skip SQL for the week', 'Add DISTINCT and GROUP BY at random until the error disappears'],
+    'Building and inspecting a query one step at a time turns a big mystery into a small, visible step.');
+  Q('Learning', 'Why is writing a 3-line summary at the end of a lesson worth the extra minute?', 'Translating an idea into your own words exposes gaps immediately', ['It counts as extra characters in your browser\'s local storage file', 'It lets you skip all the hands-on exercises in the next module', 'It is only useful if you plan to publish a textbook later on'],
+    'Generation and synthesis lock concepts into long-term memory.');
+
   DA.extraQuestions = list;
 })();

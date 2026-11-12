@@ -360,6 +360,106 @@
     ['SELECT', 'category ,', 'name ,', 'RANK() OVER', '(ORDER BY price DESC) AS r', 'FROM', 'products'], ['GROUP BY'],
     'Without PARTITION BY there is one ranking for the whole menu.');
 
+  /* ---------- extended puzzles across all 8 levels (b95-b122) ---------- */
+
+  P(1, 'retail', 'List all store cities in reverse alphabetical order (Z to A).',
+    ['SELECT', 'city', 'FROM', 'stores', 'ORDER BY', 'city', 'DESC'], ['ASC', 'GROUP BY'],
+    'DESC sorts text from Z down to A.');
+  P(1, 'retail', 'Which different cities do registered customers live in, A to Z?',
+    ['SELECT', 'DISTINCT', 'city', 'FROM', 'customers', 'ORDER BY', 'city'], ['COUNT(*)', 'LIMIT 5'],
+    'DISTINCT keeps one row per unique city.');
+  P(1, 'lab', 'Show the 5 youngest participants: participant_id and age (ties by participant_id).',
+    ['SELECT', 'participant_id ,', 'age', 'FROM', 'participants', 'ORDER BY', 'age ,', 'participant_id', 'LIMIT 5'], ['DESC', 'WHERE'],
+    'Ascending is the default sort, so the smallest ages come first.');
+  F(1, 'retail', 'Fix the bug: show each customer segment once.',
+    ['SELECT', 'DISTINCT', 'segment', 'FROM', 'customers'],
+    ['SELECT', 'segment', 'FROM', 'customers'], ['ORDER BY'],
+    'Without DISTINCT, segment is repeated 400 times—once for every customer row.');
+
+  P(2, 'retail', 'Which stores opened in 2021 or later? Return city and opened_year.',
+    ['SELECT', 'city ,', 'opened_year', 'FROM', 'stores', 'WHERE', 'opened_year >= 2021'], ['opened_year > 2021', 'HAVING'],
+    '>= includes 2021 itself; > would start at 2022.');
+  P(2, 'retail', 'Find products in the Bakery or Food categories: name and category.',
+    ['SELECT', 'name ,', 'category', 'FROM', 'products', 'WHERE', "category IN ('Bakery', 'Food')"], ["category = 'Bakery' AND category = 'Food'", 'GROUP BY'],
+    'IN checks whether a value matches any item in the list.');
+  P(2, 'lab', 'Men in the control group at the South site: participant_id.',
+    ['SELECT', 'participant_id', 'FROM', 'participants', 'WHERE', "sex = 'M'", 'AND', "group_name = 'control'", 'AND', "site = 'South'"], ['OR', 'HAVING'],
+    'Chain three conditions with AND when all three must hold.');
+  F(2, 'retail', 'Fix the bug: pickup orders placed at store 1: order_id.',
+    ['SELECT', 'order_id', 'FROM', 'orders', 'WHERE', "channel = 'pickup'", 'AND', 'store_id = 1'],
+    ['SELECT', 'order_id', 'FROM', 'orders', 'WHERE', "channel = 'pickup'", 'OR', 'store_id = 1'], ['HAVING'],
+    'OR returns every pickup order everywhere PLUS every order at store 1.');
+
+  P(3, 'retail', 'What is the lowest product price on the menu?',
+    ['SELECT', 'MIN(price)', 'FROM', 'products'], ['MAX(price)', 'ORDER BY'],
+    'MIN returns the smallest value in the column.');
+  P(3, 'retail', 'How many orders were placed via pickup?',
+    ['SELECT', 'COUNT(*)', 'FROM', 'orders', 'WHERE', "channel = 'pickup'"], ['SUM(channel)', 'HAVING'],
+    'Filter to pickup rows with WHERE, then count them.');
+  P(3, 'lab', 'What are the youngest and oldest participant ages?',
+    ['SELECT', 'MIN(age) ,', 'MAX(age)', 'FROM', 'participants'], ['AVG(age)', 'GROUP BY'],
+    'MIN and MAX in one SELECT give the full range at a glance.');
+  F(3, 'retail', 'Fix the bug: total units sold for product_id 1.',
+    ['SELECT', 'SUM(qty)', 'FROM', 'order_items', 'WHERE', 'product_id = 1'],
+    ['SELECT', 'COUNT(qty)', 'FROM', 'order_items', 'WHERE', 'product_id = 1'], ['GROUP BY'],
+    'COUNT counts how many order lines included product 1, ignoring whether someone bought 2 or 3 units.');
+
+  P(4, 'retail', 'How many stores opened in each year?',
+    ['SELECT', 'opened_year ,', 'COUNT(*)', 'FROM', 'stores', 'GROUP BY', 'opened_year'], ['WHERE', 'SUM(opened_year)'],
+    'GROUP BY opened_year creates one group per opening year.');
+  P(4, 'retail', 'Total units sold per product_id, only for products with more than 600 units sold.',
+    ['SELECT', 'product_id ,', 'SUM(qty)', 'FROM', 'order_items', 'GROUP BY', 'product_id', 'HAVING', 'SUM(qty) > 600'], ['WHERE', 'COUNT(qty) > 600'],
+    'Filter the summed group total with HAVING SUM(qty) > 600.');
+  P(4, 'lab', 'Average measurement value for each metric name.',
+    ['SELECT', 'metric ,', 'AVG(value)', 'FROM', 'measurements', 'GROUP BY', 'metric'], ['WHERE', 'SUM(value)'],
+    'Grouping by metric summarises vo2max, resting_hr and weight_kg separately.');
+  F(4, 'retail', 'Fix the bug: highest price in each product category.',
+    ['SELECT', 'category ,', 'MAX(price)', 'FROM', 'products', 'GROUP BY', 'category'],
+    ['SELECT', 'category ,', 'MIN(price)', 'FROM', 'products', 'GROUP BY', 'category'], ['WHERE'],
+    'MIN gives the cheapest price in each category; MAX gives the highest.');
+
+  P(5, 'retail', 'Total units sold for each product category: category and units.',
+    ['SELECT', 'p.category ,', 'SUM(oi.qty)', 'FROM', 'order_items oi', 'JOIN', 'products p', 'ON', 'p.product_id = oi.product_id', 'GROUP BY', 'p.category'], ['COUNT(*)', 'WHERE'],
+    'Join order_items to products on product_id, then sum qty by category.');
+  P(5, 'retail', 'How many orders were placed at stores opened before 2021?',
+    ['SELECT', 'COUNT(*)', 'FROM', 'orders o', 'JOIN', 'stores s', 'ON', 's.store_id = o.store_id', 'WHERE', 's.opened_year < 2021'], ['HAVING', 's.opened_year > 2021'],
+    'Join orders to stores so you can filter by stores.opened_year.');
+  P(5, 'lab', 'Average resting_hr for each sex (F and M).',
+    ['SELECT', 'p.sex ,', 'AVG(m.value)', 'FROM', 'measurements m', 'JOIN', 'sessions s', 'ON', 's.session_id = m.session_id', 'JOIN', 'participants p', 'ON', 'p.participant_id = s.participant_id', 'WHERE', "m.metric = 'resting_hr'", 'GROUP BY', 'p.sex'], ['HAVING', 'p.site'],
+    'Link measurements → sessions → participants, filter to resting_hr, and group by sex.');
+  F(5, 'lab', 'Fix the bug: show session_id and the participant\'s group_name for every session.',
+    ['SELECT', 's.session_id ,', 'p.group_name', 'FROM', 'sessions s', 'JOIN', 'participants p', 'ON', 'p.participant_id = s.participant_id'],
+    ['SELECT', 's.session_id ,', 'p.group_name', 'FROM', 'sessions s', 'JOIN', 'participants p', 'ON', 'p.participant_id = s.session_id'], ['WHERE'],
+    'Join on the shared foreign key (participant_id), never on session_id = participant_id.');
+
+  P(6, 'retail', 'How many customers signed up in each month of 2024 (as YYYY-MM), in calendar order?',
+    ['SELECT', "strftime('%Y-%m', signup_date) AS m ,", 'COUNT(*)', 'FROM', 'customers', 'GROUP BY', 'm', 'ORDER BY', 'm'], ['WHERE', 'DESC'],
+    'strftime(\'%Y-%m\', signup_date) extracts the year-month string.');
+  P(6, 'retail', 'Label stores as \'early\' (opened before 2021) or \'recent\': city and era.',
+    ['SELECT', 'city ,', "CASE WHEN opened_year < 2021 THEN 'early'", "ELSE 'recent' END AS era", 'FROM', 'stores'], ['WHERE', 'GROUP BY'],
+    'CASE WHEN turns a year threshold into a clean two-value label.');
+  P(6, 'lab', 'Count participants by age bracket: \'under 30\', \'30 to 49\', \'50 plus\'.',
+    ['SELECT', "CASE WHEN age < 30 THEN 'under 30'", "WHEN age < 50 THEN '30 to 49'", "ELSE '50 plus' END AS bracket ,", 'COUNT(*)', 'FROM', 'participants', 'GROUP BY', 'bracket'], ['WHERE', 'HAVING'],
+    'Each WHEN is checked in turn, so the second branch only sees ages 30 and above.');
+
+  P(7, 'lab', 'Participants who are older than the average participant: participant_id and age.',
+    ['SELECT', 'participant_id ,', 'age', 'FROM', 'participants', 'WHERE', 'age >', '(SELECT AVG(age) FROM participants)'], ['AVG(age)', 'HAVING'],
+    'The scalar subquery computes the overall average age first.');
+  P(7, 'retail', 'Products that have been ordered in a line of 3 units (qty = 3): name.',
+    ['SELECT', 'name', 'FROM', 'products', 'WHERE', 'product_id IN', '(SELECT product_id FROM order_items', 'WHERE qty = 3)'], ['product_id NOT IN', 'GROUP BY'],
+    'IN (SELECT …) tests whether the product appears in any 3-unit order line without multiplying rows.');
+  F(7, 'lab', 'Fix the bug: average number of sessions attended per participant.',
+    ['WITH c AS', '(SELECT participant_id , COUNT(*) AS n FROM sessions GROUP BY participant_id)', 'SELECT', 'AVG(n)', 'FROM', 'c'],
+    ['WITH c AS', '(SELECT participant_id , COUNT(*) AS n FROM sessions GROUP BY participant_id)', 'SELECT', 'SUM(n)', 'FROM', 'c'], ['COUNT(n)'],
+    'SUM(n) just adds all sessions back up; AVG(n) averages the per-participant counts.');
+
+  P(8, 'retail', 'Dense-rank products by price from highest to lowest: name, price, drnk.',
+    ['SELECT', 'name ,', 'price ,', 'DENSE_RANK() OVER', '(ORDER BY price DESC) AS drnk', 'FROM', 'products'], ['GROUP BY', '(PARTITION BY price)'],
+    'DENSE_RANK leaves no gaps in the ranking numbers when two prices tie.');
+  P(8, 'lab', 'Each participant\'s age alongside the average age at their site: participant_id, site, age, site_avg.',
+    ['SELECT', 'participant_id ,', 'site ,', 'age ,', 'AVG(age) OVER (PARTITION BY site) AS site_avg', 'FROM', 'participants'], ['GROUP BY', 'AVG(age)'],
+    'AVG(age) OVER (PARTITION BY site) attaches the site average to every participant row.');
+
   DA.puzzles = list;
   DA.puzzleById = {};
   list.forEach(function (p) { DA.puzzleById[p.id] = p; });

@@ -39,14 +39,15 @@
     return hr < 5 ? 'Late session?' : hr < 12 ? 'Good morning.' : hr < 18 ? 'Good afternoon.' : 'Good evening.';
   }
 
-  // First unsolved SQL challenge, preferring the dataset that fits the learner's background.
+  // First unsolved SQL challenge, preferring the dataset that fits the learner's background; cycles back once all are solved.
   function nextChallenge() {
     var order = [ui.defaultDataset()].concat(Object.keys(DA.datasets).filter(function (d) { return d !== ui.defaultDataset(); }));
     for (var i = 0; i < order.length; i++) {
       var c = DA.challenges.filter(function (x) { return x.ds === order[i] && !ui.state.sql[x.id]; })[0];
       if (c) return c;
     }
-    return null;
+    var pool = DA.challenges.filter(function (x) { return x.ds === order[0]; });
+    return pool.length ? ui.seededShuffle(pool, ui.today() + ':sqlcycle')[0] : (DA.challenges[0] || null);
   }
 
   // This week against your own last week (no invented rivals).
@@ -313,9 +314,7 @@
     if (l.download === 'messy') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('messy_orders.csv', '﻿' + DA.gen.messyCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded messy_orders.csv'); } }, '⬇ Download messy orders CSV'));
     if (l.lab) {
       var dsId = l.lab === 'auto' ? ui.defaultDataset() : l.lab;
-      var cs = DA.challenges.filter(function (c) { return c.ds === dsId; });
-      var solved = cs.filter(function (c) { return ui.state.sql[c.id]; }).length;
-      tools.push(link('#/lab/' + dsId, 'btn small accent', '🗄️ Open the SQL Lab · ' + DA.datasets[dsId].title + ' (' + solved + '/' + cs.length + ' solved)'));
+      tools.push(link('#/lab/' + dsId, 'btn small accent', '🗄️ Open the SQL Lab · ' + DA.datasets[dsId].title));
     }
     root.appendChild(h('section', { class: 'block' }, h('h2', { text: '2 · Do it' }), h('div', { class: 'doit' }, h('p', { html: l.doit })), tools.length ? h('div', { class: 'row' }, tools) : null));
 

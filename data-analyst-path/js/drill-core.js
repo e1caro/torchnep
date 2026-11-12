@@ -69,7 +69,7 @@
       take(D.shuffle(pool.filter(function (q) { return !s[q.id]; })).sort(function (a, b) { return (f[b.cat] ? 1 : 0) - (f[a.cat] ? 1 : 0); }));
     }
     if (out.length < n) {
-      take(pool.filter(function (q) { return s[q.id]; }).sort(function (a, b) { return s[a.id].box - s[b.id].box || (s[a.id].due < s[b.id].due ? -1 : 1); }));
+      take(D.shuffle(pool.filter(function (q) { return s[q.id]; })).sort(function (a, b) { return s[a.id].box - s[b.id].box || (s[a.id].due < s[b.id].due ? -1 : 1); }));
     }
     return D.shuffle(out);
   };

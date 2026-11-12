@@ -280,3 +280,55 @@ label.btn{cursor:pointer}code{background:var(--card2);padding:1px 6px;border-rad
 .betcat{margin:16px 0 4px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
 .odd small{display:block;font-size:10px;font-weight:600;opacity:.75;margin-top:1px}
 .odd.tot{background:color-mix(in srgb,var(--acc2) 18%,var(--card2))}
+
+/* ---- V4 Studio RPG Polish: Glassmorphic Depth, Specular Highlights & Trophy Cards ---- */
+body{
+  background:
+    radial-gradient(85% 45% at 18% -5%,color-mix(in srgb,var(--acc) 16%,var(--glow)) 0,transparent 65%),
+    radial-gradient(75% 40% at 85% 0%,color-mix(in srgb,var(--acc2) 12%,var(--glow)) 0,transparent 62%),
+    var(--bg);
+}
+.card,.quest,.mkt,.stat,.hud{
+  position:relative;
+  box-shadow:0 10px 28px -10px rgba(0,0,0,.52),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.hud{
+  background:
+    radial-gradient(95% 120% at 100% 0%,color-mix(in srgb,var(--acc2) 18%,transparent),transparent 60%),
+    linear-gradient(135deg,var(--glow),var(--card) 78%);
+  border-color:color-mix(in srgb,var(--acc) 32%,var(--line));
+}
+.stat b{
+  background:linear-gradient(180deg,#fff 20%,color-mix(in srgb,var(--acc2) 65%,#fff));
+  -webkit-background-clip:text;
+  background-clip:text;
+  color:transparent;
+}
+.coins{
+  background:linear-gradient(135deg,color-mix(in srgb,var(--acc2) 16%,var(--card2)),var(--card2));
+  border-color:color-mix(in srgb,var(--acc2) 38%,var(--line));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.ck{
+  transition:transform .14s cubic-bezier(.2,1.4,.4,1),background .15s ease,box-shadow .15s ease;
+}
+.ck.on{
+  background:linear-gradient(135deg,var(--ok),#6ee7b7);
+  box-shadow:0 0 16px color-mix(in srgb,var(--ok) 55%,transparent);
+  transform:scale(1.04);
+}
+.hp{
+  box-shadow:inset 0 2px 4px rgba(0,0,0,.6);
+}
+.hp i{
+  box-shadow:0 0 14px rgba(255,59,92,.55);
+}
+.sw:not(.locked){
+  background:
+    radial-gradient(85% 85% at 50% 0%,color-mix(in srgb,var(--acc) 16%,transparent),transparent 68%),
+    linear-gradient(180deg,color-mix(in srgb,var(--card2) 45%,var(--card)),var(--card));
+  border-color:color-mix(in srgb,var(--acc) 42%,var(--line));
+}
+.sw:not(.locked) .avbig .gi{
+  filter:drop-shadow(0 4px 10px color-mix(in srgb,var(--acc) 45%,transparent));
+}

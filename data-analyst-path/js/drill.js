@@ -21,35 +21,33 @@
 
   function lobby() {
     var root = h('div', { class: 'view practice' });
-    var due = D.dueCount(), qs = G.quests(), st = ui.state.stats, t = G.today();
+    var qs = G.quests(), st = ui.state.stats, t = G.today();
     root.appendChild(title('Practice'));
-    root.appendChild(h('p', { class: 'lead', text: 'Short rounds, big gains. Five questions take about two minutes, and questions you miss come back at the right time so they stick.' }));
+    root.appendChild(h('p', { class: 'lead', text: 'Short rounds, big gains. Quick rounds take about two minutes, and questions you miss come back at the right time so they stick.' }));
 
     root.appendChild(h('div', { class: 'card start-card' },
       h('div', { class: 'grow' },
-        h('h2', { text: due ? due + ' question' + (due === 1 ? '' : 's') + ' ready to review' : 'Ready for a round?' }),
-        h('p', { class: 'muted', text: D.ROUND + ' questions · about 2 minutes · up to 60 XP' + (qs.drill ? ' · ✓ today\'s practice quest is done' : ' · finishing one round completes today\'s practice quest') }),
+        h('h2', { text: 'Ready for a round?' }),
+        h('p', { class: 'muted', text: 'About 2 minutes · up to 60 XP' + (qs.drill ? ' · ✓ today\'s practice quest is done' : ' · finishing one round completes today\'s practice quest') }),
         h('a', { class: 'btn big accent', href: '#/practice/play' }, 'Start a round')),
       h('div', { class: 'start-goal' }, G.ring(t.pct, t.met), h('span', { class: 'small muted', text: t.xp + ' / ' + t.goal + ' XP today' }))));
 
     root.appendChild(h('h2', { class: 'section-h', text: 'Practise a topic' }));
     root.appendChild(h('div', { class: 'topics' }, D.topics().map(function (c) {
-      var m = D.mastery(c), d = D.dueCount(c);
       return h('a', { class: 'topic', href: '#/practice/play/' + encodeURIComponent(c) },
-        h('span', { class: 'topic-top' }, h('strong', { text: c }), d ? h('span', { class: 'badge', text: d + ' due' }) : null),
-        ui.progressBar(100 * m.mastered / m.total, c + ' mastery'),
-        h('span', { class: 'muted small', text: m.mastered + ' of ' + m.total + ' mastered' }));
+        h('span', { class: 'topic-top' }, h('strong', { text: c }), h('span', { class: 'badge', text: 'Play →' })),
+        h('span', { class: 'muted small', text: 'Adaptive review round' }));
     })));
 
     var acc = st.answers ? Math.round(100 * st.correct / st.answers) + '%' : 'none yet';
     root.appendChild(h('div', { class: 'stat-row' },
-      [['Rounds', st.drills], ['Answered', st.answers], ['First-try accuracy', acc], ['Best combo', st.bestCombo]].map(function (x) {
+      [['First-try accuracy', acc], ['Best combo', st.bestCombo]].map(function (x) {
         return h('div', { class: 'stat' }, h('b', { text: String(x[1]) }), h('span', { text: x[0] }));
       })));
 
     root.appendChild(h('h2', { class: 'section-h', text: 'Arcade' }));
     root.appendChild(DA.arcade.tiles());
-    root.appendChild(ui.callout('info', 'How review works. ', 'A question you get right returns after 1, 3, 7, 14 and then 30 days. A miss comes back sooner. "Mastered" means you answered it correctly on several different days.'));
+    root.appendChild(ui.callout('info', 'How review works. ', 'A question you get right returns after 1, 3, 7, 14 and then 30 days. A miss comes back sooner. When you have seen every question, they cycle back in a fresh order.'));
     return root;
   }
 
@@ -101,7 +99,7 @@
       });
       var qtext = h('p', { class: 'qtext', tabindex: '-1', text: q.q });
       stage.appendChild(h('div', { class: 'qcard' },
-        h('div', { class: 'qmeta' }, h('span', { class: 'badge', text: q.cat }), item.retry ? h('span', { class: 'badge level2', text: 'Second chance' }) : null, h('span', { class: 'muted small', text: 'Question ' + Math.min(R.i + 1, R.total + R.extra) + ' of ' + (R.total + R.extra) })),
+        h('div', { class: 'qmeta' }, h('span', { class: 'badge', text: q.cat }), item.retry ? h('span', { class: 'badge level2', text: 'Second chance' }) : null),
         qtext,
         q.code ? h('pre', { class: 'qcode' }, h('code', { text: q.code })) : null,
         h('div', { class: 'qopts', role: 'group', 'aria-label': 'Answers (keys 1 to 4)' }, opts),

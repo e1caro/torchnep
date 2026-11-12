@@ -52,12 +52,11 @@
           kicker: 'Lesson ' + l.number + ' · ' + ui.fmtHours(l.hours), label: l.title, aria: 'Lesson ' + l.number + ': ' + l.title + (d ? ' (completed)' : cur ? ' (next)' : '') });
       });
       if (DA.drill.topics().indexOf(m.cat) >= 0) {
-        var mast = DA.drill.mastery(m.cat);
-        stop({ href: '#/practice/play/' + encodeURIComponent(m.cat), icon: '⚡', state: 'extra', kind: 'practice', kicker: mast.mastered + ' / ' + mast.total + ' mastered', label: 'Practise ' + m.cat, aria: 'Practice round: ' + m.cat });
+        stop({ href: '#/practice/play/' + encodeURIComponent(m.cat), icon: '⚡', state: 'extra', kind: 'practice', kicker: 'Spaced practice', label: 'Practise ' + m.cat, aria: 'Practice round: ' + m.cat });
       }
       if (m.id === 'm2') {
-        stop({ href: '#/arcade/blocks', icon: '🧱', state: 'extra', kind: 'practice', kicker: Object.keys(ui.state.blocks).length + ' / ' + DA.puzzles.length + ' solved', label: 'SQL blocks', aria: 'Game: SQL blocks' });
-        stop({ href: '#/lab', icon: '🗄️', state: 'extra', kind: 'practice', kicker: Object.keys(ui.state.sql).length + ' / ' + DA.challenges.length + ' solved', label: 'SQL Lab', aria: 'SQL Lab challenges' });
+        stop({ href: '#/arcade/blocks', icon: '🧱', state: 'extra', kind: 'practice', kicker: 'Tap-tile puzzles', label: 'SQL blocks', aria: 'Game: SQL blocks' });
+        stop({ href: '#/lab', icon: '🗄️', state: 'extra', kind: 'practice', kicker: 'Interactive SQLite', label: 'SQL Lab', aria: 'SQL Lab challenges' });
       }
       stop({ icon: all ? '🏆' : '🎁', state: all ? 'done chest' : 'chest', kicker: all ? 'Unit complete' : 'Finish the unit', label: all ? '+' + ui.XP.module + ' XP earned' : '+' + ui.XP.module + ' XP bonus', aria: all ? 'Unit complete, bonus earned' : 'Unit bonus: ' + ui.XP.module + ' XP when every lesson is done' });
       unit.appendChild(road);

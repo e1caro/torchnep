@@ -115,6 +115,10 @@ i18nAdd({
   'Rookie': 'Novato', 'Iron Will': 'Voluntad de hierro', 'Challenger': 'Aspirante', 'Warrior': 'Guerrero', 'Champion': 'Campeón', 'Legend': 'Leyenda', 'Titan': 'Titán',
   'Blooded': 'Curtido', 'Early Bird': 'Madrugador', 'Boss Slayer': 'Cazajefes', 'Iron Veteran': 'Veterano de hierro', 'Two Weeks Strong': 'Dos semanas de hierro', 'Dungeon Lord': 'Señor de las mazmorras', 'Double Digits': 'Doble dígito',
   'Treasure Hunter': 'Cazatesoros', 'Questmaster': 'Maestro de misiones',
+  'Centurion in Training': 'Centurión en forja', 'Centurion': 'Centurión', 'Habit Forged': 'Hábito forjado', 'Iron Month': 'Mes de hierro', 'Immortal Streak': 'Racha inmortal',
+  'Steel Titan': 'Titán de acero', 'Colossus': 'Coloso', 'Atlas': 'Atlas', 'Abyss Conqueror': 'Conquistador del abismo', 'Raid Leader': 'Líder de incursión', 'Godslayer': 'Matadioses',
+  'Vanguard': 'Vanguardia', 'Ascended': 'Ascendido', 'Hoard Master': 'Señor del tesoro', 'Hydration Master': 'Maestro del agua', 'High Roller': 'Gran apostador',
+  'Clean Eater': 'Nutrición impecable', 'Dream Guardian': 'Guardián del sueño', 'Guild Veteran': 'Veterano del gremio',
 });
 
 // ---------- rewards: levels, shop, badges ----------
@@ -135,8 +139,11 @@ i18nAdd({
   // badges
   'First Blood': 'Primera sangre', 'Warming Up': 'Calentando', 'Gym Rat': 'Rata de gimnasio', 'On Fire': 'En llamas', 'Unstoppable': 'Imparable', 'One Ton Club': 'Club de la tonelada', 'Heavy Metal': 'Heavy Metal', 'Night Owl': 'Búho nocturno',
   'Dungeon Crawler': 'Explorador de mazmorras', 'Dungeon Master': 'Maestro de mazmorras', 'Scale Master': 'Maestro de la báscula', 'Aqua Hero': 'Héroe del agua', 'Lucky Streak': 'Racha de suerte', 'Gourmet': 'Gourmet', 'Perfect Plate': 'Plato perfecto', 'Well Rested': 'Bien descansado',
+  'Building Momentum': 'Ganando impulso', 'Relentless Athlete': 'Atleta incansable', 'Club 100': 'Club de los 100', 'Month of Iron': 'Mes de hierro', 'Five Ton Press': 'Prensa de cinco toneladas',
+  'Rising Hero': 'Héroe emergente', 'Vault Breaker': 'Abridor de cámaras', 'Ocean Spirit': 'Espíritu del océano', 'Body Tracker': 'Control corporal',
   'Finish your first workout': 'Terminar tu primer entrenamiento', 'Finish {n} workouts': 'Terminar {n} entrenamientos', 'Train {n} days in a row': 'Entrenar {n} días seguidos', 'Lift {n} kg in total': 'Levantar {n} kg en total',
   'Finish a workout before {n} am': 'Terminar un entrenamiento antes de las {n} h', 'Clear {n} dungeons': 'Superar {n} mazmorras', 'Log your weight {n} times': 'Registrar tu peso {n} veces', 'Defeat a weekly boss': 'Derrotar a un jefe semanal',
+  'Defeat {n} weekly bosses': 'Derrotar a {n} jefes semanales', 'Eat every planned meal on {n} days': 'Comer todas las comidas del plan durante {n} días',
   'Reach level {n}': 'Alcanzar el nivel {n}', 'Open {n} chests': 'Abrir {n} cofres', 'Hit your water goal on {n} days': 'Alcanzar tu objetivo de agua durante {n} días', 'Use the daily spin {n} times': 'Usar la ruleta diaria {n} veces',
   'Unlock your first chef recipe': 'Desbloquear tu primera receta de chef', 'Eat every planned meal in one day': 'Comer todas las comidas del plan en un día', 'Log {n}+ hours of sleep on {n} days': 'Registrar {n}+ horas de sueño durante {n} días',
   'Claim {n} daily quests': 'Reclamar {n} misiones diarias',
