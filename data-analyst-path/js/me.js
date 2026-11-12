@@ -49,7 +49,7 @@
     var recent = [].concat.apply([], cols).filter(function (c) { return !c.future; }).slice(-14).reverse();
     return h('section', { class: 'card heat-card' },
       h('div', { class: 'streak-head' },
-        h('div', { class: 'streak-big' + (st.metToday ? ' lit' : '') }, h('span', { 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) }), h('small', { text: st.count === 1 ? 'day streak' : 'day streak' })),
+        h('div', { class: 'streak-big' + (st.metToday ? ' lit' : '') }, ui.icon('flame', 22), h('b', { text: String(st.count) }), h('small', { text: st.count === 1 ? 'day streak' : 'day streak' })),
         h('div', { class: 'grow' },
           h('h2', { text: 'Streak' }),
           h('p', { class: 'muted small', text: 'Best: ' + st.best + ' · ❄️ ' + st.freezes + ' freeze' + (st.freezes === 1 ? '' : 's') + ' saved. Reach your daily goal (' + goal + ' XP) to keep it. Every 7 days in a row earns a freeze (max 2) that quietly covers a missed day.' }))),
@@ -95,7 +95,7 @@
       h('div', { class: 'badges' }, earned.concat(locked).map(function (b) {
         var got = !!b.earned;
         return h('div', { class: 'badge-card' + (got ? ' got' : '') },
-          h('span', { class: 'b-icon', 'aria-hidden': 'true', text: b.icon }),
+          h('span', { class: 'b-icon', 'aria-hidden': 'true', html: ui.iconHtml(b.icon, 26) }),
           h('strong', { text: b.name }),
           h('span', { class: 'muted small', text: b.desc }),
           got ? h('span', { class: 'small ok-text', text: '✓ ' + pretty(b.earned) }) : [ui.progressBar(100 * b.cur / b.max, b.name + ' progress'), h('span', { class: 'small muted', text: b.cur + ' / ' + b.max })]);

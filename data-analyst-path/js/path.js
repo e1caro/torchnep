@@ -29,7 +29,7 @@
       var hours = m.lessons.reduce(function (s, l) { return s + l.hours; }, 0);
       var unit = h('section', { class: 'unit' + (all ? ' complete' : ''), style: '--mc:' + col[0] + ';--mcd:' + col[1], 'aria-labelledby': 'unit-' + m.id });
       unit.appendChild(h('header', { class: 'unit-banner' },
-        h('span', { class: 'unit-icon', 'aria-hidden': 'true', text: m.icon }),
+        h('span', { class: 'unit-icon', 'aria-hidden': 'true', html: ui.iconHtml(m.icon, 26) }),
         h('div', { class: 'grow' },
           h('p', { class: 'unit-kicker', text: 'Unit ' + (mi + 1) + ' · ' + ui.fmtHours(hours) }),
           h('h2', { id: 'unit-' + m.id, text: m.title }),
@@ -39,7 +39,7 @@
       var road = h('ol', { class: 'road' });
       function stop(opts) {
         var dx = SNAKE[step++ % SNAKE.length];
-        var face = h('span', { class: 'node-face', 'aria-hidden': 'true', text: opts.icon });
+        var face = opts.icon === '✓' ? h('span', { class: 'node-face', 'aria-hidden': 'true', text: '✓' }) : h('span', { class: 'node-face', 'aria-hidden': 'true', html: ui.iconHtml(opts.icon, 22) });
         var kids = [opts.current ? h('span', { class: 'node-start', 'aria-hidden': 'true', text: n === 0 ? 'START' : 'NEXT' }) : null, face,
           h('span', { class: 'node-label' }, opts.kicker ? h('small', { text: opts.kicker }) : null, h('span', { text: opts.label }))];
         var cls = 'node ' + opts.state + (opts.kind ? ' ' + opts.kind : '');

@@ -477,9 +477,9 @@
     var h = ui.h, t = G.today(), li = G.levelInfo(), st = t.streak;
     var streakLabel = 'Streak: ' + st.count + ' day' + (st.count === 1 ? '' : 's') + (st.metToday ? ', today done' : st.count ? ', today still open' : '');
     return [
-      G.boostLeft() > 0 ? h('a', { class: 'hud-chip boost', href: '#/practice', 'aria-label': 'Double XP for ' + Math.ceil(G.boostLeft() / 60000) + ' more minutes' }, h('span', { 'aria-hidden': 'true', text: '⚡' }), h('b', { text: '2× ' + Math.ceil(G.boostLeft() / 60000) + 'm' })) : null,
-      h('a', { class: 'hud-chip streak t' + G.flameTier(st.count) + (st.metToday ? ' lit' : st.atRisk && st.count ? ' risk' : ''), href: '#/me', 'aria-label': streakLabel }, h('span', { class: 'flame', 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) })),
-      h('a', { class: 'hud-chip lvl', href: '#/me', 'aria-label': 'Level ' + li.level + ', ' + li.title }, h('span', { 'aria-hidden': 'true', text: '⭐' }), h('b', { text: 'Lv ' + li.level })),
+      G.boostLeft() > 0 ? h('a', { class: 'hud-chip boost', href: '#/practice', 'aria-label': 'Double XP for ' + Math.ceil(G.boostLeft() / 60000) + ' more minutes' }, ui.icon('bolt', 16), h('b', { text: '2× ' + Math.ceil(G.boostLeft() / 60000) + 'm' })) : null,
+      h('a', { class: 'hud-chip streak t' + G.flameTier(st.count) + (st.metToday ? ' lit' : st.atRisk && st.count ? ' risk' : ''), href: '#/me', 'aria-label': streakLabel }, ui.icon('flame', 16, 'flame'), h('b', { text: String(st.count) })),
+      h('a', { class: 'hud-chip lvl', href: '#/me', 'aria-label': 'Level ' + li.level + ', ' + li.title }, ui.icon('star', 16), h('b', { text: 'Lv ' + li.level })),
       h('a', { class: 'hud-chip goal', href: '#/me', 'aria-label': 'Daily goal: ' + t.xp + ' of ' + t.goal + ' XP' + (t.met ? ', reached' : '') }, ring(t.pct, t.met), h('b', { text: t.met ? '✓' : t.xp + '/' + t.goal })),
     ];
   }

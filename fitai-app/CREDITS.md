@@ -29,7 +29,7 @@ No npm or Gradle library under GPL, AGPL, "non-commercial" or an unknown license
 | Exercise photos (shown only when you tap the muscle map) | free-exercise-db images, loaded from raw.githubusercontent.com | Unlicense per the repository | ⚠️ | see note 1 |
 | Exercise videos `data/videos.json` | — | — | — | empty: no videos are used |
 | Muscle map drawing `data/body.json` | [react-native-body-highlighter](https://github.com/HichamELBSI/react-native-body-highlighter) by ELABBASSI Hicham | MIT | ✅ | attribution kept in `bodymap.js` and in Settings |
-| Icons `icons/gi/*.svg` | [game-icons.net](https://game-icons.net) (Lorc, Delapouite, Skoll, Caro Asercion, Darkzaitzev, Sbed, Carl Olsen), also via the `@iconify-json/game-icons` package | CC BY 3.0 | ✅ with attribution | credited in Settings and README |
+| Icons (`icons.js`, `icons/gi/*.svg`) | Custom in-code vector SVGs drawn for FitQuest | own (CC0 / public domain) | ✅ | 100% copyright-free |
 | `icons/gi/ghostie.svg`, `batwing*.svg`, Android `ic_stat_fitquest` | drawn for FitQuest | own | ✅ | |
 | App icons `icons/*.png`, Android launcher icons | made for FitQuest (`tools/make_icons.js`) | own | ✅ | |
 | Interface art (skins.css, crests, podiums) | drawn in code for FitQuest (`tools/build_skins.py`, `tools/crest_art.py`) | own | ✅ | |
@@ -56,5 +56,4 @@ under its terms Google may use free-tier content to improve its products; the ap
 
 ## Attribution text to keep in the app (Settings footer)
 
-"Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Icons by Lorc, Delapouite,
-Skoll, Caro Asercion, Darkzaitzev, Sbed and Carl Olsen from game-icons.net, CC BY 3.0. Fonts: Google Fonts (SIL OFL)."
+"Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Icons: 100% original custom vector SVGs created in code for FitQuest (public domain). Fonts: Google Fonts (SIL OFL)."

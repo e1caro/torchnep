@@ -18,7 +18,7 @@
     var chip = document.getElementById('navProfile');
     if (chip) {
       ui.clear(chip);
-      chip.appendChild(h('span', { class: 'chip-icon', 'aria-hidden': 'true', text: b ? b.icon : '👋' }));
+      chip.appendChild(h('span', { class: 'chip-icon', 'aria-hidden': 'true', html: ui.iconHtml(b ? b.icon : 'sparkle', 20) }));
       chip.appendChild(h('span', null, h('strong', { text: b ? (b.custom ? 'Your background' : b.name) : 'Set your background' }), h('small', { text: b ? 'Edit profile' : 'Personalise the course' })));
     }
     var p = document.getElementById('navProgress');
@@ -87,19 +87,19 @@
       h('div', { class: 'today-top' },
         h('div', { class: 'today-ring' }, G.ring(t.pct, t.met), h('b', { text: t.met ? '✓' : t.xp + '/' + t.goal })),
         h('div', { class: 'grow' }, h('h2', { id: 'today-h', text: 'Today' }), h('p', { class: 'muted', text: msg })),
-        h('div', { class: 'streak-big t' + G.flameTier(st.count) + (st.metToday ? ' lit' : ''), 'aria-label': st.count + ' day streak' }, h('span', { 'aria-hidden': 'true', text: '🔥' }), h('b', { text: String(st.count) }), h('small', { text: st.count === 1 ? 'day' : 'days' }))),
+        h('div', { class: 'streak-big t' + G.flameTier(st.count) + (st.metToday ? ' lit' : ''), 'aria-label': st.count + ' day streak' }, ui.icon('flame', 20), h('b', { text: String(st.count) }), h('small', { text: st.count === 1 ? 'day' : 'days' }))),
       h('ul', { class: 'quests' }, rows.map(function (r) {
         return h('li', { class: r.done ? 'done' : '' },
           h('span', { class: 'q-check', 'aria-hidden': 'true', text: r.done ? '✓' : '' }),
-          h('span', { class: 'q-ico', 'aria-hidden': 'true', text: r.icon }),
+          h('span', { class: 'q-ico', 'aria-hidden': 'true', html: ui.iconHtml(r.icon, 20) }),
           h('span', { class: 'grow' }, h('strong', { text: r.name }), r.done ? h('span', { class: 'sr-only', text: ' (done today)' }) : null, h('small', { text: r.text })),
           r.done ? null : h('a', { class: 'btn small' + (r === rows[0] || !rows[0].done ? '' : ''), href: r.href }, r.cta));
       })),
       h('p', { class: 'chest' + (qs.all ? ' open' : '') },
-        h('span', { 'aria-hidden': 'true', text: qs.all ? '🎉' : '🎁' }), ' ',
+        ui.icon(qs.all ? 'party' : 'chest', 18), ' ',
         qs.all ? 'Quest chest opened: +' + qs.chest + ' bonus XP' : 'Finish all three for a surprise chest of 15 to 40 bonus XP'),
-      boost > 0 ? h('p', { class: 'boost-line' }, h('span', { 'aria-hidden': 'true', text: '⚡ ' }), 'Double XP for ' + Math.ceil(boost / 60000) + ' more min') : null,
-      offer ? h('p', { class: 'repair-line' }, h('span', { 'aria-hidden': 'true', text: '🩹 ' }), 'Streak repair: ' + (offer.left ? 'earn ' + offer.left + ' more XP today' : 'done') + ' and your ' + offer.streak + '-day streak comes back.') : null,
+      boost > 0 ? h('p', { class: 'boost-line' }, ui.icon('bolt', 16), ' Double XP for ' + Math.ceil(boost / 60000) + ' more min') : null,
+      offer ? h('p', { class: 'repair-line' }, ui.icon('shield', 16), ' Streak repair: ' + (offer.left ? 'earn ' + offer.left + ' more XP today' : 'done') + ' and your ' + offer.streak + '-day streak comes back.') : null,
       st.freezes ? h('p', { class: 'muted small', text: '❄️ ' + st.freezes + ' streak freeze' + (st.freezes === 1 ? '' : 's') + ' saved: a missed day will not break your streak.' }) : null);
   }
 
