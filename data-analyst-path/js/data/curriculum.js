@@ -40,7 +40,7 @@
           },
           quiz: {
             q: 'What is the main product of a data analyst\'s work?',
-            options: ['A dashboard', 'A decision or recommendation backed by evidence', 'A machine-learning model', 'A clean dataset'],
+            options: ['A dashboard that the whole team can open every day', 'A decision or recommendation backed by evidence', 'A machine-learning model that predicts the next month', 'A clean, well-documented dataset ready for others'],
             answer: 1,
             why: 'Dashboards, models and clean data are means. They matter only if they change a decision.',
           },
@@ -64,7 +64,7 @@
           },
           quiz: {
             q: 'You are stuck on a SQL error. What is the best use of AI?',
-            options: ['Paste the task and copy the answer', 'Share your query and the error, and ask for a hint and an explanation of the cause', 'Ask it to write the whole project', 'Skip SQL and rely on AI forever'],
+            options: ['Paste the task and copy the finished answer, to save time', 'Share the query and the error, and ask for a hint and the cause', 'Ask it to rewrite the whole project in a tool it knows better', 'Ask it to explain SQL from scratch before you look at the error'],
             answer: 1,
             why: 'You learn from your own attempt plus targeted feedback. Copying answers builds nothing you can show in an interview.',
           },
@@ -90,7 +90,7 @@
           },
           quiz: {
             q: 'Why look for analyst jobs in your own industry first?',
-            options: ['They pay more', 'Domain knowledge lets you ask better questions and sets you apart from generic candidates', 'They never require SQL', 'Recruiters ignore other industries'],
+            options: ['Industry roles usually pay more than general analyst roles', 'Your domain knowledge helps you ask better questions and stand out', 'Industry roles rarely ask for SQL, so you can skip that part', 'Recruiters in other industries do not consider candidates from outside'],
             answer: 1,
             why: 'Knowing why the numbers matter in a field is hard to teach and easy to value.',
           },
@@ -125,7 +125,7 @@
           },
           quiz: {
             q: 'Where should you do your cleaning?',
-            options: ['Directly over the raw data, so there is only one copy', 'In a copy or in new columns, keeping the raw data untouched', 'Only in the BI tool', 'There is no need: tools clean data automatically'],
+            options: ['Directly over the raw data, so there is only one copy', 'In a copy or in new columns, keeping the raw data untouched', 'Only inside the BI tool, after all the data has been loaded into it', 'Nowhere: modern tools clean the data when you import it'],
             answer: 1,
             why: 'Untouched raw data lets you undo any decision and prove what you changed.',
           },
@@ -173,7 +173,7 @@
           },
           quiz: {
             q: 'Which is the best insight headline?',
-            options: ['Here is a pivot table of sales', 'Sales were different in different months', 'Coffee earns nearly 3× the revenue of bakery: test a coffee + croissant bundle', 'Revenue exists'],
+            options: ['Here is a pivot table of sales by category, month and store', 'Sales were different across the months of the year in all stores', 'Coffee earns nearly 3× bakery revenue: test a coffee + croissant bundle', 'Total revenue was 41,250 this year, split across four product categories'],
             answer: 2,
             why: 'It has a number, a comparison and a recommended action.',
           },
@@ -253,7 +253,7 @@
           },
           quiz: {
             q: 'You need the customers who never ordered. Which approach?',
-            options: ['INNER JOIN customers to orders', 'LEFT JOIN customers to orders, then keep rows where orders.order_id IS NULL', 'CROSS JOIN', 'UNION'],
+            options: ['INNER JOIN customers to orders, then keep rows where order_id IS NULL', 'LEFT JOIN customers to orders, then keep rows where orders.order_id IS NULL', 'CROSS JOIN customers and orders, then keep only the pairs whose ids do not match', 'UNION the customer ids and the order ids, then remove the duplicates'],
             answer: 1,
             why: 'LEFT JOIN keeps customers without orders and marks the missing side with NULL.',
           },
@@ -276,7 +276,7 @@
           },
           quiz: {
             q: 'What does PARTITION BY do in a window function?',
-            options: ['Deletes rows', 'Restarts the calculation for each group, without collapsing rows', 'Sorts the table', 'Joins two tables'],
+            options: ['Collapses each group into a single row, as GROUP BY does', 'Restarts the calculation for each group, without collapsing rows', 'Splits the table into separate result sets, one per group', 'Sorts the rows inside each group before the final result is returned'],
             answer: 1,
             why: 'Unlike GROUP BY, a window function keeps every row and adds a computed column.',
           },
@@ -308,7 +308,7 @@
           },
           quiz: {
             q: 'What does df.shape return?',
-            options: ['The column types', '(number of rows, number of columns)', 'The missing values', 'The first 5 rows'],
+            options: ['(number of columns, number of rows)', '(number of rows, number of columns)', 'The data type of every column', 'The number of missing values per column'],
             answer: 1,
             why: 'It is a quick way to check you loaded what you expected.',
           },
@@ -337,7 +337,7 @@
           },
           quiz: {
             q: 'A column has 5% missing values. What do you do first?',
-            options: ['Drop all those rows immediately', 'Understand why they are missing, then decide (drop, fill, flag) and document the reason', 'Fill them with zero', 'Ignore them'],
+            options: ['Drop those rows straight away, so no calculation is affected', 'Find out why they are missing, then drop, fill or flag them and note why', 'Fill them with zero, so that every calculation still works', 'Fill them with the column mean, which keeps the results unbiased'],
             answer: 1,
             why: 'Missing data is often missing for a reason, and the reason decides the right treatment.',
           },
@@ -361,7 +361,7 @@
           },
           quiz: {
             q: 'After a left merge your row count increased. The most likely cause?',
-            options: ['A pandas bug', 'The right-hand table has duplicate keys, multiplying matches', 'Missing values', 'The dates'],
+            options: ['A pandas bug that appears when the key columns are text', 'The right-hand table has duplicate keys, multiplying matches', 'Missing values in the key column create extra empty rows', 'A left merge adds the rows of both tables together, by design'],
             answer: 1,
             why: 'Same fan-out as in SQL joins: a key that is not unique on the right side repeats left rows.',
           },
@@ -441,7 +441,7 @@
           },
           quiz: {
             q: 'A p-value of 0.03 means:',
-            options: ['There is a 97% chance the effect is real', 'If there were truly no effect, data this extreme would appear about 3% of the time', 'The effect is large', 'The test is useless'],
+            options: ['There is a 97% chance that the effect is real and not luck', 'With no real effect, data this extreme would turn up about 3% of the time', 'The effect is large and important enough to matter for the business decision', 'There is a 3% chance that there is no effect at all'],
             answer: 1,
             why: 'The p-value describes the data under H0. It says nothing about effect size or about the probability of H0.',
           },
@@ -518,7 +518,7 @@
           },
           quiz: {
             q: 'What is the first step when designing a dashboard?',
-            options: ['Pick the colours', 'Define the audience, their questions and the decisions they make', 'Add as many charts as possible', 'Choose a template'],
+            options: ['Pick a colour palette, fonts and a layout that match the company brand', 'Define the audience, their questions and the decisions they make', 'Add as many charts as possible so nothing is left out', 'Choose a ready-made template from the BI tool gallery'],
             answer: 1,
             why: 'Design follows purpose. Without a decision in mind, a dashboard becomes decoration.',
           },
@@ -576,7 +576,7 @@
           },
           quiz: {
             q: 'Which input makes AI-generated SQL most reliable?',
-            options: ['A vague description of the goal', 'The exact schema (tables, columns, keys) and a precise question', 'Only the question', 'Real customer data pasted in'],
+            options: ['A general description of the goal, so the AI can be creative', 'The exact schema (tables, columns, keys) and a precise question', 'Only the business question, so the AI is not distracted by detail', 'A few hundred rows of the real customer data, pasted in'],
             answer: 1,
             why: 'With the schema the model does not have to guess names and relationships. Real personal data should never be pasted.',
           },
@@ -599,7 +599,7 @@
           },
           quiz: {
             q: 'The fastest reliable check on an AI-written aggregation query?',
-            options: ['Trust it if it runs', 'Reconcile its total with an independent calculation (a pivot or SUM of the raw column) and check row counts', 'Ask the AI whether it is right', 'Check only the formatting'],
+            options: ['Trust it once it runs without errors and the number looks plausible', 'Reconcile the total with an independent calculation and check row counts', 'Ask the same AI to review its own query carefully and confirm it is right', 'Check that the column names and the number formatting look tidy'],
             answer: 1,
             why: 'An independent calculation does not share the AI\'s blind spots. Asking the same AI is not independent.',
           },
@@ -622,7 +622,7 @@
           },
           quiz: {
             q: 'Before running AI classification on 10,000 comments you should…',
-            options: ['Just run it', 'Test on a small human-labelled sample and measure the agreement', 'Remove all categories', 'Use only the first 10 comments'],
+            options: ['Run it on all the comments at once and read the summary it writes', 'Test on a small human-labelled sample and measure the agreement', 'Ask the AI to rate its own confidence and keep the high ones', 'Use only the first 10 comments, since they show the pattern'],
             answer: 1,
             why: 'You need evidence that the labels are good enough before you build conclusions on them.',
           },
@@ -653,7 +653,7 @@
           },
           quiz: {
             q: 'How many portfolio projects are ideal at the start?',
-            options: ['15 small ones', 'About 3 polished ones that tell a story', 'One huge unfinished one', 'None: certificates are enough'],
+            options: ['15 or more small ones, to show range', 'About 3 polished ones that tell a story', 'One huge project, even if it is unfinished', 'None: a few certificates are enough at first'],
             answer: 1,
             why: 'Quality and clarity beat quantity. Reviewers rarely open more than three.',
           },
@@ -682,7 +682,7 @@
           },
           quiz: {
             q: 'What should every portfolio project end with?',
-            options: ['A list of libraries used', 'A clear recommendation, with its limitations', 'The raw data', 'An apology'],
+            options: ['A complete list of the libraries and versions used', 'A clear recommendation, with its limitations', 'A link to download the full raw data set', 'A summary of every chart that appears in it'],
             answer: 1,
             why: 'Analysts exist to support decisions, so show that you can reach one and know its limits.',
           },
@@ -736,7 +736,7 @@
           },
           quiz: {
             q: 'Which is the best CV bullet for a career changer?',
-            options: ['Responsible for reports', 'Built a weekly sales report in Excel for 5 stores; cut preparation time from 4 h to 30 min', 'Team player', 'Hardworking and motivated'],
+            options: ['Responsible for weekly sales reporting and various data tasks across all of the company stores', 'Built a weekly sales report in Excel for 5 stores; cut preparation time from 4 h to 30 min', 'Strong team player with excellent communication skills and attention to detail', 'Hardworking, motivated professional with a real passion for data and Excel'],
             answer: 1,
             why: 'It has an action, a tool, scale and a measurable result.',
           },
@@ -759,7 +759,7 @@
           },
           quiz: {
             q: 'In a case question "sales dropped 10%", what is the first step?',
-            options: ['Propose a solution', 'Clarify the metric and the time frame, then segment (time, region, product, channel) and check data quality', 'Blame marketing', 'Ask for a bigger budget'],
+            options: ['Propose a discount campaign right away to win the lost sales back', 'Clarify the metric and time frame, then segment it and check the data quality', 'Ask which team was responsible for the drop and review their recent decisions', 'Ask for a bigger budget so you can run a full market study first'],
             answer: 1,
             why: 'Structure first, solutions last. It shows how you think.',
           },
@@ -782,7 +782,7 @@
           },
           quiz: {
             q: 'What is the best use of a networking message?',
-            options: ['Ask for a job directly', 'Ask for a short conversation about their work and path', 'Send your CV without a message', 'Offer to work for free'],
+            options: ['Ask directly whether they have a job opening for you', 'Ask for a short conversation about their work and path', 'Send your CV with no message and let it speak for itself', 'Offer to work for free for a month to prove what you can do'],
             answer: 1,
             why: 'People like to share their story, and conversations create referrals.',
           },
