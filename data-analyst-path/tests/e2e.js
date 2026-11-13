@@ -158,7 +158,7 @@ async function playRound(page, wrongAt = []) {
   ok(/locked/.test(await txt(page, '.callout.warn')), 'SQLab: a challenge in a locked level shows the lock, not the editor');
   await page.goto(BASE + '/index.html#/lab');
   await page.waitForSelector('.lab-world');
-  ok(await page.locator('.lab-world').count() === 5 && await page.locator('.lab-level').count() === 16, 'SQLab: a world map with 4 worlds, 16 levels and free exploration');
+  ok(await page.locator('.lab-world').count() === 9 && await page.locator('.lab-level').count() === 32, 'SQLab: a world map with 8 worlds, 32 levels and free exploration');
   await page.goto(BASE + '/index.html#/lab/retail/r1');
   await page.waitForSelector('.callout.ok', { timeout: 20000 });
   ok(await page.locator('.sql-keys .key').count() > 15, 'SQL shortcut keys are shown');
@@ -567,7 +567,7 @@ async function playRound(page, wrongAt = []) {
     await page.waitForSelector('.lab-world');
     const seen = await page.evaluate((r) => ({ h1: document.querySelector('h1').textContent, title: document.title, menu: document.querySelector('.nav a[data-nav="' + r + '"]').textContent.trim(), open: document.querySelectorAll('a.lab-level').length, locked: document.querySelectorAll('.lab-level.locked').length }), route);
     ok(seen.h1 === name && seen.title.startsWith(name) && seen.menu === name, route + ': opens with its name "' + name + '" in the heading, page title and menu');
-    ok(seen.open >= 1 && seen.locked >= 12, route + ': world map with 16 levels, later ones locked (' + seen.locked + ' locked)');
+    ok(seen.open >= 1 && seen.locked >= 12, route + ': world map with its levels, later ones locked (' + seen.locked + ' locked)');
   }
   await page.goto(BASE + '/index.html#/sheets/play/s_l1_2_1');
   await page.waitForSelector('.sheets-canvas');

@@ -16,14 +16,16 @@ const labs = { sheets: L.register(DA.labSheets), python: L.register(DA.labPython
 
 /* ---------------------------------------------------------------- progression */
 
-test('labs: names, and 4 worlds x 4 levels x 3 challenges in each lab', () => {
+test('labs: names, and worlds x 4 levels x 3 challenges in each lab', () => {
   assert.deepStrictEqual([L.names.sheets, L.names.python, L.names.bi, L.names.sql], ['DotSheets', 'DotPython', 'DotBI', 'SQLab']);
+  const WORLDS = { sheets: 4, python: 8, bi: 8 };
   Object.values(labs).forEach((lab) => {
-    assert.strictEqual(lab.worlds.length, 4, lab.id);
+    const nw = WORLDS[lab.id];
+    assert.strictEqual(lab.worlds.length, nw, lab.id);
     lab.worlds.forEach((w) => { assert.strictEqual(w.levels.length, 4, lab.id + ' ' + w.title); w.levels.forEach((lv) => { assert.strictEqual(lv.challenges.length, 3, lab.id + ' ' + lv.title); assert.ok(lv.example && lv.example.code && lv.example.explain, lab.id + ' ' + lv.title + ' example'); }); });
-    assert.strictEqual(lab.levels.length, 16);
+    assert.strictEqual(lab.levels.length, nw * 4);
     const ids = Object.keys(lab.byId);
-    assert.strictEqual(ids.length, 48, lab.id + ' ids are unique');
+    assert.strictEqual(ids.length, nw * 12, lab.id + ' ids are unique');
     ids.forEach((id) => { const c = lab.byId[id]; assert.ok(c.title && c.task && c.hint && c.solution, lab.id + ' ' + id); });
   });
   const old = DA.sheetsChallenges.map((c) => c.id);
@@ -76,12 +78,17 @@ test('labs: progress survives saving, sanitising and merging two devices; old Do
   assert.ok(reloaded.sql && reloaded.sheets.s_l1_1_1, 'SQLab and old sheets progress untouched');
 });
 
-test('SQLab: 64 existing challenges in 4 worlds x 4 levels; old progress keeps its stars, levels and XP', () => {
+test('SQLab: the 64 original challenges keep worlds 1-4, 48 new ones fill worlds 5-8; old progress keeps its stars, levels and XP', () => {
   const lab = L.register(DA.buildSqlLab());
-  assert.strictEqual(lab.worlds.length, 4);
-  assert.strictEqual(lab.levels.length, 16);
+  assert.strictEqual(lab.worlds.length, 8);
+  assert.strictEqual(lab.levels.length, 32);
   assert.strictEqual(Object.keys(lab.byId).length, DA.challenges.length);
-  lab.levels.forEach((lv) => { assert.ok(lv.challenges.length >= 3 && lv.example, lv.title); assert.ok(lv.challenges.every((c) => c.src.level === lv.sqlLevel && c.src.ds === lv.ds)); });
+  assert.strictEqual(DA.challenges.filter((c) => !c.wl).length, 64);
+  lab.levels.slice(0, 16).forEach((lv) => { assert.ok(lv.challenges.length >= 3 && lv.example, lv.title); assert.ok(lv.challenges.every((c) => c.src.level === lv.sqlLevel && c.src.ds === lv.ds)); });
+  lab.levels.slice(16).forEach((lv) => { assert.ok(lv.challenges.length === 3 && lv.example, lv.title); assert.ok(lv.challenges.every((c) => c.src.wl === lv.key)); });
+  const ids = DA.challenges.map((c) => c.id);
+  assert.strictEqual(new Set(ids).size, ids.length, 'SQLab ids are unique');
+  assert.ok(DA.challenges.every((c) => DA.ui.XP.sql(Math.min(8, c.level)) <= 120), 'XP per challenge is capped');
   assert.ok(DA.challenges.every((c) => typeof c.level === 'number'), 'the SQLab challenges themselves are not changed');
   ui.state = ui.sanitize({ v: 2, sql: { r1: true, r33: true } });
   assert.strictEqual(L.stars('sql', 'r1'), 1, 'a challenge solved before counts as 1 star');
@@ -234,6 +241,18 @@ test('DotPython: every challenge passes with its solution and fails with a wrong
     assert.strictEqual(P.compareResult(P.run('print("hello")').env.result, want, c.ordered).ok, false, c.id + ' passes with only a print');
     assert.strictEqual(P.compareResult(P.run('result = df').env.result, want, c.ordered).ok, false, c.id + ' passes with df');
   });
+  Object.values(labs.python.byId).forEach((c) => {
+    if (c.type === 'predict') {
+      const got = P.repr(P.run(c.code).env.result);
+      assert.strictEqual(c.options[c.answer], got, c.id + ' the marked option is what the code gives');
+      assert.strictEqual(c.options.filter((o) => o === got).length, 1, c.id + ' only one option is right');
+    }
+    if (c.type === 'bug') {
+      const st = P.run(c.starter);
+      assert.ok(!st.ok || !P.compareResult(st.env.result, P.run(c.solution).env.result, c.ordered).ok, c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.finding) assert.ok(c.finding.options.length === 4 && c.finding.options[c.finding.answer], c.id + ' finding');
+  });
   const c = labs.python.byId.py16;
   assert.ok(P.compareResult(P.run('result = df.groupby("channel").size()').env.result, P.run(c.solution).env.result, false).ok, 'an equivalent answer (groupby size vs value_counts) is accepted');
 });
@@ -316,9 +335,22 @@ test('DotBI: time intelligence, RANKX, TOPN and the subscription model', () => {
 });
 
 test('DotBI: every challenge matches its reference in total and per row, and a different measure fails', () => {
+  const club = BI.clubModel();
   Object.values(labs.bi.byId).forEach((c) => {
-    const want = BI.breakdown(model, c.mode, c.solution, c.by);
-    const wrong = BI.breakdown(model, c.mode, c.mode === 'dax' ? (c.solution === 'SUM(Sales[qty])' ? 'COUNTROWS(Sales)' : 'SUM(Sales[qty])') : (c.solution === 'SUM([qty])' ? 'COUNT([qty])' : 'SUM([qty])'), c.by);
+    const m = c.model === 'club' ? club : model;
+    const want = BI.breakdown(m, c.mode, c.solution, c.by);
+    const other = c.model === 'club' ? (c.solution === 'COUNTROWS(Members)' ? 'SUM(Invoices[amount])' : 'COUNTROWS(Members)') : c.mode === 'dax' ? (c.solution === 'SUM(Sales[qty])' ? 'COUNTROWS(Sales)' : 'SUM(Sales[qty])') : (c.solution === 'SUM([qty])' ? 'COUNT([qty])' : 'SUM([qty])');
+    const wrong = BI.breakdown(m, c.mode, other, c.by);
+    if (c.type === 'predict') {
+      assert.strictEqual(c.options[c.answer], String(want.total), c.id + ' the marked option is the real total');
+      assert.strictEqual(c.options.filter((o) => o === String(want.total)).length, 1, c.id + ' only one option is right');
+    }
+    if (c.type === 'bug') {
+      const st = BI.breakdown(m, c.mode, c.starter, c.by);
+      assert.ok(!(BI.same(st.total, want.total) && st.rows.every((r, i) => BI.same(r.value, want.rows[i].value))), c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.type === 'order') assert.strictEqual(c.lines.join('\n'), c.solution, c.id + ' the lines in order are the solution');
+    if (c.by) assert.ok(BI.dimsFor(m).includes(c.by), c.id + ' rows field exists in its model');
     const same = BI.same(wrong.total, want.total) && wrong.rows.every((r, i) => BI.same(r.value, want.rows[i].value));
     assert.ok(!same, c.id + ' accepts a different measure');
     assert.ok(want.total !== undefined, c.id);

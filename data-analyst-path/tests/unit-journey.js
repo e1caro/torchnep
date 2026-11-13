@@ -142,7 +142,10 @@ test('a boss with a hands-on part pays the chapter bonus once both parts are don
   assert.strictEqual(r.stars, 3);
   assert.strictEqual(r.xp, 0, 'questions alone do not close a case with a hands-on part');
   assert.ok(!J.boss('m2').won);
-  L.record(L.get('sql'), b.levels[0].level.challenges[0], { hinted: true, tries: 3 });
+  b.levels.slice(0, -1).forEach((r) => L.record(L.get(r.lab), r.level.challenges[0], { hinted: true, tries: 3 }));
+  assert.strictEqual(J.checkBoss('m2'), 0, 'every hands-on level counts');
+  const last = b.levels[b.levels.length - 1];
+  L.record(L.get(last.lab), last.level.challenges[0], { hinted: true, tries: 3 });
   assert.strictEqual(J.checkBoss('m2'), ui.XP.module);
   assert.ok(J.boss('m2').won);
   assert.strictEqual(J.checkBoss('m2'), 0);

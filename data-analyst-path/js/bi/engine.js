@@ -272,7 +272,11 @@
   }
 
   function tableArg(node, ctx) {
-    if (node.t === 'name' || (node.t === 'ref' && false)) return new TableVal(ctx.model.table(node.v).name, rowsOf(node.v, ctx));
+    if (node.t === 'name') {
+      var held = ctx.vars[node.v.toUpperCase()];
+      if (held instanceof TableVal) return held;
+      return new TableVal(ctx.model.table(node.v).name, rowsOf(node.v, ctx));
+    }
     var v = evalD(node, ctx);
     if (v instanceof TableVal) return v;
     fail('Expected a table here (like Sales or FILTER(Sales, ...))');
