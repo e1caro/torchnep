@@ -276,6 +276,8 @@
       var taskText = h('p', { html: cur.task });
       var task = h('div', { class: 'task' }, head, L.taskExtras(wcur, taskText), taskText, cur.type === 'predict' ? null : h('div', { class: 'row task-more' }, solBtn));
       fold = L.foldTask(task, head);
+      var intro = L.worldIntro(lab, wcur);
+      if (intro) main.appendChild(intro);
       main.appendChild(task);
       if (cur.type === 'predict') main.appendChild(L.predictBox(cur, function (r) { verdict(r); }));
     } else {
@@ -549,6 +551,7 @@
             rec.best > rec.stars ? h('span', { class: 'muted small', text: ' (best: ' + L.starText(rec.best) + ')' }) : null,
             rec.xp ? h('span', { class: 'small', text: ' +' + rec.xp + ' XP' }) : null),
           rec.unlocked ? h('p', { class: 'small lab-unlocked' }, h('strong', { text: '🔓 Level ' + rec.unlocked.world.n + '.' + rec.unlocked.n + ' unlocked: ' }), rec.unlocked.title) : null,
+          L.worldNote(lab, rec),
           h('div', { class: 'row' }, L.afterSolve(lab, wcur),
             h('button', { class: 'btn small ghost', type: 'button', onclick: function () { showAi(true); } }, '🤖 Ask AI to review my query'))));
         if (firstTime) {

@@ -102,6 +102,23 @@
       })));
   }
 
+  // Collectibles: a stamp for every completed lab world and a trophy for every chapter boss case won.
+  function collection(open) {
+    var L = DA.labgame, J = DA.journey, stamps = L.stamps(), got = stamps.filter(function (x) { return x.done; }).length;
+    var trophies = DA.modules.map(function (m, i) { return { m: m, n: i + 1, b: J.boss(m.id) }; }), won = trophies.filter(function (t) { return t.b.won; }).length;
+    return h('details', { class: 'fold-sec', open: open }, h('summary', null, h('strong', { text: 'Collection · ' + got + ' of ' + stamps.length + ' world stamps · ' + won + ' of ' + trophies.length + ' trophies' })),
+      h('div', { class: 'stamps', role: 'list', 'aria-label': 'World stamps' }, stamps.map(function (x) {
+        return h('div', { class: 'stamp' + (x.done ? ' got' : ''), role: 'listitem', style: '--wc:' + L.worldColor(x.world), 'aria-label': x.lab.name + ', world ' + x.world.n + ': ' + x.world.title + (x.done ? ', complete' : ', not yet') },
+          h('span', { class: 'stamp-icon', 'aria-hidden': 'true', text: x.done ? x.world.icon : '·' }),
+          h('small', { 'aria-hidden': 'true', text: x.lab.name + ' ' + x.world.n }));
+      })),
+      h('div', { class: 'stamps trophies', role: 'list', 'aria-label': 'Chapter trophies' }, trophies.map(function (t) {
+        return h('a', { class: 'stamp trophy' + (t.b.won ? ' got' : ''), role: 'listitem', href: '#/boss/' + t.m.id, 'aria-label': 'Chapter ' + t.n + ' trophy: ' + t.b.title + (t.b.won ? ', won' : ', not yet') },
+          h('span', { class: 'stamp-icon', 'aria-hidden': 'true', text: t.b.won ? '🏆' : t.b.icon }),
+          h('small', { 'aria-hidden': 'true', text: 'Chapter ' + t.n }));
+      })));
+  }
+
   V.me = function () {
     var root = h('div', { class: 'view me' }), st = ui.state.stats;
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'You' }));
@@ -123,6 +140,7 @@
     var wide = !ui.narrow();
     root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'Streak calendar' })), streakCard()));
     root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'This week' })), weekCard()));
+    root.appendChild(collection(wide));
     var B = G.badges(), got = B.filter(function (b) { return b.earned; }).length;
     root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'Badges · ' + got + ' of ' + B.length + ' earned' })), badgesCard()));
     return root;

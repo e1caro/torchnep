@@ -18,7 +18,7 @@ const labs = { sheets: L.register(DA.labSheets), python: L.register(DA.labPython
 
 test('labs: names, and worlds x 4 levels x 3 challenges in each lab', () => {
   assert.deepStrictEqual([L.names.sheets, L.names.python, L.names.bi, L.names.sql], ['DotSheets', 'DotPython', 'DotBI', 'SQLab']);
-  const WORLDS = { sheets: 4, python: 8, bi: 8 };
+  const WORLDS = { sheets: 8, python: 8, bi: 8 };
   Object.values(labs).forEach((lab) => {
     const nw = WORLDS[lab.id];
     assert.strictEqual(lab.worlds.length, nw, lab.id);
@@ -191,6 +191,17 @@ test('DotSheets: every challenge fails on the original data and passes with its 
     wb.recalc();
     const r = c.check(wb);
     assert.strictEqual(r.ok, true, c.id + ': ' + r.message);
+    if (c.starter) {
+      const bw = S.datasetWorkbook(c.ds);
+      c.starter.forEach(([a, f]) => { const p = S.parseAddr(a); S.setInput(bw.activeSheet(), p.r, p.c, f); });
+      bw.recalc();
+      assert.strictEqual(c.check(bw).ok, false, c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.type === 'predict') {
+      const v = S.refValue(c.ds, [['L1', c.code]]), shown = S.formatValue(v, null);
+      assert.strictEqual(c.options[c.answer], shown, c.id + ' the marked option is what the formula returns');
+      assert.strictEqual(c.options.filter((o) => o === shown).length, 1, c.id + ' only one option is right');
+    }
   });
   const c = labs.sheets.byId.sx_w1_1, wb = S.datasetWorkbook('retail');
   S.setInput(wb.activeSheet(), 1, 10, '4.2'); wb.recalc();
@@ -399,6 +410,19 @@ test('sheets: numeric criteria such as ">=2" work in COUNTIF, COUNTIFS, SUMIF an
   assert.strictEqual(v('=SUMIF(H2:H100, ">1")'), 2 * v('=COUNTIF(H2:H100, ">1")'), 'the largest qty here is 2');
   assert.ok(Math.abs(v('=AVERAGEIF(C2:C100, "Madrid", H2:H100)') - v('=AVERAGEIFS(H2:H100, C2:C100, "Madrid")')) < 1e-9);
   assert.deepStrictEqual([S.parseNumber('3'), S.parseNumber(' -2.5 '), S.parseNumber('15%'), S.parseNumber('abc'), S.parseNumber('')], [3, -2.5, 0.15, null, null]);
+});
+
+test('worlds: completing a world says so once, and adds a stamp to the collection', () => {
+  ui.state = ui.sanitize({ v: 2 });
+  const lab = labs.python, w = lab.worlds[6], all = w.levels.flatMap((lv) => lv.challenges);
+  let done = null;
+  all.forEach((c, i) => { const r = L.record(lab, c, { hinted: false, tries: 1 }); if (r.worldDone) { assert.strictEqual(i, all.length - 1, 'only the last challenge completes the world'); done = r.worldDone; } });
+  assert.strictEqual(done, w);
+  assert.strictEqual(L.record(lab, all[0], { hinted: false, tries: 1 }).worldDone, null, 'never twice');
+  const st = L.stamps();
+  assert.strictEqual(st.length, 32, '8 worlds in each of the 4 labs');
+  assert.deepStrictEqual(st.filter((x) => x.done).map((x) => x.lab.id + ' ' + x.world.n), ['python 7']);
+  assert.ok(L.WORLD_COLORS.length >= 8);
 });
 
 test('level types: tokens for tap mode, and the type labels', () => {

@@ -1693,3 +1693,27 @@ a.lab-level:hover { border-color: var(--accent); }
 .g2-code code { background: none; color: inherit; padding: 0; border: 0; font: inherit; }
 .xr-fx code { background: none; padding: 0; border: 0; }
 .pp-card code { background: none; color: var(--text); padding: 0; }
+
+/* World feel: colours, intro cards, Dot's hop, star burst, stamps */
+.lab-world { border-top: 4px solid var(--wc, var(--accent)); }
+.lab-world-num { color: var(--wc, var(--accent)); }
+.lab-level.started .lab-lv-face, .lab-level.open .lab-lv-face { border-color: var(--wc, var(--accent)); color: var(--wc, var(--accent)); }
+.lab-level.here { box-shadow: 0 0 0 3px var(--wc, var(--accent)); }
+.lab-here { animation: dot-hop .9s ease-out 1; }
+@keyframes dot-hop { 0% { transform: translate(-40px, 10px); opacity: 0; } 40% { transform: translate(-12px, -14px); opacity: 1; } 70% { transform: translate(0, 2px); } 100% { transform: none; } }
+.lab-won .lab-stars { display: inline-block; animation: star-burst .6s cubic-bezier(.2, 1.6, .5, 1) 1; }
+@keyframes star-burst { 0% { transform: scale(.2) rotate(-25deg); opacity: 0; } 60% { transform: scale(1.35) rotate(6deg); opacity: 1; } 100% { transform: none; } }
+.world-intro { display: flex; gap: 12px; align-items: center; padding: 12px 14px; margin-bottom: 10px; border-radius: 16px; color: #fff; background: linear-gradient(135deg, var(--wc), color-mix(in srgb, var(--wc) 60%, #0f172a)); }
+.world-intro .wi-icon { font-size: 2rem; }
+.world-intro small { display: block; opacity: .85; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; font-size: .7rem; }
+.world-intro strong { font-size: 1.1rem; }
+.world-intro p { margin: 2px 0 0; opacity: .92; }
+.world-stamp-note { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.stamps { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.stamp { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; border-radius: 14px; border: 2px dashed var(--line); color: var(--muted); text-decoration: none; text-align: center; }
+.stamp.got { border-style: solid; border-color: var(--wc, var(--gold)); background: color-mix(in srgb, var(--wc, var(--gold)) 14%, var(--surface)); color: var(--text); }
+.stamp-icon { font-size: 1.5rem; line-height: 1.2; }
+.stamp small { font-size: .68rem; font-weight: 700; }
+.stamp.mini { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 2px solid var(--wc); background: color-mix(in srgb, var(--wc) 18%, var(--surface)); }
+.trophy.got { --wc: var(--gold); }
+@media (prefers-reduced-motion: reduce) { .lab-here, .lab-won .lab-stars { animation: none; } }

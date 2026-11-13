@@ -32,6 +32,18 @@
     sql: function () { return DA.buildSqlLab(); },
   };
   L.get = function (id) { return L.labs[id] || (SOURCES[id] ? L.register(SOURCES[id]()) : null); };
+  L.WORLD_COLORS = ['#2563eb', '#16a34a', '#7c3aed', '#ea580c', '#0d9488', '#db2777', '#ca8a04', '#4f46e5'];
+  L.worldColor = function (w) { return L.WORLD_COLORS[(w.n - 1) % L.WORLD_COLORS.length]; };
+  // Collectibles: one stamp per completed world, derived from stars (nothing extra is stored).
+  L.stamps = function (s) {
+    var out = [];
+    ['sql', 'sheets', 'python', 'bi'].forEach(function (id) {
+      var lab = L.get(id);
+      if (!lab) return;
+      lab.worlds.forEach(function (w) { out.push({ lab: lab, world: w, done: L.worldState(lab, w, s).complete }); });
+    });
+    return out;
+  };
   L.level = function (labId, key) {
     var lab = L.get(labId);
     return lab ? lab.levels.filter(function (lv) { return lv.key === key; })[0] || null : null;
@@ -110,7 +122,7 @@
   L.record = function (lab, c, opts) {
     var stars = L.starsFor(opts.hinted, opts.tries);
     var st = store(lab.id), before = L.stars(lab.id, c.id);
-    var wasPassed = L.levelState(lab, c.level).passed;
+    var wasPassed = L.levelState(lab, c.level).passed, wasDone = L.worldState(lab, c.level.world).complete;
     if (stars > (st[c.id] || 0)) st[c.id] = stars;
     if (lab.id === 'sheets') { ui.state.sheets = ui.state.sheets || {}; ui.state.sheets[c.id] = true; }
     if (lab.id === 'sql') { ui.state.sql = ui.state.sql || {}; ui.state.sql[c.id] = true; }
@@ -118,7 +130,8 @@
     var xp = DA.game.award(lab.xpKey(c), lab.xp(c), lab.name + ' solved');
     var nl = lab.levels[c.level.index + 1];
     var unlockedNow = !wasPassed && L.levelState(lab, c.level).passed && nl ? nl : null;
-    return { stars: stars, best: Math.max(stars, before), first: !before, xp: xp, unlocked: unlockedNow };
+    var worldDone = !wasDone && L.worldState(lab, c.level.world).complete ? c.level.world : null;
+    return { stars: stars, best: Math.max(stars, before), first: !before, xp: xp, unlocked: unlockedNow, worldDone: worldDone };
   };
 
   function starText(n) { var t = ''; for (var i = 0; i < 3; i++) t += i < n ? '★' : '☆'; return t; }
@@ -186,7 +199,7 @@
     root.appendChild(h('p', { class: 'muted small', text: 'Solve most of a level (2 of 3) to open the next one. Stars: one for solving, one without the hint, one on the first check. Missions open any level.' }));
     lab.worlds.forEach(function (w) {
       var ws = L.worldState(lab, w);
-      var sec = h('section', { class: 'lab-world' + (ws.unlocked ? '' : ' locked') + (ws.complete ? ' complete' : ''), 'aria-label': 'World ' + w.n + ': ' + w.title },
+      var sec = h('section', { class: 'lab-world' + (ws.unlocked ? '' : ' locked') + (ws.complete ? ' complete' : ''), style: '--wc:' + L.worldColor(w), 'aria-label': 'World ' + w.n + ': ' + w.title },
         h('div', { class: 'lab-world-head' },
           h('span', { class: 'lab-world-icon', 'aria-hidden': 'true', text: ws.unlocked ? w.icon : '🔒' }),
           h('div', null, h('span', { class: 'lab-world-num', text: 'World ' + w.n }), h('h2', { text: w.title }), h('p', { class: 'muted small', text: w.about })),
@@ -232,6 +245,21 @@
     return root;
   };
 
+  L.worldNote = function (lab, r) {
+    if (!r || !r.worldDone) return null;
+    DA.game.confetti(true);
+    return h('p', { class: 'small world-stamp-note' }, h('span', { class: 'stamp mini', style: '--wc:' + L.worldColor(r.worldDone), 'aria-hidden': 'true', text: r.worldDone.icon }),
+      h('strong', { text: ' World complete: ' + r.worldDone.title + '. ' }), 'A new stamp is in your collection on the You page.');
+  };
+  // The first time you open a world, a short card says what it is about.
+  L.worldIntro = function (lab, c) {
+    var w = c.level.world;
+    if (c.level.n !== 1 || c.n !== 1 || L.worldState(lab, w).solved) return null;
+    return h('div', { class: 'world-intro', style: '--wc:' + L.worldColor(w) },
+      h('span', { class: 'wi-icon', 'aria-hidden': 'true', text: w.icon }),
+      h('div', null, h('small', { text: lab.name + ' · World ' + w.n }), h('strong', { text: w.title }), h('p', { class: 'small', text: w.about + ' Four levels of three challenges; the last level is the hardest.' })));
+  };
+
   L.afterSolve = function (lab, c) {
     if (L.embedded(c)) {
       if (L.embed.solved) L.embed.solved(c);
@@ -260,7 +288,8 @@
   L.taskExtras = function (c, taskText) {
     var out = [];
     if (c.given) out.push(h('div', { class: 'given' }, h('p', { class: 'muted small', text: 'Given (' + c.given.lang + '):' }), h('pre', { class: 'lab-code', text: c.given.code })));
-    if (c.steps && c.type === 'gauntlet') out.push(h('ol', { class: 'gauntlet' }, c.steps.map(function (st) { return h('li', { html: st }); })));
+    var list = (c.checklist || c.steps || []).filter(function (st) { return typeof st === 'string'; });
+    if (list.length && c.type === 'gauntlet') out.push(h('ol', { class: 'gauntlet' }, list.map(function (st) { return h('li', { html: st }); })));
     if (c.ask) {
       var solved = !!L.stars(c.lab, c.id);
       if (!solved) taskText.classList.add('hidden');
@@ -398,6 +427,8 @@
     var taskText = h('p', { class: 'lab-task', html: c.task });
     var task = h('div', { class: 'task' }, head, L.taskExtras(c, taskText), taskText, c.type === 'predict' ? null : h('div', { class: 'row task-more' }, solBtn, exBtn));
     var fold = L.foldTask(task, head);
+    var intro = L.worldIntro(lab, c);
+    if (intro) main.appendChild(intro);
     main.appendChild(task);
 
     var work = h('div', { class: 'lab-work' });
@@ -432,6 +463,7 @@
         h('p', { class: 'lab-won' }, starEl(r.stars), r.best > r.stars ? h('span', { class: 'muted small', text: ' (best: ' + starText(r.best) + ')' }) : null,
           r.xp ? h('span', { class: 'small', text: ' +' + r.xp + ' XP' }) : null),
         r.unlocked ? h('p', { class: 'small lab-unlocked' }, h('strong', { text: '🔓 Level ' + r.unlocked.world.n + '.' + r.unlocked.n + ' unlocked: ' }), r.unlocked.title) : null,
+        L.worldNote(lab, r),
         h('div', { class: 'row' }, L.afterSolve(lab, c))));
       var mark = side.querySelector('a.chal.active .mark');
       if (mark) mark.textContent = '✔';
