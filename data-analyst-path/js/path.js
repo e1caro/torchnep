@@ -29,13 +29,13 @@
     var state = done ? 'done' : isCur ? 'current' : p.done > 0 ? 'started' : 'todo';
     var face = done ? '✓' : isCur ? '★' : l.number.split('.')[1];
     var meta = done ? (J.tested(l.id) ? 'Tested out' : 'Complete') : (p.done > 0 || isCur) ? 'Step ' + p.index + ' of ' + p.total + ' · ' + J.NAMES[p.step] : m.steps.length + ' steps';
-    var aria = 'Mission ' + l.number + ', ' + l.title + '. ' + (done ? 'Complete.' : 'Step ' + p.index + ' of ' + p.total + ', ' + J.NAMES[p.step] + '.') + (k ? ' ' + k + ' of 3 stars.' : '');
+    var aria = 'Mission ' + l.number + ', ' + l.title + '. ' + (l.added && !done && p.done === 0 ? 'New. ' : '') + (done ? 'Complete.' : 'Step ' + p.index + ' of ' + p.total + ', ' + J.NAMES[p.step] + '.') + (k ? ' ' + k + ' of 3 stars.' : '');
     return h('li', { class: 'jstop', style: '--dx:' + SNAKE[step % SNAKE.length] + 'px' },
       h('a', { class: 'jnode ' + state, href: '#/mission/' + l.id, 'aria-label': aria, 'aria-current': isCur ? 'step' : null },
         isCur && DA.mascot ? h('span', { class: 'jn-here', 'aria-hidden': 'true' }, DA.mascot.svg('happy', 30)) : null,
         h('span', { class: 'jn-face', 'aria-hidden': 'true', text: face }),
         h('span', { class: 'jn-text', 'aria-hidden': 'true' },
-          h('small', { text: 'Mission ' + l.number + ' · ' + ui.fmtHours(l.hours) }),
+          h('small', null, 'Mission ' + l.number + ' · ' + ui.fmtHours(l.hours), l.added && !done && p.done === 0 ? h('span', { class: 'jn-new', text: 'New' }) : null),
           h('strong', { text: l.title }),
           h('span', { class: 'jn-meta' }, h('span', { text: meta }), k ? stars(k) : null))));
   }

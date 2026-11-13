@@ -29,6 +29,15 @@ test('every mission resolves: brief, cast, learn cards, Try levels, Check questi
       assert.ok(r.level, l.id + ' level ' + r.lab + ' ' + r.key + ' exists');
       assert.ok(r.level.challenges.length > 0, l.id + ' level has challenges');
     });
+    assert.ok(m.steps.includes('try'), l.id + ' has a Try step (lab levels or a case)');
+    assert.ok(!(m.levels.length && m.scenario.length), l.id + ' has one kind of Try');
+    m.scenario.forEach((sc, i) => {
+      assert.ok(sc.q.length > 15 && sc.why.length > 10, l.id + ' case ' + i + ' text');
+      assert.strictEqual(sc.options.length, 4, l.id + ' case ' + i + ' options');
+      assert.strictEqual(new Set(sc.options).size, 4, l.id + ' case ' + i + ' options are distinct');
+      assert.ok(Number.isInteger(sc.answer) && sc.answer >= 0 && sc.answer < 4, l.id + ' case ' + i + ' answer');
+      if (sc.table) sc.table.rows.forEach((r) => assert.strictEqual(r.length, sc.table.cols.length, l.id + ' case ' + i + ' table row'));
+    });
     assert.ok(m.targets.length <= J.TARGETS);
     assert.ok(DA.drill.byId('l:' + l.id), l.id + ' check question');
     assert.ok(l.doit && l.ai && l.ai.text, l.id + ' debrief task and prompt');
@@ -120,6 +129,30 @@ test('mission steps: brief and learn are remembered, Try is derived from lab sta
   assert.deepStrictEqual(J.progress(id), { done: 5, total: 5, step: 'debrief', index: 5 });
 });
 
+test('a case Try is done when every decision is right, pays once, merges, and keeps old finished missions whole', () => {
+  setDay('2026-11-13');
+  const id = 'l4-2', m = J.mission(id);
+  assert.ok(m.scenario.length >= 2 && !m.levels.length);
+  assert.strictEqual(J.currentStep(id), 'brief');
+  J.mark(id, J.BITS.brief); J.mark(id, J.BITS.learn);
+  assert.strictEqual(J.currentStep(id), 'try');
+  assert.ok(!J.tryState(id).done);
+  assert.strictEqual(J.stars(id), 0, 'a case has no stars');
+  assert.strictEqual(J.scenarioDone(id, false), false, 'a wrong answer closes nothing');
+  assert.ok(!J.tryState(id).done);
+  assert.strictEqual(J.scenarioDone(id, true), true);
+  assert.strictEqual(J.scenarioDone(id, true), false, 'only the first time counts');
+  assert.ok(J.tryState(id).done);
+  assert.strictEqual(J.currentStep(id), 'check');
+  assert.strictEqual(ui.state.journey[id], 1 | 2 | 8);
+  const back = ui.sanitize(JSON.parse(JSON.stringify(ui.state)));
+  assert.strictEqual(back.journey[id], 11, 'the case bit survives a save');
+  assert.deepStrictEqual(Y.merge(ui.sanitize({ v: 2, journey: { [id]: 8 } }), ui.sanitize({ v: 2, journey: { [id]: 3 } })).journey, { [id]: 11 });
+  ui.state = ui.sanitize(fixture);
+  Object.keys(fixture.done).forEach((d) => { if (J.mission(d).scenario.length) assert.ok(J.tryState(d).done, d + ' was finished before cases existed'); });
+  assert.ok(Object.keys(fixture.done).some((d) => J.mission(d).scenario.length), 'the fixture covers a finished case mission');
+});
+
 test('test out completes a mission only when every answer is right, with the same one-time XP', () => {
   const id = 'l4-1';
   assert.strictEqual(J.testOut(id, false), 0);
@@ -181,8 +214,8 @@ test('journey fields merge like the rest: idempotent, commutative, and safe with
 });
 
 test('sanitize rejects bad journey and boss values', () => {
-  const s = ui.sanitize({ v: 2, journey: { 'l2-3': 9, 'l0-1': 3, nope: 1, 'l1-1': -1, 'l1-2': '2' }, bosses: { m0: 4, m1: 2, x9: 1, m2: 0 } });
-  assert.deepStrictEqual(s.journey, { 'l0-1': 3, 'l1-2': 2 });
+  const s = ui.sanitize({ v: 2, journey: { 'l2-3': 16, 'l2-4': 9, 'l0-1': 3, nope: 1, 'l1-1': -1, 'l1-2': '2' }, bosses: { m0: 4, m1: 2, x9: 1, m2: 0 } });
+  assert.deepStrictEqual(s.journey, { 'l2-4': 9, 'l0-1': 3, 'l1-2': 2 });
   assert.deepStrictEqual(s.bosses, { m1: 2 });
 });
 

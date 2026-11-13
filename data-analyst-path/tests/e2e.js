@@ -281,7 +281,7 @@ async function playRound(page, wrongAt = []) {
   ok(await page.locator('a.jnode').count() > before2, 'a collapsed chapter opens with all its missions and its boss');
   await page.click('.jnode.current');
   await page.waitForSelector('.view.mission');
-  ok((await txt(page, 'h1')).includes('Learn with AI') && await page.locator('.m-steps a').count() === 4, 'the current stop opens the next mission, with its steps');
+  ok((await txt(page, 'h1')).includes('Learn with AI') && await page.locator('.m-steps a').count() === 5, 'the current stop opens the next mission, with its five steps (a case Try where there is no lab level)');
 
   /* ---------- arcade ---------- */
   await page.goto(BASE + '/index.html#/arcade/corr');
@@ -528,6 +528,22 @@ async function playRound(page, wrongAt = []) {
   await phone.waitForSelector('.feedback .callout.ok');
   ok(await phone.locator('.feedback a:has-text("Back to the mission")').count() === 1 && await phone.evaluate((id) => DA.labgame.stars('sql', id) >= 1 && DA.game.quests().sql, tid), 'phone mission: a Try challenge is solved in place, its stars go to SQLab and it counts as the Code quest');
   await dismissModals(phone, 900);
+  // A case Try (no lab level): a wrong pick explains and stays open; all right closes the case once.
+  await phone.goto(BASE + '/index.html#/mission/l4-1/try');
+  await phone.waitForSelector('.scen .quiz-opt');
+  const cases = await phone.evaluate(() => DA.scenarios['l4-1'].map((s) => ({ right: s.options[s.answer], wrong: s.options[(s.answer + 1) % 4] })));
+  const cxp0 = await phone.evaluate(() => DA.game.totalXp());
+  for (let i = 0; i < cases.length; i++) {
+    const card = phone.locator('.scen').nth(i);
+    await card.locator('.quiz-opt', { hasText: cases[i].wrong }).first().tap();
+    ok(await card.locator('.callout.warn').count() === 1 && await card.locator('.quiz-opt:not([disabled])').count() === 3, 'phone case ' + (i + 1) + ': a wrong pick explains and leaves the other options open');
+    await card.locator('.quiz-opt', { hasText: cases[i].right }).first().tap();
+  }
+  await dismissModals(phone, 900);
+  const cst = await phone.evaluate(() => ({ tried: (DA.ui.state.journey['l4-1'] & 8) === 8, done: DA.journey.stepDone('l4-1', 'try'), xp: DA.game.totalXp(), key: !!DA.ui.state.xp['scenario:l4-1'] }));
+  const toCheck = await phone.locator('.m-actions a.btn.big:has-text("Check")').count() + await phone.locator('.scen .quiz-opt.wrong .letter:text("✗")').count() - cases.length;
+  ok(cst.tried && cst.done && cst.key && cst.xp > cxp0 && toCheck === 1, 'phone case Try: every decision right closes the case, pays once and points to Check ' + JSON.stringify(Object.assign({ toCheck }, cst)));
+  await phone.screenshot({ path: path.join(SHOTS, 'phone-case.png') });
   await phone.goto(BASE + '/index.html#/mission/l4-2/test');
   await phone.waitForSelector('.qcard');
   await answerAll(phone, true);

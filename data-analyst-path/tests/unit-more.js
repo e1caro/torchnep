@@ -89,3 +89,45 @@ test('answer options do not give the answer away (length or "always/never")', ()
   assert.ok(longest / bank.length <= 0.3, 'the right answer is the longest in ' + longest + ' of ' + bank.length + ' questions (chance would be about 25%)');
   assert.deepStrictEqual(absolute, [], '"always" and "never" only in wrong options are a giveaway');
 });
+
+test('content lint: lessons, ids that never move, boss cases, case Try options and card sources', () => {
+  const ids = DA.lessons.map((l) => l.id);
+  assert.strictEqual(new Set(ids).size, ids.length, 'unique lesson ids');
+  // Lessons keep their ids and numbers: added ones only go at the end of a chapter.
+  DA.modules.forEach((m) => {
+    const added = m.lessons.map((l) => !!l.added);
+    assert.ok(added.indexOf(true) === -1 || added.slice(added.indexOf(true)).every(Boolean), m.id + ': added lessons come after the original ones');
+    m.lessons.forEach((l, i) => assert.strictEqual(l.number, DA.modules.indexOf(m) + 1 + '.' + (i + 1)));
+  });
+  DA.lessons.forEach((l) => {
+    assert.ok(l.learn.length >= 3 && l.doit && l.ai && l.ai.title && l.ai.text, l.id + ' content');
+    assert.ok(l.quiz.options.length === 4 && l.quiz.answer >= 0 && l.quiz.answer < 4 && l.quiz.why, l.id + ' quiz');
+    (l.links || []).forEach((x) => assert.ok(/^https:\/\//.test(x.url) && x.label, l.id + ' link ' + x.url));
+  });
+  const xs = DA.extraQuestions.filter((q) => /^x\d+$/.test(q.id)).map((q) => q.id);
+  xs.forEach((id, i) => assert.strictEqual(id, 'x' + (i < 9 ? '0' : '') + (i + 1), 'practice question ids stay positional'));
+  assert.strictEqual(DA.drill.byId('x01').q.slice(0, 22), 'A table has 5 rows and');
+  DA.modules.forEach((m) => {
+    const q = DA.bossData[m.id].q;
+    assert.ok(q && q.length === 5, m.id + ' has five case questions');
+    q.forEach((id) => assert.ok(DA.drill.byId(id), id));
+  });
+  let longest = 0, n = 0;
+  Object.keys(DA.scenarios).forEach((id) => {
+    assert.ok(DA.lessonById[id], 'case for unknown lesson ' + id);
+    DA.scenarios[id].forEach((sc) => {
+      n++;
+      const L = sc.options.map((o) => o.length), right = L[sc.answer], max = Math.max(...L.filter((_, i) => i !== sc.answer));
+      if (right > max) longest++;
+      assert.ok(right <= max * 1.2 + 4, id + ': the right option gives itself away by length');
+      sc.options.forEach((o, i) => assert.ok(i === sc.answer || !/\b(always|never)\b/i.test(o), id + ': ' + o));
+    });
+  });
+  assert.ok(longest / n <= 0.3, 'case options: the right one is the longest in ' + longest + ' of ' + n);
+  const sourced = DA.feedCards.filter((c) => c.src);
+  assert.ok(sourced.length >= 15);
+  sourced.forEach((c) => {
+    assert.ok(c.src.label && c.src.label.length <= 80, c.id + ' source label');
+    assert.ok(/^https:\/\/(learn\.microsoft\.com|help\.tableau\.com|pandas\.pydata\.org|www\.postgresql\.org|www\.sqlite\.org|www\.evanmiller\.org)\//.test(c.src.url), c.id + ' source is an official page: ' + c.src.url);
+  });
+});

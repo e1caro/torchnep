@@ -140,7 +140,8 @@
     return {
       el: h('div', { class: 'fc-actions' }, saveBtn,
         h('button', { class: 'fc-act', type: 'button', onclick: function () { share(c); } }, h('span', { 'aria-hidden': 'true', text: '↗' }), ' Share'),
-        l ? h('a', { class: 'fc-act deep', href: '#/lesson/' + l.id }, h('span', { 'aria-hidden': 'true', text: '📘' }), ' Lesson ' + l.number) : null),
+        l ? h('a', { class: 'fc-act deep', href: '#/lesson/' + l.id }, h('span', { 'aria-hidden': 'true', text: '📘' }), ' Lesson ' + l.number) : null,
+        c.src ? h('a', { class: 'fc-act', href: c.src.url, target: '_blank', rel: 'noopener noreferrer', title: c.src.label, 'aria-label': 'Source: ' + c.src.label + ' (opens a new page)' }, h('span', { 'aria-hidden': 'true', text: '🔗' }), ' Source') : null),
       paint: paint,
     };
   }

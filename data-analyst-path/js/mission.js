@@ -152,7 +152,53 @@
       h('a', { class: 'btn small' + (info.solved ? ' ghost' : ' accent'), href: href(ref.lab, info.next), 'aria-label': (info.solved ? 'Play again: ' : 'Play: ') + lv.title }, info.solved ? 'Again' : 'Play'));
   }
 
+  // A Try without a lab level: two short decisions on a realistic case. A wrong pick explains why and stays open for another go.
+  function scenarioTry(m, sh) {
+    var t = J.tryState(m.id), left = m.scenario.length;
+    var status = h('p', { class: 'muted small', role: 'status', 'aria-live': 'polite', text: t.done ? 'Case closed ✓ You can still go through it again.' : left + ' decisions to make' });
+    sh.stage.appendChild(h('p', { class: 'lead', text: 'A short case from ' + m.who.name + '. Pick the best move for each decision. A wrong pick tells you why, and you can try again.' }));
+    sh.stage.appendChild(status);
+    var host = h('div', { class: 'qlist scen-list' });
+    m.scenario.forEach(function (sc, n) {
+      var shuffled = DA.drill.shuffled(sc), solved = false;
+      var fb = h('div', { class: 'quiz-fb', role: 'status', 'aria-live': 'polite' });
+      var opts = shuffled.options.map(function (text, i) {
+        return h('button', { class: 'quiz-opt', type: 'button', onclick: function () { pick(i); } },
+          h('span', { class: 'letter', 'aria-hidden': 'true', text: String.fromCharCode(65 + i) }), h('span', { class: 'opt-text', text: text }));
+      });
+      function pick(i) {
+        if (solved) return;
+        var ok = i === shuffled.answer;
+        opts[i].classList.add(ok ? 'right' : 'wrong');
+        opts[i].querySelector('.letter').textContent = ok ? '✓' : '✗';
+        opts[i].setAttribute('aria-label', (ok ? 'Right: ' : 'Not this one: ') + shuffled.options[i]);
+        ui.clear(fb);
+        fb.appendChild(h('div', { class: 'callout ' + (ok ? 'ok' : 'warn') }, h('strong', { text: ok ? '✓ Good call. ' : '✗ Not quite. ' }), ok ? sc.why : 'Think about it again and pick another option.'));
+        G.sound(ok ? 'ok' : 'bad'); G.buzz(ok ? 20 : [40, 40, 40]);
+        if (!ok) { opts[i].disabled = true; return; }
+        solved = true;
+        opts.forEach(function (b) { b.disabled = true; });
+        if (--left > 0) { status.textContent = left + ' decision' + (left === 1 ? '' : 's') + ' to go'; return; }
+        var first = J.scenarioDone(m.id, true);
+        if (first) G.addXp('scenario:' + m.id, ui.XP.scenario * m.scenario.length, 'Case closed');
+        G.touch();
+        ui.refreshChrome();
+        status.textContent = 'Case closed ✓';
+      }
+      var table = sc.table ? h('div', { class: 'table-wrap scen-table', role: 'region', tabindex: '0', 'aria-label': 'Case data' }, h('table', { class: 'result-table' },
+        h('thead', null, h('tr', null, sc.table.cols.map(function (c) { return h('th', { scope: 'col', text: c }); }))),
+        h('tbody', null, sc.table.rows.map(function (r) { return h('tr', null, r.map(function (v) { return h('td', { class: typeof v === 'number' ? 'num' : null, text: String(v) }); })); })))) : null;
+      host.appendChild(h('div', { class: 'card qcard scen' },
+        h('p', { class: 'muted small', text: 'Decision ' + (n + 1) + ' of ' + m.scenario.length }),
+        h('p', { class: 'qtext', text: sc.q }), table,
+        h('div', { class: 'qopts', role: 'group', 'aria-label': 'Options for decision ' + (n + 1) }, opts), fb));
+    });
+    sh.stage.appendChild(host);
+    stepButtons(m, 'try').forEach(function (b) { if (b) sh.actions.appendChild(b); });
+  }
+
   function tryStep(m, sh) {
+    if (m.scenario.length) return scenarioTry(m, sh);
     var t = J.tryState(m.id), href = function (lab, c) { return '#/mission/' + m.id + '/try/' + lab + '/' + c.id; };
     sh.stage.appendChild(h('p', { class: 'lead', text: 'Solve one challenge in each level below. Your stars count in the Workshop too.' }));
     sh.stage.appendChild(h('p', { class: 'muted small', 'aria-live': 'polite', text: t.hit + ' of ' + t.total + ' levels done' + (t.done ? ' ✓' : '') }));

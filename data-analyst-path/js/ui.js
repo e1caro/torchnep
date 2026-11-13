@@ -185,6 +185,7 @@
     blockStar: 3,    // the first time a SQL blocks puzzle gets 3 stars
     blockLevel: 15,  // solving every puzzle of a SQL blocks level
     module: 25,      // finishing every lesson of a module
+    scenario: 5,     // each decision in a mission's case Try, paid once when the case is closed
     gameCap: 20,     // most XP a mini-game can pay per day (they are endless)
   };
 
@@ -209,7 +210,7 @@
       cards: {},   // feed card id -> date it was first read ("collected")
       saved: {},   // feed card id -> true (bookmarked)
       blocks: {},  // SQL blocks puzzle id -> stars (1 to 3)
-      journey: {}, // lesson id -> bits: 1 brief seen, 2 learn cards done, 4 tested out (the rest of a mission is derived)
+      journey: {}, // lesson id -> bits: 1 brief seen, 2 learn cards done, 4 tested out, 8 scenario Try done (the rest of a mission is derived)
       bosses: {},  // module id -> best stars (1 to 3) in that chapter's boss case
       repaired: {},// date -> true: a missed day bridged by a streak repair
       boost: 0,    // time (ms) until which XP is doubled
@@ -275,7 +276,7 @@
     // SQL blocks: stars 1-3 per solved puzzle (older saves stored true, which counts as 1 star)
     eachKey(src.blocks, function (id, v) { var n = v === true ? 1 : Math.floor(Number(v)); if (n >= 1 && n <= 3 && (!DA.puzzleById || DA.puzzleById[id])) s.blocks[id] = n; }, 500);
     eachKey(src.repaired, function (d, v) { if (isDate(d) && v === true) s.repaired[d] = true; }, 800);
-    eachKey(src.journey, function (id, v) { var n = Math.floor(Number(v)); if (DA.lessonById[id] && n >= 1 && n <= 7) s.journey[id] = n; }, 500);
+    eachKey(src.journey, function (id, v) { var n = Math.floor(Number(v)); if (DA.lessonById[id] && n >= 1 && n <= 15) s.journey[id] = n; }, 500);
     eachKey(src.bosses, function (id, v) { var n = Math.floor(Number(v)); if (n >= 1 && n <= 3 && DA.modules.some(function (m) { return m.id === id; })) s.bosses[id] = n; }, 50);
     var boost = Math.floor(Number(src.boost));
     if (boost > 0 && boost < 1e14) s.boost = boost;
@@ -329,9 +330,17 @@
 
   ui.doneCount = function () { return DA.lessons.filter(function (l) { return ui.state.done[l.id]; }).length; };
   ui.doneHours = function () { return DA.lessons.reduce(function (s, l) { return s + (ui.state.done[l.id] ? l.hours : 0); }, 0); };
+  // The first unfinished lesson. Lessons added later to a chapter that is already closed (its bonus paid) do not pull you back:
+  // they wait on the map, marked New, and become next only when everything else is done.
   ui.nextLesson = function () {
-    for (var i = 0; i < DA.lessons.length; i++) if (!ui.state.done[DA.lessons[i].id]) return DA.lessons[i];
-    return null;
+    var first = null;
+    for (var i = 0; i < DA.lessons.length; i++) {
+      var l = DA.lessons[i];
+      if (ui.state.done[l.id]) continue;
+      if (!ui.state.xp['module:' + l.module.id]) return l;
+      first = first || l;
+    }
+    return first;
   };
   ui.moduleDone = function (m) { return m.lessons.filter(function (l) { return ui.state.done[l.id]; }).length; };
   ui.fmtHours = function (x) { return (Math.round(x * 10) / 10) + ' h'; };

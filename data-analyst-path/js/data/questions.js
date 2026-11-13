@@ -449,5 +449,172 @@
     ['Twelve separate 3D pie charts arranged in a circle using bright rainbow slice palettes', 'A word cloud where each sales team name is scaled by its ratio of revenue to target', 'A geographic office map placing spinning speedometer gauges over each regional city'],
     'Bullet charts and bars with reference lines let the eye compare actual vs target on a shared linear scale immediately.');
 
+  /* ---------- Added with the journey: gaps from the course review ---------- */
+  Q("SQL", "What does COALESCE(discount, 0) return when discount is NULL?", "0",
+    ["NULL", "An error", "The average discount"],
+    "COALESCE returns the first value that is not NULL.");
+  Q("SQL", "What does TRIM(LOWER('  Email ')) return?", "'email'",
+    ["'  email '", "'EMAIL'", "'Email'"],
+    "LOWER changes the case and TRIM removes the spaces at both ends.");
+  Q("SQL", "amount is stored as text. Why does ORDER BY amount put \"100\" before \"20\"?", "Text sorts character by character, so \"1\" comes first",
+    ["ORDER BY ignores numbers that have more than two digits", "The database sorts by the order rows were inserted", "Descending order is the default for numeric-looking text"],
+    "Cast the column to a number (CAST(amount AS REAL)) before sorting or adding.");
+  Q("SQL", "A funnel has 1,000 visits, 300 sign-ups and 60 purchases. What is the sign-up to purchase conversion?", "20%",
+    ["6%", "30%", "60%"],
+    "60 of the 300 people who signed up bought: 60 / 300 = 20%. 6% is visit to purchase.");
+  Q("SQL", "What does day-7 retention for a cohort measure?", "The share of that cohort active again on day 7",
+    ["The share of all users active in the last 7 days", "The number of sign-ups in the first 7 days", "The average days each user stayed subscribed"],
+    "Retention follows one group that started together and compares it at the same age.");
+  Q("SQL", "Which expression groups timestamps by calendar month in PostgreSQL?", "DATE_TRUNC('month', created_at)",
+    ["EXTRACT(month FROM created_at)", "ROUND(created_at, 'month')", "CAST(created_at AS month)"],
+    "EXTRACT(month ...) returns 1 to 12, so January of two different years would be merged.");
+  Q("SQL", "How do you keep only the latest row for each customer?", "ROW_NUMBER() OVER (PARTITION BY customer ORDER BY updated_at DESC) = 1",
+    ["SELECT DISTINCT customer, updated_at FROM t ORDER BY updated_at", "GROUP BY customer, updated_at HAVING COUNT(*) = 1", "MAX(updated_at) OVER () for every row in the table"],
+    "Number the rows inside each customer from newest to oldest, then keep row 1.");
+  Q("SQL", "What is a CTE (WITH name AS (...)) mainly good for?", "Naming a step so a long query reads top to bottom",
+    ["Making every query run faster by caching results", "Storing a permanent table in the database", "Hiding columns from other database users"],
+    "A CTE is a named subquery that exists only for that statement.");
+  Q("SQL", "Two lists both contain customer 7. How many rows for customer 7 does UNION ALL return?", "Two rows",
+    ["One row", "No rows", "An error"],
+    "UNION ALL keeps duplicates. UNION would remove them and return one row.");
+  Q("SQL", "Why write revenue / NULLIF(orders, 0)?", "It avoids a division-by-zero error",
+    ["It turns every NULL revenue into zero", "It rounds the result to whole numbers", "It removes orders that have no revenue"],
+    "NULLIF turns 0 into NULL, and dividing by NULL gives NULL instead of an error.");
+  Q("Python", "pd.merge(orders, users, on=\"user_id\", how=\"left\") keeps…", "Every order, with user columns empty where no match",
+    ["Only orders whose user exists in the users table", "Every user, including the ones with no orders", "Only the users and orders that appear twice"],
+    "A left merge keeps every row of the left table, here orders.");
+  Q("Python", "Which call gives cities as rows, months as columns and summed revenue?", "df.pivot_table(index=\"city\", columns=\"month\", values=\"revenue\", aggfunc=\"sum\")",
+    ["df.groupby(\"city\")[\"revenue\"].sum().sort_values(\"month\")", "df.pivot_table(index=\"month\", columns=\"city\", values=\"revenue\", aggfunc=\"count\")", "df.melt(id_vars=\"city\", value_vars=\"month\", value_name=\"revenue\")"],
+    "index sets the rows, columns the columns and aggfunc how values are combined.");
+  Q("Python", "Dates were read as text. Which line lets you group by month?", "df[\"d\"] = pd.to_datetime(df[\"d\"])",
+    ["df[\"d\"] = df[\"d\"].astype(int)", "df[\"d\"] = df[\"d\"].str.upper()", "df[\"d\"] = df[\"d\"].fillna(\"month\")"],
+    "Real dates unlock .dt.month, .dt.to_period(\"M\") and date arithmetic.");
+  Q("Python", "What does df[\"channel\"].value_counts(normalize=True) return?", "The share of each value, adding up to 1",
+    ["The count of each value, sorted by name", "Only values that appear more than once", "The number of distinct values in the column"],
+    "normalize=True divides each count by the total.");
+  Q("Python", "df.duplicated(subset=[\"order_id\"]).sum() returns 12. What does it mean?", "12 rows repeat an order_id seen earlier",
+    ["12 orders have no order_id at all", "There are 12 distinct order ids in total", "The table has 12 columns with the same name"],
+    "duplicated marks every repeat after the first, so 12 rows are extra copies.");
+  Q("Python", "Why add assert df[\"qty\"].ge(0).all() to a cleaning script?", "It stops the script if a quantity is negative",
+    ["It changes every negative quantity into zero", "It makes the script run faster on big files", "It sorts the quantities from low to high"],
+    "A failed assert stops with an error, so bad data never reaches the report.");
+  Q("Python", "Which filter keeps chat tickets with high priority?", "df[(df[\"channel\"] == \"chat\") & (df[\"priority\"] == \"high\")]",
+    ["df[df[\"channel\"] == \"chat\" and df[\"priority\"] == \"high\"]", "df[(df[\"channel\"] == \"chat\") | (df[\"priority\"] == \"high\")]", "df[df[\"channel\"] == \"chat\", df[\"priority\"] == \"high\"]"],
+    "Combine conditions with & (and) or | (or), each in brackets. Python's and does not work on columns.");
+  Q("Python", "What is the usual pandas way to add 21% tax to every price?", "df[\"gross\"] = df[\"price\"] * 1.21",
+    ["A for loop that edits one row at a time", "df[\"gross\"] = df.sum() * 1.21", "df[\"price\"].append(1.21)"],
+    "Column arithmetic applies to every row at once and is much faster than a loop.");
+  Q("Spreadsheets", "What does Power Query record when you clean a table?", "Each step, so the cleaning repeats on refresh",
+    ["A video of your screen while you work", "Only the final table, as fixed values", "A macro that runs whenever the file opens"],
+    "Applied steps run again on new data when you press Refresh.");
+  Q("Spreadsheets", "Months are spread across 12 columns. Which step makes one row per month?", "Unpivot the month columns",
+    ["Transpose the whole table", "Merge the 12 columns into one", "Sort the columns by month"],
+    "Unpivot turns column headers into values: a long table that pivots and charts handle well.");
+  Q("Spreadsheets", "=COUNTIFS(B:B, \"chat\", C:C, \"high\") counts…", "Rows that are chat and also high priority",
+    ["Rows that are chat or high priority", "All the chat rows, then all the high rows", "The number of distinct channels"],
+    "Every condition in COUNTIFS must be true for a row to count.");
+  Q("Spreadsheets", "Why wrap a lookup in IFERROR(..., \"not found\")?", "To show a clear message instead of #N/A",
+    ["To make the lookup ignore upper and lower case", "To search the whole workbook, not one sheet", "To sort the results before they are shown"],
+    "IFERROR replaces any error with the value you give. Use it only where a miss is expected.");
+  Q("Spreadsheets", "What does =UNIQUE(A2:A100) return?", "Each distinct value once, as a spill range",
+    ["Only values that appear exactly one time", "The number of distinct values in the range", "The first value in the range, repeated"],
+    "By default UNIQUE lists every distinct value. Its third argument switches to values that appear once.");
+  Q("Spreadsheets", "A pivot shows revenue by city. How do you show each city's share of the total?", "Show values as % of grand total",
+    ["Add a second revenue field and sort it", "Change the sum to an average", "Filter the pivot to the largest city"],
+    "Value field settings can show each cell as a share of the column or grand total.");
+  Q("Spreadsheets", "Which reference stays fixed on both row and column when copied?", "$B$2",
+    ["B$2", "$B2", "B2"],
+    "A $ before the letter locks the column and a $ before the number locks the row.");
+  Q("Statistics", "Statistical power is the chance that a test…", "Detects an effect that really exists",
+    ["Finds an effect when there is none", "Gives the same result twice in a row", "Uses all of the users you have"],
+    "Finding an effect that is not there is a false positive, controlled by alpha.");
+  Q("Statistics", "To detect a smaller effect with the same power, you need…", "More users in each group",
+    ["Fewer users but a longer test", "The same users and a stricter alpha", "A different primary metric"],
+    "Smaller effects hide in noise, so you need a larger sample to see them.");
+  Q("Statistics", "Why is stopping an A/B test the first time p < 0.05 a problem?", "Repeated looks raise the false positive rate",
+    ["The p-value cannot be computed before the end", "It makes the test run slower than planned", "The sample becomes too large to analyse"],
+    "Each look is another chance to see noise as a win. Fix the sample size first, or use a method made for peeking.");
+  Q("Statistics", "A 50/50 test ended with 10,400 users in A and 9,600 in B. What should you check first?", "Whether the split itself is broken",
+    ["Whether B had a better design", "Whether A should be declared the winner", "Whether to round the numbers"],
+    "A sample ratio mismatch this large is very unlikely by chance and can bias every result.");
+  Q("Statistics", "B wins clearly in week 1 and the gap shrinks by week 3. What is a likely reason?", "A novelty effect that fades",
+    ["The randomisation was perfect", "Week 3 had fewer users in total", "B is getting better over time"],
+    "People try new things at first. Run long enough to see the lasting effect.");
+  Q("Statistics", "A fitted line says sales = 50 + 3 × ad_spend, both in thousands. What does the 3 mean?", "Each extra 1k of spend goes with 3k more sales",
+    ["Sales are 3 times higher than ad spend", "Ad spend explains 3% of the sales", "With no ad spend at all, sales would be 3k"],
+    "The slope is the change in y for one unit of x. The 50 is the value at zero spend.");
+  Q("Statistics", "Every store improved its conversion rate, yet the overall rate fell. How?", "The mix shifted toward stores that convert less",
+    ["One of the store figures must be calculated wrong", "Improvements in stores cancel out at the total level", "Overall rates ignore changes inside each store"],
+    "This is Simpson's paradox: the weights changed, not the stores.");
+  Q("Statistics", "Which rule flags outliers with the interquartile range?", "Below Q1 − 1.5×IQR or above Q3 + 1.5×IQR",
+    ["Any value more than 1.5 above the median", "The top and bottom 1.5% of the values", "Values that appear only once in the data"],
+    "The IQR is Q3 − Q1. The 1.5×IQR fences are what box plots use for their whiskers.");
+  Q("Visualization", "In the Power BI service, how do you share finished reports with 200 readers?", "Publish an app from the workspace",
+    ["Add all 200 as workspace admins", "Email them the .pbix file each week", "Export each page to PDF by hand"],
+    "Apps give readers a stable, read-only view while you keep working in the workspace.");
+  Q("Visualization", "A report uses a database inside the office network. What does scheduled refresh need?", "An on-premises data gateway",
+    ["A Premium licence for every viewer", "A DirectQuery-only connection", "A daily manual export to Excel"],
+    "The gateway lets the cloud service reach data sources inside your network.");
+  Q("Visualization", "How do you check a row-level security role before sharing?", "Use View as role in Power BI Desktop",
+    ["Ask a manager to report what they see", "Hide the columns the role should not see", "Turn off the filters on every page"],
+    "View as shows the report exactly as a member of that role would see it.");
+  Q("Visualization", "Which storage mode usually gives the fastest visuals for data that changes daily?", "Import, with a scheduled refresh",
+    ["DirectQuery, with no caching at all", "Live connection to a CSV file", "A new DirectQuery table per visual"],
+    "Import keeps a compressed copy in memory. A daily refresh is enough for daily data.");
+  Q("Visualization", "RANKX(ALL(Sales[city]), [Revenue]) gives each city…", "Its rank among all cities by revenue",
+    ["Its revenue as a share of the total", "Rank 1 in every row of the table", "The number of cities with sales"],
+    "Without ALL, each row sees only its own city and every rank would be 1.");
+  Q("Visualization", "A report page is slow. Which Power BI tool shows which visual takes longest?", "Performance analyzer",
+    ["Quick measures", "Q&A visual", "Format painter"],
+    "Performance analyzer times each visual, its DAX query and its rendering.");
+  Q("Visualization", "Why do Tableau relationships avoid the doubled totals of a join?", "Each table is aggregated at its own level first",
+    ["Tableau deletes duplicate rows before joining", "Relationships only allow one row per table", "They convert every measure into an average"],
+    "Relationships stay flexible: tables are combined only after each is aggregated for the view.");
+  Q("Visualization", "Why might you publish a Tableau data source as an extract?", "Faster views and work without a live connection",
+    ["So that the data updates every second by itself", "Because live connections cannot be filtered", "To let viewers edit the source database"],
+    "An extract is a snapshot you refresh on a schedule. Live connections show the latest data.");
+  Q("Visualization", "Copilot in Power BI drafts a DAX measure. What is your next step?", "Test it against a number you already know",
+    ["Publish it, since Copilot checks its own code", "Rename it so it looks hand-written", "Delete the other measures that disagree"],
+    "Check generated code the same way you check your own.");
+  Q("Visualization", "In a Tableau blend, which source decides the rows of the view?", "The primary data source",
+    ["The secondary data source", "Whichever source is larger", "The source added most recently"],
+    "The primary source works like the left side of a left join; the secondary adds matching values.");
+  Q("AI workflow", "An AI writes a query that runs without errors. What does that prove?", "Only that the syntax is valid",
+    ["That the numbers it returns are right", "That the joins match the business rules", "That the filters cover the right dates"],
+    "Running is not the same as being right. Check the result against something you trust.");
+  Q("AI workflow", "The AI suggests a pandas method you cannot find in the docs. What is likely?", "It may not exist: check the documentation",
+    ["It is a hidden method only experts can use", "Your pandas version is too new for it", "The docs are wrong and should be ignored"],
+    "Models can invent plausible names. The documentation is the source of truth.");
+  Q("AI workflow", "Which task is a good fit for an AI assistant in analysis?", "Drafting a first version of code you will test",
+    ["Signing off the final numbers for the board", "Choosing which customers to refuse service", "Making up data for the months that are missing"],
+    "Let AI draft. People check, decide and stay accountable.");
+  Q("AI workflow", "What should you record when AI helped with an analysis?", "What it produced and how you checked it",
+    ["Nothing, since the result is what matters", "Only the name of the tool you used", "The number of prompts you needed"],
+    "A short note makes the work reviewable by someone else.");
+  Q("AI workflow", "An AI summary of survey comments says \"most customers love the app\". How do you check?", "Count the comments per theme in a sample",
+    ["Ask the AI if it is really sure about it", "Trust it, since summaries are neutral", "Read only the first comment in the file"],
+    "A counted sample turns a claim into evidence, or shows it is wrong.");
+  Q("Learning", "Which is a measurable question?", "What share of trial users paid within 14 days in March?",
+    ["Are our customers happy with the product these days?", "How can we make the app much better for everyone?", "What does the data say about our users overall?"],
+    "It names the group, the event, the time limit and the period.");
+  Q("Learning", "A model does not use gender but does use first name. Why can it still be biased?", "First names can act as a proxy for gender",
+    ["Models cannot be biased without a gender column", "First names make the model run more slowly", "Names are removed before training anyway"],
+    "Removing a column does not remove its information when other columns carry it.");
+  Q("Learning", "Which principle says to collect only the personal data you need?", "Data minimisation",
+    ["Data enrichment", "Data mining", "Data warehousing"],
+    "Less personal data means less risk, and it is a legal principle in many places, such as the GDPR.");
+  Q("Learning", "A manager asks for \"a churn number\". What do you agree on first?", "How churn is defined and for which period",
+    ["Which colour the churn chart should be", "Whether to round the number up or down", "Which tool to build the number in"],
+    "Churn can mean cancelled, lapsed or downgraded. Agree on the rule before you count.");
+  Q("Career", "Which structure works for a \"tell me about a time when\" question?", "Situation, task, action, result",
+    ["Greeting, background, hobbies, salary", "Problem, excuse, blame, apology", "Tools, tools, more tools, summary"],
+    "STAR keeps the story short and ends with what changed because of you.");
+  Q("Career", "A SQL interview task is unclear. What do you do?", "State your assumption, then solve it",
+    ["Pick any reading and hope it is right", "Refuse to answer until it is rewritten", "Write the longest query you can"],
+    "Interviewers want to see how you handle ambiguity, so say what you assumed.");
+  Q("Portfolio", "Your project uses a sample of 1,000 rows from a public dataset. What goes in the README?", "The sample size, how it was drawn and its limits",
+    ["Nothing, since samples are standard practice", "Only the final chart and a title", "The full dataset pasted into the file"],
+    "Readers need to know what the results can and cannot say.");
+
   DA.extraQuestions = list;
 })();

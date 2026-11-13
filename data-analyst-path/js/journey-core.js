@@ -5,7 +5,7 @@
   var ui = DA.ui;
   var J = (DA.journey = {});
 
-  J.BITS = { brief: 1, learn: 2, tested: 4 };
+  J.BITS = { brief: 1, learn: 2, tested: 4, tried: 8 };
   J.STEPS = ['brief', 'learn', 'try', 'check', 'debrief'];
   J.NAMES = { brief: 'Brief', learn: 'Learn', try: 'Try', check: 'Check', debrief: 'Debrief' };
   J.TARGETS = 3;
@@ -32,8 +32,9 @@
     if (!l) return null;
     var d = (DA.missionData || {})[id] || {};
     var levels = J.resolve(J.parse(d.try));
-    var m = { id: id, lesson: l, who: DA.cast[d.who] || DA.cast.dot, brief: d.brief || l.why, levels: levels, targets: levels.slice(0, J.TARGETS), more: levels.slice(J.TARGETS) };
-    m.steps = J.STEPS.filter(function (s) { return s !== 'try' || levels.length; });
+    var scenario = levels.length ? [] : ((DA.scenarios || {})[id] || []);
+    var m = { id: id, lesson: l, who: DA.cast[d.who] || DA.cast.dot, brief: d.brief || l.why, levels: levels, targets: levels.slice(0, J.TARGETS), more: levels.slice(J.TARGETS), scenario: scenario };
+    m.steps = J.STEPS.filter(function (s) { return s !== 'try' || levels.length || scenario.length; });
     return (cache[id] = m);
   };
 
@@ -50,12 +51,17 @@
   };
   J.tryState = function (id) {
     var m = J.mission(id), targets = m.targets.map(function (r) { return { ref: r, info: J.levelInfo(r) }; });
+    if (m.scenario.length) {
+      // A scenario Try: decisions on a small case. It is remembered as a bit; a mission finished before scenarios existed keeps its Try.
+      var ok = !!(bits(id) & J.BITS.tried) || !!S().done[id];
+      return { targets: [], hit: ok ? m.scenario.length : 0, total: m.scenario.length, done: ok, scenario: true };
+    }
     var hit = targets.filter(function (t) { return t.info.solved > 0; }).length;
     return { targets: targets, hit: hit, total: targets.length, done: targets.length > 0 && hit === targets.length };
   };
   J.stars = function (id) {
     var t = J.tryState(id);
-    if (!t.total) return 0;
+    if (!t.total || t.scenario) return 0;
     return Math.floor(t.targets.reduce(function (a, x) { return a + x.info.best; }, 0) / t.total);
   };
   J.embedIds = function (refs) {
@@ -93,6 +99,14 @@
     ui.save();
   };
   J.tested = function (id) { return !!(bits(id) & J.BITS.tested); };
+  // Scenario Try: every decision right marks the step done. A wrong pick can be retried at once; nothing is lost.
+  J.scenarioDone = function (id, allRight) {
+    var m = J.mission(id);
+    if (!m || !m.scenario.length || !allRight) return false;
+    var first = !(bits(id) & J.BITS.tried);
+    J.mark(id, J.BITS.tried);
+    return first;
+  };
 
   J.current = function () {
     var l = ui.nextLesson();

@@ -433,6 +433,8 @@ figure.code code { background: none; padding: 0; color: inherit; font-size: inhe
 .result-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .result-table td.null { color: var(--muted); font-style: italic; }
 .feedback:empty { display: none; }
+.scen-table { margin: 4px 0 12px; max-height: 240px; }
+.scen .quiz-opt.wrong:disabled { opacity: .75; }
 
 /* toast */
 .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 30px); max-width: min(92vw, 520px); background: #172033; color: #fff; padding: 11px 18px; border-radius: 12px; box-shadow: var(--shadow); opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; text-align: center; }
@@ -1717,3 +1719,4 @@ a.lab-level:hover { border-color: var(--accent); }
 .stamp.mini { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border-radius: 50%; border: 2px solid var(--wc); background: color-mix(in srgb, var(--wc) 18%, var(--surface)); }
 .trophy.got { --wc: var(--gold); }
 @media (prefers-reduced-motion: reduce) { .lab-here, .lab-won .lab-stars { animation: none; } }
+.jn-new { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 999px; background: var(--accent); color: var(--accent-ink); font-size: .68rem; font-weight: 800; letter-spacing: .02em; vertical-align: 1px; }

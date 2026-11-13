@@ -1106,6 +1106,164 @@
     },
   ];
 
+  // Lessons added with the Dot & Co. journey. They go at the end of their module, so earlier lesson numbers never change.
+  // `added` marks them New on the map.
+  function more(mid, lesson) { lesson.added = true; DA.modules.filter(function (m) { return m.id === mid; })[0].lessons.push(lesson); }
+
+  more('m0', {
+    id: 'l0-4', title: 'Ask the right question', hours: 2,
+    why: 'Most analysis goes wrong before the first query: the question was vague, so the answer could not be used.',
+    learn: [
+      'A stakeholder brings a <b>problem</b> ("sales feel slow"), not a query. Your first job is to turn it into a question you can answer with data.',
+      'Ask four things: <b>who</b> will use the answer, <b>what decision</b> it feeds, <b>which period and group</b>, and <b>how they will measure</b> success.',
+      'Write the <b>metric definition</b> down: "active user = at least one event in the last 30 days". Two people with different definitions will both be right and still disagree.',
+      'A good question is specific, measurable and tied to an action: "Did weekday lunch orders in Madrid fall in October compared with September, and by how much?"',
+      'Check back before you build: a two-line summary of the question saves a week of the wrong analysis.',
+    ],
+    doit: 'Take a vague request from your own world (or "the app feels quieter lately") and write: the decision it serves, the metric with its exact definition, the period, the comparison, and the one chart you would show.',
+    ai: { title: 'Sharpen a vague request', text: 'A stakeholder asked me: "[[VAGUE REQUEST]]". Ask me up to five clarifying questions, one at a time, to turn it into a specific, measurable analysis question. After my answers, write the final question, the metric definitions and what result would change the decision. My background: {{bg}}.\n{{lang}}' },
+    quiz: { q: 'A manager asks "How many people use the app?". What should you settle first?', options: ['Which table has the most rows', 'What "use" means and over which period', 'Which chart type looks best', 'Whether to use SQL or Python'], answer: 1, why: 'Without a definition and a time window, any number you give can be argued with.' },
+    links: [{ label: 'SMART criteria (Wikipedia)', url: 'https://en.wikipedia.org/wiki/SMART_criteria' }],
+  });
+  more('m0', {
+    id: 'l0-5', title: 'Data ethics, privacy and bias', hours: 2,
+    why: 'Analysts handle data about real people. A careless join or a biased sample can harm them and the business.',
+    learn: [
+      '<b>Personal data</b> is anything that can identify a person, alone or combined: names, emails, but also a postcode plus a birth date.',
+      'Collect and keep only what the question needs (<b>data minimisation</b>), and only use it for the purpose people were told about.',
+      '<b>Pseudonymise</b> before you share: replace names and emails with ids, and aggregate small groups so nobody can be singled out.',
+      '<b>Bias</b> enters through who is in the data: app users are not all customers, and survey answers come from people who chose to answer.',
+      'When in doubt, ask: would the people in this data be surprised or upset by this use? If yes, stop and check with someone responsible.',
+    ],
+    doit: 'Take a dataset you know and list: which columns are personal data, which ones the question really needs, and one way the people in it differ from the people you want to talk about.',
+    ai: { title: 'Privacy check before sharing', text: 'I want to share this analysis with [[AUDIENCE]]. Here are the columns: [[COLUMNS]]. Point out which columns are personal data, how someone could be re-identified, and what I should remove, aggregate or pseudonymise first. Do not ask me to paste real personal data.\n{{lang}}' },
+    quiz: { q: 'You share a table of customers with postcode, birth date and amount spent, without names. Is it anonymous?', options: ['Yes, there are no names in it', 'No, a postcode and birth date can single people out', 'Yes, as long as it stays inside the company', 'Only if the amounts are rounded'], answer: 1, why: 'Combinations of ordinary fields can identify people. Aggregate or remove them before sharing.' },
+    links: [{ label: 'UK Data Ethics Framework', url: 'https://www.gov.uk/government/publications/data-ethics-framework' }, { label: 'GDPR Article 5: principles', url: 'https://gdpr-info.eu/art-5-gdpr/' }],
+  });
+  more('m2', {
+    id: 'l2-5', title: 'Clean data in SQL: NULLs, text, dates and types', hours: 3, lab: 'auto',
+    why: 'Real tables are typed by people and filled by systems: NULLs, stray spaces and timestamps break naive queries.',
+    learn: [
+      '<code>NULL</code> means unknown. Test it with <code>IS NULL</code>; <code>= NULL</code> never matches. <code>COUNT(col)</code>, <code>AVG</code> and <code>SUM</code> skip NULLs.',
+      '<code>COALESCE(a, b)</code> returns the first value that is not NULL: <code>COALESCE(category, \'unknown\')</code>. <code>NULLIF(x, 0)</code> turns a 0 into NULL to avoid dividing by zero.',
+      'Clean text in the query: <code>LOWER(TRIM(channel))</code> turns "Email ", " EMAIL" and "email" into one group.',
+      'Dates with times need half-open ranges: <code>created_at &gt;= \'2025-11-01\' AND created_at &lt; \'2025-12-01\'</code>. BETWEEN misses the last day.',
+      'Combine sources with <code>UNION</code> (removes duplicates) or <code>UNION ALL</code> (keeps them, and is faster). Join a table to itself with two aliases.',
+    ],
+    code: { lang: 'sql', title: 'Clean before you count', text: "SELECT LOWER(TRIM(channel)) AS channel,\n       COALESCE(category, 'unknown') AS category,\n       COUNT(*) AS tickets\nFROM tickets\nWHERE created_at >= '2025-11-01' AND created_at < '2025-12-01'\nGROUP BY 1, 2;" },
+    doit: 'In SQLab, open the growth database and solve World 5 (NULLs, text, the AI query). Then write one query that counts November tickets per clean channel, and compare it with a version that uses BETWEEN.',
+    ai: { title: 'Find the dirty data', text: 'Here is the schema of a table: [[SCHEMA]]. Write SQLite queries that profile it: NULLs per column, distinct spellings of text columns, values outside a sensible range, and duplicated keys. Explain what each check would catch.\n{{lang}}' },
+    quiz: { q: 'Which query counts every ticket per channel, even those with no category?', options: ['SELECT channel, COUNT(category) FROM tickets GROUP BY channel', 'SELECT channel, COUNT(*) FROM tickets GROUP BY channel', 'SELECT channel, SUM(category) FROM tickets GROUP BY channel', 'SELECT channel, COUNT(DISTINCT category) FROM tickets GROUP BY channel'], answer: 1, why: 'COUNT(*) counts rows; COUNT(category) skips the NULL categories.' },
+    links: [{ label: 'SQLite core functions', url: 'https://www.sqlite.org/lang_corefunc.html' }, { label: 'Mode: string functions for cleaning', url: 'https://mode.com/resources/sql-tutorial/sql-string-functions-for-cleaning' }],
+  });
+  more('m2', {
+    id: 'l2-6', title: 'Product analytics in SQL: funnels, cohorts and retention', hours: 4, lab: 'auto',
+    why: 'Apps and subscriptions live on these three questions: where do people drop out, which groups stay, and how much revenue repeats.',
+    learn: [
+      'An <b>event table</b> has one row per action. Build one row per session (or user) first, with flags like <code>MAX(event_name = \'purchase\')</code>.',
+      'A <b>funnel</b> divides each step by the one before: of the sessions with a cart, how many checked out? The biggest drop is where to look.',
+      'A <b>cohort</b> is a group that started in the same period. Compare cohorts by months since start, never by calendar month alone.',
+      '<b>Retention</b> at month 3 = members of a cohort still paying 3 months later ÷ cohort size. <b>Churn</b> is its opposite.',
+      'Watch the denominators: rates per platform or per source need each group\'s own total, or big groups will always look best.',
+    ],
+    code: { lang: 'sql', title: 'A funnel step', text: "WITH s AS (\n  SELECT session_id,\n         MAX(event_name = 'add_to_cart') AS cart,\n         MAX(event_name = 'checkout') AS checkout\n  FROM events GROUP BY session_id\n)\nSELECT 1.0 * SUM(checkout) / SUM(cart) AS cart_to_checkout FROM s;" },
+    doit: 'In SQLab, open the app database and solve Worlds 6 and 7. Then write one sentence for Kai: which step of the funnel loses the most people, on which platform.',
+    ai: { title: 'Design a funnel analysis', text: 'I have an events table (user_id, session_id, event_time, event_name) for an ordering app. Help me design a funnel and a cohort retention analysis: the steps, the exact definitions, the SQL outline, and two mistakes people make with denominators.\n{{lang}}' },
+    quiz: { q: 'A cohort table shows that the January cohort keeps 60% at month 3 and the June cohort 75%. What does it compare?', options: ['Revenue in January compared with June', 'How well two groups of new members stayed', 'Which month brought in the most sign-ups', 'How the price of each plan changed over time'], answer: 1, why: 'Cohorts follow groups that started together, so retention is compared at the same age.' },
+    links: [{ label: 'Cohort analysis (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Cohort_analysis' }],
+  });
+  more('m3', {
+    id: 'l3-8', title: 'Validate a dataset before you trust it', hours: 3,
+    why: 'A beautiful analysis of broken data is still wrong. Checking first is quicker than explaining a mistake later.',
+    learn: [
+      'Check the <b>shape</b>: rows and columns as expected? Is one row really one order, one ticket, one user?',
+      'Check <b>keys</b>: ids unique (<code>df["id"].duplicated().sum() == 0</code>) and every foreign key found in its table.',
+      'Check <b>completeness</b>: missing values per column (<code>df.isna().sum()</code>), and whether "missing" has a meaning (an open ticket has no resolved date).',
+      'Check <b>validity</b>: values in their allowed set (<code>value_counts()</code>), numbers in a sensible range, dates in the right period.',
+      'Write down what you found and what you did: a short validation note makes the analysis reproducible and trustworthy.',
+    ],
+    code: { lang: 'python', title: 'Five quick checks', text: "t = pd.read_csv('tickets.csv')\nprint(t.shape)\nprint(t['ticket_id'].duplicated().sum())\nprint(t.isna().sum())\nprint(t['channel'].value_counts())\nprint(t['csat'].describe())" },
+    doit: 'Run the five checks on tickets.csv in DotPython. Write a three-line validation note: what is missing, what is inconsistent, and how you will treat each before analysing.',
+    ai: { title: 'A validation checklist', text: 'Write a data validation checklist for this dataset: [[DESCRIBE COLUMNS]]. For each column, the checks to run in pandas, what a failure would look like, and what to do about it. Keep it to one page.\n{{lang}}' },
+    quiz: { q: 'Some tickets have no resolved_at date. What is the best first reading?', options: ['They are errors, so delete those rows before you start', 'Probably open tickets: check before calling them missing', 'Fill them with the average resolution date for now', 'Ignore the column, since dates are rarely needed'], answer: 1, why: 'Missing values often carry meaning. Find out what they mean before you drop or fill them.' },
+    links: [{ label: 'pandas: working with missing data', url: 'https://pandas.pydata.org/docs/user_guide/missing_data.html' }],
+  });
+  more('m4', {
+    id: 'l4-5', title: 'Design an experiment: power, sample size and pitfalls', hours: 4,
+    why: 'A test that is too small or peeked at too often will "find" winners that are not there.',
+    learn: [
+      'Before the test, write the <b>hypothesis</b>, the one <b>primary metric</b>, and the smallest effect worth acting on.',
+      '<b>Sample size</b> depends on that effect, the base rate and the confidence you want: small effects need many more people.',
+      '<b>Power</b> is the chance of detecting a real effect of that size. Underpowered tests mostly produce noise, and their "wins" exaggerate.',
+      'Do not <b>peek</b> and stop the moment the result looks good: decide the duration in advance and run full weeks.',
+      'Randomise who sees what, check that the groups are balanced, and watch for <b>novelty effects</b> that fade after the first days.',
+    ],
+    doit: 'For the Dot & Co. email test, write a one-page test plan: hypothesis, primary metric, minimum effect, sample size (use a calculator), duration, and what you will do with each possible result.',
+    ai: { title: 'Review my test plan', text: 'Review this A/B test plan like a careful analyst: [[PLAN]]. Check the metric, the sample size and the duration, and list the ways the result could mislead me (peeking, novelty, mismatched groups, many metrics).\n{{lang}}' },
+    quiz: { q: 'Your A/B test shows B ahead after two days. What is the sound next step?', options: ['Stop and ship B, it is winning', 'Keep running to the planned size and duration', 'Restart with a new metric', 'Switch everyone to B and keep measuring'], answer: 1, why: 'Stopping early when the numbers look good inflates false positives. Stick to the plan.' },
+    links: [{ label: 'Statistical power (Wikipedia)', url: 'https://en.wikipedia.org/wiki/Power_of_a_test' }, { label: 'Sample size calculator (Evan Miller)', url: 'https://www.evanmiller.org/ab-testing/sample-size.html' }],
+  });
+  more('m5', {
+    id: 'l5-8', title: 'Power BI service: workspaces, sharing, refresh and row-level security', hours: 3,
+    why: 'A report only helps when the right people can open it, the data is fresh, and each person sees only what they should.',
+    learn: [
+      'Publish from Desktop to a <b>workspace</b> in the Power BI service. Workspaces hold reports and semantic models; roles decide who can edit.',
+      'Share through an <b>app</b> or workspace roles rather than one-off links, so access is managed in one place.',
+      '<b>Scheduled refresh</b> keeps imported data up to date; data on premises needs a <b>gateway</b>.',
+      '<b>Row-level security (RLS)</b> filters rows per role, for example each city manager sees only their city. Define roles with DAX filters and test them with "view as".',
+      'Keep a short <b>model description</b> and measure definitions in the model: people trust what they can read.',
+    ],
+    doit: 'In DotBI, solve World 8 (the Dot Club model). Then write down how you would set up RLS so each plan manager sees only their plan, and test the idea by filtering Members[plan].',
+    ai: { title: 'Plan a Power BI rollout', text: 'I am publishing a Power BI report for [[AUDIENCE]]. Help me plan: workspace and roles, how to share (app or links), refresh schedule, and row-level security rules with their DAX filters. Ask me what I am unsure about.\n{{lang}}' },
+    quiz: { q: 'Each city manager must see only their own city in the same report. What do you use?', options: ['A separate report per city', 'Row-level security roles', 'A slicer set to their city', 'A different workspace per city'], answer: 1, why: 'RLS filters the data by role, so one report serves everyone safely; a slicer can be changed.' },
+    links: [{ label: 'PL-300 study guide (Microsoft Learn)', url: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/pl-300' }, { label: 'Power BI documentation', url: 'https://learn.microsoft.com/en-us/power-bi/' }],
+  });
+  more('m5', {
+    id: 'l5-9', title: 'Storage modes, ranking, performance and Copilot in Power BI', hours: 3,
+    why: 'The same report can be instant or painfully slow, and AI help in the tool can save time or mislead you.',
+    learn: [
+      '<b>Import</b> copies data into the model (fast, needs refresh); <b>DirectQuery</b> asks the source each time (fresh, slower); <b>Direct Lake</b> reads lakehouse tables in Fabric.',
+      'Keep models lean: a star schema, only the columns you need, and measures instead of calculated columns where you can.',
+      '<b>RANKX</b> and <b>TOPN</b> answer "who is first" questions: rank over <code>ALL(Product[name])</code> so every product competes.',
+      '<b>Calculation groups</b> and <b>visual calculations</b> reduce the number of nearly identical measures.',
+      '<b>Copilot</b> can draft report pages, summaries and DAX. Treat its output like a junior colleague\'s draft: check every number.',
+    ],
+    doit: 'In DotBI, solve World 6 (ranking and top N). Then write which storage mode you would choose for a daily sales report and for a live support queue, and why.',
+    ai: { title: 'Speed up my report', text: 'My Power BI report is slow. The model: [[TABLES AND SIZES]]. The slow visual uses: [[MEASURE]]. Suggest the likely causes and fixes in order of effort, and say how I can measure the improvement.\n{{lang}}' },
+    quiz: { q: 'A support dashboard must show tickets opened in the last few minutes. Which storage mode fits best?', options: ['Import with a weekly refresh', 'DirectQuery to the ticket database', 'A CSV exported by hand', 'Import with no refresh'], answer: 1, why: 'DirectQuery asks the source each time, so the numbers are current, at some cost in speed.' },
+    links: [{ label: 'PL-300 study guide (Microsoft Learn)', url: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/pl-300' }],
+  });
+  more('m5', {
+    id: 'l5-10', title: 'Tableau data: relationships, joins, blends and publishing', hours: 3,
+    why: 'How you combine tables in Tableau decides whether your numbers are right before any chart is drawn.',
+    learn: [
+      '<b>Relationships</b> (the default, "noodles") keep tables separate and combine them at the level each view needs, which avoids duplicated measures.',
+      '<b>Joins</b> merge tables into one before analysis; a one-to-many join repeats rows and can inflate sums.',
+      '<b>Blends</b> combine data from separate sources on a linking field, aggregated per view; useful when you cannot join.',
+      '<b>Groups, sets and bins</b> structure dimensions; <b>parameters</b> let viewers switch a value or a measure.',
+      'Publish to Tableau Server or Cloud with a clear data source, refresh schedule and permissions, so others reuse one trusted source.',
+    ],
+    doit: 'In DotBI, solve World 7 (table calculations and LOD). Then draw, on paper, how you would relate Sales and Customers in Tableau and which number a join would duplicate.',
+    ai: { title: 'Choose join, relationship or blend', text: 'In Tableau I need to combine [[TABLE A]] and [[TABLE B]] (link: [[FIELD]], relation: one-to-many). Explain whether to use a relationship, a join or a blend, which numbers could be duplicated, and how to check the result.\n{{lang}}' },
+    quiz: { q: 'Orders joined to order lines makes the order total appear on every line. What happens to SUM(order total)?', options: ['It stays the same', 'It is inflated by the number of lines', 'It becomes blank', 'Tableau removes duplicates automatically'], answer: 1, why: 'A one-to-many join repeats the order row; summing it counts the total several times. Relationships avoid this.' },
+    links: [{ label: 'Tableau: relate your data', url: 'https://help.tableau.com/current/pro/desktop/en-us/relate_tables.htm' }],
+  });
+  more('m6', {
+    id: 'l6-4', title: 'AI inside your analytics tools', hours: 2,
+    why: 'AI now sits inside spreadsheets, notebooks and BI tools. It is fastest when you know what to ask and what to check.',
+    learn: [
+      'Good uses: drafting formulas and queries, explaining unfamiliar code, summarising a table, suggesting chart types, writing first drafts of notes.',
+      'Risky uses: numbers it did not compute from your data, "insights" without a calculation behind them, and anything touching personal data.',
+      'Give context: the table, the columns, the question and the output format. Ask for the code, not just the answer, so you can run it.',
+      'Verify like a reviewer: reconcile totals, test edge cases, and rerun the code on a small sample you can check by hand.',
+      'Keep a record: which AI, which prompt, what you changed. It makes your work explainable.',
+    ],
+    doit: 'Ask an AI assistant to write a query for a Dot & Co. question, run it in SQLab, and compare with your own. Note one thing it got right and one you had to fix.',
+    ai: { title: 'Ask for code, not answers', text: 'Here is my table: [[COLUMNS]]. Question: [[QUESTION]]. Write the [[SQL / pandas / DAX]] that answers it, explain each step in one line, and list two checks I should run to confirm the result.\n{{lang}}' },
+    quiz: { q: 'An AI tool in your BI app says "revenue grew 12% thanks to the new menu". What do you do first?', options: ['Put it in the board deck, since the AI found it', 'Recompute the 12% and look for evidence of the cause', 'Ask the AI again whether it is sure of the cause', 'Delete the claim and the chart that goes with it'], answer: 1, why: 'Check the number and treat the cause as a hypothesis until data supports it.' },
+    links: [{ label: 'PL-300 study guide: Copilot skills', url: 'https://learn.microsoft.com/en-us/credentials/certifications/resources/study-guides/pl-300' }],
+  });
+
   // Flat list with back-references, used by the router and the progress bar.
   DA.lessons = [];
   DA.lessonById = {};
