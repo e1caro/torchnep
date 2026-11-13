@@ -57,6 +57,8 @@
     return out.join('\n') + '\n';
   }
 
+  DA.gen.util = { rng: rng, normal: normal, pad: pad, dateStr: dateStr, addDays: addDays, pickWeighted: pickWeighted, round: round, toCsv: toCsv };
+
   /* ---------- retail dataset: a small café chain, 2025 ---------- */
 
   var cached = {};

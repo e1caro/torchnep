@@ -4,12 +4,12 @@
   var DA = (window.DA = window.DA || {});
   var ui = DA.ui, h = ui.h, L = DA.labgame, BI = DA.bi;
   DA.views = DA.views || {};
-  var model = null, drafts = {};
+  var models = {}, drafts = {};
   var MEM = 'data-analyst-path.bi-drafts.v1';
   try { drafts = JSON.parse(localStorage.getItem(MEM) || '{}') || {}; } catch (e) { drafts = {}; }
 
   function getLab() { return L.get('bi'); }
-  function getModel() { return model || (model = BI.retailModel()); }
+  function getModel(name) { name = name || 'retail'; return models[name] || (models[name] = BI.model(name)); }
 
   DA.views.bi = function (params) {
     var lb = getLab();
@@ -77,10 +77,10 @@
 
   function page(lb, c) {
     var P = L.page(lb, c, { useExample: function (ex) { setText(ex.code.split('   with')[0]); evaluate(); } });
-    var work = P.work, m = getModel(), tab = c.mode === 'tableau';
+    var work = P.work, m = getModel(c.model), tab = c.mode === 'tableau', club = c.model === 'club';
     var box = h('textarea', { class: 'sql-editor bi-editor', rows: '3', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', 'aria-label': (tab ? 'Tableau calculation' : 'DAX measure') + '. Enter evaluates, Shift+Enter adds a line.',
       placeholder: tab ? 'SUM([qty])' : 'SUM(Sales[qty])' });
-    box.value = drafts[c.id] || '';
+    box.value = drafts[c.id] || c.starter || '';
     function remember() { drafts[c.id] = box.value; try { localStorage.setItem(MEM, JSON.stringify(drafts)); } catch (e) { } grow(); }
     var grow = ui.autogrow(box);
     function setText(v) { box.value = v; remember(); box.focus({ preventScroll: true }); }
@@ -100,12 +100,16 @@
       : [['SUM()', 'SUM()', 1], ['CALCULATE()', 'CALCULATE()', 1], ['DIVIDE()', 'DIVIDE(, )', 3], ['SUMX()', 'SUMX(Sales, )', 1], ['FILTER()', 'FILTER(Sales, )', 1], ['ALL()', 'ALL()', 1], ['COUNTROWS()', 'COUNTROWS()', 1], ['DISTINCTCOUNT()', 'DISTINCTCOUNT()', 1], ['RELATED()', 'RELATED()', 1], ['IF()', 'IF(, , )', 5], ['VAR … RETURN', 'VAR x = \nRETURN ', 8],
         ['Sales[qty]', 'Sales[qty]'], ['Sales[unit_price]', 'Sales[unit_price]'], ['Sales[order_id]', 'Sales[order_id]'], ['Sales[customer_id]', 'Sales[customer_id]'], ['Sales[channel]', 'Sales[channel]'], ['Sales[store_city]', 'Sales[store_city]'], ['Sales[category]', 'Sales[category]'], ['Customers[segment]', 'Customers[segment]'],
         ['=', ' = '], ['>=', ' >= '], ['"', '""', 1], ['IN { }', ' IN {}', 1], [',', ', '], ['*', ' * ']];
+    if (club) KEYS = [['SUM()', 'SUM()', 1], ['CALCULATE()', 'CALCULATE()', 1], ['DIVIDE()', 'DIVIDE(, )', 3], ['COUNTROWS()', 'COUNTROWS()', 1], ['FILTER()', 'FILTER(Members, )', 1], ['DISTINCTCOUNT()', 'DISTINCTCOUNT()', 1], ['ISBLANK()', 'ISBLANK()', 1], ['VAR … RETURN', 'VAR x = \nRETURN ', 8],
+      ['Members[plan]', 'Members[plan]'], ['Members[cancel_date]', 'Members[cancel_date]'], ['Members[monthly_price]', 'Members[monthly_price]'], ['Invoices[amount]', 'Invoices[amount]'], ['Invoices[paid]', 'Invoices[paid]'], ['Invoices[member_id]', 'Invoices[member_id]'], ['Invoices[month]', 'Invoices[month]'],
+      ['=', ' = '], ['"', '""', 1], [',', ', ']];
     work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': tab ? 'Tableau shortcuts' : 'DAX shortcuts' },
       KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
     work.appendChild(box);
+    P.editor({ set: function (v) { box.value = v; remember(); }, extra: tab ? ['AVG(', 'MAX(', '[qty]'] : ['AVERAGE(', 'MAX(', 'Sales[qty]'] });
 
     var rowsSel = h('select', { 'aria-label': 'Rows: split the measure by' }, h('option', { value: '' }, '(none: total only)'),
-      Object.keys(BI.dims).map(function (k) { return h('option', { value: k, selected: k === c.by }, k); }));
+      BI.dimsFor(m).map(function (k) { return h('option', { value: k, selected: k === c.by }, k); }));
     var typeSel = h('select', { 'aria-label': 'Chart type' }, [['bar', 'Bars'], ['column', 'Columns'], ['line', 'Line']].map(function (t) { return h('option', { value: t[0] }, t[1]); }));
     var evalBtn = h('button', { class: 'btn', type: 'button', onclick: function () { evaluate(); } }, '▶ Evaluate');
     var checkBtn = h('button', { class: 'btn accent', type: 'button', onclick: check }, '✓ Check');

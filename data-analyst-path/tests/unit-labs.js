@@ -266,7 +266,53 @@ test('DotBI: Tableau calculations and FIXED level of detail', () => {
   assert.strictEqual(total('SUM([qty]) / MIN({ FIXED : SUM([qty]) })', 'tableau'), 1);
   assert.strictEqual(total("SUM(IIF(DATEPART('month', [order_date]) = 12, [qty], 0))", 'tableau'), total('SUM(IIF(MONTH([order_date]) = 12, [qty], 0))', 'tableau'));
   assert.throws(() => total('[qty]', 'tableau'), /wrap it in an aggregation/);
-  assert.throws(() => total('{ INCLUDE [customer_id] : SUM([qty]) }', 'tableau'), /not available/);
+  assert.throws(() => total('{ INCLUDE [customer_id] : SUM([qty]) }', 'tableau'), /returns one value per row/);
+});
+
+test('DotBI: INCLUDE, EXCLUDE and table calculations follow the view', () => {
+  const by = (f, dim) => BI.breakdown(model, 'tableau', f, dim);
+  const rows = model.table('Sales').rows, cities = [...new Set(rows.map((r) => r.store_city))].sort();
+  const inc = by('AVG({ INCLUDE [customer_id] : SUM([qty]) })', 'Sales[store_city]');
+  const madrid = rows.filter((r) => r.store_city === 'Madrid'), per = {};
+  madrid.forEach((r) => { per[r.customer_id] = (per[r.customer_id] || 0) + r.qty; });
+  const avg = Object.values(per).reduce((a, b) => a + b, 0) / Object.keys(per).length;
+  assert.ok(Math.abs(inc.rows.find((x) => x.member === 'Madrid').value - avg) < 1e-9, 'INCLUDE adds customer to the view: average per customer within each city');
+  const share = by('SUM([qty]) / MIN({ EXCLUDE [store_city] : SUM([qty]) })', 'Sales[store_city]');
+  assert.ok(Math.abs(share.rows.reduce((a, x) => a + x.value, 0) - 1) < 1e-9 && share.total === 1, 'EXCLUDE the view dimension gives the share of the total');
+  const run = by('RUNNING_SUM(SUM([qty]))', 'Sales[month]');
+  assert.strictEqual(run.rows[run.rows.length - 1].value, 8552, 'running sum ends at the grand total');
+  assert.strictEqual(run.rows[0].value, rows.filter((r) => r.month === '2025-01').reduce((a, r) => a + r.qty, 0));
+  const rank = by('RANK(SUM([qty]))', 'Sales[store_city]');
+  assert.deepStrictEqual(rank.rows.map((x) => x.value).sort(), [1, 2, 3, 4, 5]);
+  assert.strictEqual(by('SUM([qty]) / TOTAL(SUM([qty]))', 'Sales[store_city]').total, 1);
+  assert.strictEqual(by('INDEX()', 'Sales[store_city]').rows[cities.length - 1].value, cities.length);
+  assert.throws(() => total('RANK([qty])', 'tableau'), /row-level field/);
+  assert.throws(() => total('SUM(RANK(SUM([qty])))', 'tableau'), /nest aggregations|table calculation/);
+});
+
+test('DotBI: time intelligence, RANKX, TOPN and the subscription model', () => {
+  const by = (f, dim, m) => BI.breakdown(m || model, 'dax', f, dim);
+  const monthQty = (ym) => model.table('Sales').rows.filter((r) => r.month === ym).reduce((a, r) => a + r.qty, 0);
+  const ytd = by('TOTALYTD(SUM(Sales[qty]), Sales[order_date])', 'Sales[month]');
+  assert.strictEqual(ytd.rows.find((x) => x.member === '2025-03').value, monthQty('2025-01') + monthQty('2025-02') + monthQty('2025-03'));
+  assert.strictEqual(ytd.total, 8552);
+  const prev = by('CALCULATE(SUM(Sales[qty]), DATEADD(Sales[order_date], -1, MONTH))', 'Sales[month]');
+  assert.strictEqual(prev.rows.find((x) => x.member === '2025-06').value, monthQty('2025-05'));
+  assert.strictEqual(prev.rows.find((x) => x.member === '2025-01').value, null, 'no month before January');
+  assert.strictEqual(by('CALCULATE(SUM(Sales[qty]), PREVIOUSMONTH(Sales[order_date]))', 'Sales[month]').rows.find((x) => x.member === '2025-09').value, monthQty('2025-08'));
+  const rk = by('RANKX(ALL(Sales[product]), SUM(Sales[qty]))', 'Sales[product]');
+  const top = rk.rows.find((x) => x.value === 1).member, qtyOf = (p) => model.table('Sales').rows.filter((r) => r.product === p).reduce((a, r) => a + r.qty, 0);
+  assert.ok(rk.rows.every((x) => qtyOf(x.member) <= qtyOf(top)), 'rank 1 is the best seller');
+  const top3 = total('CALCULATE(SUM(Sales[qty]), TOPN(3, ALL(Sales[product]), SUM(Sales[qty])))');
+  const sorted = [...new Set(model.table('Sales').rows.map((r) => r.product))].map(qtyOf).sort((a, b) => b - a);
+  assert.strictEqual(top3, sorted[0] + sorted[1] + sorted[2]);
+  assert.throws(() => total('DATESYTD(Sales[order_date])'), /inside CALCULATE/);
+  const club = BI.clubModel(), app = DA.gen.app();
+  assert.deepStrictEqual(BI.dimsFor(club).sort(), ['Invoices[month]', 'Members[plan]', 'Members[start_month]']);
+  assert.strictEqual(by('COUNTROWS(Members)', null, club).total, app.members.length);
+  const plus = by('SUM(Invoices[amount])', 'Members[plan]', club).rows.find((x) => x.member === 'plus').value;
+  const want = app.invoices.filter((i) => app.members.find((m) => m[0] === i[1])[2] === 'plus').reduce((a, i) => a + i[3], 0);
+  assert.ok(Math.abs(plus - want) < 1e-6, 'invoices follow the relationship to members');
 });
 
 test('DotBI: every challenge matches its reference in total and per row, and a different measure fails', () => {
@@ -279,4 +325,45 @@ test('DotBI: every challenge matches its reference in total and per row, and a d
   });
 });
 
+/* ---------------------------------------------------------------- SQLab */
+
+test('SQLab: every reference query returns rows, a different query fails, starters fail, predict options match the real result', async () => {
+  const initSqlJs = require(path.join(root, 'vendor/sql.js/sql-wasm.js'));
+  const SQL = await initSqlJs();
+  const dbs = {};
+  const db = (ds) => dbs[ds] || (dbs[ds] = DA.buildDb(SQL, ds));
+  const last = (r) => r[r.length - 1];
+  const opts = (c) => ({ decimals: c.decimals, ordered: /order\s+by/i.test(c.solution) });
+  DA.challenges.forEach((c) => {
+    const want = last(db(c.ds).exec(c.solution));
+    assert.ok(want && want.values.length, c.id + ' returns rows');
+    assert.ok(DA.compareResults(last(db(c.ds).exec(c.solution)), want, opts(c)).ok, c.id + ' passes with its reference');
+    assert.ok(!DA.compareResults(last(db(c.ds).exec('SELECT 1 AS x')), want, opts(c)).ok, c.id + ' fails with an unrelated query');
+    if (c.starter) {
+      let got = null;
+      try { got = last(db(c.ds).exec(c.starter)); } catch (e) { got = null; }
+      assert.ok(!got || !DA.compareResults(got, want, opts(c)).ok, c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.type === 'predict') {
+      const shown = String(want.values[0][0]);
+      assert.strictEqual(c.options[c.answer], shown, c.id + ' the marked option is the real result');
+      assert.strictEqual(c.options.filter((o) => o === shown).length, 1, c.id + ' only one option is right');
+    }
+  });
+  const app = DA.gen.app(), growth = DA.gen.growth();
+  [['app', app], ['growth', growth]].forEach(([id, data]) => DA.datasets[id].tables.forEach((t) => {
+    assert.strictEqual(db(id).exec('SELECT COUNT(*) FROM ' + t.name)[0].values[0][0], data[t.name].length, id + '.' + t.name + ' is loaded');
+  }));
+  assert.deepStrictEqual([app.users.length, app.events.length, app.members.length, app.invoices.length], [1200, 9178, 436, 2444], 'the app data is the same for everyone');
+  assert.deepStrictEqual([growth.assignments.length, growth.conversions.length, growth.tickets.length], [7000, 505, 1200], 'the growth data is the same for everyone');
+  Object.values(dbs).forEach((d) => d.close());
+});
+
+test('level types: tokens for tap mode, and the type labels', () => {
+  assert.deepStrictEqual(L.tokens('SELECT name, COUNT(*) FROM t WHERE x >= 2'), ['SELECT', 'name', ',', 'COUNT(', '*', ')', 'FROM', 't', 'WHERE', 'x', '>=', '2']);
+  assert.deepStrictEqual(L.tokens('df["qty"].sum()'), ['df', '["qty"]', '.', 'sum(', ')']);
+  assert.ok(['bug', 'predict', 'order', 'rosetta', 'case', 'ask', 'interview', 'gauntlet', 'boss'].every((k) => L.TYPES[k]));
+});
+
 runAll();
+

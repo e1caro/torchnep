@@ -246,13 +246,15 @@
   P.files = function () {
     var d = DA.gen.retail();
     function tbl(cols, rows) { var data = {}; cols.forEach(function (c, j) { data[c] = rows.map(function (r) { return r[j]; }); }); return new DataFrame(cols, data); }
-    return {
+    var files = {
       'orders.csv': function () { return P.readCsvText(DA.gen.retailCsv()); },
       'customers.csv': function () { return tbl(['customer_id', 'signup_date', 'city', 'segment'], d.customers); },
       'stores.csv': function () { return tbl(['store_id', 'city', 'opened_year'], d.stores); },
       'products.csv': function () { return tbl(['product_id', 'name', 'category', 'price'], d.products); },
       'messy_orders.csv': function () { return P.readCsvText(DA.gen.messyCsv()); },
     };
+    Object.keys(DA.gen.csv || {}).forEach(function (name) { if (name !== 'funnel_sample.csv') files[name] = function () { return P.readCsvText(DA.gen.csv[name]()); }; });
+    return files;
   };
   var cache = {};
   P.readFile = function (name) {

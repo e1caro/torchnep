@@ -1598,3 +1598,20 @@ a.lab-level:hover { border-color: var(--accent); }
   .task-toggle { position: absolute; top: 8px; right: 8px; }
   .task-head { padding-right: 46px; }
 }
+
+/* Level types */
+.type-badge { background: var(--accent-soft); color: var(--accent); }
+.given { margin: 6px 0 10px; }
+.given .lab-code { margin: 0; }
+.gauntlet { margin: 4px 0 10px; padding-left: 1.3em; display: grid; gap: 4px; }
+.ask { margin: 4px 0 12px; padding: 12px; border-radius: 12px; background: var(--surface-2); }
+.ask-q { margin: 0 0 4px; }
+.predict, .finding { display: grid; gap: 8px; margin: 8px 0; }
+.predict .lab-code { margin: 0; }
+.quiz-opt .mono { font-family: var(--mono); white-space: pre-wrap; }
+.tiles { margin: 6px 0 10px; padding: 10px; border: 1px dashed var(--line); border-radius: 12px; }
+.tiles p { margin: 0 0 6px; }
+.tile-bank { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.tile { min-height: 40px; padding: 4px 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: 600 .88rem var(--mono); cursor: pointer; box-shadow: 0 2px 0 var(--line); }
+.tile:disabled { opacity: .35; cursor: default; box-shadow: none; }
+.tile:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }

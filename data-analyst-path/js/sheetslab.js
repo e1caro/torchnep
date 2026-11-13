@@ -30,10 +30,18 @@
     return L.mapView(lb);
   };
 
+  // A bug hunt starts with the broken formulas already in the sheet.
+  function starterBook(c) {
+    var wb = S.datasetWorkbook(c.ds);
+    (c.starter || []).forEach(function (st) { var a = S.parseAddr(st[0]); S.setInput(wb.activeSheet(), a.r, a.c, st[1]); });
+    if (c.starter) wb.recalc();
+    return wb;
+  }
+
   function page(lb, c) {
     var P = L.page(lb, c, { wide: true, useExample: function (ex) { useExample(ex); } });
     var work = P.work;
-    var wb = books[c.id] || (books[c.id] = S.datasetWorkbook(c.ds));
+    var wb = books[c.id] || (books[c.id] = starterBook(c));
     var grid = null, lastField = null;
 
     var nameBox = h('input', { class: 'sheets-name-box', 'aria-label': 'Cell address. Type an address and press Enter to go there.', value: 'A1' });
@@ -161,7 +169,7 @@
     var armed = false;
     var resetBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () {
       if (!armed) { armed = true; resetBtn.textContent = 'Press again to reset'; setTimeout(function () { armed = false; resetBtn.textContent = 'Reset sheet'; }, 3000); return; }
-      books[c.id] = S.datasetWorkbook(c.ds); DA.render();
+      books[c.id] = starterBook(c); DA.render();
       ui.toast('Original data reloaded.');
     } }, 'Reset sheet');
     work.appendChild(P.actions(checkBtn));

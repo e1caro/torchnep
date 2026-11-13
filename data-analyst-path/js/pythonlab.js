@@ -21,7 +21,7 @@
     return L.mapView(lb);
   };
 
-  function starter() { return '# df, customers, stores and messy are loaded\nresult = '; }
+  function starter(c) { return c && c.starter ? c.starter : '# df, customers, stores and messy are loaded\nresult = '; }
 
   function page(lb, c) {
     var P2 = L.page(lb, c, { useExample: function (ex) { setCode(ex.code); ui.toast('Example loaded. Press Run (Ctrl+Enter).'); } });
@@ -49,6 +49,7 @@
     work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Python shortcuts' },
       KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
     work.appendChild(editor);
+    P2.editor({ set: function (v) { undo.push(editor.value); editor.value = v; remember(); }, extra: ['.sum()', '.mean()', 'df', '==', '1'] });
 
     var out = h('div', { class: 'result', 'aria-live': 'polite' });
     var runBtn = h('button', { class: 'btn', type: 'button', onclick: function () { run(false); } }, '▶ Run');

@@ -51,16 +51,6 @@
   /* ---------- editor memory & undo/redo store ---------- */
 
   var MEM_KEY = 'data-analyst-path.sql-mem.v1';
-  var LEVELS = DA.sqlLevels || {
-    1: 'Level 1: Foundations — SELECT, WHERE & ORDER BY',
-    2: 'Level 2: Aggregations — COUNT, SUM, AVG & GROUP BY',
-    3: 'Level 3: Multi-Table Joins & HAVING',
-    4: 'Level 4: Dates, CASE WHEN & Conditional Metrics',
-    5: 'Level 5: Subqueries, CTEs (WITH) & Anti-Joins',
-    6: 'Level 6: Window Functions — Ranking & Running Totals',
-    7: 'Level 7: Time-Series, LAG/LEAD & Repeat Behavior',
-    8: 'Level 8: Staff Analyst & Executive Case Studies',
-  };
   var drafts = {};     // typed queries, kept in memory & localStorage
   var histories = {};  // draftKey -> { stack: [{v, s, e}], idx: number, lastTs: number }
   var recentQueries = {}; // dsId -> [sql, ...]
@@ -150,7 +140,7 @@
       class: 'sql-editor', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', rows: '9',
       'aria-label': 'SQL query', placeholder: 'Write your SQL here, then press Run (Ctrl/Cmd + Enter). Undo any time with Ctrl/Cmd + Z or ↶ Undo.',
     });
-    var initVal = drafts[draftKey] !== undefined ? drafts[draftKey] : '';
+    var initVal = drafts[draftKey] !== undefined ? drafts[draftKey] : (cur && cur.starter) || '';
     editor.value = initVal;
     var grow = ui.autogrow(editor);
 
@@ -279,12 +269,15 @@
       } }, 'Show solution');
       var head = h('div', { class: 'task-head' },
         h('span', { class: 'badge level' + cur.level, text: 'Level ' + wcur.level.world.n + '.' + wcur.level.n }),
+        L.typeBadge(wcur),
         h('strong', { text: cur.title }),
         h('span', { class: 'muted small', text: cur.concept }),
         L.stars('sql', cur.id) ? h('span', { class: 'lab-stars', 'aria-label': 'Best so far: ' + L.stars('sql', cur.id) + ' of 3 stars', text: L.starText(L.stars('sql', cur.id)) }) : h('span', { class: 'muted small', text: '+' + ui.XP.sql(cur.level) + ' XP' }));
-      var task = h('div', { class: 'task' }, head, h('p', { html: cur.task }), h('div', { class: 'row task-more' }, solBtn));
+      var taskText = h('p', { html: cur.task });
+      var task = h('div', { class: 'task' }, head, L.taskExtras(wcur, taskText), taskText, cur.type === 'predict' ? null : h('div', { class: 'row task-more' }, solBtn));
       fold = L.foldTask(task, head);
       main.appendChild(task);
+      if (cur.type === 'predict') main.appendChild(L.predictBox(cur, function (r) { verdict(r); }));
     } else {
       main.appendChild(h('div', { class: 'task' }, h('strong', { text: 'Free exploration' }),
         h('p', { class: 'muted', text: 'Try any query on this database, inspect a table below with one click, or pick a challenge on the levels map (🗺 Levels).' })));
@@ -306,10 +299,12 @@
     var keys = h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'SQL shortcuts' },
       ds.tables.map(function (t) { return h('button', { class: 'key table-key', type: 'button', onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(t.name + ' '); } }, t.name); }),
       KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); }));
-    main.appendChild(keys);
-    main.appendChild(editor);
-    main.appendChild(L.actionBar([hintBtn, runBtn, checkBtn]));
-    main.appendChild(h('div', { class: 'row actions-more' }, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
+    var setCode = function (v) { applyValueWithMemory(v, v.length, v.length); };
+    if (cur && cur.type === 'order' && cur.lines) main.appendChild(L.orderBox(cur, setCode));
+    else if (cur && cur.type !== 'predict' && L.embed && ui.narrow()) main.appendChild(L.tapBox(cur, setCode, ['WHERE', 'COUNT(*)', ',']));
+    var editorBits = h('div', { class: cur && cur.type === 'predict' ? 'hidden' : '' }, keys, editor, L.actionBar([hintBtn, runBtn, checkBtn]),
+      h('div', { class: 'row actions-more' }, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
+    main.appendChild(editorBits);
 
     // Quick table viewer bar: shows any table directly without writing anything into the SQL editor
     var tableBtns = {};
@@ -454,11 +449,11 @@
 
     inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges on this database' }));
     inner.appendChild(h('a', { class: 'chal' + (!cur ? ' active' : ''), href: '#/lab/' + dsId }, h('span', { class: 'mark', text: '·' }), 'Free exploration'));
-    [1, 2, 3, 4, 5, 6, 7, 8].forEach(function (lv) {
-      var items = list.filter(function (c) { return c.level === lv; });
+    lab.levels.forEach(function (wl) {
+      var items = list.filter(function (c) { return lab.byId[c.id] && lab.byId[c.id].level === wl; });
       if (!items.length) return;
-      var wl = lab.byId[items[0].id].level, open = L.levelState(lab, wl).unlocked;
-      inner.appendChild(h('div', { class: 'level-label', text: (open ? '' : '🔒 ') + 'Level ' + wl.world.n + '.' + wl.n + ' · ' + (LEVELS[lv] || '').replace(/^Level \d+:\s*/, '') }));
+      var open = L.levelState(lab, wl).unlocked;
+      inner.appendChild(h('div', { class: 'level-label', text: (open ? '' : '🔒 ') + 'Level ' + wl.world.n + '.' + wl.n + ' · ' + wl.title.replace(/ · .*$/, '') }));
       items.forEach(function (c) {
         var k = L.stars('sql', c.id);
         inner.appendChild(h('a', { class: 'chal' + (cur && cur.id === c.id ? ' active' : '') + (open ? '' : ' locked'), href: '#/lab/' + dsId + '/' + c.id, 'aria-current': cur && cur.id === c.id ? 'page' : null },
@@ -530,7 +525,21 @@
       if (dirty) { setFeedback('warn', 'You changed the data, so the check would be unfair. Press "Reset data" and run your query again.'); return; }
       var want = lastResult(getRef(SQL, dsId).exec(cur.solution));
       var cmp = DA.compareResults(res, want, { decimals: cur.decimals, ordered: /order\s+by/i.test(cur.solution) });
-      if (cmp.ok) {
+      if (cmp.ok && cur.finding && !session.found) {
+        setFeedback('ok', '✔ ' + cmp.message + ' ', L.findingBox(cur, function () { session.found = true; won(cmp); }));
+        return;
+      }
+      if (cmp.ok) won(cmp);
+      else setFeedback('bad', '✗ ' + cmp.message, h('div', { class: 'small' }, 'Compare your table with the task: columns, filters, ordering and rounding.'));
+    }
+
+    // A predict task answers through its options; it still records stars and XP like a solved query.
+    function verdict(r) {
+      attempts[cur.id] = (attempts[cur.id] || 0) + 1;
+      if (r.ok) won(r); else setFeedback('bad', '✗ ' + r.message);
+    }
+
+    function won(cmp) {
         var firstTime = !ui.state.sql[cur.id];
         var rec = L.record(lab, wcur, { hinted: session.hinted, tries: attempts[cur.id] });
         DA.game.quest('sql');
@@ -547,9 +556,6 @@
           if (mark) mark.textContent = '✔';
           ui.refreshChrome();
         }
-      } else {
-        setFeedback('bad', '✗ ' + cmp.message, h('div', { class: 'small' }, 'Compare your table with the task: columns, filters, ordering and rounding.'));
-      }
     }
 
     function showAi(review) {

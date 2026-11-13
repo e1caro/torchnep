@@ -5,7 +5,12 @@
   var S = (DA.sheets = DA.sheets || {});
 
   S.ROWS_LOADED = 500;
-  S.datasetCsv = function (ds) { return ds === 'messy' ? DA.gen.messyCsv() : DA.gen.retailCsv(); };
+  S.datasetCsv = function (ds) {
+    if (ds === 'messy') return DA.gen.messyCsv();
+    if (ds === 'funnel') return DA.gen.csv['funnel_sample.csv']();
+    if (ds === 'members') return DA.gen.csv['members.csv']();
+    return DA.gen.retailCsv();
+  };
   S.datasetWorkbook = function (ds) {
     var wb = new S.Workbook();
     S.loadCsv(wb.activeSheet(), S.datasetCsv(ds), S.ROWS_LOADED);

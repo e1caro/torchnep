@@ -244,6 +244,108 @@
       h('a', { class: 'btn small ghost', href: '#/' + lab.route }, 'Levels')];
   };
 
+  /* ---------------------------------------------------------------- level types */
+
+  L.TYPES = {
+    bug: ['🐞', 'Bug hunt'], predict: ['🔮', 'Predict the output'], order: ['🧩', 'Put in order'], rosetta: ['🌐', 'Rosetta'],
+    case: ['🗂️', 'Case file'], ask: ['💬', 'Stakeholder request'], interview: ['🎤', 'Interview'], gauntlet: ['🧽', 'Cleaning gauntlet'], boss: ['👾', 'Boss level'],
+  };
+  L.typeBadge = function (c) {
+    var t = c.type && L.TYPES[c.type];
+    return t ? h('span', { class: 'badge type-badge' }, h('span', { 'aria-hidden': 'true', text: t[0] + ' ' }), t[1]) : null;
+  };
+  function seeded(arr, seed) { return DA.ui.seededShuffle ? DA.ui.seededShuffle(arr, seed) : arr.slice(); }
+
+  // The extra parts of a task card: given code (Rosetta), a step list (gauntlet) and, for a stakeholder request, a first question.
+  L.taskExtras = function (c, taskText) {
+    var out = [];
+    if (c.given) out.push(h('div', { class: 'given' }, h('p', { class: 'muted small', text: 'Given (' + c.given.lang + '):' }), h('pre', { class: 'lab-code', text: c.given.code })));
+    if (c.steps && c.type === 'gauntlet') out.push(h('ol', { class: 'gauntlet' }, c.steps.map(function (st) { return h('li', { html: st }); })));
+    if (c.ask) {
+      var solved = !!L.stars(c.lab, c.id);
+      if (!solved) taskText.classList.add('hidden');
+      var fb = h('div', { role: 'status', 'aria-live': 'polite' });
+      var opts = c.ask.options.map(function (o, i) {
+        return h('button', { class: 'quiz-opt', type: 'button', onclick: function () {
+          var ok = i === c.ask.answer;
+          opts.forEach(function (b, j) { b.classList.toggle('right', ok && j === i); b.classList.toggle('wrong', !ok && j === i); });
+          ui.clear(fb);
+          fb.appendChild(h('div', { class: 'callout ' + (ok ? 'ok' : 'warn') }, h('strong', { text: ok ? 'Good question to ask. ' : 'Not the best first question. ' }), c.ask.why));
+          if (ok) taskText.classList.remove('hidden');
+        } }, h('span', { class: 'letter', 'aria-hidden': 'true', text: String.fromCharCode(65 + i) }), h('span', { text: o }));
+      });
+      out.unshift(h('div', { class: 'ask' }, h('p', { class: 'ask-q' }, h('strong', { text: c.ask.who + ': ' }), '"' + c.ask.says + '"'),
+        h('p', { class: 'muted small', text: c.ask.q }), h('div', { class: 'qopts' }, opts), fb));
+    }
+    return out;
+  };
+
+  // Predict the output: read the code, pick one of four results. Tests check that the marked option is what the code really gives.
+  L.predictBox = function (c, verdict) {
+    var fb = h('div', { role: 'status', 'aria-live': 'polite' }), done = false;
+    var opts = c.options.map(function (o, i) {
+      return h('button', { class: 'quiz-opt', type: 'button', onclick: function () {
+        if (done) return;
+        var ok = i === c.answer;
+        opts.forEach(function (b, j) { b.classList.toggle('right', ok && j === i); b.classList.toggle('wrong', !ok && j === i); });
+        if (ok) { done = true; opts.forEach(function (b) { b.disabled = true; }); }
+        verdict({ ok: ok, message: ok ? 'Right: the code gives ' + o + '. ' + (c.why || '') : 'Not this one. Read the code line by line and try another answer.' });
+      } }, h('span', { class: 'letter', 'aria-hidden': 'true', text: String.fromCharCode(65 + i) }), h('span', { class: 'mono', text: o }));
+    });
+    return h('div', { class: 'predict' }, h('pre', { class: 'lab-code' }, c.code), h('p', { class: 'muted small', text: 'What does this give?' }), h('div', { class: 'qopts' }, opts), fb);
+  };
+
+  // Tiles that build code by tapping: the shuffled lines of a "put in order" task, or the tokens of the answer (no typing on a phone).
+  function joinTokens(parts) {
+    var out = '';
+    parts.forEach(function (t) { out += (!out || /[(\[.]$/.test(out) || /^[),.\]]/.test(t) ? '' : ' ') + t; });
+    return out;
+  }
+  function tileBox(label, tiles, setText, sep) {
+    var used = [], box = h('div', { class: 'tiles', role: 'group', 'aria-label': label });
+    var row = h('div', { class: 'tile-bank' });
+    function paint() {
+      var parts = used.map(function (j) { return tiles[j]; });
+      setText(sep === ' ' ? joinTokens(parts) : parts.join(sep));
+      buttons.forEach(function (b, i) { b.disabled = used.indexOf(i) >= 0; });
+    }
+    var buttons = tiles.map(function (t, i) { return h('button', { class: 'tile', type: 'button', onclick: function () { used.push(i); paint(); } }, t); });
+    buttons.forEach(function (b) { row.appendChild(b); });
+    box.appendChild(h('p', { class: 'muted small', text: label }));
+    box.appendChild(row);
+    box.appendChild(h('div', { class: 'row' },
+      h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { if (used.length) { used.pop(); paint(); } } }, '↶ Undo tile'),
+      h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { used = []; paint(); } }, 'Clear')));
+    return box;
+  }
+  L.orderBox = function (c, setText) {
+    return tileBox('Tap the lines in the right order (several orders can work):', seeded(c.lines.slice(), c.id), setText, '\n');
+  };
+  L.tokens = function (code) {
+    return String(code).replace(/\s+/g, ' ').match(/"[^"]*"|'[^']*'|\[[^\]]*\]|[A-Za-z_][\w.]*\(?|\d+(?:\.\d+)?|<=|>=|<>|!=|==|[^\s]/g) || [];
+  };
+  L.tapBox = function (c, setText, extra) {
+    var box = tileBox('Tap mode: build the answer from these pieces (some are not needed). You can still type.', seeded(L.tokens(c.solution).concat(extra || []), c.id + ':tap'), setText, ' ');
+    box.classList.add('tap-mode');
+    return box;
+  };
+
+  // Case file: after the code passes, one last question about what the result means.
+  L.findingBox = function (c, onRight) {
+    var f = c.finding, fb = h('div', { role: 'status', 'aria-live': 'polite' }), done = false;
+    var opts = f.options.map(function (o, i) {
+      return h('button', { class: 'quiz-opt', type: 'button', onclick: function () {
+        if (done) return;
+        var ok = i === f.answer;
+        opts.forEach(function (b, j) { b.classList.toggle('right', ok && j === i); b.classList.toggle('wrong', !ok && j === i); });
+        ui.clear(fb);
+        fb.appendChild(h('p', { class: 'small', text: ok ? f.why : 'Look at your result again: what does it say?' }));
+        if (ok) { done = true; setTimeout(onRight, 600); }
+      } }, h('span', { class: 'letter', 'aria-hidden': 'true', text: String.fromCharCode(65 + i) }), h('span', { text: o }));
+    });
+    return h('div', { class: 'finding' }, h('p', null, h('strong', { text: '🗂️ Your finding: ' }), f.q), h('div', { class: 'qopts' }, opts), fb);
+  };
+
   L.page = function (lab, c, opts) {
     opts = opts || {};
     var lv = c.level, w = lv.world;
@@ -290,14 +392,19 @@
     } }, '📖 Worked example');
     var head = h('div', { class: 'task-head' },
       h('span', { class: 'badge level' + Math.min(8, w.n * 2 - (lv.n <= 2 ? 1 : 0)), text: 'Level ' + w.n + '.' + lv.n }),
+      L.typeBadge(c),
       h('strong', { text: c.title }),
       best ? starEl(best, 'Best so far: ' + best + ' of 3 stars') : h('span', { class: 'muted small', text: '+' + lab.xp(c) + ' XP' }));
-    var task = h('div', { class: 'task' }, head, h('p', { class: 'lab-task', html: c.task }), h('div', { class: 'row task-more' }, solBtn, exBtn));
+    var taskText = h('p', { class: 'lab-task', html: c.task });
+    var task = h('div', { class: 'task' }, head, L.taskExtras(c, taskText), taskText, c.type === 'predict' ? null : h('div', { class: 'row task-more' }, solBtn, exBtn));
     var fold = L.foldTask(task, head);
     main.appendChild(task);
 
     var work = h('div', { class: 'lab-work' });
     var feedback = h('div', { class: 'feedback', role: 'status', 'aria-live': 'polite' });
+    var tilesHost = h('div', { class: 'tiles-host' });
+    if (c.type === 'predict') { work.classList.add('hidden'); main.appendChild(L.predictBox(c, function (r) { verdict(r); })); }
+    main.appendChild(tilesHost);
     main.appendChild(work);
     main.appendChild(feedback);
 
@@ -307,8 +414,12 @@
       feedback.appendChild(h('div', { class: 'callout ' + kind }, msg, extra || null));
     }
 
-    function verdict(res) {
-      session.tries++;
+    function verdict(res, again) {
+      if (!again) session.tries++;
+      if (res.ok && c.finding && !session.found) {
+        setFeedback('ok', '✔ ' + res.message + ' ', L.findingBox(c, function () { session.found = true; verdict(res, true); }));
+        return null;
+      }
       if (!res.ok) {
         setFeedback('bad', '✗ ' + res.message, session.tries >= 2 && !session.hinted ? h('div', { class: 'small' }, 'Stuck? Try the 💡 Hint or "Show solution".') : null);
         return null;
@@ -328,8 +439,13 @@
       return r;
     }
 
-    function actions() { return L.actionBar([hintBtn].concat(Array.prototype.slice.call(arguments))); }
+    function actions() { return c.type === 'predict' ? h('span') : L.actionBar([hintBtn].concat(Array.prototype.slice.call(arguments))); }
+    // A view hands over its editor, so tiles can write into it: line tiles for "put in order", token tiles on a phone.
+    function editor(api) {
+      if (c.type === 'order' && c.lines) tilesHost.appendChild(L.orderBox(c, api.set));
+      else if (api.tap !== false && c.type !== 'predict' && L.embed && ui.narrow()) tilesHost.appendChild(L.tapBox(c, api.set, api.extra));
+    }
     function ran() { fold(); feedback.scrollIntoView({ block: 'nearest' }); }
-    return { root: root, main: main, work: work, side: side, setFeedback: setFeedback, verdict: verdict, session: session, actions: actions, ran: ran };
+    return { root: root, main: main, work: work, side: side, setFeedback: setFeedback, verdict: verdict, session: session, actions: actions, ran: ran, editor: editor };
   };
 })();
