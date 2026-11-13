@@ -204,7 +204,7 @@ async function playRound(page, wrongAt = []) {
   ok(await page.locator('.hero-card .dot-bubble').count() === 1 && (await txt(page, '.hero-card .dot-bubble')).length > 20, 'home: Dot says something useful: "' + (await txt(page, '.hero-card .dot-bubble p')).slice(0, 60) + '…"');
   ok(await page.locator('.hud-chip.boost').count() >= 1, 'double-XP boost is running after the quest chest (shown in the HUD)');
   ok(await page.locator('.race .race-row').count() >= 1 && await page.locator('.teaser .teaser-card').count() === 3, 'home shows the week race and three Discover picks');
-  ok(await page.locator('.hero-card .continue-btn').count() === 1 && await page.locator('.arcade-tiles .game-tile').count() === 2, 'home shows the Continue button in the hero, and the arcade');
+  ok(await page.locator('.hero-card .continue-btn').count() === 1 && await page.locator('.arcade-tiles .game-tile').count() === 6, 'home shows the Continue button in the hero, and the six arcade games');
 
   /* ---------- Discover feed ---------- */
   const mult = async () => page.evaluate(() => (DA.game.boostLeft() > 0 ? 2 : 1));
@@ -345,6 +345,65 @@ async function playRound(page, wrongAt = []) {
   ok(await page.evaluate(() => DA.ui.state.blocks[DA.puzzles.find((p) => p.fix && p.lv === 1).id] === 2), 'SQL blocks: fixed with one hint = 2 stars');
   await page.goto(BASE + '/index.html#/');
   await dismissModals(page, 1200);
+
+  /* ---------- tool arcades: Formula X-ray, Pandas pipeline, Slicer safe, Pill match ---------- */
+  const seed = Math.floor(0.5 * 1e9);
+  async function openGame(game) {
+    await page.goto(BASE + '/index.html#/practice');
+    await page.evaluate(() => { DA.arcade.rand = () => 0.5; });
+    await page.evaluate((g) => { location.hash = '#/arcade/' + g; }, game);
+    await page.waitForSelector('.g2-body');
+  }
+  await openGame('xray');
+  const xp = await page.evaluate((s) => DA.arcade2.xray(s), seed);
+  if (xp.cells.length > 1) {
+    await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
+    await page.click('button:has-text("X-ray it")');
+    ok((await txt(page, '[role="status"] .callout.warn')).includes('missing'), 'X-ray: a partial answer says which cells are missing');
+    await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
+  }
+  for (const c of xp.cells) await page.click('.xr-cell[aria-label^="' + c + ':"]');
+  await page.click('button:has-text("X-ray it")');
+  await page.waitForSelector('.g2-done .callout');
+  ok(/★/.test(await txt(page, '.g2-done')) && (await txt(page, '[role="status"] .callout.ok')).includes('returns ' + xp.value), 'X-ray: tapping exactly the cells the formula uses solves it and shows the result (' + xp.formula + ')');
+  const before3 = await page.evaluate(() => DA.ui.state.stats.xrayGames || 0);
+  for (let i = 0; i < 4; i++) {
+    await page.click('.g2-done button');
+    await page.waitForSelector('.g2-body');
+    await page.click('button:has-text("Show me")');
+    await page.waitForSelector('.g2-done .callout');
+  }
+  await page.click('.g2-done button');
+  await page.waitForSelector('.results');
+  ok(await page.evaluate((b) => DA.ui.state.stats.xrayGames === b + 1 && DA.ui.state.stats.xrayBest >= 1, before3), 'X-ray: a full round of 5 ends with a score, saved as a best');
+  await dismissModals(page, 900);
+  await openGame('pipe');
+  const pp = await page.evaluate((s) => DA.arcade2.pipe(s), seed);
+  for (const l of pp.ref) await page.evaluate((t) => [...document.querySelectorAll('.pp-card')].find((b) => b.textContent === t).click(), l.replace(/^t = /, ''));
+  await page.waitForSelector('.g2-done .callout');
+  ok(/par/.test(await txt(page, '[role="status"] .callout.ok')), 'Pandas pipeline: the reference cards reach the target table, measured against par');
+  await openGame('safe');
+  const sp = await page.evaluate((s) => { const x = DA.arcade2.safe(s); return { secret: x.secret, slicers: x.slicers }; }, seed);
+  for (const k of sp.slicers) {
+    if (!sp.secret[k]) continue;
+    await page.evaluate(([k, v]) => { const g = [...document.querySelectorAll('.sf-slicer')].find((x) => x.getAttribute('aria-label').startsWith(DA.arcade2.SLICERS[k].label)); [...g.querySelectorAll('.chip')].find((c) => c.textContent === v).click(); }, [k, sp.secret[k]]);
+  }
+  await page.waitForSelector('.g2-done .callout');
+  ok((await txt(page, '[role="status"] .callout.ok')).includes('opens'), 'Slicer safe: the secret slicers open the safe and explain the filter context');
+  await openGame('pills');
+  const pl = await page.evaluate((s) => { const x = DA.arcade2.pills(s); return { dim: x.dim.replace(/^.*\[|\]$/g, ''), meas: DA.arcade2.MEAS.find((m) => m[0] === x.meas)[1], sort: x.sort }; }, seed);
+  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .pill')].find((b) => b.textContent === t).click(), pl.meas);
+  await page.click('.shelf >> nth=0');
+  ok((await txt(page, '[role="status"]')).includes('blue pill'), 'Pill match: a green pill on Rows is refused with the reason');
+  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .pill')].find((b) => b.textContent === t).click(), pl.dim);
+  await page.click('.shelf >> nth=0');
+  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .pill')].find((b) => b.textContent === t).click(), pl.meas);
+  await page.click('.shelf >> nth=1');
+  for (let i = 0; i < { none: 0, desc: 1, asc: 2 }[pl.sort]; i++) await page.click('button:has-text("Sort:")');
+  await page.click('.g2-body button:has-text("Check")');
+  await page.waitForSelector('.g2-done .callout');
+  ok(/★★★/.test(await txt(page, '.g2-done')), 'Pill match: the right blue and green pills and sort rebuild the chart');
+  await dismissModals(page, 900);
 
   /* ---------- settings: goal, theme, reminder ---------- */
   await page.goto(BASE + '/index.html#/settings');

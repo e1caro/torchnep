@@ -208,6 +208,14 @@
   };
   S.hasWild = function (s) { return /(^|[^~])[*?]/.test(s); };
 
+  // A number typed as text in a criterion or a cell ("3", "-2.5", "1e3", "15%"); null when it is not a number.
+  S.parseNumber = function (s) {
+    var t = String(s).trim(), pct = /%$/.test(t);
+    if (pct) t = t.slice(0, -1).trim();
+    if (!/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(t)) return null;
+    return pct ? +t / 100 : +t;
+  };
+
   S.criteria = function (crit) {
     if (crit instanceof Err) return function (v) { return v === crit; };
     if (crit === null || crit === undefined) return function (v) { return v === ''; };

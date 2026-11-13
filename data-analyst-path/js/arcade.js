@@ -1,4 +1,4 @@
-/* Arcade: two quick games that train real analyst skills.
+/* Arcade: quick games that train real analyst skills (the four tool games are in arcade2.js).
  *  - Guess the correlation: read a scatter plot and estimate r.
  *  - SQL blocks: build a query by tapping tiles (checked by running it on the practice database).
  * Logic is in arcade-core.js. XP from the endless game is capped per day; puzzles pay once each. */
@@ -29,15 +29,16 @@
         h('span', { class: 'gt-icon', 'aria-hidden': 'true', text: '🧱' }),
         h('strong', { text: 'SQL blocks' }),
         h('span', { class: 'small', text: '8 levels: build queries and fix bugs by tapping tiles.' }),
-        h('span', { class: 'gt-meta', text: '★ ' + A.totals().stars + ' stars' })));
+        h('span', { class: 'gt-meta', text: '★ ' + A.totals().stars + ' stars' })),
+      DA.arcade2 && DA.arcade2.tiles ? DA.arcade2.tiles() : null);
   };
 
   function lobby() {
     var root = h('div', { class: 'view arcade' });
     root.appendChild(title('Arcade'));
-    root.appendChild(h('p', { class: 'lead', text: 'Two quick games. Each one trains something an analyst does every day: reading a chart and writing a query.' }));
+    root.appendChild(h('p', { class: 'lead', text: 'Six quick games, one for each tool an analyst uses: read a chart, build a query, x-ray a formula, chain pandas steps, crack a Power BI slicer safe and match Tableau pills.' }));
     root.appendChild(A.tiles());
-    root.appendChild(ui.callout('info', 'Fair play. ', 'The correlation game is endless, so it pays at most ' + ui.XP.gameCap + ' XP a day. Each SQL puzzle pays ' + ui.XP.block + ' XP the first time you solve it (more for three stars and for clearing a level), and a round of SQL blocks counts for the daily "Code" quest.'));
+    root.appendChild(ui.callout('info', 'Fair play. ', 'The endless games pay at most ' + ui.XP.gameCap + ' XP a day each. Each SQL puzzle pays ' + ui.XP.block + ' XP the first time you solve it (more for three stars and for clearing a level), and a round of SQL blocks, or three solved puzzles in a tool game, counts for the daily "Code" quest. No timers: par is the number of moves or tries a puzzle needs.'));
     return root;
   }
 
@@ -350,6 +351,7 @@
   V.arcade = function (params) {
     release();
     if (params[0] === 'corr') return corrGame();
+    if (DA.arcade2 && DA.arcade2.GAMES[params[0]]) return DA.arcade2.view(params);
     if (params[0] === 'blocks') {
       var lv = params[1] === 'next' ? A.nextLevel() : params[1] === 'mix' ? 'mix' : Number(params[1]);
       return lv === 'mix' || (lv >= 1 && lv <= DA.blockLevels.length) ? blocksGame(lv) : blocksMap();

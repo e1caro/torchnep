@@ -198,6 +198,8 @@
     { id: 'streak-100', icon: '👑', name: 'Centurion', desc: 'Reach a 100-day streak', prog: function () { return [G.streak().best, 100]; } },
     { id: 'goal-50', icon: '🏆', name: 'Fifty golden days', desc: 'Reach your daily goal on 50 days', prog: function (s) { return [count(s.met), 50]; } },
     { id: 'quests-10', icon: '🎁', name: 'Chest collector', desc: 'Complete all three daily quests on 10 days', prog: function (s) { return [s.stats.questsAll, 10]; } },
+    { id: 'arcade-all', icon: '🕹️', name: 'All-round player', desc: 'Play a round of all six arcade games', prog: function (s) { var t = s.stats; return [['corrGames', 'blockRounds', 'xrayGames', 'pipeGames', 'safeGames', 'pillGames'].filter(function (k) { return t[k] > 0; }).length, 6]; } },
+    { id: 'arcade-15', icon: '🌟', name: 'Perfect round', desc: 'Score 15 of 15 stars in a round of a tool arcade game', prog: function (s) { var t = s.stats; return [Math.max(t.xrayBest, t.pipeBest, t.safeBest, t.pillBest), 15]; } },
     { id: 'level-15', icon: '🚀', name: 'Level 15', desc: 'Reach level 15: Senior Analyst', prog: function () { return [G.level(G.totalXp()), 15]; } },
     { id: 'cards-25', icon: '🃏', name: 'Avid reader', desc: 'Collect 25 Discover cards', prog: function (s) { return [count(s.cards), 25]; } },
     { id: 'cards-100', icon: '📚', name: 'Centenary reader', desc: 'Collect 100 Discover cards', prog: function (s) { return [count(s.cards), 100]; } },

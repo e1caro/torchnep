@@ -203,7 +203,8 @@
       quests: {},  // date -> {lesson, drill, sql: true, chest: bonus XP}
       srs: {},     // question id -> {box 1..5, due date, t: ms of last review}
       badges: {},  // badge id -> date earned
-      stats: { drills: 0, perfect: 0, answers: 0, correct: 0, queries: 0, bestCombo: 0, questsAll: 0, corrBest: 0, corrGames: 0, blockRounds: 0 },
+      stats: { drills: 0, perfect: 0, answers: 0, correct: 0, queries: 0, bestCombo: 0, questsAll: 0, corrBest: 0, corrGames: 0, blockRounds: 0,
+        xrayBest: 0, xrayGames: 0, pipeBest: 0, pipeGames: 0, safeBest: 0, safeGames: 0, pillBest: 0, pillGames: 0 },
       seen: {},    // one-time hints
       cards: {},   // feed card id -> date it was first read ("collected")
       saved: {},   // feed card id -> true (bookmarked)

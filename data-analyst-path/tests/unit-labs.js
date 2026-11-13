@@ -391,6 +391,16 @@ test('SQLab: every reference query returns rows, a different query fails, starte
   Object.values(dbs).forEach((d) => d.close());
 });
 
+test('sheets: numeric criteria such as ">=2" work in COUNTIF, COUNTIFS, SUMIF and AVERAGEIF', () => {
+  const v = (f) => S.refValue('retail', [['K2', f]]);
+  assert.ok(v('=COUNTIFS(C2:C100, "Madrid", H2:H100, ">=2")') > 0, 'was always 0 before parseNumber existed');
+  assert.strictEqual(v('=COUNTIF(H2:H100, ">=1")'), 99);
+  assert.strictEqual(v('=COUNTIF(H2:H100, ">=1")'), v('=COUNTIF(H2:H100, ">0")'));
+  assert.strictEqual(v('=SUMIF(H2:H100, ">1")'), 2 * v('=COUNTIF(H2:H100, ">1")'), 'the largest qty here is 2');
+  assert.ok(Math.abs(v('=AVERAGEIF(C2:C100, "Madrid", H2:H100)') - v('=AVERAGEIFS(H2:H100, C2:C100, "Madrid")')) < 1e-9);
+  assert.deepStrictEqual([S.parseNumber('3'), S.parseNumber(' -2.5 '), S.parseNumber('15%'), S.parseNumber('abc'), S.parseNumber('')], [3, -2.5, 0.15, null, null]);
+});
+
 test('level types: tokens for tap mode, and the type labels', () => {
   assert.deepStrictEqual(L.tokens('SELECT name, COUNT(*) FROM t WHERE x >= 2'), ['SELECT', 'name', ',', 'COUNT(', '*', ')', 'FROM', 't', 'WHERE', 'x', '>=', '2']);
   assert.deepStrictEqual(L.tokens('df["qty"].sum()'), ['df', '["qty"]', '.', 'sum(', ')']);

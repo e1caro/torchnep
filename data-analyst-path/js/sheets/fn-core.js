@@ -258,6 +258,10 @@
     return count;
   };
 
+  FN.AVERAGEIF = function (range, crit, avgRange) {
+    if (!Array.isArray(range)) return S.E.VALUE;
+    return FN.AVERAGEIFS(avgRange || range, range, crit);
+  };
   FN.AVERAGEIFS = function (avgRange) {
     if (!Array.isArray(avgRange) || arguments.length < 3) return S.E.VALUE;
     var criteriaPairs = [];
