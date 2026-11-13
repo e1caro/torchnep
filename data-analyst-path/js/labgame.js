@@ -25,6 +25,19 @@
     L.labs[lab.id] = lab;
     return lab;
   };
+  var SOURCES = {
+    sheets: function () { DA.labSheets.worlds.forEach(function (w) { w.levels.forEach(function (lv) { lv.challenges = lv.challenges.filter(Boolean); }); }); return DA.labSheets; },
+    python: function () { return DA.labPython; },
+    bi: function () { return DA.labBI; },
+    sql: function () { return DA.buildSqlLab(); },
+  };
+  L.get = function (id) { return L.labs[id] || (SOURCES[id] ? L.register(SOURCES[id]()) : null); };
+  L.level = function (labId, key) {
+    var lab = L.get(labId);
+    return lab ? lab.levels.filter(function (lv) { return lv.key === key; })[0] || null : null;
+  };
+  L.embed = null;
+  L.embedded = function (c) { return !!(L.embed && c && L.embed.ids[c.lab + ':' + c.id]); };
 
   function store(labId) {
     ui.state.labs = ui.state.labs || {};
@@ -41,7 +54,10 @@
     return 0;
   };
 
-  L.href = function (lab, c) { return lab.playHref ? lab.playHref(c) : '#/' + lab.route + '/play/' + c.id; };
+  L.href = function (lab, c) {
+    if (L.embedded(c)) return L.embed.href(c);
+    return lab.playHref ? lab.playHref(c) : '#/' + lab.route + '/play/' + c.id;
+  };
 
   L.need = function (lv) { return Math.ceil(lv.challenges.length * L.NEED); };
 
@@ -71,7 +87,7 @@
     return t;
   };
 
-  L.isUnlocked = function (lab, c) { return L.levelState(lab, c.level).unlocked; };
+  L.isUnlocked = function (lab, c) { return L.embedded(c) || L.levelState(lab, c.level).unlocked; };
 
   L.current = function (lab) {
     for (var i = 0; i < lab.levels.length; i++) {
@@ -119,6 +135,7 @@
   };
 
   L.header = function (lab, crumb) {
+    if (L.embed) return h('p', { class: 'lab-crumb small embed-crumb' }, h('strong', { text: lab.name }), ' · ' + (crumb || ''));
     var help = L.help(lab);
     var wrap = h('div', { class: 'lab-head' },
       h('div', { class: 'lab-head-row' },
@@ -177,6 +194,18 @@
       'Solve ' + L.need(prev) + ' of the ' + prev.challenges.length + ' challenges in "' + prev.title + '" to open it.'));
     root.appendChild(h('a', { class: 'btn accent', href: L.href(lab, L.current(lab)) }, 'Go to your current challenge'));
     return root;
+  };
+
+  L.afterSolve = function (lab, c) {
+    if (L.embedded(c)) {
+      if (L.embed.solved) L.embed.solved(c);
+      var nxt = L.embed.next(c);
+      return [nxt ? h('a', { class: 'btn small accent', href: L.embed.href(nxt) }, 'Next challenge →') : null,
+        h('a', { class: 'btn small' + (nxt ? ' ghost' : ' accent'), href: L.embed.back }, L.embed.backLabel)];
+    }
+    var nx = L.next(lab, c);
+    return [nx ? h('a', { class: 'btn small accent', href: L.href(lab, nx) }, 'Next challenge →') : null,
+      h('a', { class: 'btn small ghost', href: '#/' + lab.route }, 'Levels')];
   };
 
   L.page = function (lab, c, opts) {
@@ -259,16 +288,13 @@
       }
       var r = L.record(lab, c, { hinted: session.hinted, tries: session.tries });
       session.solved = true;
-      DA.game.quest(lab.quest || 'lesson');
+      DA.game.quest(L.embed ? 'sql' : (lab.quest || 'lesson'));
       DA.game.sound('done'); DA.game.buzz(30); DA.game.confetti(r.stars === 3);
-      var nx = L.next(lab, c);
       setFeedback('ok', '✔ ' + res.message + ' ', h('div', null,
         h('p', { class: 'lab-won' }, starEl(r.stars), r.best > r.stars ? h('span', { class: 'muted small', text: ' (best: ' + starText(r.best) + ')' }) : null,
           r.xp ? h('span', { class: 'small', text: ' +' + r.xp + ' XP' }) : null),
         r.unlocked ? h('p', { class: 'small lab-unlocked' }, h('strong', { text: '🔓 Level ' + r.unlocked.world.n + '.' + r.unlocked.n + ' unlocked: ' }), r.unlocked.title) : null,
-        h('div', { class: 'row' },
-          nx ? h('a', { class: 'btn small accent', href: L.href(lab, nx) }, 'Next challenge →') : null,
-          h('a', { class: 'btn small ghost', href: '#/' + lab.route }, 'Levels'))));
+        h('div', { class: 'row' }, L.afterSolve(lab, c))));
       var mark = side.querySelector('a.chal.active .mark');
       if (mark) mark.textContent = '✔';
       ui.refreshChrome();

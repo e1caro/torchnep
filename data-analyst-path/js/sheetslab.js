@@ -5,15 +5,9 @@
   var ui = DA.ui, h = ui.h, L = DA.labgame;
   DA.views = DA.views || {};
   var S = DA.sheets;
-  var lab = null, books = {};
+  var books = {};
 
-  function getLab() {
-    if (!lab) {
-      DA.labSheets.worlds.forEach(function (w) { w.levels.forEach(function (lv) { lv.challenges = lv.challenges.filter(Boolean); }); });
-      lab = L.register(DA.labSheets);
-    }
-    return lab;
-  }
+  function getLab() { return L.get('sheets'); }
 
   function fromLesson(lessonId) {
     var lb = getLab(), all = [];

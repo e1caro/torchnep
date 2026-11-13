@@ -31,6 +31,21 @@ async function dismissModals(page, wait = 1400) {
 }
 
 // Plays a practice round by reading the right answer from the question bank. wrongAt = first-try positions to miss.
+async function answerAll(page, right) {
+  const n = await page.locator('.qcard').count();
+  for (let i = 0; i < n; i++) {
+    await dismissModals(page, 200);
+    const pick = await page.evaluate(([i, right]) => {
+      const card = document.querySelectorAll('.qcard')[i], text = card.querySelector('.qtext').textContent;
+      const q = DA.drill.bank().find((x) => x.q === text), want = q.options[q.answer];
+      const opts = [...card.querySelectorAll('.quiz-opt')];
+      return opts.findIndex((b) => (b.querySelector('span:last-child').textContent === want) === right);
+    }, [i, right]);
+    await page.locator('.qcard').nth(i).locator('.quiz-opt').nth(pick).click();
+    await sleep(150);
+  }
+}
+
 async function playRound(page, wrongAt = []) {
   let first = 0, answered = 0;
   for (let guard = 0; guard < 12; guard++) {
@@ -189,7 +204,7 @@ async function playRound(page, wrongAt = []) {
   ok(await page.locator('.hero-card .dot-bubble').count() === 1 && (await txt(page, '.hero-card .dot-bubble')).length > 20, 'home: Dot says something useful: "' + (await txt(page, '.hero-card .dot-bubble p')).slice(0, 60) + '…"');
   ok(await page.locator('.hud-chip.boost').count() >= 1, 'double-XP boost is running after the quest chest (shown in the HUD)');
   ok(await page.locator('.race .race-row').count() >= 1 && await page.locator('.teaser .teaser-card').count() === 3, 'home shows the week race and three Discover picks');
-  ok(await page.locator('.next-card').count() === 1 && await page.locator('.arcade-tiles .game-tile').count() === 2, 'home shows the next lesson and the arcade');
+  ok(await page.locator('.hero-card .continue-btn').count() === 1 && await page.locator('.arcade-tiles .game-tile').count() === 2, 'home shows the Continue button in the hero, and the arcade');
 
   /* ---------- Discover feed ---------- */
   const mult = async () => page.evaluate(() => (DA.game.boostLeft() > 0 ? 2 : 1));
@@ -254,14 +269,19 @@ async function playRound(page, wrongAt = []) {
   ok(await page.locator('.fcard[data-id]').count() === 1, 'Saved shows only the bookmarked card');
   await page.screenshot({ path: path.join(SHOTS, 'desktop-feed.png') });
 
-  /* ---------- learning path ---------- */
+  /* ---------- journey map ---------- */
   await page.goto(BASE + '/index.html#/roadmap');
-  await page.waitForSelector('.unit');
-  const pathInfo = await page.evaluate(() => ({ units: document.querySelectorAll('.unit').length, lessons: document.querySelectorAll('a.node[href^="#/lesson/"]').length, current: document.querySelectorAll('.node.current').length, done: document.querySelectorAll('.node.done:not(.chest)').length }));
-  ok(pathInfo.units === 9 && pathInfo.lessons === 41 && pathInfo.current === 1 && pathInfo.done === 1, 'path: 9 units, 41 lesson stops, one done, one marked as next');
-  await page.click('.node.current');
-  await page.waitForSelector('.lesson');
-  ok((await txt(page, 'h1')).includes('Learn with AI'), 'the pulsing stop opens the next lesson');
+  await page.waitForSelector('.chapter');
+  const pathInfo = await page.evaluate(() => ({ chapters: document.querySelectorAll('.chapter').length, current: document.querySelectorAll('.jnode.current').length, done: document.querySelectorAll('.jnode.done:not(.boss)').length,
+    open: document.querySelectorAll('.ch-toggle[aria-expanded="true"]').length, bosses: document.querySelectorAll('.jnode.boss').length, labelled: [...document.querySelectorAll('a.jnode')].every((a) => a.getAttribute('aria-label').length > 20) }));
+  ok(pathInfo.chapters === 9 && pathInfo.current === 1 && pathInfo.done === 1 && pathInfo.open === 1 && pathInfo.bosses === 1 && pathInfo.labelled, 'journey (old #/roadmap link): 9 chapters, the current one open with its boss, one mission done, one current, every stop labelled');
+  const before2 = await page.locator('a.jnode').count();
+  await page.click('.chapter:nth-of-type(2) .ch-toggle');
+  await page.waitForFunction(() => document.querySelectorAll('.ch-toggle[aria-expanded="true"]').length === 2);
+  ok(await page.locator('a.jnode').count() > before2, 'a collapsed chapter opens with all its missions and its boss');
+  await page.click('.jnode.current');
+  await page.waitForSelector('.view.mission');
+  ok((await txt(page, 'h1')).includes('Learn with AI') && await page.locator('.m-steps a').count() === 4, 'the current stop opens the next mission, with its steps');
 
   /* ---------- arcade ---------- */
   await page.goto(BASE + '/index.html#/arcade/corr');
@@ -365,7 +385,7 @@ async function playRound(page, wrongAt = []) {
 
   /* ---------- phone layout ---------- */
   const sizes = {};
-  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/retail/r1'], ['me', '#/me'], ['settings', '#/settings'], ['roadmap', '#/roadmap'], ['prompts', '#/prompts'], ['feed', '#/feed'], ['collection', '#/collection'], ['arcade', '#/arcade'], ['blocks', '#/arcade/blocks'], ['corr', '#/arcade/corr']]) {
+  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/retail/r1'], ['me', '#/me'], ['settings', '#/settings'], ['journey', '#/journey'], ['mission', '#/mission/l2-3/learn'], ['prompts', '#/prompts'], ['feed', '#/feed'], ['collection', '#/collection'], ['arcade', '#/arcade'], ['blocks', '#/arcade/blocks'], ['corr', '#/arcade/corr']]) {
     await phone.goto(BASE + '/index.html' + hash);
     await phone.waitForSelector('main .view');
     if (name === 'lab') await phone.waitForSelector('.callout.ok', { timeout: 20000 });
@@ -375,7 +395,7 @@ async function playRound(page, wrongAt = []) {
     await phone.screenshot({ path: path.join(SHOTS, 'phone-' + name + '.png'), fullPage: name === 'home' });
   }
   ok(Object.values(sizes).every((s) => s.over <= 1), 'no horizontal scrolling on phone: ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.over]))));
-  ok(Object.entries(sizes).every(([k, s]) => s.tab || k === 'blocks' || k === 'corr'), 'bottom tab bar on every phone page (hidden only inside a game)');
+  ok(Object.entries(sizes).every(([k, s]) => ['blocks', 'corr'].includes(k) || s.tab === (k !== 'mission')), 'bottom tab bar on every phone page (hidden only inside a game or a mission): ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.tab]))));
   // the feed on a phone: full-height cards, no top bar, one swipe = one card
   await phone.goto(BASE + '/index.html#/feed');
   await phone.waitForSelector('.feed .fcard');
@@ -403,6 +423,64 @@ async function playRound(page, wrongAt = []) {
   await phone.tap('.qopts .quiz-opt >> nth=0');
   await phone.waitForSelector('.quiz-fb .callout');
   await phone.screenshot({ path: path.join(SHOTS, 'phone-round-answered.png') });
+
+  /* ---------- journey on the phone: map, Continue, the five steps, Try in place, test out, boss ---------- */
+  await phone.goto(BASE + '/index.html#/journey');
+  await phone.waitForSelector('[aria-current="step"]');
+  await sleep(300);
+  const jm = await phone.evaluate(() => { const r = document.querySelector('[aria-current="step"]').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, vh: innerHeight, h: document.documentElement.scrollHeight }; });
+  ok(jm.top >= 0 && jm.bottom <= jm.vh, 'phone journey: the map opens scrolled to the current mission (at ' + Math.round(jm.top) + 'px of ' + jm.vh + ')');
+  ok(jm.h < 4000, 'phone journey: chapters fold, so the map is ' + jm.h + 'px tall instead of 12,000');
+  await phone.goto(BASE + '/index.html#/');
+  await phone.waitForSelector('.continue-btn');
+  const cb = await phone.evaluate(() => Math.round(document.querySelector('.continue-btn').getBoundingClientRect().top));
+  ok(cb < 360, 'phone home: Continue is near the top (' + cb + 'px)');
+  const mid = await phone.evaluate(() => DA.journey.current().lesson.id);
+  await phone.tap('.continue-btn');
+  await phone.waitForSelector('.view.mission');
+  ok((await phone.evaluate(() => location.hash)).startsWith('#/mission/' + mid + '/'), 'phone home: Continue opens the current mission at its current step');
+  await phone.goto(BASE + '/index.html#/mission/' + mid + '/brief');
+  await phone.waitForSelector('.view.mission .m-brief');
+  ok(!(await phone.locator('.tabbar').isVisible()) && await phone.locator('.m-actions .btn.accent').isVisible(), 'phone mission: focus mode with the main button in the thumb zone');
+  await phone.tap('.m-actions .btn.accent');
+  await phone.waitForSelector('.deck .lcard');
+  let guard = 0;
+  while (/Next card/.test(await txt(phone, '.m-actions .btn.accent')) && guard++ < 12) { await phone.tap('.m-actions .btn.accent'); await sleep(120); }
+  ok(await phone.evaluate((id) => DA.journey.stepDone(id, 'learn'), mid), 'phone mission: reading every card completes Learn (' + guard + ' cards)');
+  await phone.goto(BASE + '/index.html#/mission/' + mid + '/check');
+  await phone.waitForSelector('.qcard');
+  const quest0 = await phone.evaluate(() => DA.game.quests().drill);
+  await answerAll(phone, true);
+  ok(await phone.evaluate((id) => DA.ui.state.quiz[id] && DA.ui.state.quiz[id].ok && DA.game.quests().drill, mid) && (quest0 || true), 'phone mission: Check records the quiz and counts as the Practise quest');
+  await phone.goto(BASE + '/index.html#/mission/' + mid + '/debrief');
+  await phone.waitForSelector('.m-actions .btn.big');
+  const xp0 = await phone.evaluate(() => DA.game.totalXp());
+  await phone.tap('.m-actions button.btn.big');
+  await dismissModals(phone, 900);
+  const xp1 = await phone.evaluate((id) => ({ xp: DA.game.totalXp(), done: !!DA.ui.state.done[id], lxp: DA.ui.XP.lesson(DA.lessonById[id]) }), mid);
+  ok(xp1.done && xp1.xp - xp0 >= xp1.lxp, 'phone mission: Debrief completes the mission with its XP (+' + (xp1.xp - xp0) + ')');
+  await phone.goto(BASE + '/index.html#/mission/l2-1/try');
+  await phone.waitForSelector('.tcard a.btn');
+  await phone.tap('.tcard a.btn >> nth=0');
+  await phone.waitForSelector('.callout.ok', { timeout: 20000 });
+  const tid = await phone.evaluate(() => location.hash.split('/').pop());
+  await phone.fill('.sql-editor', await phone.evaluate((id) => DA.challenges.find((c) => c.id === id).solution, tid));
+  await phone.tap('button:has-text("Check my answer")');
+  await phone.waitForSelector('.feedback .callout.ok');
+  ok(await phone.locator('.feedback a:has-text("Back to the mission")').count() === 1 && await phone.evaluate((id) => DA.labgame.stars('sql', id) >= 1 && DA.game.quests().sql, tid), 'phone mission: a Try challenge is solved in place, its stars go to SQLab and it counts as the Code quest');
+  await dismissModals(phone, 900);
+  await phone.goto(BASE + '/index.html#/mission/l4-2/test');
+  await phone.waitForSelector('.qcard');
+  await answerAll(phone, true);
+  await dismissModals(phone, 900);
+  ok(await phone.evaluate(() => !!DA.ui.state.done['l4-2'] && DA.journey.tested('l4-2')), 'phone: testing out with every answer right completes the mission');
+  await phone.goto(BASE + '/index.html#/boss/m0/q');
+  await phone.waitForSelector('.qcard');
+  const bossXp = await phone.evaluate(() => !!DA.ui.state.xp['module:m0']);
+  await answerAll(phone, true);
+  await dismissModals(phone, 900);
+  ok(await phone.evaluate(() => DA.ui.state.bosses.m0 === 3 && !!DA.ui.state.xp['module:m0']) && !bossXp, 'phone: the chapter 1 boss case pays the chapter bonus with three stars');
+  await phone.screenshot({ path: path.join(SHOTS, 'phone-boss.png') });
 
   /* ---------- DotSheets, DotPython, DotBI ---------- */
   for (const [route, name] of [['sheets', 'DotSheets'], ['python', 'DotPython'], ['bi', 'DotBI']]) {

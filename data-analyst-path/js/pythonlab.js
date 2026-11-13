@@ -4,12 +4,12 @@
   var DA = (window.DA = window.DA || {});
   var ui = DA.ui, h = ui.h, L = DA.labgame, P = DA.python;
   DA.views = DA.views || {};
-  var lab = null, drafts = {};
+  var drafts = {};
   var MEM = 'data-analyst-path.py-drafts.v1';
   try { drafts = JSON.parse(localStorage.getItem(MEM) || '{}') || {}; } catch (e) { drafts = {}; }
   function saveDrafts() { try { localStorage.setItem(MEM, JSON.stringify(drafts)); } catch (e) { } }
 
-  function getLab() { return lab || (lab = L.register(DA.labPython)); }
+  function getLab() { return L.get('python'); }
 
   DA.views.python = function (params) {
     var lb = getLab();

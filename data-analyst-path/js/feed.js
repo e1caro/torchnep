@@ -328,7 +328,7 @@
       });
     }, { root: feed, threshold: [0, 0.6, 1] });
     function more(n) {
-      if (rendered + n > items.length && !(items.length === 1 && items[0].type === 'empty')) {
+      if (filter !== 'Saved' && rendered + n > items.length && !(items.length === 1 && items[0].type === 'empty')) { // bookmarks are a finite list, never repeated
         var nextBatch = F.cycle ? F.cycle(filter, ++cycleNum) : [];
         if (nextBatch.length) items = items.concat(nextBatch);
       }

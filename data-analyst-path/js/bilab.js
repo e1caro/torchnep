@@ -4,11 +4,11 @@
   var DA = (window.DA = window.DA || {});
   var ui = DA.ui, h = ui.h, L = DA.labgame, BI = DA.bi;
   DA.views = DA.views || {};
-  var lab = null, model = null, drafts = {};
+  var model = null, drafts = {};
   var MEM = 'data-analyst-path.bi-drafts.v1';
   try { drafts = JSON.parse(localStorage.getItem(MEM) || '{}') || {}; } catch (e) { drafts = {}; }
 
-  function getLab() { return lab || (lab = L.register(DA.labBI)); }
+  function getLab() { return L.get('bi'); }
   function getModel() { return model || (model = BI.retailModel()); }
 
   DA.views.bi = function (params) {

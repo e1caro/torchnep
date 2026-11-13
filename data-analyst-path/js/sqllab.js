@@ -105,8 +105,7 @@
   // Shared with the SQL blocks game, which checks answers by running them.
   DA.sqlEngine = { load: loadEngine, ref: getRef };
 
-  var sqlLab = null;
-  function getSqlLab() { return sqlLab || (sqlLab = DA.labgame.register(DA.buildSqlLab())); }
+  function getSqlLab() { return DA.labgame.get('sql'); }
   DA.sqlLab = getSqlLab;
 
   DA.views.lab = function (params) {
@@ -131,8 +130,10 @@
       Object.keys(DA.datasets).map(function (id) {
         return h('a', { class: 'tab' + (id === dsId ? ' active' : ''), href: '#/lab/' + id, 'aria-current': id === dsId ? 'page' : null, text: DA.datasets[id].short || DA.datasets[id].title });
       }));
-    root.appendChild(tabs);
-    root.appendChild(h('p', { class: 'muted lab-blurb', text: ds.blurb }));
+    if (!L.embed) {
+      root.appendChild(tabs);
+      root.appendChild(h('p', { class: 'muted lab-blurb', text: ds.blurb }));
+    }
 
     var status = h('div', { class: 'callout info compact', role: 'status' }, 'Loading the SQL engine…');
     root.appendChild(status);
@@ -531,15 +532,12 @@
         var rec = L.record(lab, wcur, { hinted: session.hinted, tries: attempts[cur.id] });
         DA.game.quest('sql');
         DA.game.sound('done'); DA.game.buzz(30); DA.game.confetti(rec.stars === 3);
-        var nx = L.next(lab, wcur);
         setFeedback('ok', '✔ ' + cmp.message, h('div', null,
           h('p', { class: 'lab-won' }, h('span', { class: 'lab-stars', 'aria-label': rec.stars + ' of 3 stars', text: L.starText(rec.stars) }),
             rec.best > rec.stars ? h('span', { class: 'muted small', text: ' (best: ' + L.starText(rec.best) + ')' }) : null,
             rec.xp ? h('span', { class: 'small', text: ' +' + rec.xp + ' XP' }) : null),
           rec.unlocked ? h('p', { class: 'small lab-unlocked' }, h('strong', { text: '🔓 Level ' + rec.unlocked.world.n + '.' + rec.unlocked.n + ' unlocked: ' }), rec.unlocked.title) : null,
-          h('div', { class: 'row' },
-            nx ? h('a', { class: 'btn small accent', href: L.href(lab, nx) }, 'Next challenge →') : null,
-            h('a', { class: 'btn small ghost', href: '#/lab' }, 'Levels'),
+          h('div', { class: 'row' }, L.afterSolve(lab, wcur),
             h('button', { class: 'btn small ghost', type: 'button', onclick: function () { showAi(true); } }, '🤖 Ask AI to review my query'))));
         if (firstTime) {
           var mark = side.querySelector('a.chal.active .mark');

@@ -289,13 +289,6 @@
     return n;
   };
 
-  // Bonus for finishing every lesson of a module (called when a lesson is completed).
-  G.moduleCheck = function (lesson) {
-    var m = lesson.module;
-    if (m.lessons.every(function (l) { return S().done[l.id]; })) return G.award('module:' + m.id, ui.XP.module, m.title + ' complete');
-    return 0;
-  };
-
   // Re-check badges / goal after state changed elsewhere (for example a lesson was unticked).
   G.touch = function () { finish(G.level(G.totalXp())); };
 

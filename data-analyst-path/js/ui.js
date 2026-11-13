@@ -160,6 +160,8 @@
       cards: {},   // feed card id -> date it was first read ("collected")
       saved: {},   // feed card id -> true (bookmarked)
       blocks: {},  // SQL blocks puzzle id -> stars (1 to 3)
+      journey: {}, // lesson id -> bits: 1 brief seen, 2 learn cards done, 4 tested out (the rest of a mission is derived)
+      bosses: {},  // module id -> best stars (1 to 3) in that chapter's boss case
       repaired: {},// date -> true: a missed day bridged by a streak repair
       boost: 0,    // time (ms) until which XP is doubled
     };
@@ -224,6 +226,8 @@
     // SQL blocks: stars 1-3 per solved puzzle (older saves stored true, which counts as 1 star)
     eachKey(src.blocks, function (id, v) { var n = v === true ? 1 : Math.floor(Number(v)); if (n >= 1 && n <= 3 && (!DA.puzzleById || DA.puzzleById[id])) s.blocks[id] = n; }, 500);
     eachKey(src.repaired, function (d, v) { if (isDate(d) && v === true) s.repaired[d] = true; }, 800);
+    eachKey(src.journey, function (id, v) { var n = Math.floor(Number(v)); if (DA.lessonById[id] && n >= 1 && n <= 7) s.journey[id] = n; }, 500);
+    eachKey(src.bosses, function (id, v) { var n = Math.floor(Number(v)); if (n >= 1 && n <= 3 && DA.modules.some(function (m) { return m.id === id; })) s.bosses[id] = n; }, 50);
     var boost = Math.floor(Number(src.boost));
     if (boost > 0 && boost < 1e14) s.boost = boost;
 

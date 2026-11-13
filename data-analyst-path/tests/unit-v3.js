@@ -201,14 +201,18 @@ test('week race: this week against the same point of last week', () => {
   assert.ok(G.weekRace().beaten); assert.ok(ui.state.badges['beat-week']);
 });
 
-test('module bonus is paid once, when the last lesson of a module is done', () => {
+test('the chapter bonus is paid once, by the boss case, with the old chest key', () => {
   ui.state.profile.dailyGoal = 80;
-  const m = DA.modules[0];
-  ui.state.done[m.lessons[0].id] = true;
-  assert.strictEqual(G.moduleCheck(m.lessons[0]), 0);
-  m.lessons.forEach((l) => { ui.state.done[l.id] = true; });
-  assert.strictEqual(G.moduleCheck(m.lessons[0]), ui.XP.module);
-  assert.strictEqual(G.moduleCheck(m.lessons[1]), 0);
+  const J = DA.journey, m = DA.modules[0];
+  m.lessons.forEach((l) => { J.complete(l.id, true); });
+  assert.ok(!ui.state.xp['module:' + m.id], 'finishing the lessons no longer pays the chest');
+  assert.strictEqual(J.bossResult(m.id, 1, 3).stars, 0);
+  assert.ok(!ui.state.xp['module:' + m.id]);
+  const r = J.bossResult(m.id, 3, 3);
+  assert.strictEqual(r.stars, 3);
+  assert.strictEqual(r.xp, ui.XP.module);
+  assert.strictEqual(J.bossResult(m.id, 3, 3).xp, 0);
+  assert.ok(J.boss(m.id).won);
 });
 
 test('new state survives sanitize and merges without loss', () => {
