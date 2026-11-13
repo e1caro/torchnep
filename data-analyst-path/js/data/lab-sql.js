@@ -15,7 +15,7 @@
     return {
       id: 'sql', route: 'lab', quest: 'sql',
       tagline: 'Real SQL on a real database, in your browser: 64 challenges in 4 worlds, on two practice databases.',
-      help: 'Pick a level on the map, or open free exploration to try any query. Write SQL and press Run (Ctrl/Cmd + Enter); "Check my answer" compares your result with the reference query, so any correct query passes. Solve most of a level to open the next one.',
+      help: 'Pick a level on the map, or open free exploration to try any query. Write SQL and press Run (Ctrl/Cmd + Enter); "Check" compares your result with the reference query, so any correct query passes. Solve most of a level to open the next one.',
       playHref: function (c) { return '#/lab/' + c.src.ds + '/' + c.id; },
       xpKey: function (c) { return 'sql:' + c.id; },
       xp: function (c) { return DA.ui.XP.sql(c.src.level); },

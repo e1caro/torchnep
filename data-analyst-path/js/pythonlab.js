@@ -31,7 +31,8 @@
     var undo = [editor.value], redo = [];
 
     function setCode(v) { undo.push(editor.value); editor.value = v; remember(); editor.focus({ preventScroll: true }); }
-    function remember() { drafts[c.id] = editor.value; saveDrafts(); }
+    function remember() { drafts[c.id] = editor.value; saveDrafts(); grow(); }
+    var grow = ui.autogrow(editor);
     function insert(text, back) {
       var a = editor.selectionStart, b = editor.selectionEnd, v = editor.value;
       undo.push(v); redo = [];
@@ -53,7 +54,8 @@
     var runBtn = h('button', { class: 'btn', type: 'button', onclick: function () { run(false); } }, '▶ Run');
     var checkBtn = h('button', { class: 'btn accent', type: 'button', onclick: function () { run(true); } }, '✓ Check');
     var resetBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () { setCode(starter(c)); ui.clear(out); } }, 'Reset code');
-    work.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, resetBtn, h('span', { class: 'muted small', text: 'Ctrl+Enter runs' })));
+    work.appendChild(P2.actions(runBtn, checkBtn));
+    work.appendChild(h('div', { class: 'row actions-more' }, resetBtn, h('span', { class: 'muted small', text: 'Ctrl+Enter runs' })));
     work.appendChild(h('details', { class: 'schema' }, h('summary', null, h('strong', { text: '📋 Data you can use' })),
       h('ul', { class: 'small' },
         h('li', null, h('code', { text: 'df' }), ' café order lines: order_id, order_date, store_city, channel, customer_id, product, category, qty, unit_price'),
@@ -101,6 +103,7 @@
 
     function run(check) {
       var code = editor.value;
+      P2.ran();
       if (!check) { show(P.run(code, { echo: true })); return; }
       var res = P.run(code, { echo: true });
       show(res);

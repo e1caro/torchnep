@@ -81,7 +81,8 @@
     var box = h('textarea', { class: 'sql-editor bi-editor', rows: '3', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', 'aria-label': (tab ? 'Tableau calculation' : 'DAX measure') + '. Enter evaluates, Shift+Enter adds a line.',
       placeholder: tab ? 'SUM([qty])' : 'SUM(Sales[qty])' });
     box.value = drafts[c.id] || '';
-    function remember() { drafts[c.id] = box.value; try { localStorage.setItem(MEM, JSON.stringify(drafts)); } catch (e) { } }
+    function remember() { drafts[c.id] = box.value; try { localStorage.setItem(MEM, JSON.stringify(drafts)); } catch (e) { } grow(); }
+    var grow = ui.autogrow(box);
     function setText(v) { box.value = v; remember(); box.focus({ preventScroll: true }); }
     function insert(text, back) {
       var a = box.selectionStart === null || box.selectionStart === undefined ? box.value.length : box.selectionStart;
@@ -108,7 +109,8 @@
     var typeSel = h('select', { 'aria-label': 'Chart type' }, [['bar', 'Bars'], ['column', 'Columns'], ['line', 'Line']].map(function (t) { return h('option', { value: t[0] }, t[1]); }));
     var evalBtn = h('button', { class: 'btn', type: 'button', onclick: function () { evaluate(); } }, '▶ Evaluate');
     var checkBtn = h('button', { class: 'btn accent', type: 'button', onclick: check }, '✓ Check');
-    work.appendChild(h('div', { class: 'row actions' }, evalBtn, checkBtn, h('span', { class: 'muted small', text: 'Enter evaluates · Shift+Enter new line' })));
+    work.appendChild(P.actions(evalBtn, checkBtn));
+    work.appendChild(h('p', { class: 'muted small actions-more', text: 'Enter evaluates · Shift+Enter new line' }));
     work.appendChild(h('div', { class: 'bi-shelf' },
       h('span', { class: 'badge pill-dim', text: 'Rows' }), rowsSel,
       h('span', { class: 'badge pill-measure', text: 'Values: your ' + (tab ? 'calculation' : 'measure') }),
@@ -139,6 +141,7 @@
 
     function evaluate() {
       var text = box.value.trim();
+      P.ran();
       if (!text) { ui.clear(out); out.appendChild(h('p', { class: 'muted', text: 'Type a ' + (tab ? 'calculation' : 'measure') + ' first.' })); return null; }
       try { last = BI.breakdown(m, c.mode, text, rowsSel.value || null); paint(last); return last; }
       catch (e) {
@@ -151,6 +154,7 @@
 
     function check() {
       var text = box.value.trim();
+      P.ran();
       if (!text) { P.verdict({ ok: false, message: 'Type your ' + (tab ? 'calculation' : 'measure') + ' first.' }); return; }
       var got, want = BI.breakdown(m, c.mode, c.solution, c.by);
       try { got = BI.breakdown(m, c.mode, text, c.by); }

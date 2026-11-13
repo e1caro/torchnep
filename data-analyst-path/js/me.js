@@ -106,15 +106,25 @@
     var root = h('div', { class: 'view me' }), st = ui.state.stats;
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'You' }));
     root.appendChild(levelCard());
-    root.appendChild(streakCard());
-    root.appendChild(weekCard());
-    root.appendChild(badgesCard());
     var acc = st.answers ? Math.round(100 * st.correct / st.answers) + '%' : '–';
     root.appendChild(h('section', { class: 'section' }, h('h2', { text: 'Your highlights' }),
       h('div', { class: 'stat-row wide' }, [
         ['First-try accuracy', acc], ['Best combo', st.bestCombo], ['Best streak', G.streak().best + 'd'], ['Total XP', G.totalXp()],
       ].map(function (x) { return h('div', { class: 'stat' }, h('b', { text: String(x[1]) }), h('span', { text: x[0] })); }))));
-    root.appendChild(h('p', null, h('a', { class: 'btn ghost', href: '#/settings' }, '⚙️ Settings: daily goal, theme, reminders, devices')));
+    root.appendChild(h('nav', { class: 'more-list', 'aria-label': 'More' }, h('h2', { text: 'More' }), h('ul', null, [
+      ['#/settings', '⚙️', 'Settings', 'Daily goal, theme, reminders, sync and devices'],
+      ['#/profile', '🧭', 'Your background', 'Change where you come from and your weekly hours'],
+      ['#/prompts', '💬', 'Prompt library', 'Ready-made prompts for learning with AI'],
+      ['#/tools', '🤖', 'AI toolbox', 'Which AI tool for what, and the rules for checking it'],
+      ['#/collection', '🃏', 'Card collection', 'Every Discover card you have read'],
+    ].map(function (x) {
+      return h('li', null, h('a', { href: x[0] }, h('span', { class: 'ml-ico', 'aria-hidden': 'true', text: x[1] }), h('span', { class: 'grow' }, h('strong', { text: x[2] }), h('small', { text: x[3] })), h('span', { 'aria-hidden': 'true', text: '›' })));
+    }))));
+    var wide = !ui.narrow();
+    root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'Streak calendar' })), streakCard()));
+    root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'This week' })), weekCard()));
+    var B = G.badges(), got = B.filter(function (b) { return b.earned; }).length;
+    root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'Badges · ' + got + ' of ' + B.length + ' earned' })), badgesCard()));
     return root;
   };
 })();

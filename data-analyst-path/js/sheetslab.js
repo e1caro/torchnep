@@ -164,9 +164,11 @@
       books[c.id] = S.datasetWorkbook(c.ds); DA.render();
       ui.toast('Original data reloaded.');
     } }, 'Reset sheet');
-    work.appendChild(h('div', { class: 'row actions' }, checkBtn, resetBtn, h('span', { class: 'muted small grow', text: c.ds === 'messy' ? 'Data: messy hand-typed orders' : 'Data: café orders (first ' + (S.ROWS_LOADED - 1) + ' lines)' })));
+    work.appendChild(P.actions(checkBtn));
+    work.appendChild(h('div', { class: 'row actions-more' }, resetBtn, h('span', { class: 'muted small grow', text: c.ds === 'messy' ? 'Data: messy hand-typed orders' : 'Data: café orders (first ' + (S.ROWS_LOADED - 1) + ' lines)' })));
 
     function check() {
+      P.ran();
       if (grid.editing) grid.commit(null);
       wb.recalc(); grid.render();
       var res = c.check(wb);

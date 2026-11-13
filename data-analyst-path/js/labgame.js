@@ -137,49 +137,85 @@
   L.header = function (lab, crumb) {
     if (L.embed) return h('p', { class: 'lab-crumb small embed-crumb' }, h('strong', { text: lab.name }), ' · ' + (crumb || ''));
     var help = L.help(lab);
+    var back = crumb ? ['#/' + lab.route, 'Back to the ' + lab.name + ' levels'] : ['#/practice', 'Back to Practice'];
     var wrap = h('div', { class: 'lab-head' },
       h('div', { class: 'lab-head-row' },
+        h('a', { class: 'icon-btn lab-back', href: back[0], 'aria-label': back[1], title: back[1] }, '←'),
         h('div', { class: 'lab-title' },
           h('h1', { id: 'view-title', tabindex: '-1', text: lab.name }),
-          h('p', { class: 'lead lab-lead', text: lab.tagline })),
-        h('div', { class: 'row lab-head-btns' },
-          crumb ? h('a', { class: 'btn ghost small', href: '#/' + lab.route }, '🗺 Levels') : null,
-          help.btn)),
-      crumb ? h('p', { class: 'lab-crumb small', text: crumb }) : null,
+          crumb ? h('p', { class: 'lab-crumb small', text: crumb }) : h('p', { class: 'lead lab-lead', text: lab.tagline })),
+        h('div', { class: 'row lab-head-btns' }, help.btn)),
       help.box);
     return wrap;
   };
 
+  // The task card folds to one line on a phone after the first run, so the editor and result get the room. Tap the title to unfold.
+  L.foldTask = function (task, head) {
+    var userSet = false;
+    var btn = h('button', { class: 'task-toggle', type: 'button', 'aria-expanded': 'true', 'aria-label': 'Hide the task' }, '▾');
+    function set(open) {
+      task.classList.toggle('collapsed', !open);
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      btn.setAttribute('aria-label', open ? 'Hide the task' : 'Show the task');
+      btn.textContent = open ? '▾' : '▸';
+    }
+    btn.addEventListener('click', function () { userSet = true; set(task.classList.contains('collapsed')); });
+    head.appendChild(btn);
+    return function () { if (!userSet && ui.narrow()) set(false); };
+  };
+
+  // The sticky action bar of a challenge: Hint, Run and Check stay within thumb reach (and above the keyboard).
+  L.actionBar = function (buttons) {
+    return h('div', { class: 'row actions lab-actions', role: 'group', 'aria-label': 'Actions' }, buttons.filter(Boolean));
+  };
+  L.hintButton = function (title, html, onOpen) {
+    return h('button', { class: 'btn ghost lab-hint', type: 'button', onclick: function () {
+      if (onOpen) onOpen();
+      ui.sheet(title, h('div', { class: 'callout tip' }, h('span', { html: html })));
+    } }, '💡 Hint');
+  };
+
   L.mapView = function (lab) {
     var root = h('div', { class: 'view lab lab-map lab-' + lab.id });
-    var T = L.totals(lab), cur = L.current(lab);
+    var T = L.totals(lab), cur = L.current(lab), lockShown = false;
     root.appendChild(L.header(lab, null));
     root.appendChild(h('div', { class: 'lab-totals' },
       h('div', { class: 'stat' }, h('b', { text: T.solved + ' / ' + T.total }), h('span', { text: 'challenges solved' })),
       h('div', { class: 'stat' }, h('b', { text: '★ ' + T.stars + ' / ' + T.max }), h('span', { text: 'stars' }))));
     root.appendChild(h('a', { class: 'btn big accent lab-continue', href: L.href(lab, cur) }, (T.solved ? 'Continue: ' : 'Start: ') + cur.title + ' ▶'));
-    var sizes = lab.levels.map(function (lv) { return lv.challenges.length; }).filter(function (n, i, a) { return a.indexOf(n) === i; }).sort();
-    root.appendChild(h('p', { class: 'muted small', text: 'Solve ' + sizes.map(function (n) { return Math.ceil(n * L.NEED) + ' of ' + n; }).join(', ') + ' challenges in a level to open the next one. Stars: ★ solved, ★ no hint, ★ first try.' }));
+    root.appendChild(h('p', { class: 'muted small', text: 'Solve most of a level (2 of 3) to open the next one. Stars: one for solving, one without the hint, one on the first check. Missions open any level.' }));
     lab.worlds.forEach(function (w) {
       var ws = L.worldState(lab, w);
       var sec = h('section', { class: 'lab-world' + (ws.unlocked ? '' : ' locked') + (ws.complete ? ' complete' : ''), 'aria-label': 'World ' + w.n + ': ' + w.title },
         h('div', { class: 'lab-world-head' },
           h('span', { class: 'lab-world-icon', 'aria-hidden': 'true', text: ws.unlocked ? w.icon : '🔒' }),
           h('div', null, h('span', { class: 'lab-world-num', text: 'World ' + w.n }), h('h2', { text: w.title }), h('p', { class: 'muted small', text: w.about })),
-          h('span', { class: 'lab-world-score', text: ws.complete ? '✓ complete' : ws.solved + ' / ' + ws.total })));
-      var grid = h('div', { class: 'lab-levels' });
+          h('span', { class: 'lab-world-score', text: ws.complete ? '✓ complete' : '★ ' + ws.stars + ' / ' + ws.total * 3 })));
+      var road = h('ol', { class: 'lab-road' });
       w.levels.forEach(function (lv, i) {
-        var st = ws.levels[i];
+        var st = ws.levels[i], here = cur.level === lv;
         var state = !st.unlocked ? 'locked' : st.complete ? 'complete' : st.solved ? 'started' : 'open';
-        var dots = h('span', { class: 'lab-dots', 'aria-hidden': 'true' }, lv.challenges.map(function (c) { var k = L.stars(lab.id, c.id); return h('span', { class: 'lab-dot' + (k ? ' on' : ''), text: k ? '★' : '·' }); }));
-        var label = 'Level ' + w.n + '.' + lv.n + ': ' + lv.title + '. ' + (st.unlocked ? st.solved + ' of ' + st.total + ' solved, ' + st.stars + ' stars' : 'locked');
-        var inner = [h('span', { class: 'lab-level-num', text: (st.unlocked ? '' : '🔒 ') + 'Level ' + w.n + '.' + lv.n }), h('strong', { text: lv.title }), dots,
-          h('span', { class: 'small muted', text: !st.unlocked ? 'Solve ' + L.need(lab.levels[lv.index - 1]) + ' in the level before' : '★ ' + st.stars + ' / ' + st.max })];
-        grid.appendChild(st.unlocked
-          ? h('a', { class: 'lab-level ' + state, href: L.href(lab, lv.challenges.filter(function (c) { return !L.stars(lab.id, c.id); }).concat(lv.challenges)[0]), 'aria-label': label }, inner)
-          : h('div', { class: 'lab-level locked', 'aria-label': label, role: 'group' }, inner));
+        var rating = Math.floor(st.stars / Math.max(1, st.total));
+        var stars = h('span', { class: 'lab-lv-stars', 'aria-hidden': 'true', text: starText(rating) });
+        var sub = st.unlocked ? st.solved + ' of ' + st.total + ' solved · ★ ' + st.stars + '/' + st.max : '';
+        var label = 'Level ' + w.n + '.' + lv.n + ': ' + lv.title + '. ' + (st.unlocked ? st.solved + ' of ' + st.total + ' solved, ' + st.stars + ' of ' + st.max + ' stars' + (here ? '. You are here.' : '.') : 'Locked.');
+        var lockMsg = null;
+        if (!st.unlocked && !lockShown) {
+          lockShown = true;
+          var prev = lab.levels[lv.index - 1];
+          lockMsg = h('span', { class: 'lab-lock-msg small', text: 'Solve ' + L.need(prev) + ' of ' + prev.challenges.length + ' in Level ' + prev.world.n + '.' + prev.n + ' to open' });
+        }
+        var kids = [
+          here && DA.mascot ? h('span', { class: 'lab-here', 'aria-hidden': 'true' }, DA.mascot.svg('happy', 30)) : null,
+          h('span', { class: 'lab-lv-face', 'aria-hidden': 'true', text: !st.unlocked ? '🔒' : st.complete ? '✓' : w.n + '.' + lv.n }),
+          h('span', { class: 'lab-lv-text', 'aria-hidden': 'true' },
+            h('small', { text: 'Level ' + w.n + '.' + lv.n }), h('strong', { text: lv.title }),
+            st.unlocked ? h('span', { class: 'lab-lv-meta' }, stars, h('span', { text: sub })) : lockMsg)];
+        road.appendChild(h('li', null, st.unlocked
+          ? h('a', { class: 'lab-level ' + state + (here ? ' here' : ''), href: L.href(lab, lv.challenges.filter(function (c) { return !L.stars(lab.id, c.id); }).concat(lv.challenges)[0]), 'aria-label': label, 'aria-current': here ? 'step' : null }, kids)
+          : h('div', { class: 'lab-level locked', 'aria-label': label, role: 'img' }, kids)));
       });
-      sec.appendChild(grid);
+      sec.appendChild(road);
       root.appendChild(sec);
     });
     if (lab.extraLinks) root.appendChild(lab.extraLinks());
@@ -239,35 +275,26 @@
     }
 
     var best = L.stars(lab.id, c.id);
-    var hintBox = h('div', { class: 'callout tip hidden' }, h('strong', { text: 'Hint. ' }), h('span', { html: c.hint }));
-    var solBox = h('div', { class: 'hidden lab-solution' }, h('p', { class: 'muted small', text: 'One right answer (others can be right too):' }), h('pre', { class: 'lab-code', text: c.solution }));
-    var exBox = h('div', { class: 'hidden lab-example' });
-    function paintExample() {
-      ui.clear(exBox);
-      var ex = lv.example;
-      exBox.appendChild(h('p', { class: 'small' }, h('strong', { text: 'Worked example: ' + ex.title + '. ' }), ex.explain));
-      exBox.appendChild(h('pre', { class: 'lab-code', text: ex.code }));
-      if (opts.useExample) exBox.appendChild(h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { opts.useExample(ex); } }, 'Try it in the editor'));
-    }
-    paintExample();
-    var hintBtn = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-      session.hinted = true;
-      hintBox.classList.toggle('hidden');
-    } }, '💡 Hint');
+    root.classList.add('lab-play');
+    var hintBtn = L.hintButton('Hint · ' + c.title, c.hint, function () { session.hinted = true; });
     var solBtn = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
       if (!session.tries) { ui.toast('Press "Check" at least once first.'); return; }
       session.hinted = true;
-      solBox.classList.toggle('hidden');
+      ui.sheet('Solution · ' + c.title, h('div', { class: 'lab-solution' }, h('p', { class: 'muted small', text: 'One right answer (others can be right too):' }), h('pre', { class: 'lab-code', text: c.solution })));
     } }, 'Show solution');
-    var exBtn = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { exBox.classList.toggle('hidden'); } }, '📖 Worked example');
-    main.appendChild(h('div', { class: 'task' },
-      h('div', { class: 'task-head' },
-        h('span', { class: 'badge level' + Math.min(8, w.n * 2 - (lv.n <= 2 ? 1 : 0)), text: 'Level ' + w.n + '.' + lv.n }),
-        h('strong', { text: c.title }),
-        best ? starEl(best, 'Best so far: ' + best + ' of 3 stars') : h('span', { class: 'muted small', text: '+' + lab.xp(c) + ' XP' })),
-      h('p', { class: 'lab-task', html: c.task }),
-      h('div', { class: 'row' }, hintBtn, solBtn, exBtn),
-      hintBox, solBox, exBox));
+    var exBtn = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
+      var ex = lv.example, sheet = null;
+      sheet = ui.sheet('Worked example · ' + ex.title, h('div', { class: 'lab-example' },
+        h('p', { class: 'small', text: ex.explain }), h('pre', { class: 'lab-code', text: ex.code }),
+        opts.useExample ? h('button', { class: 'btn small accent', type: 'button', onclick: function () { sheet.close(); opts.useExample(ex); } }, 'Try it in the editor') : null));
+    } }, '📖 Worked example');
+    var head = h('div', { class: 'task-head' },
+      h('span', { class: 'badge level' + Math.min(8, w.n * 2 - (lv.n <= 2 ? 1 : 0)), text: 'Level ' + w.n + '.' + lv.n }),
+      h('strong', { text: c.title }),
+      best ? starEl(best, 'Best so far: ' + best + ' of 3 stars') : h('span', { class: 'muted small', text: '+' + lab.xp(c) + ' XP' }));
+    var task = h('div', { class: 'task' }, head, h('p', { class: 'lab-task', html: c.task }), h('div', { class: 'row task-more' }, solBtn, exBtn));
+    var fold = L.foldTask(task, head);
+    main.appendChild(task);
 
     var work = h('div', { class: 'lab-work' });
     var feedback = h('div', { class: 'feedback', role: 'status', 'aria-live': 'polite' });
@@ -283,7 +310,7 @@
     function verdict(res) {
       session.tries++;
       if (!res.ok) {
-        setFeedback('bad', '✗ ' + res.message, session.tries >= 2 && hintBox.classList.contains('hidden') ? h('div', { class: 'small' }, 'Stuck? Try the 💡 Hint or "Show solution".') : null);
+        setFeedback('bad', '✗ ' + res.message, session.tries >= 2 && !session.hinted ? h('div', { class: 'small' }, 'Stuck? Try the 💡 Hint or "Show solution".') : null);
         return null;
       }
       var r = L.record(lab, c, { hinted: session.hinted, tries: session.tries });
@@ -301,6 +328,8 @@
       return r;
     }
 
-    return { root: root, main: main, work: work, side: side, setFeedback: setFeedback, verdict: verdict, session: session };
+    function actions() { return L.actionBar([hintBtn].concat(Array.prototype.slice.call(arguments))); }
+    function ran() { fold(); feedback.scrollIntoView({ block: 'nearest' }); }
+    return { root: root, main: main, work: work, side: side, setFeedback: setFeedback, verdict: verdict, session: session, actions: actions, ran: ran };
   };
 })();

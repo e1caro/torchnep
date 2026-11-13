@@ -43,6 +43,54 @@
 
   /* ---------- toast, clipboard, download ---------- */
 
+  // A bottom sheet (a dialog that slides up on phones): focus stays inside, Esc or the scrim closes it, focus returns afterwards.
+  ui.sheet = function (title, body) {
+    ui.closeSheets();
+    var prev = document.activeElement, id = 'sheet-' + Date.now();
+    var closeBtn = h('button', { class: 'icon-btn sheet-close', type: 'button', 'aria-label': 'Close' }, '✕');
+    var panel = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': id },
+      h('div', { class: 'sheet-head' }, h('h2', { id: id, text: title }), closeBtn), h('div', { class: 'sheet-body' }, body));
+    var scrim = h('div', { class: 'sheet-scrim' }, panel);
+    function close() {
+      document.removeEventListener('keydown', onKey, true);
+      if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+      if (prev && prev.focus && prev.isConnected) prev.focus({ preventScroll: true });
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.key !== 'Tab') return;
+      var f = panel.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex="0"]');
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    }
+    scrim.addEventListener('click', function (e) { if (e.target === scrim) close(); });
+    closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', onKey, true);
+    scrim._close = close;
+    document.body.appendChild(scrim);
+    closeBtn.focus({ preventScroll: true });
+    return { close: close, panel: panel };
+  };
+  ui.closeSheets = function () {
+    if (typeof document === 'undefined') return;
+    Array.prototype.forEach.call(document.querySelectorAll('.sheet-scrim'), function (s) { if (s._close) s._close(); });
+  };
+
+  // Phones: a code editor starts at four lines and grows with its content, up to 45% of the screen.
+  ui.narrow = function () { return !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches); };
+  ui.autogrow = function (ta) {
+    function grow() {
+      if (!ta.isConnected || !ui.narrow()) { ta.style.height = ''; return; }
+      ta.style.height = 'auto';
+      ta.style.height = Math.max(108, Math.min(ta.scrollHeight + 2, Math.round(window.innerHeight * 0.45))) + 'px';
+    }
+    ['input', 'focus'].forEach(function (ev) { ta.addEventListener(ev, grow); });
+    ta._grow = grow;
+    setTimeout(grow, 0);
+    return grow;
+  };
+
   var toastTimer;
   ui.toast = function (msg) {
     if (typeof document === 'undefined') return;

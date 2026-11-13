@@ -496,7 +496,11 @@
 
   var routes = { '': 'home', profile: 'profile', roadmap: 'journey', journey: 'journey', mission: 'mission', boss: 'boss', lesson: 'lesson', lab: 'lab', sheets: 'sheets', python: 'python', bi: 'bi', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
     me: 'me', settings: 'settings', prompts: 'prompts', tools: 'tools' };
-  var navOf = { '': 'home', lesson: 'journey', roadmap: 'journey', mission: 'journey', boss: 'journey', collection: 'feed' };
+  var navOf = { '': 'home', lesson: 'journey', roadmap: 'journey', mission: 'journey', boss: 'journey', collection: 'feed',
+    lab: 'practice', sheets: 'practice', python: 'practice', bi: 'practice', arcade: 'practice', settings: 'me', prompts: 'me', tools: 'me', profile: 'me' };
+  // Phones: deep screens get a back link to their parent (labs, missions and games have their own).
+  var parentOf = { lesson: ['#/journey', 'Journey'], settings: ['#/me', 'You'], prompts: ['#/me', 'You'], tools: ['#/me', 'You'], profile: ['#/me', 'You'],
+    collection: ['#/feed', 'Discover'], arcade: ['#/practice', 'Practice'] };
 
   function parse() {
     var parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean).map(function (s) {
@@ -510,6 +514,7 @@
     if (DA.feed && DA.feed.leave) DA.feed.leave();
     if (DA.arcade && DA.arcade.leave) DA.arcade.leave();
     if (DA.labgame) DA.labgame.embed = null;
+    ui.closeSheets();
     var r = parse(), view = V[routes[r.name]] || V.notFound, node;
     try { node = view(r.params); } catch (err) {
       if (window.console) console.error(err);
@@ -517,15 +522,16 @@
     }
     var main = document.getElementById('view');
     ui.clear(main);
+    var up = parentOf[r.name];
+    if (up && !(r.name === 'arcade' && r.params.length)) main.appendChild(h('a', { class: 'backbar', href: up[0] }, h('span', { 'aria-hidden': 'true', text: '← ' }), up[1]));
     main.appendChild(node);
     var nav = navOf[r.name] !== undefined ? navOf[r.name] : r.name;
+    var side = document.querySelector('.sidebar [data-nav="' + r.name + '"]') ? r.name : nav;
     Array.prototype.forEach.call(document.querySelectorAll('[data-nav]'), function (a) {
-      var on = a.getAttribute('data-nav') === nav;
+      var on = a.getAttribute('data-nav') === (a.closest('.sidebar') ? side : nav);
       a.classList.toggle('active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
-    var more = document.getElementById('menuBtn');
-    if (more) more.classList.toggle('active', ['me', 'settings', 'prompts', 'tools', 'profile', 'lab', 'sheets', 'python', 'bi', 'arcade'].indexOf(nav) >= 0);
     var t = document.getElementById('view-title');
     document.title = (t ? t.textContent.replace(/\s+/g, ' ').trim() + ' · ' : '') + 'Data Analyst Path';
     window.scrollTo(0, 0);
@@ -536,8 +542,27 @@
   }
 
   DA.render = function () { render(); };
+
+  // The on-screen keyboard: --kb is how much of the layout it covers (iOS), so sticky action bars can sit above it.
+  function watchKeyboard() {
+    var vv = window.visualViewport;
+    if (!vv) return;
+    function kb() {
+      var k = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      document.documentElement.style.setProperty('--kb', k + 'px');
+      var el = document.activeElement, typing = !!el && /^(TEXTAREA|INPUT)$/.test(el.tagName);
+      document.body.classList.toggle('kb-open', k > 80 || (typing && window.innerHeight < 480));
+    }
+    vv.addEventListener('resize', kb);
+    vv.addEventListener('scroll', kb);
+    document.addEventListener('focusin', kb);
+    document.addEventListener('focusout', function () { setTimeout(kb, 50); });
+    kb();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     ui.applyTheme();
+    watchKeyboard();
     if (window.matchMedia) {
       var mq = window.matchMedia('(prefers-color-scheme: dark)');
       if (mq.addEventListener) mq.addEventListener('change', function () { ui.applyTheme(); });

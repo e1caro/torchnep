@@ -169,7 +169,7 @@ async function playRound(page, wrongAt = []) {
   await page.click('.sql-keys .table-key:has-text("orders")');
   ok((await page.inputValue('.sql-editor')).trim() === 'SELECT * FROM orders', 'shortcut keys type SQL: "' + (await page.inputValue('.sql-editor')).trim() + '"');
   await page.fill('.sql-editor', await page.evaluate(() => DA.challenges.find((c) => c.id === 'r1').solution));
-  await page.click('button:has-text("Check my answer")');
+  await page.click('.lab-actions button:has-text("Check")');
   await page.waitForSelector('.feedback .callout.ok');
   ok(/★/.test(await txt(page, '.feedback')) && await page.evaluate(() => DA.ui.state.labs.sql.r1 === 3 && DA.ui.state.sql.r1 === true), 'SQLab: solving at the first try gives 3 stars and keeps the old solved mark');
   const q3 = await page.evaluate(() => DA.game.quests());
@@ -395,7 +395,7 @@ async function playRound(page, wrongAt = []) {
     await phone.screenshot({ path: path.join(SHOTS, 'phone-' + name + '.png'), fullPage: name === 'home' });
   }
   ok(Object.values(sizes).every((s) => s.over <= 1), 'no horizontal scrolling on phone: ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.over]))));
-  ok(Object.entries(sizes).every(([k, s]) => ['blocks', 'corr'].includes(k) || s.tab === (k !== 'mission')), 'bottom tab bar on every phone page (hidden only inside a game or a mission): ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.tab]))));
+  ok(Object.entries(sizes).every(([k, s]) => ['blocks', 'corr'].includes(k) || s.tab === !['mission', 'lab'].includes(k)), 'bottom tab bar on every phone page (hidden only inside a game, a mission or a challenge): ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.tab]))));
   // the feed on a phone: full-height cards, no top bar, one swipe = one card
   await phone.goto(BASE + '/index.html#/feed');
   await phone.waitForSelector('.feed .fcard');
@@ -465,7 +465,7 @@ async function playRound(page, wrongAt = []) {
   await phone.waitForSelector('.callout.ok', { timeout: 20000 });
   const tid = await phone.evaluate(() => location.hash.split('/').pop());
   await phone.fill('.sql-editor', await phone.evaluate((id) => DA.challenges.find((c) => c.id === id).solution, tid));
-  await phone.tap('button:has-text("Check my answer")');
+  await phone.tap('.lab-actions button:has-text("Check")');
   await phone.waitForSelector('.feedback .callout.ok');
   ok(await phone.locator('.feedback a:has-text("Back to the mission")').count() === 1 && await phone.evaluate((id) => DA.labgame.stars('sql', id) >= 1 && DA.game.quests().sql, tid), 'phone mission: a Try challenge is solved in place, its stars go to SQLab and it counts as the Code quest');
   await dismissModals(phone, 900);
@@ -481,6 +481,85 @@ async function playRound(page, wrongAt = []) {
   await dismissModals(phone, 900);
   ok(await phone.evaluate(() => DA.ui.state.bosses.m0 === 3 && !!DA.ui.state.xp['module:m0']) && !bossXp, 'phone: the chapter 1 boss case pays the chapter bonus with three stars');
   await phone.screenshot({ path: path.join(SHOTS, 'phone-boss.png') });
+
+  /* ---------- phone-first matrix: three phone sizes, light and dark ---------- */
+  const seedDone = {}; ['l0-1', 'l0-2', 'l0-3', 'l1-1', 'l1-2', 'l1-3', 'l1-4', 'l1-5', 'l1-6', 'l1-7', 'l2-1', 'l2-2'].forEach((id) => { seedDone[id] = true; });
+  const plays = [['SQLab', '#/lab/retail/r1'], ['DotPython', '#/python/play/py02'], ['DotSheets', '#/sheets/play/s_l1_2_1'], ['DotBI', '#/bi/play/bi01']];
+  const rows = [];
+  for (const theme of ['light', 'dark']) {
+    for (const [w, hh] of [[360, 740], [390, 844], [412, 915]]) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: hh }, isMobile: true, hasTouch: true, colorScheme: theme });
+      await ctx.addInitScript((st) => { if (!localStorage.getItem('data-analyst-path.v1')) localStorage.setItem('data-analyst-path.v1', JSON.stringify(st)); },
+        { v: 2, profile: { bg: 'science', theme: 'auto' }, done: seedDone, seen: { welcome: true }, labs: { sql: { r1: 3 }, sheets: {}, python: { py01: 3 }, bi: {} } });
+      const pg = await ctx.newPage();
+      watch(pg, 'phone ' + w + ' ' + theme);
+      const r = { at: w + 'x' + hh + ' ' + theme, over: 0, bars: [] };
+      await pg.goto(BASE + '/index.html#/');
+      await pg.waitForSelector('.continue-btn');
+      r.cont = await pg.evaluate(() => Math.round(document.querySelector('.continue-btn').getBoundingClientRect().top));
+      r.dark = await pg.evaluate(() => { const c = getComputedStyle(document.body).backgroundColor.match(/\d+/g).map(Number); return c[0] + c[1] + c[2] < 200; });
+      await pg.goto(BASE + '/index.html#/journey');
+      await pg.waitForSelector('[aria-current="step"]');
+      await sleep(250);
+      r.journey = await pg.evaluate(() => { const b = document.querySelector('[aria-current="step"]').getBoundingClientRect(); return { inView: b.top >= 0 && b.bottom <= innerHeight, h: document.documentElement.scrollHeight }; });
+      for (const [name, hash] of plays) {
+        await pg.goto(BASE + '/index.html' + hash);
+        await pg.waitForSelector('.lab-actions');
+        await sleep(name === 'SQLab' ? 900 : 400);
+        r.bars.push(await pg.evaluate((n) => { const b = document.querySelector('.lab-actions').getBoundingClientRect(); return { n, ok: b.top >= 0 && b.bottom <= innerHeight + 1 && getComputedStyle(document.querySelector('.tabbar')).display === 'none' }; }, name));
+        r.over = Math.max(r.over, await pg.evaluate(() => document.documentElement.scrollWidth - innerWidth));
+      }
+      await pg.goto(BASE + '/index.html#/python/play/py02');
+      await pg.waitForSelector('.py-editor');
+      await pg.focus('.py-editor');
+      await pg.setViewportSize({ width: w, height: 420 });
+      await sleep(300);
+      r.kb = await pg.evaluate(() => { const b = document.querySelector('.lab-actions').getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight + 1; });
+      await pg.setViewportSize({ width: w, height: hh });
+      await pg.goto(BASE + '/index.html#/sheets');
+      await pg.waitForSelector('.lab-road');
+      r.map = await pg.evaluate(() => ({ stars: document.querySelectorAll('.lab-level:not(.locked) .lab-lv-stars').length, locks: document.querySelectorAll('.lab-lock-msg').length, lockedLabelled: [...document.querySelectorAll('.lab-level.locked')].every((x) => /Locked/.test(x.getAttribute('aria-label'))), cols: getComputedStyle(document.querySelector('.lab-road')).gridTemplateColumns.split(' ').length }));
+      for (const hash of ['#/', '#/journey', '#/me', '#/practice', '#/mission/l2-3/learn']) {
+        await pg.goto(BASE + '/index.html' + hash);
+        await pg.waitForSelector('main .view');
+        await sleep(150);
+        r.over = Math.max(r.over, await pg.evaluate(() => document.documentElement.scrollWidth - innerWidth));
+      }
+      if (w === 360) await pg.screenshot({ path: path.join(SHOTS, 'phone360-' + theme + '-mission.png') });
+      rows.push(r);
+      await ctx.close();
+    }
+  }
+  const brief = (f) => rows.map((r) => r.at + ': ' + f(r)).join('; ');
+  ok(rows.every((r) => r.cont < 360), 'F1 Continue near the top on every phone: ' + brief((r) => r.cont + 'px'));
+  ok(rows.every((r) => r.journey.inView && r.journey.h < 4000), 'F2 journey opens on the current mission and stays short: ' + brief((r) => r.journey.h + 'px'));
+  ok(rows.every((r) => r.bars.every((b) => b.ok)), 'F3 Run, Check and Hint stay visible above the fold in all four labs, tab bar hidden: ' + brief((r) => r.bars.filter((b) => b.ok).length + '/4'));
+  ok(rows.every((r) => r.kb), 'F3 with the keyboard open (viewport 420px) the action bar is still on screen');
+  ok(rows.every((r) => r.map.stars >= 1 && r.map.locks === 1 && r.map.lockedLabelled && r.map.cols === 1), 'F8 level map: one column, real stars, a single lock message, locked levels labelled');
+  ok(rows.every((r) => r.over <= 1), 'no horizontal scrolling at any size or theme');
+  ok(rows.filter((r) => r.at.endsWith('dark')).every((r) => r.dark) && rows.filter((r) => r.at.endsWith('light')).every((r) => !r.dark), 'dark mode follows the system on every phone size');
+
+  /* ---------- keyboard only: journey map, mission, hint sheet ---------- */
+  await page.goto(BASE + '/index.html#/journey');
+  await page.waitForSelector('[aria-current="step"]');
+  let tabs = 0, onNode = false;
+  while (tabs++ < 60 && !onNode) { await page.keyboard.press('Tab'); onNode = await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('jnode')); }
+  const ring = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+  ok(onNode && ring !== 'none', 'keyboard: Tab reaches the journey stops with a visible focus ring (' + tabs + ' presses)');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.view.mission');
+  ok(true, 'keyboard: Enter on a stop opens its mission');
+  await page.goto(BASE + '/index.html#/python/play/py02');
+  await page.waitForSelector('.lab-hint');
+  await page.focus('.lab-hint');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.sheet[role="dialog"]');
+  const inSheet = await page.evaluate(() => !!document.activeElement.closest('.sheet'));
+  await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
+  const stillIn = await page.evaluate(() => !!document.activeElement.closest('.sheet'));
+  await page.keyboard.press('Escape');
+  const back = await page.evaluate(() => !document.querySelector('.sheet') && document.activeElement.classList.contains('lab-hint'));
+  ok(inSheet && stillIn && back, 'keyboard: the hint opens as a dialog, focus stays inside, Esc closes it and returns focus');
 
   /* ---------- DotSheets, DotPython, DotBI ---------- */
   for (const [route, name] of [['sheets', 'DotSheets'], ['python', 'DotPython'], ['bi', 'DotBI']]) {
@@ -589,7 +668,7 @@ async function playRound(page, wrongAt = []) {
   await page.goto(BASE + '/index.html#/lab/retail/r2');
   await page.waitForSelector('.callout.ok', { timeout: 20000 });
   await page.fill('.sql-editor', "SELECT COUNT(*) FROM orders WHERE channel = 'delivery'");
-  await page.click('button:has-text("Check my answer")');
+  await page.click('.lab-actions button:has-text("Check")');
   await page.waitForSelector('.feedback .callout.ok');
   ok(true, 'offline: the SQL engine (WebAssembly) runs and checks an answer');
   await page.goto(BASE + '/index.html#/practice/play');

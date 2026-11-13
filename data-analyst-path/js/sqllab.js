@@ -152,6 +152,7 @@
     });
     var initVal = drafts[draftKey] !== undefined ? drafts[draftKey] : '';
     editor.value = initVal;
+    var grow = ui.autogrow(editor);
 
     function getHistory() {
       if (!histories[draftKey] || !histories[draftKey].stack || !histories[draftKey].stack.length) {
@@ -164,6 +165,7 @@
     var redoBtn = h('button', { class: 'btn ghost', type: 'button', title: 'Redo (Ctrl/Cmd + Y)', 'aria-label': 'Redo', onclick: function () { redo(); } }, '↷ Redo');
 
     function syncUndoButtons() {
+      grow();
       var hist = getHistory();
       undoBtn.disabled = hist.idx <= 0;
       redoBtn.disabled = hist.idx >= hist.stack.length - 1;
@@ -252,7 +254,7 @@
     });
 
     var runBtn = h('button', { class: 'btn', type: 'button', disabled: true, onclick: function () { run(false); } }, '▶ Run');
-    var checkBtn = cur ? h('button', { class: 'btn accent', type: 'button', disabled: true, onclick: function () { run(true); } }, '✓ Check my answer') : null;
+    var checkBtn = cur ? h('button', { class: 'btn accent', type: 'button', disabled: true, onclick: function () { run(true); } }, '✓ Check') : null;
     var resetBtn = h('button', { class: 'btn ghost', type: 'button', disabled: true, onclick: function () {
       getDb(SQL, dsId, true); dirty = false; showResult(null); ui.toast('Data reset to the original.');
     } }, 'Reset data');
@@ -266,24 +268,23 @@
     var aiBox = h('div', { class: 'ai-box' });
 
     /* task panel */
+    var fold = function () {}, hintBtn = null;
     if (cur) {
-      var hintBox = h('div', { class: 'callout tip hidden' }, h('strong', { text: 'Hint. ' }), cur.hint);
-      var solBox = h('div', { class: 'hidden' }, h('p', { class: 'muted small', text: 'Reference solution (there are often several valid queries):' }), ui.codeBlock({ lang: 'sql', title: 'Solution', text: cur.solution }));
+      root.classList.add('lab-play');
+      hintBtn = L.hintButton('Hint · ' + cur.title, cur.hint.replace(/&/g, '&amp;').replace(/</g, '&lt;'), function () { session.hinted = true; });
       var solBtn = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-        if (!attempts[cur.id]) { ui.toast('Try the query and press "Check my answer" at least once first.'); return; }
+        if (!attempts[cur.id]) { ui.toast('Try the query and press "Check" at least once first.'); return; }
         session.hinted = true;
-        solBox.classList.toggle('hidden');
+        ui.sheet('Solution · ' + cur.title, h('div', null, h('p', { class: 'muted small', text: 'Reference solution (there are often several valid queries):' }), ui.codeBlock({ lang: 'sql', title: 'Solution', text: cur.solution })));
       } }, 'Show solution');
-      main.appendChild(h('div', { class: 'task' },
-        h('div', { class: 'task-head' },
-          h('span', { class: 'badge level' + cur.level, text: 'Level ' + wcur.level.world.n + '.' + wcur.level.n }),
-          h('strong', { text: cur.title }),
-          h('span', { class: 'muted small', text: cur.concept }),
-          L.stars('sql', cur.id) ? h('span', { class: 'lab-stars', 'aria-label': 'Best so far: ' + L.stars('sql', cur.id) + ' of 3 stars', text: L.starText(L.stars('sql', cur.id)) }) : h('span', { class: 'muted small', text: '+' + ui.XP.sql(cur.level) + ' XP' })),
-        h('p', { html: cur.task }),
-        h('div', { class: 'row' },
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { session.hinted = true; hintBox.classList.toggle('hidden'); } }, 'Show hint'), solBtn),
-        hintBox, solBox));
+      var head = h('div', { class: 'task-head' },
+        h('span', { class: 'badge level' + cur.level, text: 'Level ' + wcur.level.world.n + '.' + wcur.level.n }),
+        h('strong', { text: cur.title }),
+        h('span', { class: 'muted small', text: cur.concept }),
+        L.stars('sql', cur.id) ? h('span', { class: 'lab-stars', 'aria-label': 'Best so far: ' + L.stars('sql', cur.id) + ' of 3 stars', text: L.starText(L.stars('sql', cur.id)) }) : h('span', { class: 'muted small', text: '+' + ui.XP.sql(cur.level) + ' XP' }));
+      var task = h('div', { class: 'task' }, head, h('p', { html: cur.task }), h('div', { class: 'row task-more' }, solBtn));
+      fold = L.foldTask(task, head);
+      main.appendChild(task);
     } else {
       main.appendChild(h('div', { class: 'task' }, h('strong', { text: 'Free exploration' }),
         h('p', { class: 'muted', text: 'Try any query on this database, inspect a table below with one click, or pick a challenge on the levels map (🗺 Levels).' })));
@@ -307,7 +308,8 @@
       KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); }));
     main.appendChild(keys);
     main.appendChild(editor);
-    main.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
+    main.appendChild(L.actionBar([hintBtn, runBtn, checkBtn]));
+    main.appendChild(h('div', { class: 'row actions-more' }, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
 
     // Quick table viewer bar: shows any table directly without writing anything into the SQL editor
     var tableBtns = {};
@@ -499,6 +501,7 @@
 
     function run(check) {
       if (!SQL) return;
+      fold();
       var sql = editor.value.trim();
       ui.clear(aiBox);
       lastError = '';
