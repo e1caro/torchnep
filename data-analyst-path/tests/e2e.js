@@ -392,12 +392,12 @@ async function playRound(page, wrongAt = []) {
   ok((await txt(page, '[role="status"] .callout.ok')).includes('opens'), 'Slicer safe: the secret slicers open the safe and explain the filter context');
   await openGame('pills');
   const pl = await page.evaluate((s) => { const x = DA.arcade2.pills(s); return { dim: x.dim.replace(/^.*\[|\]$/g, ''), meas: DA.arcade2.MEAS.find((m) => m[0] === x.meas)[1], sort: x.sort }; }, seed);
-  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .pill')].find((b) => b.textContent === t).click(), pl.meas);
+  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), pl.meas);
   await page.click('.shelf >> nth=0');
   ok((await txt(page, '[role="status"]')).includes('blue pill'), 'Pill match: a green pill on Rows is refused with the reason');
-  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .pill')].find((b) => b.textContent === t).click(), pl.dim);
+  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), pl.dim);
   await page.click('.shelf >> nth=0');
-  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .pill')].find((b) => b.textContent === t).click(), pl.meas);
+  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), pl.meas);
   await page.click('.shelf >> nth=1');
   for (let i = 0; i < { none: 0, desc: 1, asc: 2 }[pl.sort]; i++) await page.click('button:has-text("Sort:")');
   await page.click('.g2-body button:has-text("Check")');
@@ -501,6 +501,8 @@ async function playRound(page, wrongAt = []) {
   await phone.goto(BASE + '/index.html#/mission/' + mid + '/brief');
   await phone.waitForSelector('.view.mission .m-brief');
   ok(!(await phone.locator('.tabbar').isVisible()) && await phone.locator('.m-actions .btn.accent').isVisible(), 'phone mission: focus mode with the main button in the thumb zone');
+  const pillInk = await phone.evaluate(() => [...document.querySelectorAll('.view.mission .meta .pill')].map((e) => { const c = getComputedStyle(e); return c.color !== c.backgroundColor && c.color !== 'rgb(255, 255, 255)'; }));
+  ok(pillInk.length === 3 && pillInk.every(Boolean), 'phone mission: the time, steps and XP pills are readable (no other style overrides them)');
   await phone.tap('.m-actions .btn.accent');
   await phone.waitForSelector('.deck .lcard');
   let guard = 0;

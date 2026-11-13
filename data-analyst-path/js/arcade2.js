@@ -240,7 +240,7 @@
     var live = h('div', { class: 'pm-live' }), fb = h('div', { role: 'status', 'aria-live': 'polite' }), end = h('div', { class: 'g2-done' });
     var palette = X.DIMS.map(function (d) { return { key: d[0], label: d[1], kind: 'dim' }; }).concat(X.MEAS.map(function (m) { return { key: m[0], label: m[1], kind: 'meas', fmt: m[2] }; }));
     var pillBtns = palette.map(function (pl) {
-      return h('button', { class: 'pill ' + (pl.kind === 'dim' ? 'blue' : 'green'), type: 'button', 'aria-pressed': 'false', onclick: function () {
+      return h('button', { class: 'tpill ' + (pl.kind === 'dim' ? 'blue' : 'green'), type: 'button', 'aria-pressed': 'false', onclick: function () {
         if (over) return;
         picked = picked === pl ? null : pl;
         pillBtns.forEach(function (b, j) { b.setAttribute('aria-pressed', palette[j] === picked ? 'true' : 'false'); });
@@ -269,7 +269,7 @@
       [[rowsShelf, rowsPill, 'Rows'], [colsShelf, colsPill, 'Columns']].forEach(function (x) {
         ui.clear(x[0]);
         x[0].appendChild(h('span', { class: 'shelf-name', text: x[2] }));
-        x[0].appendChild(x[1] ? h('span', { class: 'pill ' + (x[1].kind === 'dim' ? 'blue' : 'green') + ' placed', text: x[1].label }) : h('span', { class: 'muted small', text: 'drop a pill here' }));
+        x[0].appendChild(x[1] ? h('span', { class: 'tpill ' + (x[1].kind === 'dim' ? 'blue' : 'green') + ' placed', text: x[1].label }) : h('span', { class: 'muted small', text: 'drop a pill here' }));
         x[0].setAttribute('aria-label', x[2] + ' shelf: ' + (x[1] ? x[1].label : 'empty'));
       });
       sortBtn.textContent = 'Sort: ' + { none: 'A to Z', desc: 'largest first', asc: 'smallest first' }[sort];

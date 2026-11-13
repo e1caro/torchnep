@@ -433,7 +433,9 @@ figure.code code { background: none; padding: 0; color: inherit; font-size: inhe
 .result-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
 .result-table td.null { color: var(--muted); font-style: italic; }
 .feedback:empty { display: none; }
-.scen-table { margin: 4px 0 12px; max-height: 240px; }
+.scen-list { grid-template-columns: minmax(0, 1fr); }
+.scen { min-width: 0; }
+.scen-table { margin: 4px 0 12px; max-height: 240px; max-width: 100%; }
 .scen .quiz-opt.wrong:disabled { opacity: .75; }
 
 /* toast */
@@ -1680,12 +1682,12 @@ a.lab-level:hover { border-color: var(--accent); }
 .pm-val { font-family: var(--mono); font-size: .8rem; }
 .pm-live .pm-chart { border-style: dashed; }
 .pm-palette { display: flex; flex-wrap: wrap; gap: 6px; }
-.pill { min-height: 40px; padding: 4px 14px; border-radius: 999px; border: 2px solid transparent; font: 700 .82rem var(--mono); color: #fff; cursor: pointer; }
-.pill.blue { background: #2563eb; }
-.pill.green { background: #15803d; }
-.pill[aria-pressed="true"] { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent); }
-.pill.placed { display: inline-block; min-height: 0; padding: 4px 12px; cursor: default; }
-.pill:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
+.tpill { min-height: 40px; padding: 4px 14px; border-radius: 999px; border: 2px solid transparent; font: 700 .82rem var(--mono); color: #fff; cursor: pointer; }
+.tpill.blue { background: #2563eb; }
+.tpill.green { background: #15803d; }
+.tpill[aria-pressed="true"] { border-color: var(--text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent); }
+.tpill.placed { display: inline-block; min-height: 0; padding: 4px 12px; cursor: default; }
+.tpill:focus-visible { outline: 3px solid var(--text); outline-offset: 2px; }
 .pm-shelves { display: grid; grid-template-columns: 1fr 1fr auto; gap: 8px; align-items: stretch; }
 @media (max-width: 560px) { .pm-shelves { grid-template-columns: 1fr; } }
 .shelf { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 10px; border-radius: 12px; border: 2px dashed var(--line); background: var(--surface); color: var(--text); font: inherit; cursor: pointer; text-align: left; }
