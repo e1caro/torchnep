@@ -91,7 +91,7 @@ After editing **any** file, regenerate the service worker's file list and versio
 python3 tools/update-sw.py
 ```
 
-(`node tests/unit.js` fails if you forget.) Users see a small "A new version is ready. Reload" bar; each release is cached atomically, so nobody runs a mix of old and new files. `node tools/make-icons.js` re-renders the PNG icons from `icons/icon.svg`.
+(`node tests/unit.js` fails if you forget.) Users see a small "A new version is ready. Reload" bar; each release is cached atomically, so nobody runs a mix of old and new files. `node tools/make-icons.js` rebuilds every icon (web, iOS, Android launcher, monochrome and notification) from the single concept in `tools/icon-concept.js`.
 
 ## Layout
 

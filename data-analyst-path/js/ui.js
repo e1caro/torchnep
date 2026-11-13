@@ -307,8 +307,11 @@
     var t = ui.state.profile.theme, root = document.documentElement;
     if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
     var dark = t === 'dark' || (t === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    var m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', dark ? '#0d1320' : '#2158d6');
+    // The browser bar matches the top bar: white in light mode, the dark surface in dark mode (a forced theme sets both media variants).
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="theme-color"]'), function (m) {
+      var isDarkMeta = /dark/.test(m.getAttribute('media') || '');
+      m.setAttribute('content', (t === 'auto' ? isDarkMeta : dark) ? '#131b2e' : '#ffffff');
+    });
   };
 
   // Deterministic shuffle (same seed, same order): used so a lesson quiz always shows its options in the same order.
