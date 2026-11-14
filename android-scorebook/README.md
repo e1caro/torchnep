@@ -26,12 +26,16 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
   chord symbols, accidentals, beams. One-tap transpose.
 - **Exports.** A PDF is saved to *Downloads/Scorebook* after every take (can be turned off); PDF, MIDI and
   MusicXML can be shared or saved from any take.
+- **Playback.** Play any score with a built-in piano sound (or play the take's own recording) while the notes
+  light up and the page follows; 0.5× / 0.75× / 1× speed for practice.
 - **Library.** Every take is kept with its audio, auto-titled ("Idea in D minor, 14 Nov") with date, duration,
-  key and tempo; search, favourites, trash with 30-day recovery.
+  key and tempo; search and favourites. Swipe a score left to delete it (with Undo), or select several or all and
+  delete them at once; deleted scores stay in the Trash for 30 days (restore, delete for good, empty trash).
+- **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 
-What comes next (albums and multiple takes per song, playback, hands-free piano commands, idea catcher, practice
-statistics, take comparison, a piano-specific model) is listed at the end of ARCHITECTURE.md.
+What comes next (albums and multiple takes per song, hands-free piano commands, idea catcher, take comparison,
+a piano-specific model) is listed at the end of ARCHITECTURE.md.
 
 ## How well it works
 

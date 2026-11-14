@@ -290,7 +290,7 @@ private fun StatsCard(lib: io.github.e1caro.scorebook.core.library.Library) {
             }
             Column(horizontalAlignment = Alignment.End) {
                 Text(if (st.streakDays > 0) "🔥 ${st.streakDays}-day streak" else "Start a streak today", color = if (st.streakDays > 0) Gold else InkDim, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                Text("${st.takes} takes · ${minutes(st.totalMinutes)} in all", color = InkDim, fontSize = 12.sp)
+                Text("${st.takes} ${if (st.takes == 1) "take" else "takes"} · ${minutes(st.totalMinutes)} in all", color = InkDim, fontSize = 12.sp)
             }
         }
         Spacer(Modifier.height(12.dp))
