@@ -816,6 +816,8 @@ async function playRound(page, wrongAt = []) {
     const es = await pg.evaluate(() => ({ lang: DA.lang, html: document.documentElement.lang, nav: document.querySelector('.tabbar [data-nav="home"]').textContent.trim(), ai: DA.ui.state.profile.lang, lesson: DA.lessons[0].title }));
     ok(es.lang === 'es' && es.html === 'es-ES' && es.nav === 'Inicio' && es.ai === 'Spanish' && /analista/.test(es.lesson), 'Settings switches the whole app to Spanish, and AI answers follow ' + JSON.stringify(es));
     await pg.goto(BASE + '/index.html#/arcade/blocks/1');
+    await pg.waitForSelector('.aw-intro, .qcard');
+    if (await pg.locator('.aw-intro').count()) await pg.click('.aw-intro .btn');
     await pg.waitForSelector('.bank .tile');
     ok(/[áéíóúñ¿]|Lista|Cuánt|Qué/.test(await txt(pg, '.view')), 'a generated SQL blocks puzzle is worded in Spanish');
     await pg.goto(BASE + '/index.html#/');
@@ -824,13 +826,14 @@ async function playRound(page, wrongAt = []) {
     await pg.click('.tour-offer .btn.accent');
     await pg.waitForSelector('.tour');
     const steps = await pg.evaluate(() => DA.tour.steps().length);
-    let ringed = 0;
+    let ringed = 0, focused = 0;
     for (let i = 0; i < steps; i++) {
       await pg.waitForTimeout(350);
       if (await pg.evaluate(() => !!document.querySelector('.tour-ring'))) ringed++;
-      ok(i > 0 || await pg.evaluate(() => document.activeElement && document.activeElement.id === 'tour-title'), 'tour: focus moves to the step title');
+      if (await pg.evaluate(() => document.activeElement && document.activeElement.id === 'tour-title')) focused++;
       await pg.click('.tour .btn.accent');
     }
+    ok(focused === steps, 'tour: focus moves to the title of every step (' + focused + '/' + steps + ')');
     await pg.waitForTimeout(300);
     ok(ringed === steps && await pg.evaluate(() => !document.querySelector('.tour') && DA.tour.seen() && !document.querySelector('.tour-offer')), 'tour: ' + steps + ' steps across the app, each ringing its part, then it is marked as seen (' + ringed + ' ringed)');
     await pg.goto(BASE + '/index.html#/me');
