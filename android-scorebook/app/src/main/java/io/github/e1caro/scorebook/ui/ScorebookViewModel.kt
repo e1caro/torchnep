@@ -65,6 +65,11 @@ data class ListenUi(
     val message: String? = null,
 )
 
+enum class PlaySource { SCORE, RECORDING }
+
+/** Playback of the open take: the score with a piano sound, or the original recording. */
+data class PlaybackUi(val source: PlaySource = PlaySource.SCORE, val speed: Float = 1f, val playing: Boolean = false, val preparing: Boolean = false, val length: Double = 0.0)
+
 data class TakeUi(
     val songId: String,
     val takeId: String,
@@ -92,6 +97,11 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     val library: StateFlow<Library> = _library
     private val _take = MutableStateFlow<TakeUi?>(null)
     val take: StateFlow<TakeUi?> = _take
+    private val _playback = MutableStateFlow(PlaybackUi())
+    val playback: StateFlow<PlaybackUi> = _playback
+    private val player = io.github.e1caro.scorebook.audio.Player()
+    private var pcmCache: Pair<String, Pair<ShortArray, Int>>? = null
+    private var playJob: Job? = null
     private val _opening = MutableStateFlow(false)
     /** A take is being loaded and analyzed (shown as a spinner). */
     val opening: StateFlow<Boolean> = _opening
@@ -316,7 +326,61 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun closeTake() { _take.value = null }
+    fun closeTake() { stopPlayback(); _take.value = null }
+
+    // ------------------------------------------------------------------ playback
+
+    /** Where playback is, in seconds of the take (for the score to follow), or -1 when stopped. */
+    fun playbackPosition(): Double = if (player.isPlaying) player.position() else -1.0
+
+    fun togglePlay() { if (_playback.value.playing || _playback.value.preparing) stopPlayback() else startPlayback(0.0) }
+
+    fun setPlaySource(source: PlaySource) = restartWith { it.copy(source = source) }
+    fun setPlaySpeed(speed: Float) = restartWith { it.copy(speed = speed) }
+
+    private fun restartWith(change: (PlaybackUi) -> PlaybackUi) {
+        val wasPlaying = _playback.value.playing
+        val at = if (wasPlaying) player.position() else 0.0
+        _playback.update(change)
+        if (wasPlaying) startPlayback(at)
+    }
+
+    private fun startPlayback(from: Double) {
+        val c = _take.value ?: return
+        val pb = _playback.value
+        playJob?.cancel()
+        player.stop()
+        _playback.update { it.copy(preparing = true, playing = false) }
+        playJob = viewModelScope.launch {
+            val audio = withContext(Dispatchers.Default) {
+                val key = "${c.takeId}|${pb.source}|${c.data.settings}|${c.data.overrides}"
+                pcmCache?.takeIf { it.first == key }?.second ?: run {
+                    val made = when (pb.source) {
+                        PlaySource.SCORE -> io.github.e1caro.scorebook.core.play.PianoSynth.render(
+                            io.github.e1caro.scorebook.core.play.PianoSynth.voices(c.transcription), 22050) to 22050
+                        PlaySource.RECORDING -> io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(c.takeId))
+                    }
+                    if (made != null) pcmCache = key to made
+                    made
+                }
+            }
+            if (audio == null) {
+                _playback.update { it.copy(preparing = false, playing = false) }
+                _take.update { it?.copy(message = "This take has no recording (it came from a MIDI keyboard)") }
+                return@launch
+            }
+            val ok = player.play(audio.first, audio.second, from, pb.speed)
+            _playback.update { it.copy(preparing = false, playing = ok, length = audio.first.size.toDouble() / audio.second) }
+            while (ok && player.isPlaying) delay(100)
+            if (ok) _playback.update { it.copy(playing = false) }
+        }
+    }
+
+    fun stopPlayback() {
+        playJob?.cancel()
+        player.stop()
+        _playback.update { it.copy(playing = false, preparing = false) }
+    }
 
     private fun analyze(data: TakeData, title: String): Pair<Transcription, Score> {
         val t = Transcriber(repo.personal()).analyze(data.events, data.settings, data.overrides)
@@ -413,6 +477,28 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         if (_take.value?.songId == songId) _take.value = null
     }
 
+    /** Moves several songs to the trash at once (recoverable for 30 days). */
+    fun trashSongs(ids: Set<String>) {
+        if (ids.isEmpty()) return
+        val newLib = repo.library().trash(ids, System.currentTimeMillis())
+        repo.save(newLib); _library.value = newLib
+        if (_take.value?.songId?.let { it in ids } == true) closeTake()
+    }
+
+    fun restoreSongs(ids: Set<String>) {
+        val newLib = repo.library().restore(ids)
+        repo.save(newLib); _library.value = newLib
+    }
+
+    /** Deletes songs for good: their scores, events and recordings. */
+    fun deleteForever(ids: Set<String>) {
+        val (newLib, files) = repo.library().purge(ids)
+        repo.save(newLib); _library.value = newLib
+        repo.deleteTakeFiles(files)
+    }
+
+    fun emptyTrash() = deleteForever(repo.library().trashedSongs().map { it.id }.toSet())
+
     fun restoreTrash() {
         val lib = repo.library()
         val newLib = lib.copy(takes = lib.takes.map { it.copy(trashedAt = null) })
@@ -429,6 +515,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     fun durationText(seconds: Double): String { val s = seconds.roundToInt(); return "%d:%02d".format(s / 60, s % 60) }
 
     override fun onCleared() {
+        player.stop()
         audio.stop()
         midi.stop()
         worker.shutdown()

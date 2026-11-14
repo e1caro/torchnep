@@ -46,7 +46,7 @@ class PageRenderer(private val music: Typeface, var palette: Palette) {
         // selection halo behind the tapped note
         for (h in page.hits) {
             if (h.eventId == selected || h.eventId in highlight) {
-                fill.color = (palette.selected and 0x00FFFFFF) or (if (h.eventId == selected) 0x66000000 else 0x33000000)
+                fill.color = (palette.selected and 0x00FFFFFF) or (if (h.eventId == selected) 0x66000000 else 0x88000000.toInt())
                 canvas.drawRoundRect(RectF(h.x.toFloat(), h.y.toFloat(), (h.x + h.w).toFloat(), (h.y + h.h).toFloat()), (h.h / 2).toFloat(), (h.h / 2).toFloat(), fill)
             }
         }

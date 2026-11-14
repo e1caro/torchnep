@@ -32,6 +32,10 @@ class Repository(context: Context) {
 
     fun audioFile(id: String) = File(takesDir, "$id.wav")
 
+    fun deleteTakeFiles(ids: List<String>) {
+        for (id in ids) { File(takesDir, "$id.json").delete(); audioFile(id).delete() }
+    }
+
     /** Removes takes that have been in the trash for more than 30 days. */
     @Synchronized
     fun purgeTrash(now: Long) {

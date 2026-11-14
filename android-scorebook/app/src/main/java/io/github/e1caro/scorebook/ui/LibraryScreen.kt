@@ -1,6 +1,29 @@
 package io.github.e1caro.scorebook.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
+import androidx.compose.material3.rememberSwipeToDismissBoxState
+import androidx.compose.runtime.rememberCoroutineScope
+import io.github.e1caro.scorebook.core.library.PracticeStats
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -61,67 +84,232 @@ private fun ScreenTitle(title: String, subtitle: String) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun LibraryScreen(vm: ScorebookViewModel) {
     val lib by vm.library.collectAsState()
     var query by remember { mutableStateOf("") }
     var favorites by remember { mutableStateOf(false) }
-    val songs = lib.search(query, favorites)
+    var showTrash by remember { mutableStateOf(false) }
+    var selecting by remember { mutableStateOf(false) }
+    var selected by remember { mutableStateOf(setOf<String>()) }
+    var confirmEmpty by remember { mutableStateOf(false) }
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val songs = if (showTrash) lib.trashedSongs() else lib.search(query, favorites)
     val total = lib.search("", false).size
-    Column(Modifier.fillMaxSize()) {
-        ScreenTitle("Library", if (total == 0) "Your scores will appear here" else "$total ${if (total == 1) "song" else "songs"}")
-        OutlinedTextField(
-            value = query, onValueChange = { query = it }, singleLine = true,
-            leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = InkDim) },
-            placeholder = { Text("Search titles, tags or keys (e.g. D minor)") },
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Gold, unfocusedBorderColor = StageHigh, focusedContainerColor = StageRaised, unfocusedContainerColor = StageRaised),
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        )
-        Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            FilterChip(
-                selected = favorites, onClick = { favorites = !favorites }, label = { Text("Favourites") },
-                leadingIcon = { Icon(Icons.Filled.Favorite, contentDescription = null, tint = if (favorites) Stage else Gold) },
-                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Gold, selectedLabelColor = Stage),
+    val trashCount = lib.trashedSongs().size
+
+    fun trash(ids: Set<String>) {
+        if (ids.isEmpty()) return
+        vm.trashSongs(ids)
+        selected = emptySet(); selecting = false
+        scope.launch {
+            snackbar.currentSnackbarData?.dismiss()
+            val r = snackbar.showSnackbar(
+                if (ids.size == 1) "Moved to trash" else "${ids.size} scores moved to trash", actionLabel = "Undo", duration = SnackbarDuration.Short,
             )
-            Spacer(Modifier.weight(1f))
-            if (lib.takes.any { it.trashedAt != null }) TextButton(onClick = { vm.restoreTrash() }) { Text("Restore deleted", color = Gold) }
+            if (r == SnackbarResult.ActionPerformed) vm.restoreSongs(ids)
         }
-        if (songs.isEmpty()) {
-            Column(Modifier.padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(StageRaised).padding(22.dp)) {
-                Text(if (total == 0) "Nothing here yet" else "No songs match", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    if (total == 0) "Go to Listen and play something: every take is saved here with its key, tempo and sheet music."
-                    else "Try another word, or clear the favourites filter.",
-                    color = InkDim, fontSize = 14.sp, lineHeight = 20.sp,
-                )
-            }
-        }
-        LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            items(songs, key = { it.id }) { s ->
-                val takes = lib.takesOf(s.id)
-                val last = takes.last()
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(StageRaised).clickable { vm.openTake(last.id) }.padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    KeyBadge(last.key, 46)
-                    Spacer(Modifier.width(14.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text(s.title, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                        Text("♩ ${last.bpm} · ${last.meter} · ${vm.durationText(last.seconds)}", color = InkDim, fontSize = 13.sp)
-                        Text(
-                            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(last.created)) +
-                                (if (takes.size > 1) " · ${takes.size} takes" else "") + (if (last.source == "midi") " · MIDI" else ""),
-                            color = InkDim, fontSize = 12.sp,
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize()) {
+            if (selecting) {
+                // selection bar
+                Row(Modifier.fillMaxWidth().background(StageHigh).padding(horizontal = 6.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { selecting = false; selected = emptySet() }) { Icon(Icons.Filled.Close, contentDescription = "Cancel", tint = Ink) }
+                    Text("${selected.size} selected", color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { selected = if (selected.size == songs.size) emptySet() else songs.map { it.id }.toSet() }) {
+                        Text(if (selected.size == songs.size && songs.isNotEmpty()) "None" else "All", color = Gold)
+                    }
+                    if (showTrash) {
+                        IconButton(onClick = { vm.restoreSongs(selected); selected = emptySet(); selecting = false }, enabled = selected.isNotEmpty()) {
+                            Icon(Icons.Filled.Refresh, contentDescription = "Restore", tint = if (selected.isEmpty()) InkDim else Gold)
+                        }
+                        IconButton(onClick = { vm.deleteForever(selected); selected = emptySet(); selecting = false }, enabled = selected.isNotEmpty()) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Delete forever", tint = if (selected.isEmpty()) InkDim else RecordRed)
+                        }
+                    } else {
+                        IconButton(onClick = { trash(selected) }, enabled = selected.isNotEmpty()) {
+                            Icon(Icons.Filled.Delete, contentDescription = "Move to trash", tint = if (selected.isEmpty()) InkDim else RecordRed)
+                        }
+                    }
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) {
+                        ScreenTitle(
+                            if (showTrash) "Trash" else "Library",
+                            if (showTrash) "Deleted scores stay here for 30 days" else if (total == 0) "Your scores will appear here" else "$total ${if (total == 1) "score" else "scores"} · swipe left to delete",
                         )
                     }
-                    IconButton(onClick = { vm.toggleFavoriteSong(s.id) }) {
-                        Icon(if (s.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, contentDescription = "Favourite", tint = Gold)
+                    if (songs.isNotEmpty()) TextButton(onClick = { selecting = true }, modifier = Modifier.padding(end = 8.dp)) { Text("Select", color = Gold) }
+                }
+            }
+            if (!showTrash && !selecting && total > 0 && query.isEmpty()) StatsCard(lib)
+            if (!showTrash) {
+                OutlinedTextField(
+                    value = query, onValueChange = { query = it }, singleLine = true,
+                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null, tint = InkDim) },
+                    placeholder = { Text("Search titles, tags or keys (e.g. D minor)") },
+                    shape = RoundedCornerShape(16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = Gold, unfocusedBorderColor = StageHigh, focusedContainerColor = StageRaised, unfocusedContainerColor = StageRaised),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                )
+            }
+            Row(Modifier.padding(horizontal = 16.dp, vertical = 6.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                if (!showTrash) FilterChip(
+                    selected = favorites, onClick = { favorites = !favorites }, label = { Text("Favourites") },
+                    leadingIcon = { Icon(Icons.Filled.Favorite, contentDescription = null, tint = if (favorites) Stage else Gold) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Gold, selectedLabelColor = Stage),
+                )
+                FilterChip(
+                    selected = showTrash, onClick = { showTrash = !showTrash; selecting = false; selected = emptySet() },
+                    label = { Text(if (showTrash) "Back to library" else "Trash ($trashCount)") },
+                    leadingIcon = { Icon(Icons.Filled.Delete, contentDescription = null, tint = if (showTrash) Stage else InkDim) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Gold, selectedLabelColor = Stage),
+                )
+                if (showTrash && trashCount > 0) TextButton(onClick = { confirmEmpty = true }) { Text("Empty trash", color = RecordRed) }
+            }
+            if (songs.isEmpty()) {
+                Column(Modifier.padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(StageRaised).padding(22.dp)) {
+                    Text(
+                        when { showTrash -> "The trash is empty"; total == 0 -> "Nothing here yet"; else -> "No scores match" },
+                        color = Ink, fontSize = 18.sp, fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        when {
+                            showTrash -> "Deleted scores come here first, so you can bring them back."
+                            total == 0 -> "Go to Listen and record something: every take is saved here with its key, tempo and sheet music."
+                            else -> "Try another word, or clear the favourites filter."
+                        },
+                        color = InkDim, fontSize = 14.sp, lineHeight = 20.sp,
+                    )
+                }
+            }
+            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 80.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(songs, key = { it.id }) { s ->
+                    val all = lib.takes.filter { it.songId == s.id }.sortedBy { it.created }
+                    val last = all.lastOrNull() ?: return@items
+                    val isSelected = s.id in selected
+                    val row = @Composable {
+                        Row(
+                            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (isSelected) StageHigh else StageRaised)
+                                .border(2.dp, if (isSelected) Gold else androidx.compose.ui.graphics.Color.Transparent, RoundedCornerShape(18.dp))
+                                .combinedClickable(
+                                    onClick = {
+                                        if (selecting) selected = if (isSelected) selected - s.id else selected + s.id
+                                        else if (!showTrash) vm.openTake(last.id)
+                                    },
+                                    onLongClick = { selecting = true; selected = selected + s.id },
+                                )
+                                .padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            if (selecting) {
+                                Box(
+                                    Modifier.size(26.dp).clip(CircleShape).background(if (isSelected) Gold else StageHigh).border(2.dp, if (isSelected) Gold else InkDim, CircleShape),
+                                    contentAlignment = Alignment.Center,
+                                ) { if (isSelected) Icon(Icons.Filled.Check, contentDescription = null, tint = Stage, modifier = Modifier.size(18.dp)) }
+                                Spacer(Modifier.width(12.dp))
+                            }
+                            KeyBadge(last.key, 46)
+                            Spacer(Modifier.width(14.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(s.title, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                Text("♩ ${last.bpm} · ${last.meter} · ${vm.durationText(last.seconds)}", color = InkDim, fontSize = 13.sp)
+                                Text(
+                                    DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(last.created)) +
+                                        (if (all.size > 1) " · ${all.size} takes" else "") + (if (last.source == "midi") " · MIDI" else ""),
+                                    color = InkDim, fontSize = 12.sp,
+                                )
+                            }
+                            if (showTrash && !selecting) {
+                                IconButton(onClick = { vm.restoreSongs(setOf(s.id)) }) { Icon(Icons.Filled.Refresh, contentDescription = "Restore", tint = Gold) }
+                                IconButton(onClick = { vm.deleteForever(setOf(s.id)) }) { Icon(Icons.Filled.Delete, contentDescription = "Delete forever", tint = RecordRed) }
+                            } else if (!selecting) {
+                                IconButton(onClick = { vm.toggleFavoriteSong(s.id) }) {
+                                    Icon(if (s.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, contentDescription = "Favourite", tint = Gold)
+                                }
+                            }
+                        }
+                    }
+                    if (showTrash || selecting) row() else {
+                        var gone by remember { mutableStateOf(false) }
+                        val swipe = rememberSwipeToDismissBoxState(confirmValueChange = { v ->
+                            if (v == SwipeToDismissBoxValue.EndToStart && !gone) { gone = true; trash(setOf(s.id)); true } else false
+                        })
+                        SwipeToDismissBox(
+                            state = swipe,
+                            enableDismissFromStartToEnd = false,
+                            backgroundContent = {
+                                Row(
+                                    Modifier.fillMaxSize().clip(RoundedCornerShape(18.dp)).background(RecordRed).padding(horizontal = 24.dp),
+                                    horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text("Move to trash", color = Ink, fontWeight = FontWeight.Bold)
+                                    Spacer(Modifier.width(10.dp))
+                                    Icon(Icons.Filled.Delete, contentDescription = null, tint = Ink)
+                                }
+                            },
+                        ) { row() }
                     }
                 }
             }
+        }
+        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter).padding(12.dp))
+    }
+
+    if (confirmEmpty) {
+        AlertDialog(
+            onDismissRequest = { confirmEmpty = false },
+            title = { Text("Empty the trash?") },
+            text = { Text("$trashCount ${if (trashCount == 1) "score" else "scores"} and their recordings will be deleted for good.") },
+            confirmButton = { TextButton(onClick = { vm.emptyTrash(); confirmEmpty = false }) { Text("Delete for good", color = RecordRed) } },
+            dismissButton = { TextButton(onClick = { confirmEmpty = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+/** This week at the piano: minutes per day, streak, totals, favourite keys. */
+@Composable
+private fun StatsCard(lib: io.github.e1caro.scorebook.core.library.Library) {
+    val st = remember(lib) { PracticeStats.of(lib, System.currentTimeMillis()) }
+    val days = remember(lib) {
+        val today = java.time.LocalDate.now()
+        (6 downTo 0).map { today.minusDays(it.toLong()).dayOfWeek.getDisplayName(java.time.format.TextStyle.NARROW, java.util.Locale.getDefault()) }
+    }
+    fun minutes(m: Double): String = if (m < 1) "${(m * 60).roundToInt()} s" else if (m < 60) "${m.roundToInt()} min" else "${(m / 60).toInt()} h ${(m % 60).roundToInt()} min"
+    Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(StageRaised).padding(16.dp)) {
+        Row(verticalAlignment = Alignment.Bottom) {
+            Column(Modifier.weight(1f)) {
+                Text("THIS WEEK", color = Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(minutes(st.weekMinutes), color = Ink, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                Text(if (st.streakDays > 0) "🔥 ${st.streakDays}-day streak" else "Start a streak today", color = if (st.streakDays > 0) Gold else InkDim, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text("${st.takes} takes · ${minutes(st.totalMinutes)} in all", color = InkDim, fontSize = 12.sp)
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        val max = (st.lastSevenDays.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
+        Row(Modifier.fillMaxWidth().height(64.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+            st.lastSevenDays.forEachIndexed { i, m ->
+                Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                    Box(
+                        Modifier.fillMaxWidth().height((44 * (m / max)).coerceAtLeast(3.0).dp).clip(RoundedCornerShape(4.dp))
+                            .background(if (i == 6) Gold else if (m > 0) AiBlue else StageHigh),
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(days[i], color = if (i == 6) Gold else InkDim, fontSize = 11.sp)
+                }
+            }
+        }
+        if (st.topKeys.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            Text("Most played: " + st.topKeys.joinToString(", ") { it.first } + if (st.averageBpm > 0) " · average ♩ ${st.averageBpm}" else "", color = InkDim, fontSize = 13.sp)
         }
     }
 }

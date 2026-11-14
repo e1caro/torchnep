@@ -46,6 +46,24 @@ data class Library(
     fun takesOf(songId: String) = takes.filter { it.songId == songId && it.trashedAt == null }.sortedBy { it.created }
     fun song(id: String) = songs.firstOrNull { it.id == id }
 
+    /** Songs whose takes are all in the trash, most recently deleted first. */
+    fun trashedSongs(): List<Song> = songs.filter { s ->
+        val all = takes.filter { it.songId == s.id }
+        all.isNotEmpty() && all.all { it.trashedAt != null }
+    }.sortedByDescending { s -> takes.filter { it.songId == s.id }.maxOf { it.trashedAt ?: 0L } }
+
+    /** Moves the songs' takes to the trash (recoverable for 30 days). */
+    fun trash(songIds: Set<String>, now: Long): Library =
+        copy(takes = takes.map { if (it.songId in songIds && it.trashedAt == null) it.copy(trashedAt = now) else it })
+
+    fun restore(songIds: Set<String>): Library = copy(takes = takes.map { if (it.songId in songIds) it.copy(trashedAt = null) else it })
+
+    /** Removes the songs and their takes for good; returns the new library and the take ids whose files can go. */
+    fun purge(songIds: Set<String>): Pair<Library, List<String>> {
+        val gone = takes.filter { it.songId in songIds }.map { it.id }
+        return copy(songs = songs.filter { it.id !in songIds }, takes = takes.filter { it.songId !in songIds }) to gone
+    }
+
     /** Songs matching a search (title, tags, key) newest first; [favoritesOnly] narrows to favourites. */
     fun search(query: String = "", favoritesOnly: Boolean = false): List<Song> {
         val q = query.trim().lowercase()

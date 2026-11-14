@@ -30,6 +30,7 @@ import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
@@ -48,6 +49,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -72,6 +75,7 @@ import io.github.e1caro.scorebook.core.correct.Decision
 import io.github.e1caro.scorebook.core.engrave.EngraveStyle
 import io.github.e1caro.scorebook.core.engrave.Engraver
 import io.github.e1caro.scorebook.core.music.Spelling
+import io.github.e1caro.scorebook.core.play.PianoSynth
 import io.github.e1caro.scorebook.data.Exporter
 import io.github.e1caro.scorebook.render.PageRenderer
 import io.github.e1caro.scorebook.render.Palette
@@ -86,6 +90,17 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
     var renaming by remember { mutableStateOf(false) }
     var adjusting by remember { mutableStateOf(false) }
     val t = ui.transcription
+    val pb by vm.playback.collectAsState()
+    // the score follows playback: notes sounding now are lit, and the page scrolls to them
+    var playPos by remember { mutableDoubleStateOf(-1.0) }
+    LaunchedEffect(pb.playing) {
+        while (pb.playing) { playPos = vm.playbackPosition(); delay(40) }
+        playPos = -1.0
+    }
+    val voices = remember(t) { PianoSynth.voices(t) }
+    val sounding: Set<Int> = remember(playPos, voices) {
+        if (playPos < 0) emptySet() else voices.filter { playPos >= it.start && playPos < it.start + minOf(it.duration, 1.2) }.map { it.eventId }.toSet()
+    }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding()) {
         // header: back, title, favourite, more
         Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -137,15 +152,24 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
         val density = LocalDensity.current
         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).clipToBounds()) {
             val w = constraints.maxWidth.toDouble()
+            val viewport = constraints.maxHeight
             val style = with(density) { EngraveStyle(staffSpace = 8.dp.toPx().toDouble(), margin = 14.dp.toPx().toDouble(), title = false) }
             val page = remember(ui.score, w) { Engraver(style).continuous(ui.score, w) }
             val h = with(density) { page.height.toFloat().toDp() }
-            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+            val scroll = rememberScrollState()
+            LaunchedEffect(sounding) {
+                val ys = page.hits.filter { it.eventId in sounding }.map { it.y }
+                if (ys.isNotEmpty()) {
+                    val y = ys.min()
+                    if (y < scroll.value + 40 || y > scroll.value + viewport * 0.7) scroll.animateScrollTo((y - viewport * 0.25).toInt().coerceAtLeast(0))
+                }
+            }
+            Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
                 Canvas(
                     Modifier.fillMaxWidth().height(h).clipToBounds().pointerInput(page) {
                         detectTapGestures { o -> vm.select(page.hitAt(o.x.toDouble(), o.y.toDouble(), 10.0)) }
                     },
-                ) { drawIntoCanvas { renderer.draw(it.nativeCanvas, page, ui.selected) } }
+                ) { drawIntoCanvas { renderer.draw(it.nativeCanvas, page, ui.selected, sounding) } }
             }
             if (ui.busy) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp).align(Alignment.TopCenter), color = Gold)
         }
@@ -155,11 +179,40 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
             Text(msg, color = Stage, fontSize = 14.sp, modifier = Modifier.fillMaxWidth().background(Gold).padding(12.dp))
         }
 
+        // playback: what plays, how fast, where it is
+        if (pb.playing || pb.preparing) {
+            Column(Modifier.fillMaxWidth().background(StageHigh).padding(horizontal = 14.dp, vertical = 8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        if (pb.preparing) "Getting the piano ready…"
+                        else (if (pb.source == PlaySource.SCORE) "Playing the score" else "Playing your recording") +
+                            "  ${vm.durationText(maxOf(0.0, playPos))} / ${vm.durationText(pb.length)}",
+                        color = Ink, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f),
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PlayChip("Score", pb.source == PlaySource.SCORE) { vm.setPlaySource(PlaySource.SCORE) }
+                    if (ui.data.hasAudio) PlayChip("My recording", pb.source == PlaySource.RECORDING) { vm.setPlaySource(PlaySource.RECORDING) }
+                    Spacer(Modifier.width(10.dp))
+                    for (sp in listOf(0.5f, 0.75f, 1f)) PlayChip(if (sp == 1f) "1×" else "$sp×", pb.speed == sp) { vm.setPlaySpeed(sp) }
+                }
+            }
+        }
+
         // actions
         Row(
             Modifier.fillMaxWidth().background(StageRaised).padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val active = pb.playing || pb.preparing
+            Box(
+                Modifier.padding(horizontal = 6.dp).size(48.dp).clip(CircleShape).background(Gold).clickable { vm.togglePlay() },
+                contentAlignment = Alignment.Center,
+            ) {
+                if (active) Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Stage))
+                else Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = Stage, modifier = Modifier.size(30.dp))
+            }
             BarAction("Adjust", onClick = { adjusting = true }) { Icon(painterResource(R.drawable.ic_tune), contentDescription = null, tint = Ink) }
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { vm.transpose(-1) }) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Transpose down", tint = Ink) }
@@ -196,6 +249,14 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } },
         )
     }
+}
+
+@Composable
+private fun PlayChip(label: String, selected: Boolean, onClick: () -> Unit) {
+    FilterChip(
+        selected = selected, onClick = onClick, label = { Text(label) },
+        colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Gold, selectedLabelColor = Stage, labelColor = Ink),
+    )
 }
 
 @Composable
