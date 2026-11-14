@@ -69,23 +69,20 @@
       if (from === fx) { if (grid.editing) grid.editor.value = fx.value; }
       else fx.value = grid.editor.value;
     }
-    var KEYS = [['=', '='], ['SUM()', 'SUM()', 1], ['AVERAGE()', 'AVERAGE()', 1], ['COUNTIF()', 'COUNTIF()', 1], ['SUMIFS()', 'SUMIFS()', 1], ['IF()', 'IF()', 1],
-      ['XLOOKUP()', 'XLOOKUP()', 1], ['FILTER()', 'FILTER()', 1], ['UNIQUE()', 'UNIQUE()', 1], ['SORT()', 'SORT()', 1], ['ROUND()', 'ROUND()', 1],
-      [':', ':'], [',', ', '], ['$', '$'], ['"', '""', 1], ['(', '('], [')', ')'], ['+', '+'], ['-', '-'], ['*', '*'], ['/', '/'], ['>=', '>='], ['&', '&']];
-    work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Formula shortcuts' },
-      KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
+    work.appendChild(L.symbolBar('Formula symbols', ['=', ':', [',', ', '], ';', '$', ['"', '""', 1], '(', ')', '+', '-', '*', '/', '>', '<', '&'], insert));
 
     var ribbonBar = h('div', { class: 'sheets-ribbon-bar row' });
     var tabsRow = h('div', { class: 'tabs sheets-tabs', role: 'tablist', 'aria-label': 'Ribbon' });
     var activeTab = 'Home';
-    ['Home', 'Formulas', 'Data', 'Insert'].forEach(function (t) {
+    // No "Formulas" tab with function buttons: you write formulas yourself (see L.symbolBar in labgame.js).
+    ['Home', 'Data', 'Insert'].forEach(function (t) {
       tabsRow.appendChild(h('button', { class: 'tab' + (t === activeTab ? ' active' : ''), type: 'button', role: 'tab', 'aria-selected': t === activeTab ? 'true' : 'false', onclick: function () {
         activeTab = t;
         Array.prototype.forEach.call(tabsRow.children, function (b) { var on = b.textContent === t; b.classList.toggle('active', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
         paintRibbon();
       } }, t));
     });
-    var ribbon = h('details', { class: 'sheets-ribbon' }, h('summary', null, 'Ribbon: formats, functions, data tools'), tabsRow, ribbonBar);
+    var ribbon = h('details', { class: 'sheets-ribbon' }, h('summary', null, 'Ribbon: formats and data tools'), tabsRow, ribbonBar);
     if (!(window.matchMedia && window.matchMedia('(max-width: 700px)').matches)) ribbon.open = true;
     work.appendChild(ribbon);
 
@@ -110,10 +107,6 @@
         });
         ribbonBar.appendChild(rb('↶ Undo', function () { grid.undo(); grid.canvas.focus(); }));
         ribbonBar.appendChild(rb('↷ Redo', function () { grid.redo(); grid.canvas.focus(); }));
-      } else if (activeTab === 'Formulas') {
-        ['SUM', 'AVERAGE', 'COUNTIFS', 'SUMIFS', 'XLOOKUP', 'INDEX', 'MATCH', 'FILTER', 'UNIQUE', 'SORT', 'LET'].forEach(function (f) {
-          ribbonBar.appendChild(rb(f, function () { insert(f + '()', 1); }));
-        });
       } else if (activeTab === 'Data') {
         ribbonBar.appendChild(rb('Sort A→Z', function () { sortBy(true); }));
         ribbonBar.appendChild(rb('Sort Z→A', function () { sortBy(false); }));

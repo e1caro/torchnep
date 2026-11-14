@@ -93,20 +93,10 @@
       box.setSelectionRange(pos, pos);
       remember();
     }
-    var KEYS = tab
-      ? [['SUM()', 'SUM()', 1], ['AVG()', 'AVG()', 1], ['COUNTD()', 'COUNTD()', 1], ['MIN()', 'MIN()', 1], ['MAX()', 'MAX()', 1], ['IIF()', 'IIF(, , )', 5], ['{ FIXED : }', '{ FIXED [] :  }', 6], ['MONTH()', 'MONTH()', 1],
-        ['[qty]', '[qty]'], ['[unit_price]', '[unit_price]'], ['[order_date]', '[order_date]'], ['[customer_id]', '[customer_id]'], ['[order_id]', '[order_id]'], ['[channel]', '[channel]'], ['[store_city]', '[store_city]'], ['[category]', '[category]'],
-        ['=', ' = '], ['>=', ' >= '], ['"', '""', 1], ['NULL', 'NULL'], ['*', ' * '], ['/', ' / ']]
-      : [['SUM()', 'SUM()', 1], ['CALCULATE()', 'CALCULATE()', 1], ['DIVIDE()', 'DIVIDE(, )', 3], ['SUMX()', 'SUMX(Sales, )', 1], ['FILTER()', 'FILTER(Sales, )', 1], ['ALL()', 'ALL()', 1], ['COUNTROWS()', 'COUNTROWS()', 1], ['DISTINCTCOUNT()', 'DISTINCTCOUNT()', 1], ['RELATED()', 'RELATED()', 1], ['IF()', 'IF(, , )', 5], ['VAR … RETURN', 'VAR x = \nRETURN ', 8],
-        ['Sales[qty]', 'Sales[qty]'], ['Sales[unit_price]', 'Sales[unit_price]'], ['Sales[order_id]', 'Sales[order_id]'], ['Sales[customer_id]', 'Sales[customer_id]'], ['Sales[channel]', 'Sales[channel]'], ['Sales[store_city]', 'Sales[store_city]'], ['Sales[category]', 'Sales[category]'], ['Customers[segment]', 'Customers[segment]'],
-        ['=', ' = '], ['>=', ' >= '], ['"', '""', 1], ['IN { }', ' IN {}', 1], [',', ', '], ['*', ' * ']];
-    if (club) KEYS = [['SUM()', 'SUM()', 1], ['CALCULATE()', 'CALCULATE()', 1], ['DIVIDE()', 'DIVIDE(, )', 3], ['COUNTROWS()', 'COUNTROWS()', 1], ['FILTER()', 'FILTER(Members, )', 1], ['DISTINCTCOUNT()', 'DISTINCTCOUNT()', 1], ['ISBLANK()', 'ISBLANK()', 1], ['VAR … RETURN', 'VAR x = \nRETURN ', 8],
-      ['Members[plan]', 'Members[plan]'], ['Members[cancel_date]', 'Members[cancel_date]'], ['Members[monthly_price]', 'Members[monthly_price]'], ['Invoices[amount]', 'Invoices[amount]'], ['Invoices[paid]', 'Invoices[paid]'], ['Invoices[member_id]', 'Invoices[member_id]'], ['Invoices[month]', 'Invoices[month]'],
-      ['=', ' = '], ['"', '""', 1], [',', ', ']];
-    work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': tab ? 'Tableau shortcuts' : 'DAX shortcuts' },
-      KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
+    var syms = L.symbolBar(tab ? 'Tableau symbols' : 'DAX symbols', ['(', ')', '[', ']', '{', '}', ['"', '""', 1], [',', ', '], ['=', ' = '], ['>', ' > '], ['<', ' < '], ['*', ' * '], ['/', ' / '], ':'], insert);
+    work.appendChild(syms);
     work.appendChild(box);
-    P.editor({ set: function (v) { box.value = v; remember(); }, extra: tab ? ['AVG(', 'MAX(', '[qty]'] : ['AVERAGE(', 'MAX(', 'Sales[qty]'] });
+    P.editor({ set: function (v) { box.value = v; remember(); }, lock: function () { box.readOnly = true; syms.classList.add('hidden'); } });
 
     var rowsSel = h('select', { 'aria-label': 'Rows: split the measure by' }, h('option', { value: '' }, '(none: total only)'),
       BI.dimsFor(m).map(function (k) { return h('option', { value: k, selected: k === c.by }, k); }));

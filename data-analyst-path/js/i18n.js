@@ -40,7 +40,13 @@
   I.add = function (map) {
     Object.keys(map).forEach(function (en) {
       if (/\{#?\d\}/.test(en)) {
-        var keys = [], src = '^' + esc(en).replace(/\\\{(#?)(\d)\\\}/g, function (_, num, d) { keys.push(+d); return num ? '([−+-]?\\d[\\d.,]*%?)' : '(.+?)'; }) + '$';
+        // A placeholder used twice must match the same text both times (a back-reference).
+        var keys = [], src = '^' + esc(en).replace(/\\\{(#?)(\d)\\\}/g, function (_, num, d) {
+          var seen = keys.indexOf(+d);
+          if (seen >= 0) return '\\' + (seen + 1);
+          keys.push(+d);
+          return num ? '([−+-]?\\d[\\d.,]*%?)' : '(.+?)';
+        }) + '$';
         pats.push({ re: new RegExp(src), keys: keys, out: map[en], len: en.length });
         dict[en.replace(/\{#(\d)\}/g, '{$1}')] = map[en]; // so DA.t('Step {0} of {1}', [a, b]) finds it directly
       } else dict[en] = map[en];

@@ -106,6 +106,7 @@
     root.appendChild(h('p', { class: 'lead' }, 'Your background, study hours and language are in ', h('a', { href: '#/profile', text: 'Profile' }), '.'));
 
     root.appendChild(section('Language', null, ui.appLangChoice(true)));
+    if (DA.tour) root.appendChild(section('Tour with Dot', 'A two-minute guided walk through every part of the app.', DA.tour.button('btn')));
 
     root.appendChild(syncCard());
 

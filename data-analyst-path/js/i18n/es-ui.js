@@ -601,4 +601,82 @@
     'Source: {0} (opens a new page)': 'Fuente: {0} (se abre en una página nueva)', '{#0} of {#1} cards collected.': '{0} de {1} tarjetas coleccionadas.',
     '{#0} of {#1} lessons · course complete': '{0} de {1} lecciones · curso completado',
   });
+  /* ---------------------------------------------------------------- composite strings found by the crawler (2): labs feedback */
+  I.add({
+    '{0}: {1}': '{0}: {1}', '{0}, level {#1}': '{0}, nivel {1}', '{0}, Level {#1}': '{0}, nivel {1}',
+    '+{#0} XP {1}': '+{0} XP {1}', 'Quiz correct': 'Test acertado', 'Card collected': 'Tarjeta coleccionada', 'Note saved': 'Nota guardada', 'Case closed': 'Caso cerrado', 'Flawless round': 'Ronda perfecta', 'Good eye': 'Buen ojo',
+    'Solve {#0} here to open Level {#1}.': 'Resuelve {0} aquí para abrir el nivel {1}.', 'Next: Level {#0} is open.': 'Siguiente: el nivel {0} está abierto.',
+    'Solve {#0} of {#1} in Level {#2} to open': 'Resuelve {0} de {1} en el nivel {2} para abrirlo',
+    'Solve {#0} of the {#1} challenges in "{2}" to open it.': 'Resuelve {0} de los {1} retos de «{2}» para abrirlo.',
+    '{0} Four levels of three challenges; the last level is the hardest.': '{0} Cuatro niveles de tres retos; el último nivel es el más difícil.',
+    'Spreadsheet. Arrow keys move, type to enter a value, F2 edits, Enter saves.': 'Hoja de cálculo. Las flechas mueven, escribe para introducir un valor, F2 edita e Intro guarda.',
+    'Relationship: Customers[customer_id] 1 → * Sales[customer_id]. Filters on Customers flow to Sales.': 'Relación: Customers[customer_id] 1 → * Sales[customer_id]. Los filtros sobre Customers llegan a Sales.',
+    'Relationship: Customers[customer_id] 1 → * Sales[customer_id]. In Tableau, write the fields as [qty], [order_date]…': 'Relación: Customers[customer_id] 1 → * Sales[customer_id]. En Tableau, escribe los campos como [qty], [order_date]…',
+    // SQLab column notes
+    'primary key': 'clave primaria', '{#0} to {#1}': '{0} a {1}', 'NULL while active': 'NULL mientras está activo', 'NULL while open': 'NULL mientras está abierta', '1 paid, 0 failed': '1 pagada, 0 fallida',
+    'typed by hand': 'escrito a mano', 'sometimes NULL': 'a veces NULL', '1 to 5, often NULL': 'de 1 a 5, a menudo NULL', 'F or M': 'F o M', 'A or B': 'A o B',
+    'control or intervention': 'control o intervention', 'North or South': 'North o South', 'YYYY-MM-DD': 'AAAA-MM-DD', 'YYYY-MM-DD HH:MM': 'AAAA-MM-DD HH:MM', 'YYYY-MM': 'AAAA-MM',
+    // SQLab checker
+    'Your query did not return a table. Start with SELECT.': 'Tu consulta no ha devuelto una tabla. Empieza con SELECT.',
+    'Your result has {#0} column(s); the task asks for {#1}.': 'Tu resultado tiene {0} columna(s); la tarea pide {1}.',
+    'Your result has {#0} row(s); expected {#1}. Check your filters, joins and GROUP BY.': 'Tu resultado tiene {0} fila(s); se esperaban {1}. Revisa los filtros, los joins y el GROUP BY.',
+    'The right rows, but in the wrong order. Check your ORDER BY.': 'Las filas correctas, pero en el orden equivocado. Revisa tu ORDER BY.',
+    'The number of rows is right, but some values differ. Check calculations and rounding.': 'El número de filas es correcto, pero algunos valores no coinciden. Revisa los cálculos y el redondeo.',
+    'Correct! Your result matches the expected table.': '¡Correcto! Tu resultado coincide con la tabla esperada.',
+    'SQL error: {0}': 'Error de SQL: {0}',
+    // DotPython checker
+    'Your code stopped with an error. Fix it first: {0}': 'Tu código se ha detenido con un error. Arréglalo primero: {0}',
+    'There is no variable called result. Finish with result = ... (your answer).': 'No hay ninguna variable llamada result. Termina con result = ... (tu respuesta).',
+    'result is still empty (None). Put your answer after result = .': 'result sigue vacío (None). Pon tu respuesta después de result = .',
+    'Your result has {#0} row ({1}); the answer has {#2}. Check your filter or grouping.': 'Tu resultado tiene {0} fila ({1}); la respuesta tiene {2}. Revisa el filtro o la agrupación.',
+    'Your result has {#0} rows ({1}); the answer has {#2}. Check your filter or grouping.': 'Tu resultado tiene {0} filas ({1}); la respuesta tiene {2}. Revisa el filtro o la agrupación.',
+    'Your result has {#0} column(s) of values; the answer has {#1}. Check which columns you kept (and whether the group names are the index).': 'Tu resultado tiene {0} columna(s) de valores; la respuesta tiene {1}. Revisa qué columnas has conservado (y si los nombres de los grupos son el índice).',
+    'The shape is right, but some values differ (or the order is different: sort as the task asks). Example: row {#0} has {1}, which is not what the task asks for.': 'La forma es correcta, pero algunos valores no coinciden (o el orden es distinto: ordena como pide la tarea). Por ejemplo, la fila {0} tiene {1}, que no es lo que pide la tarea.',
+    'The shape is right, but some values differ. Example: row {#0} has {1}, which is not what the task asks for.': 'La forma es correcta, pero algunos valores no coinciden. Por ejemplo, la fila {0} tiene {1}, que no es lo que pide la tarea.',
+    'Correct! Your result matches the answer ({#0} row).': '¡Correcto! Tu resultado coincide con la respuesta ({0} fila).', 'Correct! Your result matches the answer ({#0} rows).': '¡Correcto! Tu resultado coincide con la respuesta ({0} filas).',
+    // DotBI checker
+    'Type your measure first.': 'Escribe primero tu medida.', 'Type your calculation first.': 'Escribe primero tu cálculo.',
+    'Your measure has an error: {0}': 'Tu medida tiene un error: {0}', 'Your calculation has an error: {0}': 'Tu cálculo tiene un error: {0}',
+    'The total is {0}, but the answer is different. Re-read the task: which column, which filter?': 'El total es {0}, pero la respuesta es otra. Vuelve a leer la tarea: ¿qué columna, qué filtro?',
+    'The total is right, but the row "{0}" gives {1} and should not. A measure must also work when the visual filters it.': 'El total es correcto, pero la fila «{0}» da {1} y no debería. Una medida también tiene que funcionar cuando el visual la filtra.',
+    'Correct in total and in all {#0} rows of the matrix.': 'Correcto en el total y en las {0} filas de la matriz.', 'Correct in total.': 'Correcto en el total.',
+    // Predict levels
+    'Right: the code gives {0}. {1}': 'Correcto: el código da {0}. {1}', 'Right: the code gives {0}. ': 'Correcto: el código da {0}.',
+    'Not this one. Read the code line by line and try another answer.': 'Esta no. Lee el código línea a línea y prueba otra respuesta.',
+    // DotSheets checker (worlds 1-8)
+    '{0} needs the formula of the last step. Build the steps from left to right.': '{0} necesita la fórmula del último paso. Construye los pasos de izquierda a derecha.',
+    '{0} is right: {1}.': '{0} es correcta: {1}.', 'Right: {0}.': 'Correcto: {0}.',
+    '{0} gives {1}, but the answer is different. Check each step on row 2.': '{0} da {1}, pero la respuesta es otra. Revisa cada paso de la fila 2.',
+    '{0} gives {1}, but the answer is different. Check the ranges and the condition.': '{0} da {1}, pero la respuesta es otra. Revisa los rangos y la condición.',
+    '{0} is empty. Put your formula in {0}.': '{0} está vacía. Pon tu fórmula en {0}.',
+    '{0} holds a typed value. Use a formula that starts with = so it updates when the data changes.': '{0} tiene un valor escrito a mano. Usa una fórmula que empiece por = para que se actualice cuando cambien los datos.',
+    '{0} shows the error {1}. Check the ranges and the commas in the formula.': '{0} muestra el error {1}. Revisa los rangos y las comas de la fórmula.',
+    'Your formula runs, but its result is not the expected one. Check the cells and ranges in the task.': 'Tu fórmula funciona, pero su resultado no es el esperado. Revisa las celdas y los rangos de la tarea.',
+    'a spilled list of {#0} rows': 'una lista desbordada de {0} filas', 'a spilled list of {#0} row': 'una lista desbordada de {0} fila', 'an empty cell': 'una celda vacía',
+    // DotSheets checker (first challenges)
+    'Customer name cleanly trimmed.': 'Nombre del cliente limpio de espacios.', 'No cell found with a =TRIM(...) formula cleaning row 2 customer name.': 'No hay ninguna celda con una fórmula =TRIM(...) que limpie el nombre del cliente de la fila 2.',
+    'City converted to proper casing.': 'Ciudad convertida a mayúscula inicial.', 'Expected a formula with =PROPER(G2) producing a valid proper-cased city.': 'Se esperaba una fórmula con =PROPER(G2) que dé una ciudad con mayúscula inicial.',
+    'Price converted to a real numerical value.': 'Precio convertido en un número de verdad.', 'Price formula with VALUE or SUBSTITUTE not detected in row 2.': 'No se ha encontrado en la fila 2 una fórmula de precio con VALUE o SUBSTITUTE.',
+    'Row revenue calculated correctly.': 'Ingresos de la fila calculados correctamente.', 'Cell J2 should contain =H2*I2 computing the item total.': 'La celda J2 debería contener =H2*I2 para calcular el total de la línea.',
+    'Coffee quantity aggregated accurately with SUMIF.': 'Cantidad de café sumada correctamente con SUMIF.', 'Could not find a SUMIF formula aggregating Coffee quantity.': 'No se ha encontrado una fórmula SUMIF que sume la cantidad de café.',
+    'COUNTIFS multi-condition check satisfied.': 'Comprobación de varias condiciones con COUNTIFS superada.', 'COUNTIFS matching Madrid and qty >= 2 not found.': 'No se ha encontrado un COUNTIFS con Madrid y qty >= 2.',
+    'Average quantity computed.': 'Cantidad media calculada.', 'Missing =AVERAGE(H2:H100) formula.': 'Falta la fórmula =AVERAGE(H2:H100).',
+    'Maximum quantity found.': 'Cantidad máxima encontrada.', 'Missing =MAX(H2:H100) formula.': 'Falta la fórmula =MAX(H2:H100).',
+    'Total revenue computed via SUMPRODUCT.': 'Ingresos totales calculados con SUMPRODUCT.', 'Formula using SUMPRODUCT not found.': 'No se ha encontrado una fórmula con SUMPRODUCT.',
+    'Dynamic array spilled sorted unique categories!': '¡La matriz dinámica ha desbordado las categorías únicas ordenadas!', 'Expected dynamic array formula =SORT(UNIQUE(...)).': 'Se esperaba la fórmula de matriz dinámica =SORT(UNIQUE(...)).',
+    'XLOOKUP returned valid product name.': 'XLOOKUP ha devuelto un nombre de producto válido.', 'Missing =XLOOKUP(...) formula.': 'Falta la fórmula =XLOOKUP(...).',
+    'FILTER spilled matching rows for Madrid.': 'FILTER ha desbordado las filas de Madrid.', 'Dynamic =FILTER(...) matching Madrid not found.': 'No se ha encontrado un =FILTER(...) dinámico para Madrid.',
+    'Missing value audit check verified.': 'Comprobación de valores que faltan verificada.', 'Formula using ISBLANK(...) check not found.': 'No se ha encontrado una fórmula con ISBLANK(...).',
+    'Year 2025 extracted cleanly.': 'Año 2025 extraído correctamente.', 'Year extraction formula not found.': 'No se ha encontrado la fórmula que saca el año.',
+    'IFERROR resilience guard implemented.': 'Protección con IFERROR aplicada.', 'Formula using IFERROR not found.': 'No se ha encontrado una fórmula con IFERROR.',
+    'TEXTJOIN joined text values.': 'TEXTJOIN ha unido los textos.', 'Formula using TEXTJOIN not found.': 'No se ha encontrado una fórmula con TEXTJOIN.',
+    'Order size classified correctly.': 'Tamaño del pedido clasificado correctamente.', 'Classification formula with IF not found.': 'No se ha encontrado la fórmula de clasificación con IF.',
+    'Catalogue spilled with UNIQUE.': 'Catálogo desbordado con UNIQUE.', 'Expected =UNIQUE(F2:F50) formula.': 'Se esperaba la fórmula =UNIQUE(F2:F50).',
+    'Absolute reference parameter model built.': 'Modelo con parámetro y referencia absoluta construido.', 'Formula referencing cell $M$1 not found.': 'No se ha encontrado una fórmula que use la celda $M$1.',
+    'Reconciliation balance check validated.': 'Comprobación de cuadre validada.', 'Reconciliation check returning "✓ Balanced" not found.': 'No se ha encontrado una comprobación de cuadre que devuelva "✓ Balanced".',
+    'LET scoped calculation executed cleanly.': 'Cálculo con LET ejecutado correctamente.', 'Formula using LET(...) not found.': 'No se ha encontrado una fórmula con LET(...).',
+  });
+  I.add({ '✗ {0}': '✗ {0}', '✓ {0}': '✓ {0}', 'Stuck? Try the 💡 Hint or "Show solution".': '¿Atascado? Prueba la 💡 Pista o "Ver solución".' });
+  I.add({ 'Ribbon: formats and data tools': 'Cinta: formatos y herramientas de datos', 'SQL symbols': 'Símbolos de SQL', 'Formula symbols': 'Símbolos de fórmulas', 'Python symbols': 'Símbolos de Python', 'Tableau symbols': 'Símbolos de Tableau', 'DAX symbols': 'Símbolos de DAX' });
+  I.add({ 'Tour with Dot': 'Tour con Dot', 'A two-minute guided walk through every part of the app.': 'Un recorrido guiado de dos minutos por todas las partes de la app.' });
 })();

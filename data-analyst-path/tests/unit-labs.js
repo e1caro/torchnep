@@ -425,9 +425,9 @@ test('worlds: completing a world says so once, and adds a stamp to the collectio
   assert.ok(L.WORLD_COLORS.length >= 8);
 });
 
-test('level types: tokens for tap mode, and the type labels', () => {
-  assert.deepStrictEqual(L.tokens('SELECT name, COUNT(*) FROM t WHERE x >= 2'), ['SELECT', 'name', ',', 'COUNT(', '*', ')', 'FROM', 't', 'WHERE', 'x', '>=', '2']);
-  assert.deepStrictEqual(L.tokens('df["qty"].sum()'), ['df', '["qty"]', '.', 'sum(', ')']);
+test('level types: the type labels, and labs are typed (no tap mode)', () => {
+  assert.strictEqual(L.tapBox, undefined, 'no tile bank in the labs: you type the code');
+  assert.strictEqual(typeof L.symbolBar, 'function');
   assert.ok(['bug', 'predict', 'order', 'rosetta', 'case', 'ask', 'interview', 'gauntlet', 'boss'].every((k) => L.TYPES[k]));
 });
 

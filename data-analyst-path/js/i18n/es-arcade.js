@@ -224,4 +224,70 @@
   P.b123 = ['La edad de cada participante junto a la edad media de su centro: participant_id, site, age, site_avg.', 'AVG(age) OVER (PARTITION BY site) pega la media del centro a cada fila de participante.'];
 
   I.add({ 'stars': 'estrellas', '🔒 Level {#0} · {1}': '🔒 Nivel {0} · {1}', 'Multi-CTE + NTILE / cumulative share': 'Varias CTE + NTILE / peso acumulado' });
+
+  /* Text the games build while you play (arcade2-core.js, arcade-core.js). */
+  I.add({
+    // Formula X-ray
+    'Tap the cells this formula adds up.': 'Toca las celdas que suma esta fórmula.', 'Tap the cells this formula averages.': 'Toca las celdas que promedia esta fórmula.',
+    'Tap every cell in the range that holds the value this formula returns.': 'Toca cada celda del rango que contiene el valor que devuelve esta fórmula.',
+    'Tap the cells this formula counts.': 'Toca las celdas que cuenta esta fórmula.', 'Tap the B cells of the rows this formula counts.': 'Toca las celdas B de las filas que cuenta esta fórmula.',
+    'Tap the A cells of the rows this formula counts.': 'Toca las celdas A de las filas que cuenta esta fórmula.',
+    'Tap the cells this formula counts. F1 holds {0}.': 'Toca las celdas que cuenta esta fórmula. F1 contiene {0}.', 'Tap the cells this formula adds up. F1 holds {0}.': 'Toca las celdas que suma esta fórmula. F1 contiene {0}.',
+    'Tap the cell this formula returns.': 'Toca la celda que devuelve esta fórmula.', 'Tap the cells this formula returns (it spills a list).': 'Toca las celdas que devuelve esta fórmula (desborda una lista).',
+    // Pandas pipeline
+    'The 3 lines with the most qty, most first.': 'Las 3 líneas con más qty, de más a menos.', 'The 2 cheapest lines, cheapest first.': 'Las 2 líneas más baratas, de la más barata a la más cara.',
+    'Only the city and qty columns, highest qty first.': 'Solo las columnas city y qty, con la qty más alta primero.',
+    'The {#0} lines with the highest {1}.': 'Las {0} líneas con el {1} más alto.', 'The {#0} lines with the lowest {1}.': 'Las {0} líneas con el {1} más bajo.',
+    'City and price of the 3 dearest lines, dearest first.': 'city y price de las 3 líneas más caras, de la más cara a la más barata.',
+    'Only the {0} lines, most qty first.': 'Solo las líneas {0}, con más qty primero.', 'Lines with qty of {#0} or more, cheapest first.': 'Líneas con qty de {0} o más, de la más barata a la más cara.',
+    'Lines with a price below {#0}, most qty first.': 'Líneas con un price menor que {0}, con más qty primero.', 'Only the lines from {0} and {1}, most qty first.': 'Solo las líneas de {0} y {1}, con más qty primero.',
+    'Lines with qty of {#0} or more AND channel {1}: city and qty only.': 'Líneas con qty de {0} o más Y channel {1}: solo city y qty.',
+    'Lines with qty of {#0} or more OR channel {1}, cheapest first.': 'Líneas con qty de {0} o más O channel {1}, de la más barata a la más cara.',
+    'Total qty per city, biggest first.': 'qty total por city, de mayor a menor.', 'Average price per channel, highest first.': 'price medio por channel, de mayor a menor.',
+    'Number of lines per city, most first.': 'Número de líneas por city, de más a menos.', 'The highest qty in each channel.': 'La qty más alta de cada channel.',
+    'Total qty per city, counting only {0} lines, biggest first.': 'qty total por city, contando solo las líneas {0}, de mayor a menor.',
+    'How many lines per channel, most first.': 'Cuántas líneas hay por channel, de más a menos.', 'Each city\'s share of the lines (0 to 1), biggest first.': 'El peso de cada city sobre las líneas (de 0 a 1), de mayor a menor.',
+    'Total qty per channel as a table with two columns: channel and qty.': 'qty total por channel como una tabla de dos columnas: channel y qty.',
+    'Only the lines with a known qty, most qty first.': 'Solo las líneas con una qty conocida, con más qty primero.',
+    'Average qty per city when a missing qty counts as 0.': 'qty media por city cuando una qty que falta cuenta como 0.',
+    'Some lines were exported twice. Count the lines per channel, each line once.': 'Algunas líneas se exportaron dos veces. Cuenta las líneas por channel, cada línea una vez.',
+    'Revenue (qty × price) per city, biggest first.': 'Ingresos (qty × price) por city, de mayor a menor.',
+    'Total qty with a row per city and a column per channel, 0 where there is nothing.': 'qty total con una fila por city y una columna por channel, con 0 donde no hay nada.',
+    'Total qty per country. The regions table links each city to its country.': 'qty total por country. La tabla regions enlaza cada city con su país.',
+    // Slicer safe
+    'City': 'Ciudad', 'Channel': 'Canal', 'Category': 'Categoría', 'Month': 'Mes',
+    'Every slicer filters the sum.': 'Cada segmentación filtra la suma.', 'COUNTROWS counts the order lines the slicers leave.': 'COUNTROWS cuenta las líneas de pedido que dejan las segmentaciones.',
+    'Every slicer filters the orders it counts, and each order counts once.': 'Cada segmentación filtra los pedidos que cuenta, y cada pedido cuenta una vez.',
+    'Each customer counts once, however many lines they bought.': 'Cada cliente cuenta una vez, compre las líneas que compre.',
+    'ALL(Sales[channel]) removes the channel filter, so the Channel slicer does nothing here.': 'ALL(Sales[channel]) quita el filtro de canal, así que aquí la segmentación de canal no hace nada.',
+    'ALL(Sales[store_city]) removes the city filter, so the City slicer does nothing here.': 'ALL(Sales[store_city]) quita el filtro de ciudad, así que aquí la segmentación de ciudad no hace nada.',
+    'The CALCULATE filter on channel replaces the slicer, so the Channel slicer does nothing here.': 'El filtro de canal de CALCULATE sustituye a la segmentación, así que aquí la segmentación de canal no hace nada.',
+    'The CALCULATE filter on category replaces the slicer, so the Category slicer does nothing here.': 'El filtro de categoría de CALCULATE sustituye a la segmentación, así que aquí la segmentación de categoría no hace nada.',
+    'REMOVEFILTERS(Sales[category]) clears the category filter: the Category slicer is ignored.': 'REMOVEFILTERS(Sales[category]) borra el filtro de categoría: la segmentación de categoría se ignora.',
+    'A share of all cities: the City slicer moves the top of the fraction only.': 'Un peso sobre todas las ciudades: la segmentación de ciudad solo mueve el numerador.',
+    'A share of all channels: the Channel slicer moves only the top of the fraction, the other slicers move both.': 'Un peso sobre todos los canales: la segmentación de canal solo mueve el numerador; las demás mueven los dos.',
+    'An average price changes with the mix of products the slicers leave.': 'Un precio medio cambia con la mezcla de productos que dejan las segmentaciones.',
+    'AVERAGEX works out qty × price on every line first, then averages those line values.': 'AVERAGEX calcula primero qty × price en cada línea y después promedia esos valores.',
+    'Revenue: every slicer filters the rows SUMX goes through.': 'Ingresos: cada segmentación filtra las filas que recorre SUMX.',
+    'The Month slicer filters the order dates like any other column.': 'La segmentación de mes filtra las fechas de pedido como cualquier otra columna.',
+    'DATEADD moves the dates back a month: picking March shows February.': 'DATEADD mueve las fechas un mes atrás: si eliges marzo, se ve febrero.',
+    'TOTALYTD adds up from January to the month you pick.': 'TOTALYTD suma desde enero hasta el mes que elijas.',
+    'RANKX compares the city you pick with every city: 1 is the biggest.': 'RANKX compara la ciudad que eliges con todas las ciudades: 1 es la más grande.',
+    // Pill match
+    'Put one blue pill on Rows and one green pill on Columns.': 'Pon una píldora azul en Filas y una verde en Columnas.', 'Right bars, wrong order: look at the Sort button.': 'Barras correctas, orden equivocado: mira el botón de ordenar.',
+    'The labels down the side are different: try another blue pill.': 'Las etiquetas del lateral son distintas: prueba otra píldora azul.',
+    'The target shows fewer bars: is a Top N filter on?': 'El objetivo muestra menos barras: ¿hay un filtro Top N activo?', 'A different number of bars: check the Top N filter.': 'Un número distinto de barras: revisa el filtro Top N.',
+    'The labels match but the numbers do not: look at the table calculation.': 'Las etiquetas coinciden pero los números no: mira el cálculo de tabla.',
+    'The labels match but the bars are shorter or longer: is the right filter on?': 'Las etiquetas coinciden pero las barras son más cortas o más largas: ¿está puesto el filtro correcto?',
+    'The labels match, but the bar lengths do not: try another green pill.': 'Las etiquetas coinciden, pero la longitud de las barras no: prueba otra píldora verde.',
+    // Guess the correlation
+    'A tight, clear line: |r| is large.': 'Una línea clara y apretada: |r| es grande.', 'Moderate relationships look like a tilted, fuzzy cloud.': 'Las relaciones moderadas parecen una nube inclinada y difusa.',
+    'Weak relationships are hard to see: most real ones are like this.': 'Las relaciones débiles cuestan de ver: la mayoría de las reales son así.',
+    'With only a few points, chance shapes the picture a lot.': 'Con pocos puntos, el azar decide mucho la forma de la imagen.', 'Most of this correlation comes from one far-away point.': 'Casi toda esta correlación viene de un punto muy alejado.',
+    'One point against the trend pulls r towards 0.': 'Un punto contra la tendencia empuja r hacia 0.', 'Two groups with no trend inside each one still give a correlation.': 'Dos grupos sin tendencia dentro de cada uno siguen dando una correlación.',
+    'A bend that always rises or always falls still gives a large r, but below 1.': 'Una curva que siempre sube o siempre baja sigue dando una r grande, pero menor que 1.',
+    'A clear U-shape, yet r is near 0: r only measures straight lines.': 'Una U clara y, aun así, r está cerca de 0: r solo mide rectas.',
+    'Only a narrow slice of x is shown, which shrinks r even though the relationship is strong.': 'Solo se ve una franja estrecha de x, lo que encoge r aunque la relación sea fuerte.',
+    'Pandas pipeline': 'Pipeline de pandas',
+  });
 })();

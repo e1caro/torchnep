@@ -15,6 +15,18 @@ A free, static web app that teaches you to become a data analyst **starting from
   - **DotBI** evaluates DAX measures with real filter context (CALCULATE, FILTER, ALL, SUMX, RELATED, VAR/RETURN, relationships, time intelligence with DATEADD, DATESYTD and TOTALYTD, RANKX and TOPN) and Tableau calculations (IIF, DATEPART, `{ FIXED / INCLUDE / EXCLUDE ... }`, RUNNING_SUM, WINDOW_SUM, RANK, INDEX). The Rows shelf splits the measure into a matrix and a chart; the check compares your measure with the answer in total and in every row.
 - **Prompt library and AI rules.** 50 prompts with fill-in blanks, *Copy*, *Open in ChatGPT / Claude*, and answers in any of 12 languages.
 
+**In English or in Spanish (Spain)**
+- Settings → *Language* switches the whole app: interface, the 51 lessons, missions and boss cases, 298 practice questions, 268 cards, the four labs (400 challenges), SQLab's databases, the arcade worlds and every generated puzzle, the prompt library and the profiles. AI prompts ask for answers in the same language. The first visit follows the browser's language.
+- Code stays as it is (SQL, formulas, pandas, DAX), and DotSheets also accepts Spanish function names (SUMA, BUSCARX…) and `;` between arguments.
+
+**Learn how it all works with Dot**
+- A guided tour (13 short steps) walks through the journey, a mission's five steps, practice, the labs, the arcade, Discover, the You page, the prompts and Settings, ringing each part as Dot explains it. The home page offers it; Settings and the You page replay it. It never starts by itself, and ✕ or Escape leaves at any step.
+
+**One way to answer per activity**
+- In the **labs** you type the code yourself; the check accepts any correct solution. On a touch screen a row of symbols helps with the characters a phone keyboard hides (no words, functions or column names), and there are no tiles. Only *put in order* levels use tiles, and then the editor just shows the result.
+- In the **arcade** you never type: you build answers from tiles, cells, cards or pills.
+- **Practice rounds, Check steps and cases** are multiple choice.
+
 **Discover (the scroll feed)**
 - A vertical, snap-scrolling feed of **268 short cards**: data stories (the missing bullet holes, the map that stopped cholera, the $125 million unit error, 15,841 COVID cases lost in a spreadsheet…), statistics ideas in 30 seconds, SQL / spreadsheet / pandas / AI tips with code, career advice, quotes and a glossary. Facts were checked against their sources; where a number is only reported or attributed, the card says so. Cards about tools link to the official documentation (🔗 Source, opened only when you tap it).
 - Interactive cards: **myth or fact** (tap to answer), **chart crimes** (tap to see the fix), a **review question** every fourth card (it feeds the spaced-repetition schedule) and a quick **guess-the-correlation** round.
@@ -82,11 +94,13 @@ node tests/unit-labs.js                              # the four labs: rules, lev
 node tests/unit-journey.js                           # missions, boss cases, case Try, migration of old saves
 node tests/unit-arcade2.js                           # the four tool games against the real engines
 node tests/unit-arcade-worlds.js                     # 96 arcade levels: every generator, the SQL in sql.js, level stars
+node tests/unit-i18n.js                              # Spanish: everything translated, same answers, same generated puzzles
 BASE=http://localhost:8000 node tests/e2e.js          # real browser (needs: npm i -g playwright)
 BASE=http://localhost:8000 node tests/e2e-cloud.js    # a computer and a phone syncing through a fake account service
 ```
 
 - `tests/unit-journey.js` (run on its own): every mission and boss case resolves, every lab level is practised by a mission or a boss, a saved state from before the journey loads with identical XP, stars, lessons, quizzes, notes and badges, the case Try, test out, and merging the new fields (idempotent, commutative, safe with an old client).
+- `tests/unit-i18n.js` (run on its own): every lesson, mission, question, card, lab challenge, SQLab challenge, arcade level and puzzle has its Spanish, with the same options, answers and solutions; the interface templates (numbers only where marked, repeated placeholders); the SQL puzzle generator giving the same puzzles in both languages; English left untouched.
 - `tests/unit-arcade2.js` (run on its own): every generated X-ray, pipeline, safe and pill puzzle is solvable and its answer is what the spreadsheet, pandas and DAX engines compute.
 - `tests/unit-arcade-worlds.js` (run on its own): the catalog (6 games × 4 worlds × 4 levels, new concepts per world), every level's generator over many seeds (X-ray values from the spreadsheet engine, pipelines run in the Python interpreter, safes and charts from the DAX/Tableau engine, the true r of every plot), 640 generated SQL blocks puzzles run in sql.js with their broken versions really broken, level stars (best kept, paid once), Continue, the new badges, and merging the `arcade` field.
 - `tests/unit-labs.js`, `unit-python-bi.js`, `unit-sheets*.js` (run on their own): unlock rules and stars, saving and merging lab progress, DotSheets navigation and editing (arrows, Ctrl+arrows, Enter/Tab, copy/paste with shifted references, undo/redo), the Python interpreter (pandas syntax, errors, sandbox), DAX and Tableau evaluation, and every challenge: each one fails without work and passes with its solution.
@@ -114,6 +128,9 @@ manifest.webmanifest    install metadata and shortcuts      sw.js   offline cach
 js/ui.js                DOM helper, saved state (v2 ledger), personalisation, prompt cards
 js/game.js              XP, levels, streaks, quests, badges, confetti, celebration modals, HUD
 js/mascot.js            Dot: SVG character with moods, and what Dot says on the home page
+js/tour.js              the Dot tour: a guided walk through every part of the app (offered on home, replayed from Settings and You)
+js/i18n.js              languages: DA.lang, DA.L(en, es), the interface dictionary with templates, content overlays, live translation
+js/i18n/es-*.js         Spanish (Spain): interface, curriculum, missions, questions, feed, prompts, profiles, labs, SQLab, arcade
 js/feed-core.js         Discover: what to show next, collecting, daily five (pure logic)
 js/feed.js              Discover feed screen, chart crimes, collection
 js/arcade-core.js       correlation generators and scoring, SQL blocks rounds and checking (pure logic)
@@ -154,6 +171,8 @@ tests/  tools/          unit and browser tests; service-worker and icon generato
 - **A Discover card:** one line in `js/data/feed.js` (`story`, `idea`, `tip`, `myth`, `chart`, `quote` or `word`), followed by `src(label, url)` when it rests on official documentation. Keep it under 70 words and check the facts; the tests enforce the length and the links.
 - **An arcade level:** add a level object (name, teaches, generator settings) at the end of a world in `js/data/arcade-worlds.js`, or a world at the end of a game; level keys are saved progress, so never rename them. New puzzle kinds go in the game's generator (`arcade2-core.js`, `arcade-core.js` or, for SQL, a template in `arcade-sqlgen.js`), and `tests/unit-arcade-worlds.js` checks every level over many seeds.
 - **A SQL blocks puzzle:** `P(level, dataset, question, answer tiles, extra tiles, why)`, or `F(level, dataset, question, answer tiles, broken tiles, extra tiles, why)` for a bug to fix, at the END of `js/data/puzzles.js` (ids are saved progress). The tests run every reference query on the practice data and check that every broken query really is broken.
+
+- **The Spanish of anything new:** add it to the matching `js/i18n/es-*.js` file, keyed by the same id (options in the same order). Interface text goes in `es-ui.js` as an exact sentence or a template (`'{0} of {1} solved'`; `{#0}` for a number); text a generator builds uses `DA.L('English', 'Español')`. `tests/unit-i18n.js` fails if a lesson, question, card, challenge or puzzle has no Spanish.
 
 The practice data is generated in the browser from a fixed seed, so everyone gets identical data and answers stay checkable.
 
