@@ -18,7 +18,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
@@ -110,8 +109,8 @@ fun LibraryScreen(vm: ScorebookViewModel) {
                     KeyBadge(last.key, 46)
                     Spacer(Modifier.width(14.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(s.title, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text("${last.key} · ♩ ${last.bpm} · ${last.meter} · ${vm.durationText(last.seconds)}", color = InkDim, fontSize = 13.sp)
+                        Text(s.title, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Text("♩ ${last.bpm} · ${last.meter} · ${vm.durationText(last.seconds)}", color = InkDim, fontSize = 13.sp)
                         Text(
                             DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT).format(Date(last.created)) +
                                 (if (takes.size > 1) " · ${takes.size} takes" else "") + (if (last.source == "midi") " · MIDI" else ""),
@@ -121,7 +120,6 @@ fun LibraryScreen(vm: ScorebookViewModel) {
                     IconButton(onClick = { vm.toggleFavoriteSong(s.id) }) {
                         Icon(if (s.favorite) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder, contentDescription = "Favourite", tint = Gold)
                     }
-                    IconButton(onClick = { vm.trashSong(s.id) }) { Icon(Icons.Filled.Delete, contentDescription = "Move to trash", tint = InkDim) }
                 }
             }
         }

@@ -108,7 +108,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
         // what is happening
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
-                .background(Brush.verticalGradient(listOf(StageHigh, StageRaised))).padding(18.dp),
+                .background(Brush.verticalGradient(listOf(StageHigh, StageRaised))).padding(horizontal = 18.dp, vertical = 14.dp),
         ) {
             val headline = when {
                 !granted -> "Let Scorebook hear your piano"
@@ -123,10 +123,10 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
                 ui.status == ListenStatus.SAVING -> "Finding the key, tempo and chords, and engraving the sheet music."
                 else -> "Recording starts by itself when you play and stops after ${vm.silenceSeconds} s of silence. Your score appears in the Library."
             }
-            Text(headline, fontSize = 28.sp, fontWeight = FontWeight.Bold, color = if (recording) RecordRed else Ink)
-            Spacer(Modifier.height(6.dp))
-            Text(sub, fontSize = 15.sp, color = InkDim, lineHeight = 21.sp)
-            Spacer(Modifier.height(12.dp))
+            Text(headline, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = if (recording) RecordRed else Ink)
+            Spacer(Modifier.height(4.dp))
+            Text(sub, fontSize = 14.sp, color = InkDim, lineHeight = 19.sp)
+            Spacer(Modifier.height(10.dp))
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip(if (ui.midiDevice != null) "MIDI · ${ui.midiDevice}" else "Microphone", background = Stage)
                 if (recording && ui.notes.isNotEmpty()) Chip("Key · ${ui.key.displayName}", color = Gold, background = Stage)
@@ -150,7 +150,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
                 .background(androidx.compose.ui.graphics.Color(0xFF14161B)).border(1.dp, StageHigh, RoundedCornerShape(20.dp)),
         ) {
             val w = constraints.maxWidth.toDouble()
-            val staffSpace = with(density) { 9.dp.toPx() }.toDouble()
+            val staffSpace = with(density) { 8.dp.toPx() }.toDouble()
             val page = remember(ui.notes, ui.key, shownNow, w) {
                 LiveStaff(staffSpace).layout(ui.notes, ui.key, if (recording) shownNow else ui.now, w)
             }
@@ -164,12 +164,32 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             }
         }
 
-        // input level
-        Row(Modifier.padding(horizontal = 20.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Input", color = InkDim, fontSize = 13.sp, modifier = Modifier.width(48.dp))
-            val level = ((ui.levelDb + 70) / 60).coerceIn(0.0, 1.0).toFloat()
-            Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(StageHigh)) {
-                Box(Modifier.fillMaxWidth(level).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Brush.horizontalGradient(listOf(Gold, if (recording) RecordRed else Gold))))
+        // the big button, with the input level next to it
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            val pulse = rememberInfiniteTransition(label = "pulse").animateFloat(
+                initialValue = 0.35f, targetValue = 1f, animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "ring",
+            )
+            Box(Modifier.size(96.dp), contentAlignment = Alignment.Center) {
+                if (recording) Box(Modifier.size(96.dp).alpha(pulse.value * 0.5f).clip(CircleShape).background(RecordRed))
+                Box(
+                    Modifier.size(78.dp).clip(CircleShape).background(if (recording) RecordRed else StageHigh)
+                        .border(3.dp, if (recording) Ink else RecordRed, CircleShape)
+                        .clickable(enabled = granted && (ui.status == ListenStatus.LISTENING || recording)) { vm.toggleTake() },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(Modifier.size(if (recording) 26.dp else 32.dp).clip(if (recording) RoundedCornerShape(5.dp) else CircleShape).background(if (recording) Ink else RecordRed))
+                }
+            }
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f)) {
+                Text(if (recording) "Tap to finish the take" else "Tap to record now", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                Text(if (recording) "or just stop playing" else "or just start playing", color = InkDim, fontSize = 13.sp)
+                Spacer(Modifier.height(10.dp))
+                val level = ((ui.levelDb + 70) / 60).coerceIn(0.0, 1.0).toFloat()
+                Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(StageHigh)) {
+                    Box(Modifier.fillMaxWidth(level).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Brush.horizontalGradient(listOf(Gold, if (recording) RecordRed else Gold))))
+                }
+                Text("Input level", color = InkDim, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
             }
         }
 
@@ -183,26 +203,6 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
                 Text(msg, color = Ink, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 if (ui.lastSaved != null) Text("Open", color = Gold, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
             }
-        }
-
-        // the big button
-        Column(Modifier.fillMaxWidth().padding(vertical = 14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            val pulse = rememberInfiniteTransition(label = "pulse").animateFloat(
-                initialValue = 0.35f, targetValue = 1f, animationSpec = infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "ring",
-            )
-            Box(contentAlignment = Alignment.Center) {
-                if (recording) Box(Modifier.size(108.dp).alpha(pulse.value * 0.5f).clip(CircleShape).background(RecordRed))
-                Box(
-                    Modifier.size(88.dp).clip(CircleShape).background(if (recording) RecordRed else StageHigh)
-                        .border(3.dp, if (recording) Ink else RecordRed, CircleShape)
-                        .clickable(enabled = granted && (ui.status == ListenStatus.LISTENING || recording)) { vm.toggleTake() },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Box(Modifier.size(if (recording) 28.dp else 36.dp).clip(if (recording) RoundedCornerShape(5.dp) else CircleShape).background(if (recording) Ink else RecordRed))
-                }
-            }
-            Spacer(Modifier.height(8.dp))
-            Text(if (recording) "Tap to finish the take" else "Tap to record now, or just start playing", color = InkDim, fontSize = 13.sp)
         }
 
         // recent takes, or how it works

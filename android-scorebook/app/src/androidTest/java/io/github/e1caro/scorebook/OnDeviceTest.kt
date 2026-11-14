@@ -118,7 +118,14 @@ class OnDeviceTest {
         // the app: take screen, a tapped AI-decided note, the listening screen
         val intent = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAKE, id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         ActivityScenario.launch<MainActivity>(intent).use { scenario ->
-            Thread.sleep(5000)
+            var loaded = false
+            for (k in 0 until 60) {
+                scenario.onActivity { loaded = ViewModelProvider(it)[ScorebookViewModel::class.java].take.value != null }
+                if (loaded) break
+                Thread.sleep(500)
+            }
+            assertTrue("the take opens", loaded)
+            Thread.sleep(1500)
             shot("1-take.png")
             val ai = t.notes.firstOrNull { it.decision == Decision.CONTEXT }?.eventId ?: t.notes[t.notes.size / 2].eventId
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].select(ai) }

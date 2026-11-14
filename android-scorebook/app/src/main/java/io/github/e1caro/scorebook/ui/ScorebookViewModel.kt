@@ -87,6 +87,9 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     val library: StateFlow<Library> = _library
     private val _take = MutableStateFlow<TakeUi?>(null)
     val take: StateFlow<TakeUi?> = _take
+    private val _opening = MutableStateFlow(false)
+    /** A take is being loaded and analyzed (shown as a spinner). */
+    val opening: StateFlow<Boolean> = _opening
 
     // ------------------------------------------------------------------ listening
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "scorebook-worker") }
@@ -243,10 +246,15 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         val lib = repo.library()
         val meta = lib.takes.firstOrNull { it.id == takeId } ?: return
         val song = lib.song(meta.songId) ?: return
+        _opening.value = true
         viewModelScope.launch {
-            val data = withContext(Dispatchers.IO) { repo.take(takeId) } ?: return@launch
-            val (t, score) = withContext(Dispatchers.Default) { analyze(data, song.title) }
-            _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id))
+            try {
+                val data = withContext(Dispatchers.IO) { repo.take(takeId) } ?: return@launch
+                val (t, score) = withContext(Dispatchers.Default) { analyze(data, song.title) }
+                _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id))
+            } finally {
+                _opening.value = false
+            }
         }
     }
 

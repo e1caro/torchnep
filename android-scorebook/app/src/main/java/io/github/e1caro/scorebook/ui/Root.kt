@@ -5,12 +5,16 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -28,6 +32,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -105,13 +110,30 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
         onDispose { lifecycle.removeObserver(obs) }
     }
 
-    val current = take
-    if (current != null) {
-        BackHandler { vm.closeTake() }
-        TakeScreen(vm, current, onBack = { vm.closeTake() })
-        return
+    val opening by vm.opening.collectAsState()
+    Box(Modifier.fillMaxSize()) {
+        val current = take
+        if (current != null) {
+            BackHandler { vm.closeTake() }
+            TakeScreen(vm, current, onBack = { vm.closeTake() })
+        } else {
+            Tabs(vm, tab) { tab = it }
+        }
+        if (opening) {
+            Box(Modifier.fillMaxSize().background(Stage.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = Gold)
+                    Spacer(Modifier.height(14.dp))
+                    Text("Writing the score…", color = Ink, fontSize = 16.sp)
+                }
+            }
+        }
     }
-    if (tab != Tab.LISTEN) BackHandler { tab = Tab.LISTEN }
+}
+
+@Composable
+private fun Tabs(vm: ScorebookViewModel, tab: Tab, setTab: (Tab) -> Unit) {
+    if (tab != Tab.LISTEN) BackHandler { setTab(Tab.LISTEN) }
     Scaffold(
         containerColor = Stage,
         bottomBar = {
@@ -119,7 +141,7 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
                 for (t in Tab.entries) {
                     NavigationBarItem(
                         selected = tab == t,
-                        onClick = { tab = t },
+                        onClick = { setTab(t) },
                         icon = {
                             when (t) {
                                 Tab.LISTEN -> Icon(painterResource(R.drawable.ic_mic), contentDescription = null)
@@ -139,7 +161,7 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
     ) { padding: PaddingValues ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                Tab.LISTEN -> ListenScreen(vm, onLibrary = { tab = Tab.LIBRARY })
+                Tab.LISTEN -> ListenScreen(vm, onLibrary = { setTab(Tab.LIBRARY) })
                 Tab.LIBRARY -> LibraryScreen(vm)
                 Tab.SETTINGS -> SettingsScreen(vm)
             }
