@@ -60,6 +60,7 @@
     Object.keys(b.repaired).forEach(function (d) { out.repaired[d] = true; });
     Object.keys(b.journey).forEach(function (id) { out.journey[id] = (out.journey[id] || 0) | b.journey[id]; });
     Object.keys(b.bosses).forEach(function (id) { out.bosses[id] = Math.max(out.bosses[id] || 0, b.bosses[id]); });
+    Object.keys(b.arcade).forEach(function (k) { out.arcade[k] = Math.max(out.arcade[k] || 0, b.arcade[k]); });
     out.boost = Math.max(a.boost, b.boost);
     out.v = 2;
     return ui.sanitize(out);

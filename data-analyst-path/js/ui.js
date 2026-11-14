@@ -186,6 +186,8 @@
     blockLevel: 15,  // solving every puzzle of a SQL blocks level
     module: 25,      // finishing every lesson of a module
     scenario: 5,     // each decision in a mission's case Try, paid once when the case is closed
+    arcadeLevel: 10, // clearing an arcade level (a round with 3+ solved), once per level
+    arcadeStar: 5,   // three stars in an arcade level, once per level
     gameCap: 20,     // most XP a mini-game can pay per day (they are endless)
   };
 
@@ -212,6 +214,7 @@
       blocks: {},  // SQL blocks puzzle id -> stars (1 to 3)
       journey: {}, // lesson id -> bits: 1 brief seen, 2 learn cards done, 4 tested out, 8 scenario Try done (the rest of a mission is derived)
       bosses: {},  // module id -> best stars (1 to 3) in that chapter's boss case
+      arcade: {},  // "game:level" -> best stars (1 to 3) of a round in that arcade level
       repaired: {},// date -> true: a missed day bridged by a streak repair
       boost: 0,    // time (ms) until which XP is doubled
     };
@@ -278,6 +281,7 @@
     eachKey(src.repaired, function (d, v) { if (isDate(d) && v === true) s.repaired[d] = true; }, 800);
     eachKey(src.journey, function (id, v) { var n = Math.floor(Number(v)); if (DA.lessonById[id] && n >= 1 && n <= 15) s.journey[id] = n; }, 500);
     eachKey(src.bosses, function (id, v) { var n = Math.floor(Number(v)); if (n >= 1 && n <= 3 && DA.modules.some(function (m) { return m.id === id; })) s.bosses[id] = n; }, 50);
+    eachKey(src.arcade, function (k, v) { var n = Math.floor(Number(v)), m = /^(\w+):([\w-]+)$/.exec(k); if (m && n >= 1 && n <= 3 && DA.arcadeKeyOk && DA.arcadeKeyOk(m[1], m[2])) s.arcade[k] = n; }, 200);
     var boost = Math.floor(Number(src.boost));
     if (boost > 0 && boost < 1e14) s.boost = boost;
 

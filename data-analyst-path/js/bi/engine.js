@@ -628,10 +628,12 @@
   };
   BI.dimsFor = function (model) { return Object.keys(BI.dims).filter(function (k) { return !!model.tables[BI.dims[k].table]; }); };
 
-  BI.breakdown = function (model, mode, formula, dimKey) {
+  // opts.where (Tableau only): a filter on the Sales rows, applied before anything is computed (the Filters shelf).
+  BI.breakdown = function (model, mode, formula, dimKey, opts) {
     var tree = BI.parse(formula, mode);
     if (mode === 'tableau' && !model.tables.Sales) fail('Tableau calculations here work on the café Sales data');
     var sales = mode === 'tableau' ? model.table('Sales').rows : [];
+    if (mode === 'tableau' && opts && opts.where) sales = sales.filter(opts.where);
     var members = [];
     var dim = dimKey ? BI.dims[dimKey] : null;
     if (dim) {

@@ -35,6 +35,46 @@
       pts: pts.map(function (p) { return [(p[0] - x0) / (x1 - x0 || 1), (p[1] - y0) / (y1 - y0 || 1)]; }), // scaled to 0..1 for drawing
     };
   };
+  // Level plots (js/data/arcade-worlds.js): a seeded picture of a given kind. `r` is always the true correlation of
+  // the points drawn, and `note` says what the picture teaches.
+  var CORR_NOTES = {
+    strong: 'A tight, clear line: |r| is large.', cloud: '', moderate: 'Moderate relationships look like a tilted, fuzzy cloud.', weak: 'Weak relationships are hard to see: most real ones are like this.',
+    small: 'With only a few points, chance shapes the picture a lot.', 'outlier-make': 'Most of this correlation comes from one far-away point.',
+    'outlier-hide': 'One point against the trend pulls r towards 0.', clusters: 'Two groups with no trend inside each one still give a correlation.',
+    curve: 'A bend that always rises or always falls still gives a large r, but below 1.', ushape: 'A clear U-shape, yet r is near 0: r only measures straight lines.',
+    range: 'Only a narrow slice of x is shown, which shrinks r even though the relationship is strong.',
+  };
+  A.corrPlot = function (seed, lv) {
+    var p = (lv && lv.p) || { kind: 'cloud', n: 40, tol: 0.1 }, rnd = DA.gen.util.rng(seed >>> 0);
+    var kind = p.kind === 'mix3' ? ['outlier-make', 'outlier-hide', 'clusters'][Math.floor(rnd() * 3)]
+      : p.kind === 'mix4' ? ['outlier-make', 'outlier-hide', 'clusters', 'curve', 'ushape', 'range'][Math.floor(rnd() * 6)] : p.kind;
+    function g() { var u = 0, v = 0; while (u === 0) u = rnd(); while (v === 0) v = rnd(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+    function sign() { return rnd() < 0.5 ? -1 : 1; }
+    function line(n, t) { var k = Math.sqrt(1 - t * t), o = []; for (var i = 0; i < n; i++) { var x = g(); o.push([x, t * x + k * g()]); } return o; }
+    var n = p.n || 40, pts, t;
+    if (kind === 'strong') pts = line(n, sign() * (0.65 + rnd() * 0.3));
+    else if (kind === 'moderate') pts = line(n, sign() * (0.2 + rnd() * 0.4));
+    else if (kind === 'weak') pts = line(n, sign() * rnd() * 0.4);
+    else if (kind === 'outlier-make') { pts = line(n - 1, (rnd() - 0.5) * 0.2); t = sign(); pts.push([4.5 + rnd(), t * (4.5 + rnd())]); }
+    else if (kind === 'outlier-hide') { t = sign() * (0.75 + rnd() * 0.15); pts = line(n - 1, t); pts.push([4.5 + rnd(), -Math.sign(t) * (4 + rnd())]); }
+    else if (kind === 'clusters') {
+      var s = sign(); pts = line(Math.floor(n / 2), (rnd() - 0.5) * 0.3).concat(line(n - Math.floor(n / 2), (rnd() - 0.5) * 0.3).map(function (q) { return [q[0] + 4, q[1] + s * 4]; }));
+    } else if (kind === 'curve') { var c = sign(); pts = []; for (var i = 0; i < n; i++) { var x = rnd() * 3; pts.push([x, c * (Math.exp(x) + g() * 0.8)]); } }
+    else if (kind === 'ushape') { pts = []; for (var j = 0; j < n; j += 2) { var u = rnd() * 2; pts.push([u, u * u + g() * 0.4]); pts.push([-u, u * u + g() * 0.4]); } }
+    else if (kind === 'range') { pts = line(n * 6, sign() * 0.85).filter(function (q) { return q[0] > -0.35 && q[0] < 0.55; }).slice(0, n); }
+    else pts = line(n, (rnd() * 1.9 - 0.95));
+    if (kind === 'small') pts = line(n, (rnd() * 1.6 - 0.8));
+    var xs = pts.map(function (q) { return q[0]; }), ys = pts.map(function (q) { return q[1]; });
+    var x0 = Math.min.apply(null, xs), x1 = Math.max.apply(null, xs), y0 = Math.min.apply(null, ys), y1 = Math.max.apply(null, ys);
+    return { kind: kind, r: Math.round(pearson(pts) * 100) / 100, note: CORR_NOTES[kind] || '', tol: p.tol || 0.1,
+      pts: pts.map(function (q) { return [(q[0] - x0) / (x1 - x0 || 1), (q[1] - y0) / (y1 - y0 || 1)]; }) };
+  };
+  // Level scoring: three stars within the level's tolerance, two within twice it, one within three times.
+  A.corrLevelScore = function (guess, r, tol) {
+    var err = Math.abs(guess - r) - 1e-9;
+    return err <= tol ? 3 : err <= 2 * tol ? 2 : err <= 3 * tol ? 1 : 0;
+  };
+
   // 3 points within 0.05, 2 within 0.10, 1 within 0.20, otherwise 0 (and a life lost).
   A.corrScore = function (guess, r) {
     var err = Math.abs(guess - r) - 1e-9; // tolerate floating-point noise at the boundaries
@@ -58,7 +98,14 @@
   A.levelStats = function (n, s) {
     var ps = A.levelPuzzles(n), solved = 0, stars = 0;
     ps.forEach(function (p) { var k = A.stars(p.id, s); if (k) solved++; stars += k; });
-    return { total: ps.length, solved: solved, stars: stars, max: ps.length * 3, cleared: solved === ps.length };
+    return { total: ps.length, solved: solved, stars: stars, max: ps.length * 3, cleared: ps.length > 0 && solved === ps.length };
+  };
+  // Map stars a level gets from its handmade puzzles (so progress from before the worlds shows on the map):
+  // all solved ★, 80% of the stars ★★, every star ★★★.
+  A.handmadeStars = function (n, s) {
+    var st = A.levelStats(Number(n), s);
+    if (!st.cleared) return 0;
+    return st.stars === st.max ? 3 : st.stars >= 0.8 * st.max ? 2 : 1;
   };
   A.totals = function (s) {
     var solved = 0, stars = 0, fixed = 0;
@@ -66,29 +113,28 @@
     return { solved: solved, stars: stars, max: DA.puzzles.length * 3, fixed: fixed, fixes: DA.puzzles.filter(function (p) { return p.fix; }).length,
       levels: DA.blockLevels.filter(function (l) { return A.levelStats(l.n, s).cleared; }).length };
   };
-  // Where "Continue" goes: the first level with an unsolved puzzle, else the one with the fewest stars.
-  A.nextLevel = function () {
-    var L = DA.blockLevels, i;
-    for (i = 0; i < L.length; i++) if (!A.levelStats(L[i].n).cleared) return L[i].n;
-    var best = L[0].n, ratio = 2;
-    L.forEach(function (l) { var st = A.levelStats(l.n), r = st.stars / st.max; if (r < ratio) { ratio = r; best = l.n; } });
-    return best;
-  };
+  // Where "Continue" goes: the first level without level stars (handmade puzzles all solved count), else the fewest stars.
+  A.nextLevel = function () { return Number(DA.arcadeWorlds.current('blocks').key); };
 
-  // A round of n puzzles from one level (or 'mix': solved puzzles from every level, for review).
-  // Unsolved ones come first, in order, so difficulty grows; then the ones with the fewest stars; then the rest.
-  A.blockRound = function (level, n) {
+  // A round of n puzzles from one level (or 'mix': solved handmade puzzles from every level, for review).
+  // Unsolved handmade puzzles come first, in order, so difficulty grows; then up to two handmade ones with fewer than
+  // three stars; the rest of the round is generated (js/arcade-sqlgen.js), so a level never runs out.
+  A.blockRound = function (level, n, seed) {
     n = n || 5;
+    if (seed === undefined) seed = Math.floor(A.rand() * 2147483647);
     if (level === 'mix') {
       var solved = shuffle(DA.puzzles.filter(function (p) { return A.stars(p.id); }));
       solved.sort(function (a, b) { return A.stars(a.id) - A.stars(b.id); });
-      return solved.length >= n ? shuffle(solved.slice(0, n * 2)).slice(0, n) : A.blockRound(A.nextLevel(), n);
+      return solved.length >= n ? shuffle(solved.slice(0, n * 2)).slice(0, n) : A.blockRound(A.nextLevel(), n, seed);
     }
-    var pool = A.levelPuzzles(level || A.nextLevel());
+    level = level || A.nextLevel();
+    var pool = A.levelPuzzles(level);
     var todo = pool.filter(function (p) { return !A.stars(p.id); });
-    var rest = shuffle(pool.filter(function (p) { return A.stars(p.id); }));
-    rest.sort(function (a, b) { return A.stars(a.id) - A.stars(b.id); });
-    return todo.concat(rest).slice(0, n);
+    var low = shuffle(pool.filter(function (p) { var k = A.stars(p.id); return k && k < 3; }));
+    low.sort(function (a, b) { return A.stars(a.id) - A.stars(b.id); });
+    var out = todo.concat(low.slice(0, 2)).slice(0, n);
+    for (var i = 0; out.length < n; i++) out.push(DA.sqlgen.make(level, seed + i * 7919));
+    return out;
   };
 
   // The tiles of a puzzle, mixed, each with a stable index. A "fix the bug" puzzle has the tiles of the answer AND of
@@ -134,7 +180,7 @@
     if (/^\(?\s*SELECT\b|^WITH\b|^\(/i.test(t) && /\(/.test(t)) return 'sub';
     if (/'/.test(t) || /[<>=]/.test(t) || /\bBETWEEN\b|\bLIKE\b|\bIS NULL\b|\bIN\b/i.test(t)) return 'cond';
     if (/\(/.test(t)) return 'fn';
-    if (/^[a-z_]+( [a-z]{1,2})?$/.test(t) && (DA.datasets.retail.tables.concat(DA.datasets.lab.tables).some(function (x) { return t.split(' ')[0] === x.name; }))) return 'tbl';
+    if (/^[a-z_]+( [a-z]{1,2})?$/.test(t) && Object.keys(DA.datasets).some(function (k) { return DA.datasets[k].tables.some(function (x) { return t.split(' ')[0] === x.name; }); })) return 'tbl';
     return 'col';
   };
 

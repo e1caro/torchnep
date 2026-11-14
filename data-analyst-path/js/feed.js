@@ -107,7 +107,7 @@
   F.crimeChart = crime;
 
   function scatter(pts, showLine, r) {
-    var svg = S('svg', { viewBox: '0 0 240 240', class: 'scatter', role: 'img', 'aria-label': 'Scatter plot of 40 points' });
+    var svg = S('svg', { viewBox: '0 0 240 240', class: 'scatter', role: 'img', 'aria-label': 'Scatter plot of ' + pts.length + ' points' });
     svg.appendChild(S('rect', { x: 14, y: 14, width: 212, height: 212, rx: 10, class: 'sc-bg' }));
     pts.forEach(function (p) { svg.appendChild(S('circle', { cx: (26 + 188 * p[0]).toFixed(1), cy: (214 - 188 * p[1]).toFixed(1), r: 4.2, class: 'sc-pt' })); });
     if (showLine) {

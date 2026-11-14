@@ -283,10 +283,25 @@ async function playRound(page, wrongAt = []) {
   await page.waitForSelector('.view.mission');
   ok((await txt(page, 'h1')).includes('Learn with AI') && await page.locator('.m-steps a').count() === 5, 'the current stop opens the next mission, with its five steps (a case Try where there is no lab level)');
 
-  /* ---------- arcade ---------- */
+  /* ---------- arcade: every game is a map of 4 worlds × 4 levels with endless puzzles ---------- */
+  const SEED = Math.floor(0.5 * 2147483647); // DA.arcade.rand = () => 0.5 makes the round seed known
+  async function startLevel(game, key) {
+    await page.goto(BASE + '/index.html#/practice');
+    await page.evaluate(() => { DA.arcade.rand = () => 0.5; });
+    await page.evaluate(([g, k]) => { location.hash = '#/arcade/' + g + '/' + k; }, [game, key]);
+    await page.waitForSelector('.aw-intro, .g2-body, .qcard');
+    if (await page.locator('.aw-intro').count()) await page.click('.aw-intro .btn');
+  }
+  await page.goto(BASE + '/index.html#/arcade');
+  await page.waitForSelector('.arcade-tiles');
+  ok(await page.locator('.arcade .game-tile').count() === 6, 'arcade: six games');
   await page.goto(BASE + '/index.html#/arcade/corr');
+  await page.waitForSelector('.aw-world');
+  ok(await page.locator('.aw-world').count() === 4 && await page.locator('.aw-level').count() === 16 && await page.locator('.aw-world .aw-concepts li').count() >= 12,
+    'correlation: a map of 4 worlds, 16 levels, each world listing its new concepts');
+  await page.click('a:has-text("Classic")');
   await page.waitForSelector('.scatter');
-  ok(await page.locator('.scatter .sc-pt').count() === 40, 'correlation game draws 40 points');
+  ok(await page.locator('.scatter .sc-pt').count() === 40, 'classic correlation game draws 40 points');
   for (let i = 0; i < 40 && !(await page.locator('.results').count()); i++) {
     await page.click('.qcard button:has-text("Guess")');
     await page.waitForSelector('.quiz-fb .callout');
@@ -294,12 +309,30 @@ async function playRound(page, wrongAt = []) {
     await page.click('.quiz-fb .btn');
   }
   await page.waitForSelector('.results');
-  ok(await page.evaluate(() => DA.ui.state.stats.corrGames === 1), 'the game ends after three misses and the score is saved');
+  ok(await page.evaluate(() => DA.ui.state.stats.corrGames === 1), 'the classic game ends after three misses and the score is saved');
   await dismissModals(page, 900);
+  // a correlation level: guess each plot's true r
+  await startLevel('corr', '3-1');
+  for (let i = 0; i < 5; i++) {
+    await page.waitForSelector('.qcard input[type=range]:not([disabled])');
+    const r = await page.evaluate(([s, i]) => DA.arcade.corrPlot(s + i * 7919, DA.arcadeWorlds.level('corr', '3-1')).r, [SEED, i]);
+    await page.evaluate((v) => { const el = document.querySelector('.qcard input[type=range]'); el.value = String(Math.round(v * 20) / 20); el.dispatchEvent(new Event('input')); }, r);
+    await page.click('.qcard button:has-text("Guess")');
+    await page.waitForSelector('.quiz-fb .callout');
+    if (i === 0) ok(/💡/.test(await txt(page, '.quiz-fb')), 'correlation level: each plot explains its trap (an outlier here)');
+    await page.click('.quiz-fb .btn');
+  }
+  await page.waitForSelector('.results');
+  ok(await page.evaluate(() => DA.ui.state.arcade['corr:3-1'] === 3 && !!DA.ui.state.xp['arcade:corr:3-1']), 'correlation level: five close guesses clear the level with three stars, paid once');
+  await dismissModals(page, 900);
+
   await page.goto(BASE + '/index.html#/arcade/blocks');
-  await page.waitForSelector('.level-card');
-  ok(await page.locator('.level-card').count() === 8, 'SQL blocks: a map of 8 levels');
-  await page.click('.blocks-map .next-card');
+  await page.waitForSelector('.aw-world');
+  ok(await page.locator('.aw-world').count() === 4 && await page.locator('.aw-level').count() === 16, 'SQL blocks: 4 worlds and 16 levels');
+  await page.click('.aw-map .next-card');
+  await page.waitForSelector('.aw-intro');
+  ok((await txt(page, '.aw-intro')).includes('SELECT and FROM'), 'the first level of a world introduces its concepts');
+  await page.click('.aw-intro .btn');
   await page.waitForSelector('.bank .tile');
   await page.waitForFunction(() => !!window.initSqlJs, null, { timeout: 15000 });
   await page.waitForTimeout(400);
@@ -321,16 +354,17 @@ async function playRound(page, wrongAt = []) {
     await dismissModals(page, 500);
   }
   await page.waitForSelector('.results');
-  ok(await page.evaluate(() => Object.keys(DA.ui.state.blocks).length === 5 && DA.ui.state.stats.blockRounds === 1), 'SQL blocks: five puzzles solved by tapping tiles, checked by running the query');
+  ok(await page.evaluate(() => Object.keys(DA.ui.state.blocks).length === 5 && DA.ui.state.stats.blockRounds === 1), 'SQL blocks: the first five handmade puzzles solved by tapping tiles, checked by running the query');
   const bst = await page.evaluate(() => DA.ui.state.blocks);
   ok(Object.values(bst).filter((n) => n === 3).length === 4 && Object.values(bst).includes(2), 'SQL blocks: 3 stars at the first try, 2 after a wrong Check (' + JSON.stringify(bst) + ')');
-  ok((await page.locator('.results .round-list li').count()) === 5 && /★/.test(await txt(page, '.results .big-stars')), 'SQL blocks: results list the stars of each puzzle');
+  ok((await page.locator('.results .round-list li').count()) === 5 && await page.evaluate(() => DA.ui.state.arcade['blocks:1'] === 3) && await page.locator('.results a:has-text("Level 1.2")').count() === 1,
+    'SQL blocks: 14 of 15 stars clear level 1.1 with three stars and offer level 1.2');
   await dismissModals(page, 1200);
   await page.screenshot({ path: path.join(SHOTS, 'desktop-blocks-results.png') });
   // a "fix the bug" puzzle: the broken query is already in the tray
   await page.evaluate(() => { DA.arcade.levelPuzzles(1).forEach((p) => { if (!p.fix) DA.ui.state.blocks[p.id] = DA.ui.state.blocks[p.id] || 3; }); DA.ui.save(); });
   await page.goto(BASE + '/index.html#/arcade/blocks');
-  await page.click('.level-card >> nth=0');
+  await page.click('.aw-level >> nth=0');
   await page.waitForSelector('.badge.bug');
   await page.waitForSelector('.target summary');
   ok((await txt(page, '.target summary')).includes('3 rows'), 'SQL blocks: the target result is shown (' + (await txt(page, '.target summary')) + ')');
@@ -343,66 +377,80 @@ async function playRound(page, wrongAt = []) {
   await page.click('button:has-text("Check")');
   await page.waitForSelector('.quiz-fb .callout.ok');
   ok(await page.evaluate(() => DA.ui.state.blocks[DA.puzzles.find((p) => p.fix && p.lv === 1).id] === 2), 'SQL blocks: fixed with one hint = 2 stars');
+  // a generated puzzle in a new world: missing values in the Dot & Co. support data
+  await startLevel('blocks', '9');
+  await page.waitForSelector('.qcard .qtext');
+  const g9 = await page.evaluate((s) => { const p = DA.arcade.blockRound(9, 5, s)[0]; return { tiles: p.tiles, fix: p.fix, ask: p.ask }; }, SEED);
+  ok((await txt(page, '.qtext')) === g9.ask && await page.locator('.qmeta:has-text("new puzzle")').count() === 1, 'SQL blocks: level 3.1 makes a new puzzle (' + g9.ask.slice(0, 60) + ')');
+  if (!g9.fix) {
+    await page.waitForSelector('.target summary');
+    for (const t of g9.tiles) await page.evaluate((text) => [...document.querySelectorAll('.bank .tile:not([disabled])')].find((b) => b.textContent === text).click(), t);
+    await page.click('button:has-text("Check")');
+    await page.waitForSelector('.quiz-fb .callout.ok');
+    ok(true, 'SQL blocks: the generated puzzle is solved and checked on the real tickets table');
+  }
   await page.goto(BASE + '/index.html#/');
   await dismissModals(page, 1200);
 
   /* ---------- tool arcades: Formula X-ray, Pandas pipeline, Slicer safe, Pill match ---------- */
-  const seed = Math.floor(0.5 * 1e9);
-  async function openGame(game) {
-    await page.goto(BASE + '/index.html#/practice');
-    await page.evaluate(() => { DA.arcade.rand = () => 0.5; });
-    await page.evaluate((g) => { location.hash = '#/arcade/' + g; }, game);
-    await page.waitForSelector('.g2-body');
-  }
-  await openGame('xray');
-  const xp = await page.evaluate((s) => DA.arcade2.xray(s), seed);
-  if (xp.cells.length > 1) {
-    await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
-    await page.click('button:has-text("X-ray it")');
-    ok((await txt(page, '[role="status"] .callout.warn')).includes('missing'), 'X-ray: a partial answer says which cells are missing');
-    await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
-  }
-  for (const c of xp.cells) await page.click('.xr-cell[aria-label^="' + c + ':"]');
-  await page.click('button:has-text("X-ray it")');
-  await page.waitForSelector('.g2-done .callout');
-  ok(/★/.test(await txt(page, '.g2-done')) && (await txt(page, '[role="status"] .callout.ok')).includes('returns ' + xp.value), 'X-ray: tapping exactly the cells the formula uses solves it and shows the result (' + xp.formula + ')');
+  await page.goto(BASE + '/index.html#/arcade/xray');
+  await page.waitForSelector('.aw-world');
+  ok(await page.locator('.aw-world').count() === 4 && await page.locator('.aw-level').count() === 16 && /Level 1\.1/.test(await txt(page, '.aw-map .next-card')), 'X-ray: a world map that starts at level 1.1');
+  await startLevel('xray', '2-3');
   const before3 = await page.evaluate(() => DA.ui.state.stats.xrayGames || 0);
-  for (let i = 0; i < 4; i++) {
-    await page.click('.g2-done button');
-    await page.waitForSelector('.g2-body');
-    await page.click('button:has-text("Show me")');
+  for (let i = 0; i < 5; i++) {
+    await page.waitForSelector('.g2-body .xr-cell');
+    const xp = await page.evaluate(([s, i]) => DA.arcade2.xray(s + i * 7919, DA.arcadeWorlds.level('xray', '2-3')), [SEED, i]);
+    ok(await txt(page, '.xr-fx code') === xp.formula, 'X-ray 2.3 puzzle ' + (i + 1) + ': ' + xp.formula);
+    if (i === 0 && xp.cells.length > 1) {
+      await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
+      await page.click('button:has-text("X-ray it")');
+      ok((await txt(page, '[role="status"] .callout.warn')).includes('missing'), 'X-ray: a partial answer says which cells are missing');
+      await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
+    }
+    for (const c of xp.cells) await page.click('.xr-cell[aria-label^="' + c + ':"]');
+    await page.click('button:has-text("X-ray it")');
     await page.waitForSelector('.g2-done .callout');
+    if (i === 0) ok(/★/.test(await txt(page, '.g2-done')) && (await txt(page, '[role="status"] .callout.ok')).includes('returns ' + xp.value), 'X-ray: tapping exactly the cells the formula uses solves it and shows the result');
+    await page.click('.g2-done button');
   }
-  await page.click('.g2-done button');
   await page.waitForSelector('.results');
-  ok(await page.evaluate((b) => DA.ui.state.stats.xrayGames === b + 1 && DA.ui.state.stats.xrayBest >= 1, before3), 'X-ray: a full round of 5 ends with a score, saved as a best');
+  ok(await page.evaluate((b) => DA.ui.state.stats.xrayGames === b + 1 && DA.ui.state.arcade['xray:2-3'] >= 2 && !!DA.ui.state.xp['arcade:xray:2-3'], before3) && await page.locator('.results a:has-text("Level 2.4")').count() === 1,
+    'X-ray: a round of five clears level 2.3, saves its stars, pays once and offers level 2.4');
   await dismissModals(page, 900);
-  await openGame('pipe');
-  const pp = await page.evaluate((s) => DA.arcade2.pipe(s), seed);
+  await page.goto(BASE + '/index.html#/arcade/xray');
+  await page.waitForSelector('.aw-level.done');
+  ok(await page.locator('.aw-level.done').count() === 1 && /Level 2\.3/.test(await page.locator('.aw-level.done').getAttribute('aria-label')), 'X-ray: the map shows the cleared level with its stars');
+  await startLevel('pipe', '4-4');
+  const pp = await page.evaluate((s) => DA.arcade2.pipe(s, DA.arcadeWorlds.level('pipe', '4-4')), SEED);
+  if (pp.extra) ok(await page.locator('.g2-body:has-text("regions")').count() === 1, 'Pandas pipeline: a merge puzzle shows the second table');
   for (const l of pp.ref) await page.evaluate((t) => [...document.querySelectorAll('.pp-card')].find((b) => b.textContent === t).click(), l.replace(/^t = /, ''));
   await page.waitForSelector('.g2-done .callout');
-  ok(/par/.test(await txt(page, '[role="status"] .callout.ok')), 'Pandas pipeline: the reference cards reach the target table, measured against par');
-  await openGame('safe');
-  const sp = await page.evaluate((s) => { const x = DA.arcade2.safe(s); return { secret: x.secret, slicers: x.slicers }; }, seed);
+  ok(/par/.test(await txt(page, '[role="status"] .callout.ok')), 'Pandas pipeline level 4.4 (' + pp.kind + '): the reference cards reach the target, measured against par');
+  await startLevel('safe', '4-2');
+  const sp = await page.evaluate((s) => { const x = DA.arcade2.safe(s, DA.arcadeWorlds.level('safe', '4-2')); return { secret: x.secret, slicers: x.slicers }; }, SEED);
+  ok(sp.slicers.includes('month') && await page.locator('.sf-slicer[aria-label^="Month"]').count() === 1, 'Slicer safe level 4.2: a month slicer for time intelligence');
   for (const k of sp.slicers) {
     if (!sp.secret[k]) continue;
-    await page.evaluate(([k, v]) => { const g = [...document.querySelectorAll('.sf-slicer')].find((x) => x.getAttribute('aria-label').startsWith(DA.arcade2.SLICERS[k].label)); [...g.querySelectorAll('.chip')].find((c) => c.textContent === v).click(); }, [k, sp.secret[k]]);
+    await page.evaluate(([k, v]) => { document.querySelector('.sf-slicer .chip[aria-label="' + DA.arcade2.SLICERS[k].label + ': ' + v + '"]').click(); }, [k, sp.secret[k]]);
   }
   await page.waitForSelector('.g2-done .callout');
-  ok((await txt(page, '[role="status"] .callout.ok')).includes('opens'), 'Slicer safe: the secret slicers open the safe and explain the filter context');
-  await openGame('pills');
-  const pl = await page.evaluate((s) => { const x = DA.arcade2.pills(s); return { dim: x.dim.replace(/^.*\[|\]$/g, ''), meas: DA.arcade2.MEAS.find((m) => m[0] === x.meas)[1], sort: x.sort }; }, seed);
-  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), pl.meas);
+  ok((await txt(page, '[role="status"] .callout.ok')).includes('DATEADD'), 'Slicer safe: the secret slicers open the safe and explain DATEADD');
+  await startLevel('pills', '3-1');
+  const pl = await page.evaluate((s) => { const x = DA.arcade2.pills(s, DA.arcadeWorlds.level('pills', '3-1')); const lab = (k) => Object.values(DA.arcade2.DIM).concat(Object.values(DA.arcade2.MEA)).find((d) => d[0] === k)[1]; return { dim: lab(x.dim), meas: lab(x.meas), fdim: lab(x.filter.dim), fval: x.filter.value }; }, SEED);
+  const pickPill = (t) => page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), t);
+  await pickPill(pl.meas);
   await page.click('.shelf >> nth=0');
   ok((await txt(page, '[role="status"]')).includes('blue pill'), 'Pill match: a green pill on Rows is refused with the reason');
-  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), pl.dim);
-  await page.click('.shelf >> nth=0');
-  await page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), pl.meas);
-  await page.click('.shelf >> nth=1');
-  for (let i = 0; i < { none: 0, desc: 1, asc: 2 }[pl.sort]; i++) await page.click('button:has-text("Sort:")');
+  await pickPill(pl.dim); await page.click('.shelf >> nth=0');
+  await pickPill(pl.meas); await page.click('.shelf >> nth=1');
+  await page.click('.g2-body button:has-text("Check")');
+  ok(/filter/.test(await txt(page, '[role="status"]')), 'Pill match: without the filter the bars are too long, and the game says so');
+  await pickPill(pl.fdim); await page.click('.shelf >> nth=2');
+  await page.evaluate((v) => [...document.querySelectorAll('.pm-fvals .chip')].find((c) => c.textContent === v).click(), pl.fval);
   await page.click('.g2-body button:has-text("Check")');
   await page.waitForSelector('.g2-done .callout');
-  ok(/★★★/.test(await txt(page, '.g2-done')), 'Pill match: the right blue and green pills and sort rebuild the chart');
+  ok(/★★/.test(await txt(page, '.g2-done')), 'Pill match level 3.1: Rows, Columns and a filter on another field rebuild the chart');
   await dismissModals(page, 900);
 
   /* ---------- settings: goal, theme, reminder ---------- */

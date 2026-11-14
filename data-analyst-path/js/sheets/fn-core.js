@@ -411,7 +411,10 @@
       if (r < 0 || r >= arr.length || c < 0 || c >= arr[0].length) return S.E.REF;
       return arr[r][c];
     }
-    if (r !== null) return [arr[r]]; // row slice
+    // One column (or one row): the number picks a single cell, as in Excel (INDEX(D2:D9, 3) is D4).
+    if (r !== null && arr[0] && arr[0].length === 1) return r < 0 || r >= arr.length ? S.E.REF : arr[r][0];
+    if (r !== null && arr.length === 1) return r < 0 || r >= arr[0].length ? S.E.REF : arr[0][r];
+    if (r !== null) return r < 0 || r >= arr.length ? S.E.REF : [arr[r]]; // row slice
     if (c !== null) {
       var colSlice = [];
       for (var i = 0; i < arr.length; i++) colSlice.push([arr[i][c]]);

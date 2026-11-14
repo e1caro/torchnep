@@ -9,8 +9,8 @@ const mem = {};
 global.localStorage = { getItem: (k) => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: (k) => { delete mem[k]; } };
 global.DA = undefined;
 const files = ['js/data/backgrounds.js', 'js/data/datasets.js', 'js/data/datasets-dotco.js', 'js/data/sql-worlds.js', 'js/data/curriculum.js', 'js/data/prompts.js',
-  'js/data/questions.js', 'js/data/feed.js', 'js/data/puzzles.js', 'js/data/missions.js', 'js/ui.js', 'js/game.js', 'js/drill-core.js',
-  'js/feed-core.js', 'js/arcade-core.js', 'js/journey-core.js', 'js/sync.js', 'js/cloud.js'];
+  'js/data/questions.js', 'js/data/feed.js', 'js/data/puzzles.js', 'js/data/arcade-worlds.js', 'js/data/missions.js', 'js/ui.js', 'js/game.js', 'js/drill-core.js',
+  'js/feed-core.js', 'js/arcade-core.js', 'js/arcade-worlds.js', 'js/arcade-sqlgen.js', 'js/journey-core.js', 'js/sync.js', 'js/cloud.js'];
 files.forEach((f) => {
   const p = path.join(root, f);
   if (fs.existsSync(p)) (0, eval)(fs.readFileSync(p, 'utf8') + '\n//# sourceURL=' + f);

@@ -18,7 +18,7 @@ test('Formula X-ray: the answer cells and the value agree with the real spreadsh
     kinds.add(p.kind);
     assert.ok(p.cells.length >= 1, seed + ' has cells to tap');
     const wb = new S.Workbook(), sh = wb.activeSheet();
-    [['city', 'channel', 'qty']].concat(p.rows.map((r) => [r.city, r.channel, String(r.qty)])).forEach((row, r) => row.forEach((v, c) => S.setInput(sh, r, c, v)));
+    [['city', 'channel', 'qty', 'price']].concat(p.rows.map((r) => [r.city, r.channel, r.qty === null ? '' : String(r.qty), String(r.price)])).forEach((row, r) => row.forEach((v, c) => S.setInput(sh, r, c, v)));
     S.setInput(sh, 0, 5, p.formula);
     wb.recalc();
     assert.ok(Math.abs(sh.getCell(0, 5).value - p.value) < 0.01, seed + ' ' + p.formula + ' gives ' + sh.getCell(0, 5).value + ', not ' + p.value);
@@ -32,7 +32,7 @@ test('Formula X-ray: the answer cells and the value agree with the real spreadsh
 test('Pandas pipeline: the reference cards reach the target, the start is not the target, decoys are real code', () => {
   SEEDS.forEach((seed) => {
     const p = X.pipe(seed);
-    assert.strictEqual(p.cards.length, 5);
+    assert.strictEqual(p.cards.length, p.par + 3, 'the reference cards and three decoys');
     p.ref.forEach((l) => assert.ok(p.cards.includes(l)));
     const r = X.pipeCheck(p, p.ref);
     assert.ok(r.ok, seed + ' ' + p.kind + ' reference solves it: ' + (r.error || ''));
