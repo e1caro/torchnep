@@ -733,6 +733,7 @@
     DA.lessons.forEach(function (l) {
       var t = L[l.id];
       if (!t) return;
+      I.learn(l.title, t.title);
       ['title', 'why', 'learn', 'doit'].forEach(function (k) { if (t[k] !== undefined) l[k] = t[k]; });
       if (t.ai && l.ai) Object.assign(l.ai, t.ai);
       if (t.quiz && l.quiz) Object.assign(l.quiz, { q: t.quiz.q, options: t.quiz.options, why: t.quiz.why });

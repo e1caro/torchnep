@@ -35,12 +35,14 @@
 
   var dict = Object.create(null), pats = [];
   function esc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
-  // add({ 'English': 'Español', 'Step {0} of {1}': 'Paso {0} de {1}' })
+  // add({ 'English': 'Español', 'Step {0} of {1}': 'Paso {0} de {1}' }). {#0} only matches a number ("{#0} rows"),
+  // so a short template cannot swallow an ordinary sentence that happens to end with the same word.
   I.add = function (map) {
     Object.keys(map).forEach(function (en) {
-      if (/\{\d\}/.test(en)) {
-        var keys = [], src = '^' + esc(en).replace(/\\\{(\d)\\\}/g, function (_, d) { keys.push(+d); return '(.+?)'; }) + '$';
+      if (/\{#?\d\}/.test(en)) {
+        var keys = [], src = '^' + esc(en).replace(/\\\{(#?)(\d)\\\}/g, function (_, num, d) { keys.push(+d); return num ? '([−+-]?\\d[\\d.,]*%?)' : '(.+?)'; }) + '$';
         pats.push({ re: new RegExp(src), keys: keys, out: map[en], len: en.length });
+        dict[en.replace(/\{#(\d)\}/g, '{$1}')] = map[en]; // so DA.t('Step {0} of {1}', [a, b]) finds it directly
       } else dict[en] = map[en];
     });
     pats.sort(function (a, b) { return b.len - a.len; }); // the most specific template first
@@ -71,6 +73,11 @@
     if (vars) out = out.replace(/\{(\d)\}/g, function (_, d) { return vars[+d] !== undefined ? vars[+d] : ''; });
     return out;
   };
+  // Remember an English → Spanish pair taken from translated content (a chapter or world title, say), so that
+  // interface text the code builds around it ("World 2: {title}") translates too.
+  I.learn = function (en, es) {
+    if (typeof en === 'string' && typeof es === 'string' && en !== es && en.length < 160 && dict[en] === undefined) dict[en] = es;
+  };
   I.size = function () { return { exact: Object.keys(dict).length, templates: pats.length }; };
 
   /* ---------------------------------------------------------------- content overlays */
@@ -92,7 +99,7 @@
     (Array.isArray(items) ? items : Object.keys(items).map(function (k) { return items[k]; })).forEach(function (o) {
       var id = pick ? pick(o) : o.id, t = tr[id];
       if (!t) return;
-      Object.keys(t).forEach(function (k) { o[k] = t[k]; });
+      Object.keys(t).forEach(function (k) { I.learn(o[k], t[k]); o[k] = t[k]; });
       n++;
     });
     return n;

@@ -155,7 +155,7 @@
   DA.missionsEs = { BRIEFS: BRIEFS, SCEN: SCEN };
 
   I.content(function () {
-    Object.keys(ROLES).forEach(function (k) { if (DA.cast && DA.cast[k]) DA.cast[k].role = ROLES[k]; });
+    Object.keys(ROLES).forEach(function (k) { if (DA.cast && DA.cast[k]) { I.learn(DA.cast[k].role, ROLES[k]); DA.cast[k].role = ROLES[k]; } });
     if (DA.chapters) Object.keys(CHAPTERS).forEach(function (k) { if (DA.chapters[k]) DA.chapters[k] = CHAPTERS[k]; });
     if (DA.missionData) Object.keys(BRIEFS).forEach(function (k) { if (DA.missionData[k]) DA.missionData[k].brief = BRIEFS[k]; });
     if (DA.scenarios) Object.keys(SCEN).forEach(function (k) {
@@ -166,6 +166,6 @@
         if (t[3] && s.table) s.table.cols = t[3];
       });
     });
-    if (DA.bossData) Object.keys(BOSS).forEach(function (k) { var b = DA.bossData[k]; if (b) { b.title = BOSS[k][0]; b.brief = BOSS[k][1]; } });
+    if (DA.bossData) Object.keys(BOSS).forEach(function (k) { var b = DA.bossData[k]; if (b) { I.learn(b.title, BOSS[k][0]); b.title = BOSS[k][0]; b.brief = BOSS[k][1]; } });
   });
 })();
