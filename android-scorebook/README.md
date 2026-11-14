@@ -53,7 +53,11 @@ calibration that learns from your corrections is there for that.
 
 CI does it: `.github/workflows/android-scorebook.yml` runs the core tests and builds the APK on every push that
 touches `android-scorebook/` (download it from the run's artifacts); running the workflow by hand publishes a
-release `scorebook-N`.
+release `scorebook-N`. A second job boots an Android emulator and runs `OnDeviceTest`: a rendered 42-second piano
+recording goes through the real LiteRT model and the live session (on the emulator: about 1.3 s of compute),
+key / tempo / meter are checked, the PDF is exported and rendered back, and screenshots of the take, note and
+listening screens are saved (artifact `Scorebook-device-N`). `tools/device-test.sh` does the same on a phone
+connected with adb.
 
 Locally, with the Android SDK and Gradle 8.13:
 
