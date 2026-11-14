@@ -90,6 +90,21 @@ class LiveTest {
     }
 
     @Test
+    fun manualModeOnlyRecordsWhenAsked() {
+        val sr = 44100
+        val rec = AutoRecorder(sr).apply { autoStart = false; autoStop = false }
+        val loud = FloatArray(882) { (0.3 * sin(2 * PI * 440.0 * it / sr)).toFloat() }
+        val quiet = FloatArray(882)
+        repeat(100) { assertEquals(null, rec.process(loud)) } // playing, but nobody pressed record
+        assertEquals(AutoRecorder.State.LISTENING, rec.state)
+        assertTrue(rec.forceStart() != null)
+        repeat(600) { assertEquals(null, rec.process(quiet)) } // 12 s of silence: still recording
+        assertEquals(AutoRecorder.State.RECORDING, rec.state)
+        assertEquals(AutoRecorder.Event.Stopped, rec.forceStop())
+        assertEquals(AutoRecorder.State.LISTENING, rec.state)
+    }
+
+    @Test
     fun decimatorKeepsMusicAndRemovesAliases() {
         fun rmsAfter(freq: Double): Double {
             val d = Decimator2()

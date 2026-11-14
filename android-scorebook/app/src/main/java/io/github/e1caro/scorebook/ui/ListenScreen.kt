@@ -74,13 +74,27 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
     val lib by vm.library.collectAsState()
     val context = LocalContext.current
     var granted by remember { mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) }
+    // the microphone is asked for when you first press record (or turn on hands-free)
+    var recordAfterGrant by remember { mutableStateOf(false) }
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
         granted = ok
-        vm.stopListening()
         vm.startListening(ok)
+        if (ok && recordAfterGrant) vm.toggleTake()
+        recordAfterGrant = false
     }
-    LaunchedEffect(Unit) { if (!granted) launcher.launch(Manifest.permission.RECORD_AUDIO) else vm.startListening(true) }
-    KeepScreenOn()
+    LaunchedEffect(Unit) {
+        vm.startListening(granted)
+        if (!granted && ui.handsFree) launcher.launch(Manifest.permission.RECORD_AUDIO)
+    }
+    val recording = ui.status == ListenStatus.RECORDING
+    val micOn = recording || ui.status == ListenStatus.LISTENING
+    if (micOn) KeepScreenOn()
+    val onRecord = {
+        if (!granted && ui.midiDevice == null && !recording) {
+            recordAfterGrant = true
+            launcher.launch(Manifest.permission.RECORD_AUDIO)
+        } else vm.toggleTake()
+    }
 
     // smooth scrolling of the live staff between analysis updates
     var shownNow by remember { mutableDoubleStateOf(0.0) }
@@ -92,8 +106,6 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             delay(33)
         }
     }
-    val recording = ui.status == ListenStatus.RECORDING
-
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         // header
         Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 16.dp, top = 14.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -102,7 +114,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             }
             Spacer(Modifier.width(10.dp))
             Text("Scorebook", fontSize = 24.sp, fontWeight = FontWeight.Bold, color = Ink, modifier = Modifier.weight(1f))
-            StatusPill(ui.status, granted)
+            StatusPill(ui.status)
         }
 
         // what is happening
@@ -110,35 +122,30 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
                 .background(Brush.verticalGradient(listOf(StageHigh, StageRaised))).padding(horizontal = 18.dp, vertical = 14.dp),
         ) {
-            val headline = when {
-                !granted -> "Let Scorebook hear your piano"
-                ui.status == ListenStatus.RECORDING -> "Recording  ${vm.durationText(ui.seconds)}"
-                ui.status == ListenStatus.SAVING -> "Writing your score…"
-                ui.status == ListenStatus.LISTENING -> "Just play."
-                else -> "Not listening"
+            val headline = when (ui.status) {
+                ListenStatus.RECORDING -> "Recording  ${vm.durationText(ui.seconds)}"
+                ListenStatus.SAVING -> "Writing your score…"
+                ListenStatus.LISTENING -> "Just play."
+                else -> "Ready when you are."
             }
-            val sub = when {
-                !granted -> "Allow the microphone so Scorebook can listen. Everything stays on this phone."
-                ui.status == ListenStatus.RECORDING -> "Keep playing. The take ends by itself after ${vm.silenceSeconds} s of silence."
-                ui.status == ListenStatus.SAVING -> "Finding the key, tempo and chords, and engraving the sheet music."
-                else -> "Starts by itself when you play, stops after ${vm.silenceSeconds} s of silence."
+            val sub = when (ui.status) {
+                ListenStatus.RECORDING -> if (ui.handsFree) "Keep playing. The take ends by itself after ${vm.silenceSeconds} s of silence."
+                else "Play your piece, then tap the button again to stop and save."
+                ListenStatus.SAVING -> "Finding the key, tempo and chords, and engraving the sheet music."
+                ListenStatus.LISTENING -> "Hands-free: recording starts when you play and stops after ${vm.silenceSeconds} s of silence."
+                else -> "Tap the red button to start recording. Nothing is recorded until you do."
             }
             Text(headline, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = if (recording) RecordRed else Ink)
             Spacer(Modifier.height(4.dp))
             Text(sub, fontSize = 14.sp, color = InkDim, lineHeight = 19.sp)
             Spacer(Modifier.height(10.dp))
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip(if (ui.midiDevice != null) "MIDI · ${ui.midiDevice}" else "Microphone", background = Stage)
+                Chip(if (ui.midiDevice != null) "MIDI · ${ui.midiDevice}" else if (micOn) "Microphone on" else "Microphone off", background = Stage)
+                if (ui.handsFree) Chip("Hands-free", color = Gold, background = Stage)
                 if (recording && ui.notes.isNotEmpty()) Chip("Key · ${ui.key.displayName}", color = Gold, background = Stage)
                 if (recording && ui.bpm > 0) Chip("♩ ≈ ${ui.bpm}", background = Stage)
                 if (recording && ui.notes.isNotEmpty()) Chip("${ui.notes.size} notes", background = Stage)
                 if (ui.micError) Chip("Microphone unavailable", color = RecordRed, background = Stage)
-            }
-            if (!granted) {
-                Spacer(Modifier.height(14.dp))
-                Button(onClick = { launcher.launch(Manifest.permission.RECORD_AUDIO) }, colors = ButtonDefaults.buttonColors(containerColor = Gold, contentColor = Stage)) {
-                    Text("Allow the microphone", fontWeight = FontWeight.Bold)
-                }
             }
         }
 
@@ -158,7 +165,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             Canvas(Modifier.fillMaxWidth().height(h).clipToBounds()) { drawIntoCanvas { renderer.draw(it.nativeCanvas, page) } }
             if (ui.notes.isEmpty()) {
                 Text(
-                    if (recording) "Listening for the first notes…" else "Notes appear here as you play",
+                    if (recording) "Listening for the first notes…" else "Notes appear here while you record",
                     color = InkDim, fontSize = 14.sp, modifier = Modifier.align(Alignment.TopCenter).padding(top = 12.dp),
                 )
             }
@@ -174,7 +181,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
                 Box(
                     Modifier.size(78.dp).clip(CircleShape).background(if (recording) RecordRed else StageHigh)
                         .border(3.dp, if (recording) Ink else RecordRed, CircleShape)
-                        .clickable(enabled = granted && (ui.status == ListenStatus.LISTENING || recording)) { vm.toggleTake() },
+                        .clickable(enabled = ui.status == ListenStatus.READY || ui.status == ListenStatus.LISTENING || recording) { onRecord() },
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(Modifier.size(if (recording) 26.dp else 32.dp).clip(if (recording) RoundedCornerShape(5.dp) else CircleShape).background(if (recording) Ink else RecordRed))
@@ -182,14 +189,27 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             }
             Spacer(Modifier.width(16.dp))
             Column(Modifier.weight(1f)) {
-                Text(if (recording) "Tap to finish the take" else "Tap to record now", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Text(if (recording) "or just stop playing" else "or just start playing", color = InkDim, fontSize = 13.sp)
-                Spacer(Modifier.height(10.dp))
-                val level = ((ui.levelDb + 70) / 60).coerceIn(0.0, 1.0).toFloat()
-                Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(StageHigh)) {
-                    Box(Modifier.fillMaxWidth(level).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Brush.horizontalGradient(listOf(Gold, if (recording) RecordRed else Gold))))
+                Text(
+                    when { recording -> "Tap to stop and save"; ui.status == ListenStatus.SAVING -> "Saving…"; else -> "Tap to start recording" },
+                    color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    when {
+                        recording && ui.handsFree -> "or just stop playing"
+                        recording -> "Recording ${vm.durationText(ui.seconds)}"
+                        ui.handsFree -> "or just start playing"
+                        else -> "The microphone is off until you do"
+                    },
+                    color = InkDim, fontSize = 13.sp,
+                )
+                if (micOn) {
+                    Spacer(Modifier.height(10.dp))
+                    val level = ((ui.levelDb + 70) / 60).coerceIn(0.0, 1.0).toFloat()
+                    Box(Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)).background(StageHigh)) {
+                        Box(Modifier.fillMaxWidth(level).height(8.dp).clip(RoundedCornerShape(4.dp)).background(Brush.horizontalGradient(listOf(Gold, if (recording) RecordRed else Gold))))
+                    }
+                    Text("Input level", color = InkDim, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
                 }
-                Text("Input level", color = InkDim, fontSize = 11.sp, modifier = Modifier.padding(top = 3.dp))
             }
         }
 
@@ -211,8 +231,8 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             Column(Modifier.padding(16.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(StageRaised).padding(18.dp)) {
                 Text("How it works", color = Ink, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Spacer(Modifier.height(10.dp))
-                Step("1", "Put the phone near the piano and play. A USB or Bluetooth MIDI keyboard works too.")
-                Step("2", "Notes appear on the staff as you play. Stop for a few seconds and the take is saved.")
+                Step("1", "Put the phone near the piano and tap the red button. A USB or Bluetooth MIDI keyboard works too.")
+                Step("2", "Play. Notes appear on the staff as you go. Tap the button again when you finish: the take is saved.")
                 Step("3", "Open the score: key, tempo and chords are filled in. Blue notes were decided by the AI — tap any note to change it.")
                 Step("4", "Share it as PDF, MIDI or MusicXML. A PDF is also saved to Downloads/Scorebook.")
             }
@@ -242,13 +262,12 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
 }
 
 @Composable
-private fun StatusPill(status: ListenStatus, granted: Boolean) {
-    val (label, color) = when {
-        !granted -> "Mic off" to InkDim
-        status == ListenStatus.RECORDING -> "Recording" to RecordRed
-        status == ListenStatus.SAVING -> "Saving" to Gold
-        status == ListenStatus.LISTENING -> "Listening" to Gold
-        else -> "Paused" to InkDim
+private fun StatusPill(status: ListenStatus) {
+    val (label, color) = when (status) {
+        ListenStatus.RECORDING -> "Recording" to RecordRed
+        ListenStatus.SAVING -> "Saving" to Gold
+        ListenStatus.LISTENING -> "Listening" to Gold
+        else -> "Ready" to InkDim
     }
     val pulse = rememberInfiniteTransition(label = "dot").animateFloat(0.3f, 1f, infiniteRepeatable(tween(700), RepeatMode.Reverse), label = "dot")
     Row(Modifier.clip(RoundedCornerShape(50)).background(StageRaised).padding(horizontal = 12.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {

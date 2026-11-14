@@ -5,9 +5,10 @@ import kotlin.math.max
 import kotlin.math.sqrt
 
 /**
- * Hands-free start and stop. Listens to the input level: a take starts when the level rises well above the
- * room's noise floor (and keeps [preRollSeconds] of audio from before, so the first note is not cut), and ends
- * after [silenceSeconds] without sound and without new notes.
+ * Starts and stops takes. With [autoStart] / [autoStop] (hands-free mode) it listens to the input level: a take
+ * starts when the level rises well above the room's noise floor (keeping [preRollSeconds] of audio from before,
+ * so the first note is not cut) and ends after [silenceSeconds] without sound and without new notes. With both
+ * off, takes start and stop only with [forceStart] and [forceStop] (the record button).
  */
 class AutoRecorder(
     val sampleRate: Int,
@@ -17,6 +18,12 @@ class AutoRecorder(
     val silenceMarginDb: Double = 7.0,
 ) {
     enum class State { LISTENING, RECORDING }
+
+    /** Start a take by itself when playing begins. */
+    @Volatile var autoStart = true
+
+    /** End a take by itself after [silenceSeconds] of silence. */
+    @Volatile var autoStop = true
 
     sealed interface Event {
         /** A take started; [preRoll] is the audio just before the trigger, to feed first. */
@@ -70,7 +77,7 @@ class AutoRecorder(
                 noiseFloorDb = noiseFloorDb.coerceIn(-90.0, -30.0)
                 val loud = levelDb > max(noiseFloorDb + startMarginDb, -55.0)
                 loudBlocks = if (loud) loudBlocks + 1 else 0
-                if (loudBlocks >= 3) {
+                if (autoStart && loudBlocks >= 3) {
                     loudBlocks = 0
                     val pre = drainRing()
                     state = State.RECORDING
@@ -85,7 +92,7 @@ class AutoRecorder(
                 val quiet = levelDb < max(noiseFloorDb + silenceMarginDb, -60.0)
                 silentSamples = if (quiet) silentSamples + n else 0
                 val sinceNote = samples - lastNoteSample
-                if (silentSamples >= silenceSeconds * sampleRate && sinceNote >= silenceSeconds * sampleRate) {
+                if (autoStop && silentSamples >= silenceSeconds * sampleRate && sinceNote >= silenceSeconds * sampleRate) {
                     state = State.LISTENING
                     Event.Stopped
                 } else null

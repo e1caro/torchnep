@@ -61,6 +61,10 @@ class Prefs(context: Context) {
     var strictness: Float
         get() = sp.getFloat("strictness", 0.5f)
         set(v) = sp.edit().putFloat("strictness", v).apply()
+    /** Hands-free recording (start when playing begins, stop after silence). Off: the record button does it. */
+    var handsFree: Boolean
+        get() = sp.getBoolean("handsFree", false)
+        set(v) = sp.edit().putBoolean("handsFree", v).apply()
     var autoPdf: Boolean
         get() = sp.getBoolean("autoPdf", true)
         set(v) = sp.edit().putBoolean("autoPdf", v).apply()

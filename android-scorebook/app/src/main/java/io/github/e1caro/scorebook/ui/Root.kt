@@ -101,7 +101,7 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
         val obs = LifecycleEventObserver { _, e ->
             val mic = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             when (e) {
-                Lifecycle.Event.ON_START -> if (mic) vm.startListening(true)
+                Lifecycle.Event.ON_START -> vm.startListening(mic)
                 Lifecycle.Event.ON_STOP -> vm.stopListening()
                 else -> {}
             }

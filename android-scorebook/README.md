@@ -9,8 +9,9 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## What version 1 does
 
-- **Hands-free takes.** Open the app and play: a take starts when you start (keeping 1.5 s from before, so the
-  first note is not lost) and ends after 5 s of silence (adjustable). The big button starts or ends one by hand.
+- **You decide when it records.** Tap the red button to start a take and tap it again to stop and save; the
+  microphone is off the rest of the time. Optional *hands-free* mode (Settings): a take starts when you start
+  playing (keeping 1.5 s from before, so the first note is not lost) and ends after 5 s of silence (adjustable).
 - **Live grand staff.** Notes appear on a treble + bass staff as they are heard, spelled in the current key, with
   the detected key shown; lighter notes are the ones the AI had to decide.
 - **On-device transcription.** Basic Pitch (Spotify, Apache-2.0, 204 KB) on LiteRT. The decoder keeps a

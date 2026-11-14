@@ -43,7 +43,11 @@ import java.util.UUID
 import java.util.concurrent.Executors
 import kotlin.math.roundToInt
 
-enum class ListenStatus { OFF, LISTENING, RECORDING, SAVING }
+/**
+ * OFF: the app is in the background. READY: waiting for the record button, microphone off.
+ * LISTENING: hands-free mode, microphone on, waiting for playing to start. RECORDING, SAVING: a take.
+ */
+enum class ListenStatus { OFF, READY, LISTENING, RECORDING, SAVING }
 
 data class ListenUi(
     val status: ListenStatus = ListenStatus.OFF,
@@ -55,6 +59,7 @@ data class ListenUi(
     val bpm: Int = 0,
     val midiDevice: String? = null,
     val micError: Boolean = false,
+    val handsFree: Boolean = false,
     val lastSaved: TakeMeta? = null,
     val lastSavedTitle: String? = null,
     val message: String? = null,
@@ -95,7 +100,12 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "scorebook-worker") }
     private val workerDispatcher = worker.asCoroutineDispatcher()
     private val audio = AudioEngine { block, n -> val copy = block.copyOf(n); worker.execute { onAudio(copy) } }
-    private val recorder = AutoRecorder(AudioEngine.SAMPLE_RATE, silenceSeconds = prefs.silenceSeconds.toDouble())
+    private val recorder = AutoRecorder(AudioEngine.SAMPLE_RATE, silenceSeconds = prefs.silenceSeconds.toDouble()).apply {
+        autoStart = prefs.handsFree
+        autoStop = prefs.handsFree
+    }
+    @Volatile private var active = false
+    @Volatile private var micAllowed = false
     private var decimator = Decimator2()
     private var model: TfliteModel? = null
     private var session: LiveSession? = null
@@ -113,12 +123,25 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         onConnected = { name -> midiName = name; _listen.update { it.copy(midiDevice = name) } },
     )
 
+    /**
+     * The app came to the foreground. In the default (manual) mode nothing is recorded and the microphone stays
+     * off until the record button is pressed; in hands-free mode the microphone listens for playing to start.
+     */
     fun startListening(micAllowed: Boolean) {
-        if (_listen.value.status != ListenStatus.OFF) return
+        this.micAllowed = micAllowed
+        if (_listen.value.status != ListenStatus.OFF) {
+            // already running: the microphone was just allowed while hands-free is on
+            if (micAllowed && prefs.handsFree && !audio.isRunning) worker.execute {
+                if (recorder.state != AutoRecorder.State.RECORDING && active) _listen.update { it.copy(micError = !audio.start()) }
+            }
+            return
+        }
+        active = true
         midi.start()
-        val ok = micAllowed && audio.start()
-        _listen.update { it.copy(status = ListenStatus.LISTENING, micError = micAllowed && !ok) }
-        // keeps the take clock running when there is no microphone (MIDI only)
+        val handsFree = prefs.handsFree
+        val ok = if (handsFree && micAllowed) audio.start() else true
+        _listen.update { it.copy(status = if (handsFree) ListenStatus.LISTENING else ListenStatus.READY, micError = !ok, handsFree = handsFree) }
+        // keeps the take clock running when the microphone is off (MIDI takes)
         viewModelScope.launch {
             while (isActive && _listen.value.status != ListenStatus.OFF) {
                 delay(200)
@@ -128,15 +151,46 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun stopListening() {
+        active = false
         if (_listen.value.status == ListenStatus.RECORDING) worker.execute { recorder.forceStop()?.let { finishTake() } }
         audio.stop()
         midi.stop()
         _listen.update { it.copy(status = ListenStatus.OFF) }
     }
 
-    /** The big button: start a take now, or end it now. */
+    /** The record button: start a take (opening the microphone), or stop it and save. */
     fun toggleTake() = worker.execute {
-        if (recorder.state == AutoRecorder.State.RECORDING) { recorder.forceStop(); finishTake() } else recorder.forceStart()?.let { startTake(it.preRoll) }
+        if (recorder.state == AutoRecorder.State.RECORDING) {
+            recorder.forceStop()
+            if (!prefs.handsFree) audio.stop()
+            finishTake()
+        } else {
+            if (!audio.isRunning && micAllowed && midiName == null) {
+                if (!audio.start()) _listen.update { it.copy(micError = true) }
+            }
+            recorder.forceStart()?.let { startTake(it.preRoll) }
+        }
+    }
+
+    /** Hands-free: start when playing begins, stop after silence (keeps the microphone on while the app is open). */
+    fun setHandsFree(on: Boolean) {
+        prefs.handsFree = on
+        recorder.autoStart = on
+        recorder.autoStop = on
+        worker.execute {
+            if (recorder.state != AutoRecorder.State.RECORDING && active) {
+                if (on && micAllowed) audio.start() else if (!on) audio.stop()
+            }
+            _listen.update { it.copy(handsFree = on, status = if (it.status == ListenStatus.RECORDING || it.status == ListenStatus.SAVING || it.status == ListenStatus.OFF) it.status else idleStatus()) }
+        }
+    }
+
+    val handsFree: Boolean get() = prefs.handsFree
+
+    private fun idleStatus(): ListenStatus = when {
+        !active -> ListenStatus.OFF
+        prefs.handsFree -> ListenStatus.LISTENING
+        else -> ListenStatus.READY
     }
 
     fun setSilence(seconds: Float) { prefs.silenceSeconds = seconds; recorder.silenceSeconds = seconds.toDouble() }
@@ -146,7 +200,10 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private fun midiNow(): Double = (System.nanoTime() - takeStartNanos) / 1e9
 
     private fun midiNote(pitch: Int, velocity: Int) {
-        if (recorder.state != AutoRecorder.State.RECORDING) recorder.forceStart()?.let { startTake(it.preRoll) }
+        if (recorder.state != AutoRecorder.State.RECORDING) {
+            if (!prefs.handsFree) return // manual mode: only the record button starts a take
+            recorder.forceStart()?.let { startTake(it.preRoll) }
+        }
         recorder.noteActivity()
         session?.midi?.noteOn(pitch, velocity, midiNow())
     }
@@ -158,6 +215,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
             AutoRecorder.Event.Stopped -> { finishTake(); return }
             null -> {}
         }
+        if (!audio.isRunning && block.all { it == 0f } && recorder.state != AutoRecorder.State.RECORDING) return
         if (recorder.state == AutoRecorder.State.RECORDING) feed(block)
         _listen.update { it.copy(levelDb = recorder.levelDb, seconds = recorder.recordingSeconds) }
     }
@@ -209,7 +267,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         wav = null
         if (events.size < 2) {
             repo.audioFile(id).delete()
-            _listen.update { it.copy(status = if (audio.isRunning || midiName != null) ListenStatus.LISTENING else ListenStatus.OFF, message = "Nothing to transcribe in that take") }
+            _listen.update { it.copy(status = idleStatus(), message = "Nothing was heard in that take") }
             return
         }
         val settings = currentSettings()
@@ -234,7 +292,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 msg += " · PDF in $where"
             } catch (_: Exception) {}
         }
-        _listen.update { it.copy(status = if (audio.isRunning || midiName != null) ListenStatus.LISTENING else ListenStatus.OFF, lastSaved = meta, lastSavedTitle = title, message = msg) }
+        _listen.update { it.copy(status = idleStatus(), lastSaved = meta, lastSavedTitle = title, message = msg, levelDb = -90.0) }
     }
 
     private fun currentSettings() = AnalysisSettings(musical = prefs.musical.toDouble(), strictness = prefs.strictness.toDouble())

@@ -140,17 +140,32 @@ fun SettingsScreen(vm: ScorebookViewModel) {
     val prefs = (LocalContext.current.applicationContext as ScorebookApp).prefs
     var silence by remember { mutableFloatStateOf(prefs.silenceSeconds) }
     var autoPdf by remember { mutableStateOf(prefs.autoPdf) }
+    var handsFree by remember { mutableStateOf(prefs.handsFree) }
     var musical by remember { mutableFloatStateOf(prefs.musical) }
     var strict by remember { mutableFloatStateOf(prefs.strictness) }
     var corrections by remember { mutableIntStateOf(vm.corrections()) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         ScreenTitle("Settings", "Everything runs on this phone, offline")
-        Section("LISTENING") {
-            Text("End a take after ${silence.toInt()} s of silence", color = Ink, fontSize = 16.sp)
-            Slider(
-                value = silence, onValueChange = { silence = it; vm.setSilence(it) }, valueRange = 3f..10f, steps = 6,
-                colors = SliderDefaults.colors(thumbColor = Gold, activeTrackColor = Gold, inactiveTrackColor = StageHigh),
-            )
+        Section("RECORDING") {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Hands-free", color = Ink, fontSize = 16.sp)
+                    Text(
+                        if (handsFree) "Starts when you play and stops after silence. The microphone listens while the app is open."
+                        else "Off: you start and stop each take with the record button.",
+                        color = InkDim, fontSize = 13.sp, lineHeight = 18.sp,
+                    )
+                }
+                Switch(checked = handsFree, onCheckedChange = { handsFree = it; vm.setHandsFree(it) }, colors = SwitchDefaults.colors(checkedTrackColor = Gold, checkedThumbColor = Stage))
+            }
+            if (handsFree) {
+                Spacer(Modifier.height(12.dp))
+                Text("End a take after ${silence.toInt()} s of silence", color = Ink, fontSize = 16.sp)
+                Slider(
+                    value = silence, onValueChange = { silence = it; vm.setSilence(it) }, valueRange = 3f..10f, steps = 6,
+                    colors = SliderDefaults.colors(thumbColor = Gold, activeTrackColor = Gold, inactiveTrackColor = StageHigh),
+                )
+            }
         }
         Section("NEW TAKES START AT") {
             Text("Unclear notes", color = Ink, fontSize = 16.sp)
