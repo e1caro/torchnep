@@ -564,14 +564,14 @@
     function showAi(review) {
       var sql = editor.value.trim();
       var parts = [];
-      parts.push("I'm learning SQL (SQLite) with a practice database. My background: " + ui.bgText() + '.');
-      if (cur) parts.push('Task: ' + cur.task.replace(/<[^>]+>/g, ''));
-      parts.push('Schema:\n' + DA.schemaText(dsId));
-      parts.push('My query:\n' + (sql || '(nothing yet)'));
-      if (lastError) parts.push('The error I get:\n' + lastError);
-      else if (lastRun && lastRun.res) parts.push('It returns ' + lastRun.res.values.length + ' rows with columns: ' + lastRun.res.columns.join(', ') + '.');
-      if (review) parts.push('My query is correct. Review it like a senior analyst: readability, naming, an alternative approach, and one edge case I should think about. Keep it short.');
-      else parts.push("Don't give me the full solution. 1) Explain in plain words what my query does. 2) Tell me what is wrong or missing and why. 3) Give me one hint for the next step. Then ask me a question to check I understood.");
+      parts.push(DA.L("I'm learning SQL (SQLite) with a practice database. My background: ", 'Estoy aprendiendo SQL (SQLite) con una base de datos de práctica. Mi perfil: ') + ui.bgText() + '.');
+      if (cur) parts.push(DA.L('Task: ', 'Tarea: ') + cur.task.replace(/<[^>]+>/g, ''));
+      parts.push(DA.L('Schema:', 'Esquema:') + '\n' + DA.schemaText(dsId));
+      parts.push(DA.L('My query:', 'Mi consulta:') + '\n' + (sql || DA.L('(nothing yet)', '(nada todavía)')));
+      if (lastError) parts.push(DA.L('The error I get:', 'El error que me da:') + '\n' + lastError);
+      else if (lastRun && lastRun.res) parts.push(DA.L('It returns ' + lastRun.res.values.length + ' rows with columns: ', 'Devuelve ' + lastRun.res.values.length + ' filas con las columnas: ') + lastRun.res.columns.join(', ') + '.');
+      if (review) parts.push(DA.L('My query is correct. Review it like a senior analyst: readability, naming, an alternative approach, and one edge case I should think about. Keep it short.', 'Mi consulta es correcta. Revísala como lo haría un analista sénior: legibilidad, nombres, un enfoque alternativo y un caso límite en el que debería pensar. Sé breve.'));
+      else parts.push(DA.L("Don't give me the full solution. 1) Explain in plain words what my query does. 2) Tell me what is wrong or missing and why. 3) Give me one hint for the next step. Then ask me a question to check I understood.", 'No me des la solución completa. 1) Explícame con palabras sencillas qué hace mi consulta. 2) Dime qué está mal o qué falta y por qué. 3) Dame una pista para el siguiente paso. Después hazme una pregunta para comprobar que lo he entendido.'));
       var l = ui.langLine();
       if (l) parts.push(l);
       ui.clear(aiBox);

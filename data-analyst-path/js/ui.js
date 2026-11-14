@@ -347,7 +347,7 @@
     return first;
   };
   ui.moduleDone = function (m) { return m.lessons.filter(function (l) { return ui.state.done[l.id]; }).length; };
-  ui.fmtHours = function (x) { return (Math.round(x * 10) / 10) + ' h'; };
+  ui.fmtHours = function (x) { var v = String(Math.round(x * 10) / 10); return (DA.lang === 'es' ? v.replace('.', ',') : v) + ' h'; };
 
   ui.progressBar = function (pct, label) {
     return h('div', { class: 'progress', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(pct)), 'aria-label': label || 'Progress' },
@@ -363,13 +363,30 @@
   };
   ui.bgText = function () {
     var b = ui.bg();
-    if (!b) return 'a career changer (background not specified)';
-    if (b.custom) return ui.state.profile.custom.trim() || 'a career changer with a non-technical background';
+    if (!b) return DA.L('a career changer (background not specified)', 'alguien que cambia de carrera (perfil sin especificar)');
+    if (b.custom) return ui.state.profile.custom.trim() || DA.L('a career changer with a non-technical background', 'alguien que cambia de carrera desde un perfil no técnico');
     return b.persona;
   };
+  // The prompts are written in the app's language; ask for another language only when the learner chose one.
+  var LANG_ES = { English: 'inglés', Spanish: 'español', French: 'francés', German: 'alemán', Portuguese: 'portugués', Italian: 'italiano', Dutch: 'neerlandés', Polish: 'polaco', Turkish: 'turco', Hindi: 'hindi', Arabic: 'árabe', Chinese: 'chino' };
   ui.langLine = function () {
-    var l = ui.state.profile.lang;
-    return l && l !== 'English' ? 'Please write your answer in ' + l + '.' : '';
+    var l = ui.state.profile.lang, same = DA.lang === 'es' ? 'Spanish' : 'English';
+    if (!l || l === same) return '';
+    return DA.L('Please write your answer in ' + l + '.', 'Por favor, responde en ' + (LANG_ES[l] || l) + '.');
+  };
+  // The app's own language (English or Spanish), as two radio cards. Changing it reloads the app.
+  ui.appLangChoice = function (big) {
+    var p = ui.state.profile;
+    return h('fieldset', { class: 'choice lang-choice' + (big ? '' : ' compact'), translate: 'no' }, h('legend', { class: big ? 'sr-only' : 'lang-legend', text: 'App language · Idioma de la app' }),
+      DA.i18n.LANGS.map(function (o) {
+        return h('label', { class: 'choice-card' }, h('input', { type: 'radio', name: 'appLang', value: o[0], checked: o[0] === DA.lang, onchange: function () {
+          // the language of AI answers follows, unless the learner picked a third one
+          if (o[0] === 'es' && (!p.lang || p.lang === 'English')) p.lang = 'Spanish';
+          if (o[0] === 'en' && p.lang === 'Spanish') p.lang = 'English';
+          ui.save();
+          DA.i18n.setLang(o[0]);
+        } }), h('strong', { text: o[0] === 'es' ? '🇪🇸 ' + o[1] : '🇬🇧 ' + o[1] }), h('span', { class: 'muted small', text: o[0] === 'es' ? 'Toda la app en español' : 'The whole app in English' }));
+      }));
   };
   // The dataset that fits the learner's background (used by lessons that open the SQL Lab).
   ui.defaultDataset = function () { var b = ui.bg(); return b ? b.dataset : 'retail'; };

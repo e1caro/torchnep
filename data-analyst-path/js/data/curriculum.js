@@ -238,7 +238,7 @@
           why: 'Google Sheets has a built-in SQL engine (QUERY) and cloud connectors that make collaborative analytics effortless.',
           learn: [
             '<code>=QUERY(data, "SELECT C, SUM(H) WHERE G = \'Coffee\' GROUP BY C ORDER BY SUM(H) DESC LABEL SUM(H) \'Total\'", 1)</code> runs SQL-style aggregation directly inside a sheet.',
-            '<code>ARRAYFORMULA(E2:E1000 * F2:F1000)</code> computes an entire column from a single top-cell formula so nadie can accidentally overwrite row 412.',
+            '<code>ARRAYFORMULA(E2:E1000 * F2:F1000)</code> computes an entire column from a single top-cell formula so no one can accidentally overwrite row 412.',
             'Text extraction at scale: <code>REGEXEXTRACT(A2, "ORD-(\\d+)")</code>, <code>REGEXMATCH</code> and <code>REGEXREPLACE</code> clean messy logs and URLs in one step.',
             '<code>IMPORTRANGE(spreadsheet_url, "Sales!A1:I5000")</code> links live tables across separate Google Sheets; combine it with <code>QUERY({Sheet1!A2:F; Sheet2!A2:F}, ...)</code> to stack tabs.',
           ],

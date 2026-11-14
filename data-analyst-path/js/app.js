@@ -213,6 +213,7 @@
     var p = ui.state.profile;
     var root = h('div', { class: 'view' });
     root.appendChild(title('Your profile'));
+    root.appendChild(ui.appLangChoice());
     root.appendChild(h('p', { class: 'lead', text: 'Your answers personalise the examples, the practice data, the project ideas and every AI prompt. They are saved only in this browser.' }));
 
     var chosen = p.bg;
@@ -247,7 +248,7 @@
       h('fieldset', null, h('legend', { text: '1. Where do you come from?' }), cards, customBox),
       h('div', { class: 'grid-2' },
         h('div', { class: 'field' }, h('label', { for: 'hours', text: '2. How much time can you study?' }), hours, hoursOut),
-        h('div', { class: 'field' }, h('label', { for: 'lang', text: '3. Language for AI answers' }), lang, h('p', { class: 'muted small', text: 'The site is in English. Your AI prompts will ask for answers in this language.' }))),
+        h('div', { class: 'field' }, h('label', { for: 'lang', text: '3. Language for AI answers' }), lang, h('p', { class: 'muted small', text: 'Your AI prompts will ask for answers in this language.' }))),
       h('div', { class: 'field' }, h('label', { for: 'goal', text: '4. Your goal (optional)' }), goal),
       msg,
       h('button', { class: 'btn big accent', type: 'submit' }, p.bg ? 'Save profile' : 'Save and start'));
@@ -293,7 +294,7 @@
     if (b && b.custom) {
       return ui.callout('world', '🌍 In your world: ' + label, h('div', null,
         h('p', { class: 'muted', text: 'Get an analogy built from your own description:' }),
-        ui.promptCard({ title: 'Analogy from my background', text: 'Explain "' + label + '" in data analysis using an analogy from my background: {{bg}}. Give one short concrete example and one common mistake.\n{{lang}}' })));
+        ui.promptCard({ title: DA.L('Analogy from my background', 'Analogía desde mi perfil'), text: DA.L('Explain "' + label + '" in data analysis using an analogy from my background: {{bg}}. Give one short concrete example and one common mistake.\n{{lang}}', 'Explícame "' + label + '" en análisis de datos con una analogía de mi perfil: {{bg}}. Dame un ejemplo concreto y breve y un error habitual.\n{{lang}}') })));
     }
     return ui.callout('world', '🌍 In your world: ' + label, h('p', null, link('#/profile', '', 'Choose your background'), ' to see this concept explained with examples from your own field.'));
   }
@@ -533,7 +534,7 @@
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
     var t = document.getElementById('view-title');
-    document.title = (t ? t.textContent.replace(/\s+/g, ' ').trim() + ' · ' : '') + 'Data Analyst Path';
+    document.title = (t ? DA.t(t.textContent.replace(/\s+/g, ' ').trim()) + ' · ' : '') + 'Data Analyst Path';
     window.scrollTo(0, 0);
     if (t) t.focus({ preventScroll: true });
     document.body.classList.remove('menu-open');
@@ -561,6 +562,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
+    if (DA.i18n) DA.i18n.start(); // Spanish: translate the interface as it is drawn
     ui.applyTheme();
     watchKeyboard();
     if (window.matchMedia) {

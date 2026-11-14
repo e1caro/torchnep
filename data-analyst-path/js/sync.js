@@ -143,10 +143,10 @@
     var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Data Analyst Path//Daily reminder//EN', 'CALSCALE:GREGORIAN',
       'BEGIN:VEVENT', 'UID:daily-reminder@data-analyst-path', 'DTSTAMP:' + stamp,
       'DTSTART:' + day.replace(/-/g, '') + 'T' + p2(hh) + p2(mm) + '00', 'DURATION:PT15M', 'RRULE:FREQ=DAILY',
-      'SUMMARY:' + esc('Data Analyst Path: your daily session'),
-      'DESCRIPTION:' + esc('Ten minutes keeps the streak: one lesson, one practice round or one SQL challenge.'),
+      'SUMMARY:' + esc(DA.t('Data Analyst Path: your daily session')),
+      'DESCRIPTION:' + esc(DA.t('Ten minutes keeps the streak: one lesson, one practice round or one SQL challenge.')),
       url ? 'URL:' + url : '',
-      'BEGIN:VALARM', 'TRIGGER:PT0S', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('Time for your daily data session'), 'END:VALARM',
+      'BEGIN:VALARM', 'TRIGGER:PT0S', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(DA.t('Time for your daily data session')), 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'].filter(Boolean);
     return lines.map(fold).join('\r\n') + '\r\n';
   };

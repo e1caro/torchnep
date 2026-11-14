@@ -30,7 +30,7 @@
   R.sync = function () {
     if (!R.available()) return;
     var p = ui.state.profile, t = p.remindAt.split(':');
-    try { ui.native().setReminder(!!p.remind, Number(t[0]), Number(t[1]), 'Data Analyst Path', 'Your daily round is ready. Two minutes keeps the habit going.'); } catch (e) { /* older app version */ }
+    try { ui.native().setReminder(!!p.remind, Number(t[0]), Number(t[1]), 'Data Analyst Path', DA.t('Your daily round is ready. Two minutes keeps the habit going.')); } catch (e) { /* older app version */ }
   };
 
   /* Automatic sync with an account (js/cloud.js). */
@@ -104,6 +104,8 @@
     var p = ui.state.profile, root = h('div', { class: 'view settings' });
     root.appendChild(h('h1', { id: 'view-title', tabindex: '-1', text: 'Settings' }));
     root.appendChild(h('p', { class: 'lead' }, 'Your background, study hours and language are in ', h('a', { href: '#/profile', text: 'Profile' }), '.'));
+
+    root.appendChild(section('Language', null, ui.appLangChoice(true)));
 
     root.appendChild(syncCard());
 
