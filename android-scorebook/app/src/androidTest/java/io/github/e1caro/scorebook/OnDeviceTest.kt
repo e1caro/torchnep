@@ -112,7 +112,6 @@ class OnDeviceTest {
                     // a small crop of the first system, for a quick look in the CI log
                     small(Bitmap.createBitmap(bmp, 0, (bmp.height * 0.06).toInt(), bmp.width, (bmp.height * 0.3).toInt()), 520, "pdf-crop.jpg")
                 }
-                }
             }
         }
 
