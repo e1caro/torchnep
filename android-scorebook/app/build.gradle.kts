@@ -18,6 +18,7 @@ android {
         targetSdk = 36
         versionCode = vCode
         versionName = vName
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     // Signing: the key file and its password come from environment variables, never from git.
@@ -73,4 +74,9 @@ dependencies {
 
     // LiteRT (TensorFlow Lite) runs the Basic Pitch transcription model on the phone
     implementation("com.google.ai.edge.litert:litert:1.2.0")
+
+    // on-device test: the real model on a rendered piano recording, PDF export, screenshots (CI emulator job)
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test:core:1.6.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
 }

@@ -193,10 +193,14 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--sf2", default="/usr/share/sounds/sf2/FluidR3_GM.sf2")
     ap.add_argument("--seed", type=int, default=7)
+    ap.add_argument("--wav-out", help="also save the rendered audio (16-bit WAV) here, e.g. for the on-device test")
+    ap.add_argument("--only", nargs="*", help="only these fixtures, e.g. modulation_clean")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     for piece in (piece_modulation(), piece_waltz(), piece_nocturne()):
         for variant in ("clean", "detuned"):
+            if args.only and f"{piece['name']}_{variant}" not in args.only:
+                continue
             rng = random.Random(f"{args.seed}-{piece['name']}-{variant}")
             notes = events(piece, rng, detune=(variant == "detuned"))
             with tempfile.TemporaryDirectory() as tmp:
@@ -207,6 +211,9 @@ def main():
                 audio = audio + np.random.default_rng(args.seed).normal(0, 10 ** (-48 / 20), len(audio)).astype(np.float32)
             onset, note = run_model(args.model, audio)
             name = f"{piece['name']}_{variant}"
+            if args.wav_out:
+                os.makedirs(args.wav_out, exist_ok=True)
+                sf.write(os.path.join(args.wav_out, name + ".wav"), audio, SR, subtype="PCM_16")
             with gzip.open(os.path.join(args.out, name + ".probs.gz"), "wb") as f:
                 # frames x 88 onset bytes, then frames x 88 note bytes; probability = byte / 255
                 f.write(np.round(onset * 255).astype(np.uint8).tobytes())

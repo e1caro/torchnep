@@ -44,7 +44,7 @@ into SVG (tests). Screen, PDF and tests therefore show the same layout.
 | | Basic Pitch | Onsets & Frames (Magenta) | High-resolution piano (Kong et al.) | hFT-Transformer (Sony) |
 |---|---|---|---|---|
 | Size | 204 KB TFLite, ~17 k parameters | ~100 MB (wav-input TFLite ~ 50 MB) | ~170 MB | ~ 30 M parameters |
-| Speed on a phone | ~20–40 ms per 2 s window | near real time on new phones | not real time | not real time |
+| Speed | 42 ms per 2 s window on a server CPU core pair (one window every 1.65 s, so a few % of real time; a phone is a few times slower) | near real time on new phones | not real time | not real time |
 | Piano accuracy (MAESTRO note F1) | lower (instrument-agnostic) | ~0.95 | ~0.97 | ~0.97 |
 | Outputs | per-frame **onset** and **note** probabilities for all 88 keys, plus a 3-bins-per-semitone pitch contour | onset, frame, offset, velocity | onset, offset, frame, velocity, pedal | onset, offset, frame, velocity |
 | License / availability | Apache-2.0, ships in the `basic-pitch` package | Apache-2.0 | MIT, checkpoint on Zenodo | MIT |
@@ -79,16 +79,23 @@ answer.
 2. **Calibrated audio probability.** The raw sigmoid outputs are not probabilities of "the pianist played this key".
    A logistic calibration maps features of the candidate to that probability:
 
-   `q = σ( 2.34·logit(onset peak) + 1.42·logit(mean note prob, first 170 ms) + 0.95·logit(max note prob)
-          − 0.76·ln(1 + frames) − 0.96·(note prob just before the onset) − 1.02 )`
+   ```
+   q = σ( 1.87·logit(onset peak) + 1.50·logit(mean note prob, first 170 ms) + 0.59·logit(max note prob)
+          − 0.06·ln(1 + frames) − 6.48·(note prob just before the onset)
+          − 3.35·(note prob an octave / twelfth / two octaves below) + 1.80·(onset prob there)
+          + 3.35·(best onset prob one key up or down) + 1.41·(their note prob) − 0.45 + register bias )
+   ```
 
-   The coefficients were fitted on the clean fixture recordings (logistic regression; precision 0.90–0.97 on the
-   held-out detuned ones before any musical context). The "just before" term separates real re-strikes from
-   flickers inside a held note. The per-user `PersonalModel` adds a bias per register on top (§6).
+   The coefficients were fitted by logistic regression on the fixture recordings, in tune and out of tune;
+   leave-one-piece-out precision is 0.86–0.92 at recall 0.87–0.99 on the in-tune pieces, before any musical
+   context. The "just before" term separates real re-strikes from flickers inside a held note; the harmonic terms
+   separate overtones from real octaves; the neighbour terms recover out-of-tune notes whose energy is split
+   between two keys. The register bias is learned per user (§6).
 3. **Alternatives.** For every event the decoder also scores its neighbours: one semitone down and up
-   (F vs F#), and an octave down and up (the classic harmonic error), with the same calibration evaluated on those
-   keys around the same instant. When two neighbouring keys both fire at the same instant and are not both clearly
-   present, they are merged into one event with two strong alternatives. The result for each event:
+   (F vs F#), and an octave down and up (the classic harmonic error, weighted down), with the same calibration
+   evaluated on those keys around the same instant. When two neighbouring keys both fire at the same instant and are
+   not both clearly present, they are merged into one event with two strong alternatives; a neighbour that is clearly
+   a note of its own is not offered as an alternative. The result for each event:
 
    ```
    NoteEvent(onset, offset, velocity,
@@ -132,7 +139,9 @@ P(c)     = softmax over the candidates of score(c)
 chord. A candidate that sits an octave, a twelfth or two octaves above a louder note struck at the same time gets
 no bonus: it is most likely that note's harmonic, and context must not rescue it.
 
-Every event whose result depended on the context (`g > 0` and λ > 0) is marked **AI-decided** and drawn lighter.
+A note is marked **AI-decided** and drawn lighter when the context had a real say (λ·g ≥ 0.15 for the pitch or
+the presence) or changed the answer. With the slider at Literal, notes whose audio is torn (worse than 75/25, or
+presence between 30 and 70 %) are drawn lighter too, as *unclear*.
 Tapping it shows each alternative with its final probability, its audio-only probability, and the reasons
 ("in D minor", "chord tone of A7", "same as bar 3"); one tap switches it.
 
@@ -145,19 +154,21 @@ Tapping it shows each alternative with its final probability, its audio-only pro
 * **Melody.** For the top note of the right hand and the bottom note of the left hand, the interval from the
   previous note and to the next clear note of the same line: `P(i) ∝ exp(−|i| / 3.5)` with bonuses for repeated
   notes, steps, thirds, fourths, fifths and octaves, and penalties for tritones, sevenths and leaps over an octave.
-* **Repetition.** The four clear notes before and after the event (pitches and beat positions) are compared with
-  every earlier passage. If an earlier passage matches (≥ 75 % of the context, at least 4 notes), the note heard
-  clearly *there* at the aligned position gets 80 % of the mass. An exact repeat is trusted more than a transposed
-  sequence.
+* **Repetition.** The clear notes within four beats around the event (pitches and beat positions, same hand) are
+  compared with every earlier passage. If an earlier passage repeats them (≥ 75 % of the context, at least 4
+  notes, same pitches), the note heard clearly *there* at the aligned position gets 80 % of the mass.
+  (Transposed sequences are a later addition.)
 
 ### 4.3 Key tracking that follows modulations
 
-`KeyTracker` is a hidden Markov model over the 24 major and minor keys. Time steps are beats (half-second slices
-before the tempo is known). Each step's emission is the pitch-class content of the notes sounding in it, weighted
+`KeyTracker` is a hidden Markov model over the 24 major and minor keys. Time steps are beats (the beat tracker
+runs first, on the audio-only notes). Each step's emission is the pitch-class content of the notes sounding in it, weighted
 by **audio confidence squared**, so ambiguous notes barely vote: the key is decided by what was heard clearly,
 which avoids the circle "context corrects the note, the corrected note confirms the context".
-Transitions keep the key with probability 0.985 per beat and otherwise move to nearby keys on the circle of
-fifths (relative and parallel keys close, distant keys unlikely).
+Transitions keep the key with probability 0.97 per beat and otherwise move to nearby keys on the circle of
+fifths (relative and parallel keys close, distant keys unlikely). When the evidence for a change is thin, the
+posterior splits between the two keys, which makes the scale prior neutral between them instead of pulling
+notes back to the old key.
 
 * Live, the **forward filter** gives the current key estimate.
 * At the end of a take, **forward–backward** gives `P(key | t)` for the corrector and **Viterbi** gives key
@@ -182,14 +193,17 @@ The same principle is used for time: the observed timing is the evidence, the me
 * **Tempo.** Onset strength from the decoded notes (velocity and chord size), autocorrelation over 40–220 BPM,
   with a log-normal prior centred on 100 BPM.
 * **Beats.** Dynamic-programming beat tracking (Ellis 2007), so rubato and gradual tempo changes are followed.
-* **Meter.** 2/4, 3/4, 4/4 (and 6/8 when beats are mostly divided in three), chosen from the accent pattern
-  (bass notes, chord onsets, long notes) on candidate downbeats, with a prior for 4/4.
+* **Meter.** 2/4, 3/4, 4/4 (and 6/8 when beats are mostly divided in three), chosen from the accent pattern on
+  candidate downbeats — the lowest notes, long notes and loud notes; the number of notes counts only a little,
+  so a waltz's "pah-pah" chords do not outvote its "oom" bass — with a prior for 4/4.
 * **Quantization.** Each beat chooses its subdivision (1, 2, 3, 4, 6 or 8) by minimizing timing error plus a
   complexity cost. The **strictness** setting scales that cost: strict prefers eighths and simple rhythms, loose
   keeps sixteenths, triplets and thirty-seconds.
-* **Durations.** Offsets of piano notes are unreliable (pedal, decay), so a duration is chosen among notatable
-  values by `log-likelihood(observed / value) + log P(value | meter, position)`, then cut at the next onset in
-  the same staff (one voice per staff in version 1), with ties across beats and barlines where needed.
+* **Durations.** Offsets of piano notes are unreliable (pedal, decay; the model's note activity for high notes
+  fades after ~150 ms), so in the score a note lasts until the next note of the same hand (one voice per staff in
+  version 1). Only when the next note is more than a bar away does the note keep its own length, chosen among
+  notatable values by `log-likelihood(observed / value) + log P(value | meter)`, followed by rests. Ties across
+  beats and bar lines are added where needed.
 * **Hands.** A dynamic assignment per onset group keeps each hand's span under a tenth and follows each hand's
   moving centre, so the split point moves with the music instead of being fixed at middle C.
 

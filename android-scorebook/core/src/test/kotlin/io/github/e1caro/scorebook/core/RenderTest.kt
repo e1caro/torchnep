@@ -28,6 +28,13 @@ class RenderTest {
             pages.forEachIndexed { i, p -> File(dir, "$name-p${i + 1}.svg").writeText(SvgRenderer.render(p, "Bravura.otf")) }
             File(dir, "$name.musicxml").writeText(MusicXmlWriter.write(score))
             File(dir, "$name.mid").writeBytes(MidiWriter.write(t, title))
+            // the live staff halfway through, in the app's stage colours
+            val now = t.notes.map { it.onset }.sorted().let { it[it.size / 2] }
+            val live = t.notes.filter { it.onset <= now }.map {
+                io.github.e1caro.scorebook.core.engrave.LiveNote(it.eventId, it.pitch, it.onset, it.offset, it.hand, it.decision.name == "CONTEXT")
+            }
+            val lp = io.github.e1caro.scorebook.core.engrave.LiveStaff(10.0).layout(live, t.keyAtTick(t.grid.tickOf(t.grid.position(now)).toInt()), now, 800.0)
+            File(dir, "$name-live.svg").writeText(SvgRenderer.render(lp, "Bravura.otf", light = "#6FA8DC", ink = "#F3EBDD", background = "#0E0F12", faint = "#8C8577", selected = "#E0A458"))
             println("$name: ${score.measures.size} measures, ${pages.size} pages")
         }
     }

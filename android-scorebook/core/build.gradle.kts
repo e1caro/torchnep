@@ -13,7 +13,8 @@ kotlin {
 }
 
 dependencies {
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    // api: the app uses core types whose serializers reference kotlinx.serialization
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
     testImplementation(kotlin("test"))
     testImplementation("junit:junit:4.13.2")
 }

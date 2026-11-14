@@ -10,6 +10,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,8 +55,9 @@ fun KeepScreenOn() {
 }
 
 @Composable
-fun ScorebookRoot(vm: ScorebookViewModel = viewModel()) {
+fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null) {
     var screen by rememberSaveable { mutableStateOf("listen") }
+    LaunchedEffect(openTake) { if (openTake != null) vm.openTake(openTake) }
     val take by vm.take.collectAsState()
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
