@@ -137,6 +137,7 @@
     ].map(function (x) {
       return h('li', null, h('a', { href: x[0] }, h('span', { class: 'ml-ico', 'aria-hidden': 'true', text: x[1] }), h('span', { class: 'grow' }, h('strong', { text: x[2] }), h('small', { text: x[3] })), h('span', { 'aria-hidden': 'true', text: '›' })));
     }))));
+    if (DA.tour) root.appendChild(h('p', { class: 'tour-replay' }, DA.tour.button('btn ghost')));
     var wide = !ui.narrow();
     root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'Streak calendar' })), streakCard()));
     root.appendChild(h('details', { class: 'fold-sec', open: wide }, h('summary', null, h('strong', { text: 'This week' })), weekCard()));

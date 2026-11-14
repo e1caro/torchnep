@@ -161,13 +161,9 @@ async function playRound(page, wrongAt = []) {
   ok(await page.locator('.lab-world').count() === 9 && await page.locator('.lab-level').count() === 32, 'SQLab: a world map with 8 worlds, 32 levels and free exploration');
   await page.goto(BASE + '/index.html#/lab/retail/r1');
   await page.waitForSelector('.callout.ok', { timeout: 20000 });
-  ok(await page.locator('.sql-keys .key').count() > 15, 'SQL shortcut keys are shown');
-  await page.fill('.sql-editor', '');
-  await page.click('.sql-keys .key:has-text("SELECT")');
-  await page.click('.sql-keys .key >> text="*"');
-  await page.click('.sql-keys .key:has-text("FROM")');
-  await page.click('.sql-keys .table-key:has-text("orders")');
-  ok((await page.inputValue('.sql-editor')).trim() === 'SELECT * FROM orders', 'shortcut keys type SQL: "' + (await page.inputValue('.sql-editor')).trim() + '"');
+  const keyTexts = await page.$$eval('.sql-keys .key', (ks) => ks.map((k) => k.textContent));
+  ok(keyTexts.length >= 8 && keyTexts.every((t) => !/[A-Za-z]/.test(t)), 'SQLab: you type the query; the touch row only has symbols, no keywords or table names (' + keyTexts.join(' ') + ')');
+  ok(await page.locator('.tile-bank, .col-key').count() === 0 && await page.locator('.schema .col-name').count() > 5, 'SQLab: no answer tiles and no click-to-insert columns, the schema is for reading');
   await page.fill('.sql-editor', await page.evaluate(() => DA.challenges.find((c) => c.id === 'r1').solution));
   await page.click('.lab-actions button:has-text("Check")');
   await page.waitForSelector('.feedback .callout.ok');
@@ -800,6 +796,51 @@ async function playRound(page, wrongAt = []) {
   await page.waitForSelector('.qcard');
   ok(true, 'offline: practice rounds work');
   await desktop.setOffline(false);
+
+  /* ---------- Spanish (Spain) and the Dot tour (phone) ---------- */
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-GB' });
+    const pg = await ctx.newPage();
+    pg.on('pageerror', (e) => problems.push('es page error: ' + e));
+    await pg.addInitScript(() => {
+      if (!sessionStorage.getItem('seeded')) {
+        sessionStorage.setItem('seeded', '1');
+        localStorage.setItem('data-analyst-path.v1', JSON.stringify({ v: 2, profile: { bg: 'finance', hours: 6, lang: 'English', goal: 'Junior analyst' } }));
+      }
+    });
+    await pg.goto(BASE + '/index.html#/settings');
+    await pg.waitForSelector('.lang-choice');
+    ok(await pg.evaluate(() => DA.lang === 'en' && document.documentElement.lang === 'en'), 'the app starts in English for an English browser');
+    await Promise.all([pg.waitForNavigation(), pg.check('.lang-choice input[value="es"]')]);
+    await pg.waitForSelector('.tabbar');
+    const es = await pg.evaluate(() => ({ lang: DA.lang, html: document.documentElement.lang, nav: document.querySelector('.tabbar [data-nav="home"]').textContent.trim(), ai: DA.ui.state.profile.lang, lesson: DA.lessons[0].title }));
+    ok(es.lang === 'es' && es.html === 'es-ES' && es.nav === 'Inicio' && es.ai === 'Spanish' && /analista/.test(es.lesson), 'Settings switches the whole app to Spanish, and AI answers follow ' + JSON.stringify(es));
+    await pg.goto(BASE + '/index.html#/arcade/blocks/1');
+    await pg.waitForSelector('.bank .tile');
+    ok(/[áéíóúñ¿]|Lista|Cuánt|Qué/.test(await txt(pg, '.view')), 'a generated SQL blocks puzzle is worded in Spanish');
+    await pg.goto(BASE + '/index.html#/');
+    await pg.waitForSelector('.tour-offer');
+    ok(/tour con Dot/.test(await txt(pg, '.tour-offer')), 'home offers the Dot tour, in Spanish');
+    await pg.click('.tour-offer .btn.accent');
+    await pg.waitForSelector('.tour');
+    const steps = await pg.evaluate(() => DA.tour.steps().length);
+    let ringed = 0;
+    for (let i = 0; i < steps; i++) {
+      await pg.waitForTimeout(350);
+      if (await pg.evaluate(() => !!document.querySelector('.tour-ring'))) ringed++;
+      ok(i > 0 || await pg.evaluate(() => document.activeElement && document.activeElement.id === 'tour-title'), 'tour: focus moves to the step title');
+      await pg.click('.tour .btn.accent');
+    }
+    await pg.waitForTimeout(300);
+    ok(ringed === steps && await pg.evaluate(() => !document.querySelector('.tour') && DA.tour.seen() && !document.querySelector('.tour-offer')), 'tour: ' + steps + ' steps across the app, each ringing its part, then it is marked as seen (' + ringed + ' ringed)');
+    await pg.goto(BASE + '/index.html#/me');
+    await pg.click('.tour-replay button');
+    await pg.waitForSelector('.tour');
+    await pg.keyboard.press('Escape');
+    ok(await pg.evaluate(() => !document.querySelector('.tour') && !document.querySelector('.tour-ring')), 'tour: replay from the You page, Escape leaves it');
+    await pg.screenshot({ path: path.join(SHOTS, 'es-phone-me.png') });
+    await ctx.close();
+  }
 
   console.log('\nconsole / network problems: ' + (problems.length ? '\n' + problems.join('\n') : 'none'));
   if (problems.length) failures++;

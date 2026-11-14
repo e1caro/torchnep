@@ -324,18 +324,13 @@
     return h('div', { class: 'predict' }, h('pre', { class: 'lab-code' }, c.code), h('p', { class: 'muted small', text: 'What does this give?' }), h('div', { class: 'qopts' }, opts), fb);
   };
 
-  // Tiles that build code by tapping: the shuffled lines of a "put in order" task, or the tokens of the answer (no typing on a phone).
-  function joinTokens(parts) {
-    var out = '';
-    parts.forEach(function (t) { out += (!out || /[(\[.]$/.test(out) || /^[),.\]]/.test(t) ? '' : ' ') + t; });
-    return out;
-  }
+  // The shuffled lines of a "put in order" task, tapped into place (the only lab level answered with tiles).
   function tileBox(label, tiles, setText, sep) {
     var used = [], box = h('div', { class: 'tiles', role: 'group', 'aria-label': label });
     var row = h('div', { class: 'tile-bank' });
     function paint() {
       var parts = used.map(function (j) { return tiles[j]; });
-      setText(sep === ' ' ? joinTokens(parts) : parts.join(sep));
+      setText(parts.join(sep));
       buttons.forEach(function (b, i) { b.disabled = used.indexOf(i) >= 0; });
     }
     var buttons = tiles.map(function (t, i) { return h('button', { class: 'tile', type: 'button', onclick: function () { used.push(i); paint(); } }, t); });
@@ -350,13 +345,15 @@
   L.orderBox = function (c, setText) {
     return tileBox('Tap the lines in the right order (several orders can work):', seeded(c.lines.slice(), c.id), setText, '\n');
   };
-  L.tokens = function (code) {
-    return String(code).replace(/\s+/g, ' ').match(/"[^"]*"|'[^']*'|\[[^\]]*\]|[A-Za-z_][\w.]*\(?|\d+(?:\.\d+)?|<=|>=|<>|!=|==|[^\s]/g) || [];
-  };
-  L.tapBox = function (c, setText, extra) {
-    var box = tileBox('Tap mode: build the answer from these pieces (some are not needed). You can still type.', seeded(L.tokens(c.solution).concat(extra || []), c.id + ':tap'), setText, ' ');
-    box.classList.add('tap-mode');
-    return box;
+  // One way to answer per activity: in the labs you type the code yourself (the arcade is where you build answers
+  // from tiles). On a touch screen a row of symbols helps with the characters a phone keyboard hides; it never offers
+  // words, functions or column names. Hidden on computers with a keyboard and mouse (see .sym-keys in the CSS).
+  L.symbolBar = function (label, syms, insert) {
+    return h('div', { class: 'sql-keys sym-keys', role: 'toolbar', 'aria-label': label },
+      syms.map(function (k) {
+        var s = typeof k === 'string' ? [k, k] : k;
+        return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + s[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(s[1], s[2]); } }, s[0]);
+      }));
   };
 
   // Case file: after the code passes, one last question about what the result means.
@@ -472,10 +469,13 @@
     }
 
     function actions() { return c.type === 'predict' ? h('span') : L.actionBar([hintBtn].concat(Array.prototype.slice.call(arguments))); }
-    // A view hands over its editor, so tiles can write into it: line tiles for "put in order", token tiles on a phone.
+    // A view hands over its editor. In a "put in order" level the line tiles are the only input, so the editor
+    // only shows the result; everywhere else you type.
     function editor(api) {
-      if (c.type === 'order' && c.lines) tilesHost.appendChild(L.orderBox(c, api.set));
-      else if (api.tap !== false && c.type !== 'predict' && L.embed && ui.narrow()) tilesHost.appendChild(L.tapBox(c, api.set, api.extra));
+      if (c.type === 'order' && c.lines) {
+        tilesHost.appendChild(L.orderBox(c, api.set));
+        if (api.lock) api.lock();
+      }
     }
     function ran() { fold(); feedback.scrollIntoView({ block: 'nearest' }); }
     return { root: root, main: main, work: work, side: side, setFeedback: setFeedback, verdict: verdict, session: session, actions: actions, ran: ran, editor: editor };

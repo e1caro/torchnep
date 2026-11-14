@@ -42,14 +42,9 @@
       editor.focus({ preventScroll: true });
       remember();
     }
-    var KEYS = [['df', 'df'], ['["col"]', '[""]', 2], ['[[ ]]', '[[""]]', 3], ['.head()', '.head()', 1], ['.shape', '.shape'], ['.groupby()', '.groupby("")', 2],
-      ['.agg()', '.agg()', 1], ['.sum()', '.sum()'], ['.mean()', '.mean()'], ['.value_counts()', '.value_counts()'], ['.sort_values()', '.sort_values("", ascending=False)', 20],
-      ['ascending=False', 'ascending=False'], ['.merge()', '.merge(, on="")', 7], ['pd.to_datetime()', 'pd.to_datetime()', 1], ['.str.', '.str.'], ['.dt.', '.dt.'],
-      ['==', ' == '], ['>=', ' >= '], ['&', ' & '], ['|', ' | '], ['( )', '()', 1], ['"', '""', 1], ['print()', 'print()', 1], ['result =', 'result = ']];
-    work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Python shortcuts' },
-      KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
+    work.appendChild(L.symbolBar('Python symbols', ['[', ']', '(', ')', ['"', '""', 1], ['=', ' = '], '.', [',', ', '], ':', ['&', ' & '], ['|', ' | '], ['>', ' > '], ['<', ' < ']], insert));
     work.appendChild(editor);
-    P2.editor({ set: function (v) { undo.push(editor.value); editor.value = v; remember(); }, extra: ['.sum()', '.mean()', 'df', '==', '1'] });
+    P2.editor({ set: function (v) { undo.push(editor.value); editor.value = v; remember(); }, lock: function () { editor.readOnly = true; } });
 
     var out = h('div', { class: 'result', 'aria-live': 'polite' });
     var runBtn = h('button', { class: 'btn', type: 'button', onclick: function () { run(false); } }, '▶ Run');

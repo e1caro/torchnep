@@ -295,15 +295,9 @@
       applyValueWithMemory(nextVal, pos, pos);
       editor.focus({ preventScroll: true });
     }
-    var KEYS = [['SELECT', 'SELECT '], ['FROM', 'FROM '], ['WHERE', 'WHERE '], ['JOIN', 'JOIN '], ['ON', 'ON '], ['GROUP BY', 'GROUP BY '], ['ORDER BY', 'ORDER BY '], ['HAVING', 'HAVING '],
-      ['LIMIT', 'LIMIT '], ['COUNT(*)', 'COUNT(*)'], ['SUM()', 'SUM()', 1], ['AVG()', 'AVG()', 1], ['ROUND()', 'ROUND()', 1], ['AS', ' AS '], ['AND', ' AND '], ['OR', ' OR '], ['DESC', ' DESC'],
-      ['*', '*'], [',', ', '], ['( )', '()', 1], ["'", "''", 1], ['=', ' = '], ['>', ' > '], ['<', ' < '], ['.', '.']];
-    var keys = h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'SQL shortcuts' },
-      ds.tables.map(function (t) { return h('button', { class: 'key table-key', type: 'button', onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(t.name + ' '); } }, t.name); }),
-      KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); }));
+    var keys = L.symbolBar('SQL symbols', ['*', [',', ', '], '(', ')', ["'", "''", 1], ['=', ' = '], ['>', ' > '], ['<', ' < '], '.', ';'], insert);
     var setCode = function (v) { applyValueWithMemory(v, v.length, v.length); };
-    if (cur && cur.type === 'order' && cur.lines) main.appendChild(L.orderBox(cur, setCode));
-    else if (cur && cur.type !== 'predict' && L.embed && ui.narrow()) main.appendChild(L.tapBox(cur, setCode, ['WHERE', 'COUNT(*)', ',']));
+    if (cur && cur.type === 'order' && cur.lines) { main.appendChild(L.orderBox(cur, setCode)); editor.readOnly = true; keys.classList.add('hidden'); }
     var editorBits = h('div', { class: cur && cur.type === 'predict' ? 'hidden' : '' }, keys, editor, L.actionBar([hintBtn, runBtn, checkBtn]),
       h('div', { class: 'row actions-more' }, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
     main.appendChild(editorBits);
@@ -422,7 +416,7 @@
       inner.appendChild(h('details', { class: 'schema' },
         h('summary', null, h('code', { text: t.name }), h('span', { class: 'muted small', text: ' · ' + t.note })),
         h('ul', null, t.cols.map(function (c) {
-          return h('li', null, h('button', { class: 'col-key', type: 'button', title: 'Insert ' + c[0], 'aria-label': 'Insert column ' + c[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(c[0]); } }, c[0]), ' ', h('span', { class: 'muted small', text: c[1] + (c[2] ? ' · ' + c[2] : '') }));
+          return h('li', null, h('code', { class: 'col-name', text: c[0] }), ' ', h('span', { class: 'muted small', text: c[1] + (c[2] ? ' · ' + c[2] : '') }));
         })),
         h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
           showTablePreview(t.name, 15);

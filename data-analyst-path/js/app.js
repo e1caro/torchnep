@@ -135,6 +135,8 @@
         h('div', { class: 'row' },
           link('#/feed', 'btn big ghost', 'Peek at Discover'),
           link('#/journey', 'btn big ghost', 'See the journey'))));
+      var offer0 = DA.tour && DA.tour.offerCard();
+      if (offer0) root.appendChild(offer0);
     } else {
       var G = DA.game, n = ui.doneCount(), total = DA.lessons.length, li = G.levelInfo();
       var remaining = DA.totalHours - ui.doneHours(), line = DA.mascot.homeLine();
@@ -149,6 +151,8 @@
         continueButton(),
         DA.mascot.say(line.mood, line.text, line.href ? link(line.href, 'btn small', line.cta) : null)));
 
+      var offer = DA.tour && DA.tour.offerCard();
+      if (offer) root.appendChild(offer);
       root.appendChild(todayCard());
       if (DA.pwa) { var inst = DA.pwa.installCard(); if (inst) root.appendChild(inst); }
 
