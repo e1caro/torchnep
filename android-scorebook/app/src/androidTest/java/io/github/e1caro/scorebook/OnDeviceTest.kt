@@ -104,7 +104,7 @@ class OnDeviceTest {
                     val bmp = Bitmap.createBitmap(page.width * 2, page.height * 2, Bitmap.Config.ARGB_8888)
                     bmp.eraseColor(Color.WHITE)
                     page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    File(out, "4-pdf-page1.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    File(out, "6-pdf-page1.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     // ink on the page (title, staves, notes): not blank
                     val px = IntArray(bmp.width * bmp.height).also { bmp.getPixels(it, 0, bmp.width, 0, 0, bmp.width, bmp.height) }
                     val dark = px.count { Color.red(it) < 128 }
@@ -129,6 +129,10 @@ class OnDeviceTest {
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].closeTake() }
             Thread.sleep(2500)
             shot("3-listen.png")
+        }
+        for ((tab, file) in listOf("library" to "4-library.png", "settings" to "5-settings.png")) {
+            val i2 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, tab).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ActivityScenario.launch<MainActivity>(i2).use { Thread.sleep(3000); shot(file) }
         }
     }
 

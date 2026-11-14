@@ -38,7 +38,11 @@ class PageRenderer(private val music: Typeface, var palette: Palette) {
     private fun color(i: Ink) = when (i) { Ink.NORMAL -> palette.ink; Ink.LIGHT -> palette.light; Ink.SELECTED -> palette.selected; Ink.FAINT -> palette.faint }
 
     fun draw(canvas: Canvas, page: Page, selected: Int? = null, highlight: Set<Int> = emptySet()) {
-        palette.background?.let { canvas.drawColor(it) }
+        // only the page's own area: drawColor() would paint the whole window behind other UI
+        palette.background?.let {
+            fill.color = it
+            canvas.drawRect(0f, 0f, page.width.toFloat(), page.height.toFloat(), fill)
+        }
         // selection halo behind the tapped note
         for (h in page.hits) {
             if (h.eventId == selected || h.eventId in highlight) {

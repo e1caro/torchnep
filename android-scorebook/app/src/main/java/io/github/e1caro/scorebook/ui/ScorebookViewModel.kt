@@ -52,6 +52,7 @@ data class ListenUi(
     val notes: List<LiveNote> = emptyList(),
     val now: Double = 0.0,
     val key: Key = Key(0, Mode.MAJOR),
+    val bpm: Int = 0,
     val midiDevice: String? = null,
     val micError: Boolean = false,
     val lastSaved: TakeMeta? = null,
@@ -137,6 +138,8 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setSilence(seconds: Float) { prefs.silenceSeconds = seconds; recorder.silenceSeconds = seconds.toDouble() }
 
+    val silenceSeconds: Int get() = prefs.silenceSeconds.toInt()
+
     private fun midiNow(): Double = (System.nanoTime() - takeStartNanos) / 1e9
 
     private fun midiNote(pitch: Int, velocity: Int) {
@@ -177,7 +180,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         session = LiveSession(if (useModel) model else null, repo.personal(), currentSettings())
         wav = if (audio.isRunning) WavWriter(repo.audioFile(id), BasicPitchStream.SAMPLE_RATE) else null
         if (preRoll.isNotEmpty()) feed(preRoll)
-        _listen.update { it.copy(status = ListenStatus.RECORDING, notes = emptyList(), message = null) }
+        _listen.update { it.copy(status = ListenStatus.RECORDING, notes = emptyList(), bpm = 0, now = 0.0, message = null) }
         liveJob?.cancel()
         liveJob = viewModelScope.launch {
             while (isActive && _listen.value.status == ListenStatus.RECORDING) {
@@ -185,7 +188,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 val s = session ?: break
                 val now = if (midiName != null) midiNow() else s.seconds
                 val view = withContext(workerDispatcher) { s.view(now) }
-                _listen.update { it.copy(notes = view.notes, key = view.key, now = now) }
+                _listen.update { it.copy(notes = view.notes, key = view.key, now = now, bpm = view.bpm) }
             }
         }
     }
@@ -306,6 +309,13 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         val newLib = lib.copy(songs = songs)
         repo.save(newLib); _library.value = newLib
         _take.update { it?.copy(favorite = !c.favorite) }
+    }
+
+    fun toggleFavoriteSong(songId: String) {
+        val lib = repo.library()
+        val newLib = lib.copy(songs = lib.songs.map { if (it.id == songId) it.copy(favorite = !it.favorite) else it })
+        repo.save(newLib); _library.value = newLib
+        if (_take.value?.songId == songId) _take.update { it?.copy(favorite = !it.favorite) }
     }
 
     fun rename(title: String) {

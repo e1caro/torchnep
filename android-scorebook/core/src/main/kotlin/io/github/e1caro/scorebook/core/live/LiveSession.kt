@@ -15,7 +15,7 @@ import io.github.e1caro.scorebook.core.transcribe.NoteDecoder
 import io.github.e1caro.scorebook.core.transcribe.NoteEvent
 
 /** What the live screen shows. */
-data class LiveView(val notes: List<LiveNote>, val key: Key, val keyConfidence: Double, val seconds: Double)
+data class LiveView(val notes: List<LiveNote>, val key: Key, val keyConfidence: Double, val seconds: Double, val bpm: Int = 0)
 
 /**
  * One take being recorded: audio (22.05 kHz) goes through the model and the live decoder; MIDI goes through the
@@ -53,7 +53,7 @@ class LiveSession(model: FrameModel?, private val personal: PersonalModel = Pers
             LiveNote(e.id, d.pitch, e.onset, e.offset, hand, d.decision == Decision.CONTEXT || d.decision == Decision.UNSURE)
         }
         val key = t.keys.lastOrNull()?.key ?: Key(0, Mode.MAJOR)
-        return LiveView(notes, key, 1.0, now)
+        return LiveView(notes, key, 1.0, now, if (notes.size >= 8) t.bpm else 0)
     }
 
     /** Ends the take: decodes the remaining audio. */
