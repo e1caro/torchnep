@@ -12,4 +12,8 @@ adb pull /sdcard/Android/data/io.github.e1caro.scorebook/files/. device-out/ || 
 adb logcat -d -t 400 > device-out/logcat.txt || true
 ls -la device-out
 cat device-out/report.txt || true
+# screenshots inline in the log as well (base64), for reviewers who cannot download artifacts
+if [ "${SCOREBOOK_PRINT_SHOTS:-0}" = "1" ]; then
+  for f in device-out/*.png; do echo "BEGIN-PNG $(basename "$f")"; base64 -w 0 "$f"; echo; echo "END-PNG"; done
+fi
 grep -q "^OK (" instrument.txt

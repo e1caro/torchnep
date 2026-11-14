@@ -2,6 +2,9 @@ package io.github.e1caro.scorebook
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.Color
+import android.graphics.pdf.PdfRenderer
+import android.os.ParcelFileDescriptor
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -81,9 +84,21 @@ class OnDeviceTest {
         )
         val score = ScoreBuilder().build(t, title, "${t.mainKey.displayName} · 4/4 · ♩ = ${t.bpm}")
         val pdf = app.exporter.pdf(score)
-        File(out, "score.pdf").writeBytes(pdf)
+        val pdfFile = File(out, "score.pdf").also { it.writeBytes(pdf) }
         assertTrue(pdf.size > 5000)
         assertEquals("%PDF", String(pdf, 0, 4))
+        // page 1 as the system's PDF viewer draws it
+        ParcelFileDescriptor.open(pdfFile, ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
+            PdfRenderer(fd).use { r ->
+                assertTrue(r.pageCount >= 1)
+                r.openPage(0).use { page ->
+                    val bmp = Bitmap.createBitmap(page.width * 2, page.height * 2, Bitmap.Config.ARGB_8888)
+                    bmp.eraseColor(Color.WHITE)
+                    page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                    File(out, "4-pdf-page1.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                }
+            }
+        }
 
         // the app: take screen, a tapped AI-decided note, the listening screen
         val intent = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAKE, id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
