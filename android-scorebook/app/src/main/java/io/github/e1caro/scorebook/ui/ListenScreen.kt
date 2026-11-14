@@ -121,7 +121,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
                 !granted -> "Allow the microphone so Scorebook can listen. Everything stays on this phone."
                 ui.status == ListenStatus.RECORDING -> "Keep playing. The take ends by itself after ${vm.silenceSeconds} s of silence."
                 ui.status == ListenStatus.SAVING -> "Finding the key, tempo and chords, and engraving the sheet music."
-                else -> "Recording starts by itself when you play and stops after ${vm.silenceSeconds} s of silence. Your score appears in the Library."
+                else -> "Starts by itself when you play, stops after ${vm.silenceSeconds} s of silence."
             }
             Text(headline, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = if (recording) RecordRed else Ink)
             Spacer(Modifier.height(4.dp))

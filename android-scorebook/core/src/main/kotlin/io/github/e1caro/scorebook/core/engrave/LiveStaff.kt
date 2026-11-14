@@ -22,7 +22,7 @@ class LiveStaff(val staffSpace: Double = 10.0) {
     fun layout(notes: List<LiveNote>, key: Key, now: Double, width: Double, windowSeconds: Double = 8.0): Page {
         val items = ArrayList<Item>()
         val hits = ArrayList<Hit>()
-        val trebleTop = 5.5 * sp
+        val trebleTop = 4.5 * sp
         val bassTop = trebleTop + 10 * sp
         val tops = listOf(trebleTop, bassTop)
         val x0 = 1.6 * sp
@@ -73,7 +73,7 @@ class LiveStaff(val staffSpace: Double = 10.0) {
         }
         // "now" line
         items.add(Line(right + 1.2 * sp, trebleTop - 2 * sp, right + 1.2 * sp, bassTop + 6 * sp, 0.1 * sp, Ink.SELECTED))
-        return Page(width, bassTop + 4 * sp + 5.5 * sp, items, hits)
+        return Page(width, bassTop + 4 * sp + 4.0 * sp, items, hits)
     }
 
     private fun y(top: Double, staff: Int, d: Int) = top + ((if (staff == 0) 38 else 26) - d) * sp / 2
