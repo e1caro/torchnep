@@ -79,10 +79,10 @@
     else if (st.count > 0 && st.atRisk) msg = left + ' XP keeps your ' + st.count + '-day streak going.';
     else msg = left + ' XP today' + (st.count ? '' : ' starts a streak') + '.';
     var rows = [
-      { done: qs.lesson, icon: '📘', name: 'Learn', text: 'Finish a lesson, a quiz or a note', href: nx ? '#/lesson/' + nx.id : '#/roadmap', cta: 'Go' },
-      { done: qs.drill, icon: '⚡', name: 'Practise', text: due ? due + ' due for review · one 5-question round' : 'One 5-question round, about 2 minutes', href: '#/practice/play', cta: 'Start' },
+      { done: qs.lesson, icon: '📘', name: 'Learn', text: 'Complete a mission, or save a quiz answer or a note', href: nx ? '#/mission/' + nx.id : '#/journey', cta: 'Go' },
+      { done: qs.drill, icon: '⚡', name: 'Practise', text: due ? due + ' due for review · a 5-question round or a mission Check' : 'A 5-question round or a mission Check, about 2 minutes', href: '#/practice/play', cta: 'Start' },
       touch
-        ? { done: qs.sql, icon: '🧱', name: 'Code', text: 'Solve 3 puzzles in a round of SQL blocks (no typing)', href: '#/arcade/blocks/next', cta: 'Build' }
+        ? { done: qs.sql, icon: '🧱', name: 'Code', text: 'Solve a mission Try challenge, or 3 SQL blocks puzzles (no typing)', href: '#/arcade/blocks/next', cta: 'Build' }
         : { done: qs.sql, icon: '🗄️', name: 'Code', text: sq ? 'Solve a SQL challenge: ' + sq.title : 'Practise in SQLab', href: sq ? '#/lab/' + sq.ds + '/' + sq.id : '#/lab', cta: 'Open' },
     ];
     return h('section', { class: 'card today', 'aria-labelledby': 'today-h' },
@@ -106,6 +106,22 @@
   }
 
 
+  function continueButton() {
+    var J = DA.journey, cur = J.current();
+    if (!cur) {
+      var open = DA.modules.filter(function (m) { return !J.boss(m.id).won; })[0];
+      return open ? h('a', { class: 'continue-btn', href: '#/boss/' + open.id },
+        h('span', { class: 'grow' }, h('small', { text: 'Every mission done · Boss case' }), h('strong', { text: J.boss(open.id).title })),
+        h('span', { class: 'cont-go', 'aria-hidden': 'true', text: '→' })) : null;
+    }
+    var l = cur.lesson, col = DA.unitColor(DA.modules.indexOf(l.module)), fresh = ui.doneCount() === 0 && cur.index === 1;
+    return h('a', { class: 'continue-btn', href: '#/mission/' + l.id + '/' + cur.step, style: '--mc:' + col[0] + ';--mcd:' + col[1] },
+      h('span', { class: 'grow' },
+        h('small', { text: (fresh ? 'Start' : 'Continue') + ' · Mission ' + l.number + ' · Step ' + cur.index + ' of ' + cur.total + ': ' + J.NAMES[cur.step] }),
+        h('strong', { text: l.title })),
+      h('span', { class: 'cont-go', 'aria-hidden': 'true', text: '▶' }));
+  }
+
   V.home = function () {
     var b = ui.bg();
     var root = h('div', { class: 'view home' });
@@ -118,9 +134,9 @@
         DA.mascot.say('happy', 'Hi, I\'m Dot. Tell me where you come from and I will tune everything to you.', link('#/profile', 'btn accent', 'Start (1 minute)')),
         h('div', { class: 'row' },
           link('#/feed', 'btn big ghost', 'Peek at Discover'),
-          link('#/roadmap', 'btn big ghost', 'See the path'))));
+          link('#/journey', 'btn big ghost', 'See the journey'))));
     } else {
-      var G = DA.game, next = ui.nextLesson(), n = ui.doneCount(), total = DA.lessons.length, li = G.levelInfo();
+      var G = DA.game, n = ui.doneCount(), total = DA.lessons.length, li = G.levelInfo();
       var remaining = DA.totalHours - ui.doneHours(), line = DA.mascot.homeLine();
       root.appendChild(h('section', { class: 'hero-card' },
         h('div', { class: 'hero-top' },
@@ -130,21 +146,11 @@
             ui.state.profile.goal ? h('p', { class: 'hero-goal' }, 'Goal: ', h('strong', { text: ui.state.profile.goal })) : null),
           h('a', { class: 'hero-level', href: '#/me', 'aria-label': 'Level ' + li.level + ', ' + li.title + '. ' + li.next + ' XP to the next level.' },
             h('small', { text: 'LEVEL' }), h('b', { text: String(li.level) }), h('span', { text: li.title }))),
+        continueButton(),
         DA.mascot.say(line.mood, line.text, line.href ? link(line.href, 'btn small', line.cta) : null)));
 
       root.appendChild(todayCard());
       if (DA.pwa) { var inst = DA.pwa.installCard(); if (inst) root.appendChild(inst); }
-
-      if (next) {
-        var col = DA.unitColor(DA.modules.indexOf(next.module));
-        root.appendChild(h('a', { class: 'next-card', href: '#/lesson/' + next.id, style: '--mc:' + col[0] + ';--mcd:' + col[1] },
-          h('span', { class: 'next-icon', 'aria-hidden': 'true', text: next.module.icon }),
-          h('span', { class: 'grow' },
-            h('small', { text: (n === 0 ? 'Start here' : 'Up next') + ' · Lesson ' + next.number + ' · ' + ui.fmtHours(next.hours) + ' · +' + ui.XP.lesson(next) + ' XP' }),
-            h('strong', { text: next.title }),
-            h('span', { class: 'next-unit', text: next.module.title + ' · ' + ui.moduleDone(next.module) + '/' + next.module.lessons.length + ' done' })),
-          h('span', { class: 'next-go', 'aria-hidden': 'true', text: '→' })));
-      }
 
       var teaser = DA.feed.teaser();
       if (teaser) root.appendChild(teaser);
@@ -160,7 +166,7 @@
       grid.appendChild(card('Course progress', h('div', null,
         ui.progressBar(100 * n / total, 'Course progress'),
         h('p', { class: 'muted small', text: n + ' of ' + total + ' lessons · ' + (remaining > 0 ? 'about ' + weeksText(weeksFor(remaining)) + ' to go at ' + ui.state.profile.hours + ' h / week' : 'course complete') }),
-        link('#/roadmap', 'small', 'Open your path →'))));
+        link('#/journey', 'small', 'Open your journey →'))));
       root.appendChild(grid);
 
       root.appendChild(h('details', { class: 'card fold' },
@@ -195,7 +201,7 @@
       root.appendChild(h('section', { class: 'section' },
         h('h2', { text: 'The path at a glance' }),
         h('div', { class: 'modules-mini' }, DA.modules.map(function (m) {
-          return link('#/roadmap', 'mini', [h('span', { class: 'mini-icon', 'aria-hidden': 'true', text: m.icon }), h('span', null, h('strong', { text: m.title }), h('small', { text: m.lessons.length + ' lessons' }))]);
+          return link('#/journey', 'mini', [h('span', { class: 'mini-icon', 'aria-hidden': 'true', text: m.icon }), h('span', null, h('strong', { text: m.title }), h('small', { text: m.lessons.length + ' lessons' }))]);
         }))));
     }
     return root;
@@ -207,6 +213,7 @@
     var p = ui.state.profile;
     var root = h('div', { class: 'view' });
     root.appendChild(title('Your profile'));
+    root.appendChild(ui.appLangChoice());
     root.appendChild(h('p', { class: 'lead', text: 'Your answers personalise the examples, the practice data, the project ideas and every AI prompt. They are saved only in this browser.' }));
 
     var chosen = p.bg;
@@ -241,7 +248,7 @@
       h('fieldset', null, h('legend', { text: '1. Where do you come from?' }), cards, customBox),
       h('div', { class: 'grid-2' },
         h('div', { class: 'field' }, h('label', { for: 'hours', text: '2. How much time can you study?' }), hours, hoursOut),
-        h('div', { class: 'field' }, h('label', { for: 'lang', text: '3. Language for AI answers' }), lang, h('p', { class: 'muted small', text: 'The site is in English. Your AI prompts will ask for answers in this language.' }))),
+        h('div', { class: 'field' }, h('label', { for: 'lang', text: '3. Language for AI answers' }), lang, h('p', { class: 'muted small', text: 'Your AI prompts will ask for answers in this language.' }))),
       h('div', { class: 'field' }, h('label', { for: 'goal', text: '4. Your goal (optional)' }), goal),
       msg,
       h('button', { class: 'btn big accent', type: 'submit' }, p.bg ? 'Save profile' : 'Save and start'));
@@ -287,66 +294,47 @@
     if (b && b.custom) {
       return ui.callout('world', '🌍 In your world: ' + label, h('div', null,
         h('p', { class: 'muted', text: 'Get an analogy built from your own description:' }),
-        ui.promptCard({ title: 'Analogy from my background', text: 'Explain "' + label + '" in data analysis using an analogy from my background: {{bg}}. Give one short concrete example and one common mistake.\n{{lang}}' })));
+        ui.promptCard({ title: DA.L('Analogy from my background', 'Analogía desde mi perfil'), text: DA.L('Explain "' + label + '" in data analysis using an analogy from my background: {{bg}}. Give one short concrete example and one common mistake.\n{{lang}}', 'Explícame "' + label + '" en análisis de datos con una analogía de mi perfil: {{bg}}. Dame un ejemplo concreto y breve y un error habitual.\n{{lang}}') })));
     }
     return ui.callout('world', '🌍 In your world: ' + label, h('p', null, link('#/profile', '', 'Choose your background'), ' to see this concept explained with examples from your own field.'));
   }
 
-  V.lesson = function (params) {
-    var l = DA.lessonById[params[0]];
-    if (!l) return V.notFound();
-    var b = ui.bg();
-    var root = h('div', { class: 'view lesson' });
-    root.appendChild(h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, link('#/roadmap', '', 'Roadmap'), ' › ', l.module.icon + ' ' + l.module.title));
-    root.appendChild(title(l.number + '  ' + l.title));
-    var doneBtn = h('button', { class: 'btn', type: 'button' });
-    var nextLink = h('span');
-    root.appendChild(h('p', { class: 'meta' }, h('span', { class: 'pill', text: '⏱ about ' + ui.fmtHours(l.hours) }), ' ', h('span', { class: 'pill', text: l.module.title }), ' ', h('span', { class: 'pill xp', text: '⭐ up to ' + (ui.XP.lesson(l) + ui.XP.quiz + ui.XP.note) + ' XP' })));
-    root.appendChild(h('p', { class: 'lead', text: l.why }));
-
-    if (l.concept) root.appendChild(conceptBlock(l));
-
-    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '1 · Key ideas' }), list(l.learn, true)));
-    if (l.code) root.appendChild(ui.codeBlock(l.code));
-
-    // hands-on
+  function toolsFor(l) {
     var tools = [];
     if (l.download === 'retail') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('retail_orders.csv', DA.gen.retailCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded retail_orders.csv'); } }, '⬇ Download café sales CSV (≈6,500 rows)'));
-    if (l.download === 'messy') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('messy_orders.csv', '﻿' + DA.gen.messyCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded messy_orders.csv'); } }, '⬇ Download messy orders CSV'));
-    if (l.module && l.module.id === 'm1') {
-      tools.push(link('#/sheets/' + (l.download || 'retail') + '/' + l.id, 'btn small accent', '📊 Open in ' + DA.labgame.names.sheets));
-    }
-    if (l.module && l.module.id === 'm3') {
-      tools.push(link('#/python/' + l.id, 'btn small accent', '🐍 Open in ' + DA.labgame.names.python));
-    }
-    if (l.module && l.module.id === 'm5') {
-      tools.push(link('#/bi/' + l.id, 'btn small accent', '📈 Open in ' + DA.labgame.names.bi));
-    }
+    if (l.download === 'messy') tools.push(h('button', { class: 'btn small', type: 'button', onclick: function () { ui.download('messy_orders.csv', '\ufeff' + DA.gen.messyCsv(), 'text/csv;charset=utf-8'); ui.toast('Downloaded messy_orders.csv'); } }, '⬇ Download messy orders CSV'));
+    if (l.module.id === 'm1') tools.push(link('#/sheets/' + (l.download || 'retail') + '/' + l.id, 'btn small', '📊 Open ' + DA.labgame.names.sheets));
+    if (l.module.id === 'm3') tools.push(link('#/python/' + l.id, 'btn small', '🐍 Open ' + DA.labgame.names.python));
+    if (l.module.id === 'm5') tools.push(link('#/bi/' + l.id, 'btn small', '📈 Open ' + DA.labgame.names.bi));
     if (l.lab) {
       var dsId = l.lab === 'auto' ? ui.defaultDataset() : l.lab;
-      tools.push(link('#/lab/' + dsId, 'btn small accent', '🗄️ Open SQLab · ' + DA.datasets[dsId].title));
+      tools.push(link('#/lab/' + dsId, 'btn small', '🗄️ Open SQLab · ' + DA.datasets[dsId].title));
     }
-    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '2 · Do it' }), h('div', { class: 'doit' }, h('p', { html: l.doit })), tools.length ? h('div', { class: 'row' }, tools) : null));
+    return tools.length ? h('div', { class: 'row' }, tools) : null;
+  }
 
+  function extrasFor(l) {
+    var b = ui.bg(), out = [null, null, null];
     if (l.showProjects) {
-      root.appendChild(h('section', { class: 'block' }, h('h2', { text: 'Project ideas for your background' }),
-        b ? list(b.projects) : h('p', null, link('#/profile', '', 'Choose your background'), ' to see ideas from your own field.')));
+      out[0] = h('section', { class: 'block' }, h('h2', { text: 'Project ideas for your background' }),
+        b ? list(b.projects) : h('p', null, link('#/profile', '', 'Choose your background'), ' to see ideas from your own field.'));
     }
     if (l.showResume) {
-      root.appendChild(h('section', { class: 'block' }, h('h2', { text: 'How your experience translates' }),
+      out[1] = h('section', { class: 'block' }, h('h2', { text: 'How your experience translates' }),
         b ? h('ul', { class: 'ticks' }, b.resume.map(function (r) {
           var parts = r.split(' → ');
           return h('li', null, parts.length === 2 ? [h('span', { class: 'muted', text: parts[0] }), h('br'), h('strong', { text: '→ ' + parts[1] })] : r);
-        })) : h('p', null, link('#/profile', '', 'Choose your background'), ' to see examples.')));
+        })) : h('p', null, link('#/profile', '', 'Choose your background'), ' to see examples.'));
     }
+    if (l.links && l.links.length) {
+      out[2] = h('section', { class: 'block' }, h('h2', { text: 'Resources' }),
+        h('ul', { class: 'links' }, l.links.map(function (x) { return h('li', null, h('a', { href: x.url, target: '_blank', rel: 'noopener noreferrer', text: x.label })); })));
+    }
+    return out;
+  }
 
-    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '3 · AI move' }),
-      h('p', { class: 'muted', text: 'Your tutor prompt for this lesson. It already includes your background. Fill in the blanks and send it.' }),
-      ui.promptCard(l.ai)));
-
-    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '4 · Check yourself' }), quizBlock(l)));
-
-    var notes = h('textarea', { class: 'notes', rows: '4', placeholder: 'What did you learn? What is still unclear? What will you ask your AI tutor?', 'aria-label': 'My notes for this lesson', maxlength: '5000' });
+  function notesBlock(l) {
+    var notes = h('textarea', { class: 'notes', rows: '4', placeholder: 'What did you learn? What is still unclear? What will you ask your AI tutor?', 'aria-label': 'My notes for ' + l.title, maxlength: '5000' });
     notes.value = ui.state.notes[l.id] || '';
     var t;
     notes.addEventListener('input', function () {
@@ -357,12 +345,37 @@
         if (notes.value.trim().length >= 20) { DA.game.award('note:' + l.id, ui.XP.note, 'Note saved'); DA.game.quest('lesson'); }
       }, 700);
     });
-    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '5 · My notes' }), notes, h('p', { class: 'muted small', text: 'Saved automatically in this browser.' })));
+    return h('div', null, notes, h('p', { class: 'muted small', text: 'Saved automatically in this browser.' }));
+  }
 
-    if (l.links && l.links.length) {
-      root.appendChild(h('section', { class: 'block' }, h('h2', { text: 'Resources' }),
-        h('ul', { class: 'links' }, l.links.map(function (x) { return h('li', null, h('a', { href: x.url, target: '_blank', rel: 'noopener noreferrer', text: x.label })); }))));
-    }
+  DA.lessonUI = { concept: conceptBlock, tools: toolsFor, notes: notesBlock, extras: function (l) { return extrasFor(l).filter(Boolean); } };
+
+  V.lesson = function (params) {
+    var l = DA.lessonById[params[0]];
+    if (!l) return V.notFound();
+    var root = h('div', { class: 'view lesson' });
+    root.appendChild(h('nav', { class: 'crumbs', 'aria-label': 'Breadcrumb' }, link('#/journey', '', 'Journey'), ' › ', l.module.icon + ' ' + l.module.title));
+    root.appendChild(title(l.number + '  ' + l.title));
+    root.appendChild(h('p', null, link('#/mission/' + l.id, 'btn accent', '▶ Play this as a mission'), ' ', h('span', { class: 'muted small', text: 'Brief, learn, try, check and debrief, step by step.' })));
+    var doneBtn = h('button', { class: 'btn', type: 'button' });
+    var nextLink = h('span');
+    root.appendChild(h('p', { class: 'meta' }, h('span', { class: 'pill', text: '⏱ about ' + ui.fmtHours(l.hours) }), ' ', h('span', { class: 'pill', text: l.module.title }), ' ', h('span', { class: 'pill xp', text: '⭐ up to ' + (ui.XP.lesson(l) + ui.XP.quiz + ui.XP.note) + ' XP' })));
+    root.appendChild(h('p', { class: 'lead', text: l.why }));
+
+    if (l.concept) root.appendChild(conceptBlock(l));
+
+    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '1 · Key ideas' }), list(l.learn, true)));
+    if (l.code) root.appendChild(ui.codeBlock(l.code));
+    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '2 · Do it' }), h('div', { class: 'doit' }, h('p', { html: l.doit })), toolsFor(l)));
+    extrasFor(l).slice(0, -1).forEach(function (x) { if (x) root.appendChild(x); });
+
+    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '3 · AI move' }),
+      h('p', { class: 'muted', text: 'Your tutor prompt for this lesson. It already includes your background. Fill in the blanks and send it.' }),
+      ui.promptCard(l.ai)));
+
+    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '4 · Check yourself' }), quizBlock(l)));
+    root.appendChild(h('section', { class: 'block' }, h('h2', { text: '5 · My notes' }), notesBlock(l)));
+    extrasFor(l).slice(-1).forEach(function (x) { if (x) root.appendChild(x); });
 
     // completion + navigation
     function paintDone() {
@@ -374,20 +387,14 @@
       var nx = DA.lessons[l.index + 1];
       if (d) {
         nextLink.appendChild(link('#/practice/play/' + encodeURIComponent(l.module.cat), 'btn big', '⚡ 2-minute practice on ' + l.module.cat));
-        if (nx) nextLink.appendChild(link('#/lesson/' + nx.id, 'btn big ghost', 'Next: ' + nx.title + ' →'));
+        if (nx) nextLink.appendChild(link('#/mission/' + nx.id, 'btn big ghost', 'Next mission: ' + nx.title + ' →'));
       }
     }
     doneBtn.addEventListener('click', function () {
-      var G = DA.game;
-      if (ui.state.done[l.id]) delete ui.state.done[l.id]; else ui.state.done[l.id] = true;
-      ui.save(); ui.refreshChrome(); paintDone();
-      if (ui.state.done[l.id]) {
-        G.award('lesson:' + l.id, ui.XP.lesson(l), 'Lesson complete');
-        G.quest('lesson');
-        G.moduleCheck(l);
-        G.touch(); // badges that depend on finishing lessons
-        G.confetti(false); G.sound('done'); G.buzz(30);
-      } else { G.touch(); }
+      var G = DA.game, on = !ui.state.done[l.id];
+      DA.journey.complete(l.id, on);
+      ui.refreshChrome(); paintDone();
+      if (on) { G.confetti(false); G.sound('done'); G.buzz(30); }
     });
     paintDone();
     var prev = DA.lessons[l.index - 1], nxt = DA.lessons[l.index + 1];
@@ -488,9 +495,13 @@
 
   /* ================================================================ router */
 
-  var routes = { '': 'home', profile: 'profile', roadmap: 'roadmap', lesson: 'lesson', lab: 'lab', sheets: 'sheets', python: 'python', bi: 'bi', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
+  var routes = { '': 'home', profile: 'profile', roadmap: 'journey', journey: 'journey', mission: 'mission', boss: 'boss', lesson: 'lesson', lab: 'lab', sheets: 'sheets', python: 'python', bi: 'bi', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
     me: 'me', settings: 'settings', prompts: 'prompts', tools: 'tools' };
-  var navOf = { '': 'home', lesson: 'roadmap', collection: 'feed' };
+  var navOf = { '': 'home', lesson: 'journey', roadmap: 'journey', mission: 'journey', boss: 'journey', collection: 'feed',
+    lab: 'practice', sheets: 'practice', python: 'practice', bi: 'practice', arcade: 'practice', settings: 'me', prompts: 'me', tools: 'me', profile: 'me' };
+  // Phones: deep screens get a back link to their parent (labs, missions and games have their own).
+  var parentOf = { lesson: ['#/journey', 'Journey'], settings: ['#/me', 'You'], prompts: ['#/me', 'You'], tools: ['#/me', 'You'], profile: ['#/me', 'You'],
+    collection: ['#/feed', 'Discover'], arcade: ['#/practice', 'Practice'] };
 
   function parse() {
     var parts = location.hash.replace(/^#\/?/, '').split('?')[0].split('/').filter(Boolean).map(function (s) {
@@ -503,6 +514,8 @@
     if (DA.drill && DA.drill.leave) DA.drill.leave(); // leaving a practice round releases held celebrations
     if (DA.feed && DA.feed.leave) DA.feed.leave();
     if (DA.arcade && DA.arcade.leave) DA.arcade.leave();
+    if (DA.labgame) DA.labgame.embed = null;
+    ui.closeSheets();
     var r = parse(), view = V[routes[r.name]] || V.notFound, node;
     try { node = view(r.params); } catch (err) {
       if (window.console) console.error(err);
@@ -510,17 +523,18 @@
     }
     var main = document.getElementById('view');
     ui.clear(main);
+    var up = parentOf[r.name];
+    if (up && !(r.name === 'arcade' && r.params.length)) main.appendChild(h('a', { class: 'backbar', href: up[0] }, h('span', { 'aria-hidden': 'true', text: '← ' }), up[1]));
     main.appendChild(node);
     var nav = navOf[r.name] !== undefined ? navOf[r.name] : r.name;
+    var side = document.querySelector('.sidebar [data-nav="' + r.name + '"]') ? r.name : nav;
     Array.prototype.forEach.call(document.querySelectorAll('[data-nav]'), function (a) {
-      var on = a.getAttribute('data-nav') === nav;
+      var on = a.getAttribute('data-nav') === (a.closest('.sidebar') ? side : nav);
       a.classList.toggle('active', on);
       if (on) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
-    var more = document.getElementById('menuBtn');
-    if (more) more.classList.toggle('active', ['me', 'settings', 'prompts', 'tools', 'profile', 'lab', 'sheets', 'python', 'bi', 'arcade'].indexOf(nav) >= 0);
     var t = document.getElementById('view-title');
-    document.title = (t ? t.textContent.replace(/\s+/g, ' ').trim() + ' · ' : '') + 'Data Analyst Path';
+    document.title = (t ? DA.t(t.textContent.replace(/\s+/g, ' ').trim()) + ' · ' : '') + 'Data Analyst Path';
     window.scrollTo(0, 0);
     if (t) t.focus({ preventScroll: true });
     document.body.classList.remove('menu-open');
@@ -529,8 +543,28 @@
   }
 
   DA.render = function () { render(); };
+
+  // The on-screen keyboard: --kb is how much of the layout it covers (iOS), so sticky action bars can sit above it.
+  function watchKeyboard() {
+    var vv = window.visualViewport;
+    if (!vv) return;
+    function kb() {
+      var k = Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop));
+      document.documentElement.style.setProperty('--kb', k + 'px');
+      var el = document.activeElement, typing = !!el && /^(TEXTAREA|INPUT)$/.test(el.tagName);
+      document.body.classList.toggle('kb-open', k > 80 || (typing && window.innerHeight < 480));
+    }
+    vv.addEventListener('resize', kb);
+    vv.addEventListener('scroll', kb);
+    document.addEventListener('focusin', kb);
+    document.addEventListener('focusout', function () { setTimeout(kb, 50); });
+    kb();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
+    if (DA.i18n) DA.i18n.start(); // Spanish: translate the interface as it is drawn
     ui.applyTheme();
+    watchKeyboard();
     if (window.matchMedia) {
       var mq = window.matchMedia('(prefers-color-scheme: dark)');
       if (mq.addEventListener) mq.addEventListener('change', function () { ui.applyTheme(); });
@@ -580,7 +614,7 @@
     // Progress that arrives from another device: refresh the pages where nothing is being typed or played.
     document.addEventListener('cloud-merged', function () {
       ui.refreshChrome();
-      if (['', 'me', 'roadmap'].indexOf(parse().name) >= 0) { var y = window.scrollY; render(); window.scrollTo(0, y); }
+      if (['', 'me', 'roadmap', 'journey'].indexOf(parse().name) >= 0) { var y = window.scrollY; render(); window.scrollTo(0, y); }
       ui.toast('☁️ Progress synced from your other device.');
     });
     document.addEventListener('cloud-status', function () { ui.refreshChrome(); });

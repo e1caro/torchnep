@@ -37,6 +37,39 @@ test('manifest is complete and its files exist', () => {
   (m.shortcuts || []).forEach((s) => assert.ok(fs.existsSync(path.join(root, s.url.split('#')[0].replace(/^\.\//, '')))));
 });
 
+function png(file) {
+  const b = fs.readFileSync(file);
+  assert.strictEqual(b.toString('latin1', 1, 4), 'PNG', file + ' is a PNG');
+  return { w: b.readUInt32BE(16), h: b.readUInt32BE(20), colorType: b[25] };
+}
+
+test('icons: one concept everywhere, opaque iOS icon, Android themed (monochrome) and notification icons', () => {
+  const I = require(path.join(root, 'tools', 'icon-concept.js'));
+  assert.strictEqual(fs.readFileSync(path.join(root, 'icons', 'icon.svg'), 'utf8').trim(), I.any(), 'icons/icon.svg comes from tools/icon-concept.js');
+  assert.strictEqual(fs.readFileSync(path.join(root, 'icons', 'favicon.svg'), 'utf8').trim(), I.favicon());
+  [['icon-192.png', 192], ['icon-512.png', 512], ['icon-maskable-512.png', 512], ['apple-touch-icon.png', 180], ['favicon.png', 32]].forEach(([f, n]) => {
+    const p = png(path.join(root, 'icons', f));
+    assert.ok(p.w === n && p.h === n, f + ' is ' + n + 'px');
+  });
+  assert.strictEqual(png(path.join(root, 'icons', 'apple-touch-icon.png')).colorType, 2, 'apple-touch-icon.png has no alpha channel');
+  assert.strictEqual(png(path.join(root, 'icons', 'icon-maskable-512.png')).colorType, 2, 'the maskable icon is full-bleed');
+  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
+  assert.ok(html.includes('href="icons/favicon.svg"') && html.includes('href="icons/apple-touch-icon.png"'));
+  assert.strictEqual((html.match(/name="theme-color"/g) || []).length, 2, 'theme colours for light and dark');
+  const res = path.join(root, '..', 'android-analyst', 'app', 'src', 'main', 'res');
+  if (!fs.existsSync(res)) return;
+  ['ic_launcher.xml', 'ic_launcher_round.xml'].forEach((f) => {
+    const x = fs.readFileSync(path.join(res, 'mipmap-anydpi-v26', f), 'utf8');
+    ['background', 'foreground', 'monochrome'].forEach((layer) => assert.ok(x.includes('<' + layer + ' android:drawable="@drawable/ic_launcher_' + layer + '"'), f + ' has a ' + layer + ' layer'));
+  });
+  ['background', 'foreground', 'monochrome'].forEach((layer) => assert.strictEqual(png(path.join(res, 'drawable-nodpi', 'ic_launcher_' + layer + '.png')).w, 432));
+  Object.entries({ mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 }).forEach(([d, n]) => ['ic_launcher.png', 'ic_launcher_round.png'].forEach((f) => assert.strictEqual(png(path.join(res, 'mipmap-' + d, f)).w, n, d + ' ' + f)));
+  const note = fs.readFileSync(path.join(res, 'drawable', 'ic_stat_analyst.xml'), 'utf8');
+  assert.strictEqual(note, I.notification(), 'the notification icon comes from the concept');
+  assert.ok(/android:pathData="[MHVAZ0-9., ]+"/.test(note) && note.includes('evenOdd'), 'notification icon: one white path with the eyes cut out');
+  ['values', 'values-night'].forEach((v) => assert.ok(/<color name="brand">#[0-9a-f]{6}<\/color>/.test(fs.readFileSync(path.join(res, v, 'colors.xml'), 'utf8')), v + ' brand colour'));
+});
+
 test('index.html loads only files that exist, and loads every script', () => {
   const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
   const refs = [...html.matchAll(/(?:src|href)="([^"#:]+\.(?:js|css|png|svg|webmanifest))"/g)].map((m) => m[1]);

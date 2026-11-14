@@ -36,8 +36,9 @@
       var n = out.notes[id], m = b.notes[id]; // the longer note wins; a fixed tie-break keeps both devices in agreement
       if (!n || m.length > n.length || (m.length === n.length && m > n)) out.notes[id] = m;
     });
-    Object.keys(b.xp).forEach(function (k) {
-      if (!out.xp[k] || b.xp[k].n > out.xp[k].n) out.xp[k] = copy(b.xp[k]);
+    Object.keys(b.xp).forEach(function (k) { // the bigger award wins; for equal awards the earlier day, so the order of merging never matters
+      var o = out.xp[k], e = b.xp[k];
+      if (!o || e.n > o.n || (e.n === o.n && e.d < o.d)) out.xp[k] = copy(e);
     });
     Object.keys(b.met).forEach(function (d) { out.met[d] = true; });
     Object.keys(b.quests).forEach(function (d) {
@@ -57,6 +58,9 @@
     Object.keys(b.saved).forEach(function (id) { out.saved[id] = true; });
     Object.keys(b.blocks).forEach(function (id) { out.blocks[id] = Math.max(out.blocks[id] || 0, b.blocks[id]); });
     Object.keys(b.repaired).forEach(function (d) { out.repaired[d] = true; });
+    Object.keys(b.journey).forEach(function (id) { out.journey[id] = (out.journey[id] || 0) | b.journey[id]; });
+    Object.keys(b.bosses).forEach(function (id) { out.bosses[id] = Math.max(out.bosses[id] || 0, b.bosses[id]); });
+    Object.keys(b.arcade).forEach(function (k) { out.arcade[k] = Math.max(out.arcade[k] || 0, b.arcade[k]); });
     out.boost = Math.max(a.boost, b.boost);
     out.v = 2;
     return ui.sanitize(out);
@@ -139,10 +143,10 @@
     var lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Data Analyst Path//Daily reminder//EN', 'CALSCALE:GREGORIAN',
       'BEGIN:VEVENT', 'UID:daily-reminder@data-analyst-path', 'DTSTAMP:' + stamp,
       'DTSTART:' + day.replace(/-/g, '') + 'T' + p2(hh) + p2(mm) + '00', 'DURATION:PT15M', 'RRULE:FREQ=DAILY',
-      'SUMMARY:' + esc('Data Analyst Path: your daily session'),
-      'DESCRIPTION:' + esc('Ten minutes keeps the streak: one lesson, one practice round or one SQL challenge.'),
+      'SUMMARY:' + esc(DA.t('Data Analyst Path: your daily session')),
+      'DESCRIPTION:' + esc(DA.t('Ten minutes keeps the streak: one lesson, one practice round or one SQL challenge.')),
       url ? 'URL:' + url : '',
-      'BEGIN:VALARM', 'TRIGGER:PT0S', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc('Time for your daily data session'), 'END:VALARM',
+      'BEGIN:VALARM', 'TRIGGER:PT0S', 'ACTION:DISPLAY', 'DESCRIPTION:' + esc(DA.t('Time for your daily data session')), 'END:VALARM',
       'END:VEVENT', 'END:VCALENDAR'].filter(Boolean);
     return lines.map(fold).join('\r\n') + '\r\n';
   };

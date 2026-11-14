@@ -5,15 +5,9 @@
   var ui = DA.ui, h = ui.h, L = DA.labgame;
   DA.views = DA.views || {};
   var S = DA.sheets;
-  var lab = null, books = {};
+  var books = {};
 
-  function getLab() {
-    if (!lab) {
-      DA.labSheets.worlds.forEach(function (w) { w.levels.forEach(function (lv) { lv.challenges = lv.challenges.filter(Boolean); }); });
-      lab = L.register(DA.labSheets);
-    }
-    return lab;
-  }
+  function getLab() { return L.get('sheets'); }
 
   function fromLesson(lessonId) {
     var lb = getLab(), all = [];
@@ -36,10 +30,18 @@
     return L.mapView(lb);
   };
 
+  // A bug hunt starts with the broken formulas already in the sheet.
+  function starterBook(c) {
+    var wb = S.datasetWorkbook(c.ds);
+    (c.starter || []).forEach(function (st) { var a = S.parseAddr(st[0]); S.setInput(wb.activeSheet(), a.r, a.c, st[1]); });
+    if (c.starter) wb.recalc();
+    return wb;
+  }
+
   function page(lb, c) {
     var P = L.page(lb, c, { wide: true, useExample: function (ex) { useExample(ex); } });
     var work = P.work;
-    var wb = books[c.id] || (books[c.id] = S.datasetWorkbook(c.ds));
+    var wb = books[c.id] || (books[c.id] = starterBook(c));
     var grid = null, lastField = null;
 
     var nameBox = h('input', { class: 'sheets-name-box', 'aria-label': 'Cell address. Type an address and press Enter to go there.', value: 'A1' });
@@ -167,12 +169,14 @@
     var armed = false;
     var resetBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () {
       if (!armed) { armed = true; resetBtn.textContent = 'Press again to reset'; setTimeout(function () { armed = false; resetBtn.textContent = 'Reset sheet'; }, 3000); return; }
-      books[c.id] = S.datasetWorkbook(c.ds); DA.render();
+      books[c.id] = starterBook(c); DA.render();
       ui.toast('Original data reloaded.');
     } }, 'Reset sheet');
-    work.appendChild(h('div', { class: 'row actions' }, checkBtn, resetBtn, h('span', { class: 'muted small grow', text: c.ds === 'messy' ? 'Data: messy hand-typed orders' : 'Data: café orders (first ' + (S.ROWS_LOADED - 1) + ' lines)' })));
+    work.appendChild(P.actions(checkBtn));
+    work.appendChild(h('div', { class: 'row actions-more' }, resetBtn, h('span', { class: 'muted small grow', text: c.ds === 'messy' ? 'Data: messy hand-typed orders' : 'Data: café orders (first ' + (S.ROWS_LOADED - 1) + ' lines)' })));
 
     function check() {
+      P.ran();
       if (grid.editing) grid.commit(null);
       wb.recalc(); grid.render();
       var res = c.check(wb);

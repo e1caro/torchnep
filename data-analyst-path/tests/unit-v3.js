@@ -201,14 +201,18 @@ test('week race: this week against the same point of last week', () => {
   assert.ok(G.weekRace().beaten); assert.ok(ui.state.badges['beat-week']);
 });
 
-test('module bonus is paid once, when the last lesson of a module is done', () => {
+test('the chapter bonus is paid once, by the boss case, with the old chest key', () => {
   ui.state.profile.dailyGoal = 80;
-  const m = DA.modules[0];
-  ui.state.done[m.lessons[0].id] = true;
-  assert.strictEqual(G.moduleCheck(m.lessons[0]), 0);
-  m.lessons.forEach((l) => { ui.state.done[l.id] = true; });
-  assert.strictEqual(G.moduleCheck(m.lessons[0]), ui.XP.module);
-  assert.strictEqual(G.moduleCheck(m.lessons[1]), 0);
+  const J = DA.journey, m = DA.modules[0];
+  m.lessons.forEach((l) => { J.complete(l.id, true); });
+  assert.ok(!ui.state.xp['module:' + m.id], 'finishing the lessons no longer pays the chest');
+  assert.strictEqual(J.bossResult(m.id, 1, 3).stars, 0);
+  assert.ok(!ui.state.xp['module:' + m.id]);
+  const r = J.bossResult(m.id, 3, 3);
+  assert.strictEqual(r.stars, 3);
+  assert.strictEqual(r.xp, ui.XP.module);
+  assert.strictEqual(J.bossResult(m.id, 3, 3).xp, 0);
+  assert.ok(J.boss(m.id).won);
 });
 
 test('new state survives sanitize and merges without loss', () => {
@@ -244,9 +248,10 @@ test('guess the correlation: the answer shown is the true correlation of the pic
   assert.strictEqual(A.corrWord(0.05), 'almost no relationship'); assert.strictEqual(A.corrWord(-0.7), 'a strong negative relationship'); assert.strictEqual(A.corrWord(0.2), 'a weak positive relationship');
 });
 
-test('SQL blocks: 90+ puzzles in 8 levels, well-formed, with fix-the-bug puzzles in every level', () => {
+test('SQL blocks: 90+ handmade puzzles in levels 1-8 of 16, well-formed, with fix-the-bug puzzles in every handmade level', () => {
   assert.ok(DA.puzzles.length >= 90, DA.puzzles.length + ' puzzles');
-  assert.strictEqual(DA.blockLevels.length, 8);
+  assert.strictEqual(DA.blockLevels.length, 16);
+  DA.blockLevels.forEach((l, i) => assert.strictEqual(l.n, i + 1));
   const ids = new Set(), asks = new Set();
   DA.puzzles.forEach((p, i) => {
     assert.strictEqual(p.id, 'b' + String(i + 1).padStart(2, '0'), 'ids are permanent and in order');
@@ -265,7 +270,7 @@ test('SQL blocks: 90+ puzzles in 8 levels, well-formed, with fix-the-bug puzzles
   });
   // the tiles of the answer are always all there, for both kinds
   DA.puzzles.forEach((p) => { const pool = A.blockPool(p).slice(); p.tiles.forEach((x) => { const k = pool.indexOf(x); assert.ok(k >= 0, p.id + ' misses ' + x); pool.splice(k, 1); }); });
-  DA.blockLevels.forEach((l) => {
+  DA.blockLevels.filter((l) => l.n <= 8).forEach((l) => {
     const ps = A.levelPuzzles(l.n);
     assert.ok(ps.length >= 10, 'level ' + l.n + ' has ' + ps.length);
     assert.ok(ps.some((p) => p.fix), 'level ' + l.n + ' has a bug to fix');
@@ -292,9 +297,12 @@ test('SQL blocks: rounds, levels, stars and "continue"', () => {
   assert.ok(A.blockRound('mix').every((p) => p.lv === 1), 'mixed review with nothing solved falls back to "continue"');
   DA.puzzles.forEach((p) => { ui.state.blocks[p.id] = 3; });
   ui.state.blocks[A.levelPuzzles(6)[0].id] = 2;
+  assert.strictEqual(A.nextLevel(), 9, 'handmade levels done: continue goes to the first level without stars');
+  for (let n = 9; n <= 16; n++) ui.state.arcade['blocks:' + n] = 3;
   assert.strictEqual(A.nextLevel(), 6, 'all cleared: continue goes where stars are missing');
   const T = A.totals();
-  assert.strictEqual(T.solved, DA.puzzles.length); assert.strictEqual(T.levels, 8); assert.strictEqual(T.fixed, T.fixes); assert.strictEqual(T.stars, T.max - 1);
+  ui.state.arcade = {};
+  assert.strictEqual(T.solved, DA.puzzles.length); assert.strictEqual(T.levels, 8, 'levels without handmade puzzles are never counted as handmade-cleared'); assert.strictEqual(T.fixed, T.fixes); assert.strictEqual(T.stars, T.max - 1);
   // stars
   assert.deepStrictEqual([[1, 0], [2, 0], [1, 1], [3, 0], [2, 1], [1, 2], [6, 4]].map(([c, hn]) => A.starsFor(c, hn)), [3, 2, 2, 1, 1, 1, 1]);
   assert.strictEqual(A.stars('b01', { blocks: { b01: true } }), 1, 'old saves count as one star');

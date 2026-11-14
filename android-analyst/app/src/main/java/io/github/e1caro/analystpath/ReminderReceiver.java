@@ -25,6 +25,7 @@ public class ReminderReceiver extends BroadcastReceiver {
         PendingIntent pi = PendingIntent.getActivity(c, 0, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(c, Reminder.CHANNEL) : new Notification.Builder(c);
         b.setSmallIcon(R.drawable.ic_stat_analyst)
+                .setColor(c.getColor(R.color.brand))
                 .setContentTitle(p.getString("title", c.getString(R.string.app_name)))
                 .setContentText(p.getString("text", c.getString(R.string.reminder_text)))
                 .setContentIntent(pi)

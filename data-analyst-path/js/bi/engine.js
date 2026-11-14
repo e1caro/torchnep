@@ -1,4 +1,4 @@
-/* DotBI engine: a DAX evaluator with filter context and relationships, and Tableau calculations with FIXED LOD. */
+/* DotBI engine: a DAX evaluator with filter context, relationships, time intelligence and ranking; Tableau calculations with LOD and table calcs. */
 (function () {
   'use strict';
   var DA = (window.DA = window.DA || {});
@@ -37,11 +37,26 @@
       head.forEach(function (h, j) { var v = r[j]; o[h] = v !== '' && isFinite(+v) && h !== 'order_date' ? +v : v; });
       return o;
     });
-    m.addTable('Sales', head, rows);
+    rows.forEach(function (o) { o.month = String(o.order_date).slice(0, 7); });
+    m.addTable('Sales', head.concat(['month']), rows);
     m.addTable('Customers', ['customer_id', 'signup_date', 'city', 'segment'], d.customers.map(function (c) { return { customer_id: c[0], signup_date: c[1], city: c[2], segment: c[3] }; }));
     m.addRelationship('Sales', 'customer_id', 'Customers', 'customer_id');
+    m.dateCols = { Sales: ['order_date', 'month'] };
     return m;
   };
+
+  // The Dot Club subscription: members and their monthly invoices.
+  BI.clubModel = function () {
+    var m = new Model(), a = DA.gen.app();
+    m.addTable('Members', ['member_id', 'user_id', 'plan', 'start_date', 'cancel_date', 'monthly_price', 'start_month'], a.members.map(function (r) {
+      return { member_id: r[0], user_id: r[1], plan: r[2], start_date: r[3], cancel_date: r[4], monthly_price: r[5], start_month: r[3].slice(0, 7) };
+    }));
+    m.addTable('Invoices', ['invoice_id', 'member_id', 'month', 'amount', 'paid'], a.invoices.map(function (r) { return { invoice_id: r[0], member_id: r[1], month: r[2], amount: r[3], paid: r[4] }; }));
+    m.addRelationship('Invoices', 'member_id', 'Members', 'member_id');
+    m.dateCols = {};
+    return m;
+  };
+  BI.model = function (name) { return name === 'club' ? BI.clubModel() : BI.retailModel(); };
 
   function tokenize(src, mode) {
     var toks = [], i = 0, n = src.length, m;
@@ -142,13 +157,12 @@
     if (t.t === 'op' && t.v === '{' && this.mode === 'tableau') {
       var kind = this.next();
       if (kind.t !== 'name' || ['FIXED', 'INCLUDE', 'EXCLUDE'].indexOf(kind.v.toUpperCase()) < 0) fail('A level of detail expression starts with { FIXED ... : ... }');
-      if (kind.v.toUpperCase() !== 'FIXED') fail(kind.v.toUpperCase() + ' is not available in DotBI yet: use { FIXED [dimension] : AGG([field]) }');
       var dims = [];
       while (!this.isOp(':')) { var d = this.next(); if (d.t !== 'col') fail('List the dimensions in brackets, like { FIXED [customer_id] : ... }'); dims.push(d.v); if (this.isOp(',')) this.next(); }
       this.eat(':');
       var inner = this.expr();
       this.eat('}');
-      return { t: 'lod', dims: dims, e: inner };
+      return { t: 'lod', kind: kind.v.toUpperCase(), dims: dims, e: inner };
     }
     if (t.t === 'name' || t.t === 'qname') {
       if (this.isOp('(') && t.t === 'name') {
@@ -258,7 +272,11 @@
   }
 
   function tableArg(node, ctx) {
-    if (node.t === 'name' || (node.t === 'ref' && false)) return new TableVal(ctx.model.table(node.v).name, rowsOf(node.v, ctx));
+    if (node.t === 'name') {
+      var held = ctx.vars[node.v.toUpperCase()];
+      if (held instanceof TableVal) return held;
+      return new TableVal(ctx.model.table(node.v).name, rowsOf(node.v, ctx));
+    }
     var v = evalD(node, ctx);
     if (v instanceof TableVal) return v;
     fail('Expected a table here (like Sales or FILTER(Sales, ...))');
@@ -319,7 +337,14 @@
       (c.rowF[tv.table] = c.rowF[tv.table] || []).push(function (row) { return set.has(row); });
       return;
     }
-    if (arg.t === 'name' || arg.t === 'call' && arg.fn === 'VALUES') fail('Use a condition like Sales[channel] = "delivery", FILTER(...) or ALL(...) as a CALCULATE filter');
+    if (arg.t === 'call' && (arg.fn === 'TOPN' || arg.fn === 'VALUES')) {
+      var tt = evalD(arg, ctx), keysOf = {};
+      tt.rows.forEach(function (row) { Object.keys(row).forEach(function (k) { (keysOf[k] = keysOf[k] || {})[String(row[k])] = 1; }); });
+      Object.keys(keysOf).forEach(function (k) { var set = keysOf[k]; c.colF[tt.table + '|' + k] = function (v) { return !!set[String(v)]; }; });
+      return;
+    }
+    if (arg.t === 'call' && TIME[arg.fn]) { timeFilter(arg, ctx, c); return; }
+    if (arg.t === 'name') fail('Use a condition like Sales[channel] = "delivery", FILTER(...) or ALL(...) as a CALCULATE filter');
     var refs = colsIn(arg), cols = {};
     refs.forEach(function (r) { var rc = ctx.model.column(r.table || (ctx.row && ctx.row.table) || '', r.col); cols[rc.table + '|' + rc.col] = rc; });
     var keys = Object.keys(cols);
@@ -335,6 +360,41 @@
       keys.forEach(function (k) { delete c.colF[k]; });
       (c.rowF[tn2] = c.rowF[tn2] || []).push(function (row) { var cc = outer.clone(); cc.row = { table: tn2, row: row }; return !!evalD(arg, cc); });
     }
+  }
+
+  // Time intelligence: DATESYTD, DATEADD and PREVIOUSMONTH work as CALCULATE filters on a date column (they replace the date filters).
+  var TIME = { DATESYTD: 1, DATEADD: 1, PREVIOUSMONTH: 1 };
+  function shiftMonth(ym, n) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7) - 1 + n; y += Math.floor(m / 12); m = ((m % 12) + 12) % 12; return y + '-' + (m < 9 ? '0' : '') + (m + 1); }
+  function timeFilter(arg, ctx, c) {
+    var a = arg.args;
+    if (!a.length || a[0].t !== 'ref' || !a[0].table) fail(arg.fn + ' needs a date column, like ' + arg.fn + '(Sales[order_date]' + (arg.fn === 'DATEADD' ? ', -1, MONTH' : '') + ')');
+    var dc = ctx.model.column(a[0].table, a[0].col);
+    var seen = rowsOf(dc.table, ctx).map(function (r) { return String(r[dc.col]); }).filter(Boolean).sort();
+    var keep;
+    if (!seen.length) keep = function () { return false; };
+    else if (arg.fn === 'DATESYTD') { var hi = seen[seen.length - 1], lo = hi.slice(0, 4) + '-01-01'; keep = function (d) { d = String(d); return d >= lo && d <= hi; }; }
+    else {
+      var n = arg.fn === 'PREVIOUSMONTH' ? -1 : toNum(evalD(a[1] || fail('DATEADD needs a number of periods, like DATEADD(Sales[order_date], -1, MONTH)'), ctx));
+      var unit = arg.fn === 'PREVIOUSMONTH' ? 'MONTH' : (a[2] && a[2].t === 'name' ? a[2].v.toUpperCase() : fail('DATEADD needs a unit: DAY, MONTH, QUARTER or YEAR'));
+      if (unit === 'DAY') { var days = {}; seen.forEach(function (d) { var p = d.split('-'); var t = new Date(Date.UTC(+p[0], +p[1] - 1, +p[2]) + n * 864e5); days[t.toISOString().slice(0, 10)] = 1; }); keep = function (d) { return !!days[String(d).slice(0, 10)]; }; }
+      else {
+        var step = unit === 'MONTH' ? 1 : unit === 'QUARTER' ? 3 : unit === 'YEAR' ? 12 : fail('DATEADD units are DAY, MONTH, QUARTER and YEAR');
+        var months = {};
+        if (arg.fn === 'PREVIOUSMONTH') months[shiftMonth(seen[0].slice(0, 7), -1)] = 1;
+        else seen.forEach(function (d) { months[shiftMonth(d.slice(0, 7), n * step)] = 1; });
+        keep = function (d) { return !!months[String(d).slice(0, 7)]; };
+      }
+    }
+    var drop = (ctx.model.dateCols && ctx.model.dateCols[dc.table]) || [dc.col];
+    drop.forEach(function (col) { delete c.colF[dc.table + '|' + col]; });
+    c.colF[dc.table + '|' + dc.col] = keep;
+  }
+
+  function contextFor(ctx, tv, row) {
+    var c = ctx.clone();
+    c.row = null;
+    Object.keys(row).forEach(function (k) { var v = row[k]; c.colF[tv.table + '|' + k] = function (x) { return x === v; }; });
+    return c;
   }
 
   function callD(node, ctx) {
@@ -374,10 +434,37 @@
         return new TableVal(base.table, base.rows.filter(function (row) { var cc = ctx.clone(); cc.row = { table: base.table, row: row }; return !!evalD(a[1], cc); }));
       }
       case 'ALL': case 'REMOVEFILTERS': {
-        if (a.length !== 1) fail(f + ' as a table needs one table, like ALL(Sales)');
+        if (a.length !== 1) fail(f + ' as a table needs one table or column, like ALL(Sales) or ALL(Sales[product])');
         if (a[0].t === 'name') { var tb = ctx.model.table(a[0].v); return new TableVal(tb.name, tb.rows.slice()); }
+        if (a[0].t === 'ref' && a[0].table) {
+          var ac = ctx.model.column(a[0].table, a[0].col), got = {}, list = [];
+          ctx.model.table(ac.table).rows.forEach(function (r) { var k = String(r[ac.col]); if (!got[k]) { got[k] = 1; var o = {}; o[ac.col] = r[ac.col]; list.push(o); } });
+          return new TableVal(ac.table, list);
+        }
         fail('Use ALL(Sales[column]) inside CALCULATE to remove a filter');
       }
+      case 'RANKX': {
+        nargs(node, 2, 4);
+        var rt2 = tableArg(a[0], withoutRow(ctx)), me = evalD(a[1], withoutRow(ctx));
+        if (blank(me)) return null;
+        var asc = a[3] && a[3].t === 'name' && a[3].v.toUpperCase() === 'ASC';
+        var others = rt2.rows.map(function (row) { return evalD(a[1], contextFor(ctx, rt2, row)); });
+        return 1 + others.filter(function (v) { return !blank(v) && (asc ? toNum(v) < toNum(me) : toNum(v) > toNum(me)); }).length;
+      }
+      case 'TOPN': {
+        nargs(node, 3, 4);
+        var k = toNum(evalD(a[0], ctx)), tt = tableArg(a[1], withoutRow(ctx));
+        var up = a[3] && a[3].t === 'name' && a[3].v.toUpperCase() === 'ASC';
+        var scored = tt.rows.map(function (row) { return { row: row, v: evalD(a[2], contextFor(ctx, tt, row)) }; }).filter(function (x) { return !blank(x.v); });
+        scored.sort(function (x, y) { return up ? toNum(x.v) - toNum(y.v) : toNum(y.v) - toNum(x.v); });
+        var cut = scored.length > k ? scored[k - 1].v : null;
+        return new TableVal(tt.table, scored.filter(function (x, i) { return i < k || (cut !== null && toNum(x.v) === toNum(cut)); }).map(function (x) { return x.row; }));
+      }
+      case 'TOTALYTD': {
+        nargs(node, 2, 2);
+        return callD({ t: 'call', fn: 'CALCULATE', args: [a[0], { t: 'call', fn: 'DATESYTD', args: [a[1]] }] }, ctx);
+      }
+      case 'DATESYTD': case 'DATEADD': case 'PREVIOUSMONTH': fail(f + ' is a date filter: use it inside CALCULATE, like CALCULATE(SUM(Sales[qty]), ' + f + '(Sales[order_date]' + (f === 'DATEADD' ? ', -1, MONTH' : '') + '))');
       case 'VALUES': case 'DISTINCT': {
         nargs(node, 1, 1);
         if (a[0].t !== 'ref') fail(f + ' needs a column');
@@ -406,7 +493,7 @@
       case 'TRUE': return true;
       case 'FALSE': return false;
     }
-    fail('Unknown function ' + f + '. DotBI knows SUM, AVERAGE, MIN, MAX, COUNT, DISTINCTCOUNT, COUNTROWS, SUMX, AVERAGEX, CALCULATE, FILTER, ALL, DIVIDE, RELATED, IF, ROUND and VAR/RETURN.');
+    fail('Unknown function ' + f + '. DotBI knows SUM, AVERAGE, MIN, MAX, COUNT, DISTINCTCOUNT, COUNTROWS, SUMX, AVERAGEX, CALCULATE, FILTER, ALL, VALUES, DIVIDE, RELATED, IF, ROUND, RANKX, TOPN, TOTALYTD, DATESYTD, DATEADD, PREVIOUSMONTH and VAR/RETURN.');
   }
   function withoutRow(ctx) { if (!ctx.row) return ctx; var c = ctx.clone(); c.row = null; return c; }
 
@@ -419,6 +506,14 @@
   };
 
   var TAGG = { SUM: 'SUM', AVG: 'AVG', MIN: 'MIN', MAX: 'MAX', COUNT: 'COUNT', COUNTD: 'COUNTD', MEDIAN: 'MEDIAN', ATTR: 'ATTR' };
+  var TCALC = { RUNNING_SUM: 1, WINDOW_SUM: 1, WINDOW_AVG: 1, WINDOW_MAX: 1, RANK: 1, INDEX: 1, TOTAL: 1 };
+
+  // Which rows a LOD expression groups, and by which fields.
+  function lodGroup(node, env) {
+    if (node.kind === 'INCLUDE') return { dims: node.dims, base: env.rows };
+    if (node.kind === 'EXCLUDE') return { dims: [], base: env.view && node.dims.indexOf(env.view) >= 0 ? env.all : env.rows };
+    return { dims: node.dims, base: env.all };
+  }
 
   function evalT(node, env) {
     switch (node.t) {
@@ -437,14 +532,18 @@
       case 'bin': return binop(node.op, evalT(node.l, env), evalT(node.r, env));
       case 'in': { var lv = evalT(node.l, env); return node.items.some(function (it) { return cmpv(lv, evalT(it, env)) === 0; }); }
       case 'lod': {
-        if (!env.row) fail('A FIXED expression returns one value per row: wrap it in an aggregation, like AVG({ FIXED [customer_id] : SUM([qty]) })');
-        var key = node.dims.map(function (d) { if (!(d in env.row)) fail('Field [' + d + '] does not exist'); return String(env.row[d]); }).join('|');
-        var cache = env.lodCache.get(node);
+        if (!env.row) fail('A ' + node.kind + ' expression returns one value per row: wrap it in an aggregation, like AVG({ ' + node.kind + ' [customer_id] : SUM([qty]) })');
+        node.dims.forEach(function (d) { if (!(d in env.row)) fail('Field [' + d + '] does not exist'); });
+        var g = lodGroup(node, env), dims = g.dims, base = g.base;
+        var key = dims.map(function (d) { return String(env.row[d]); }).join('|');
+        var byBase = env.lodCache.get(node);
+        if (!byBase) { byBase = new Map(); env.lodCache.set(node, byBase); }
+        var cache = byBase.get(base);
         if (!cache) {
           cache = {}; var groups = {};
-          env.all.forEach(function (r) { var k = node.dims.map(function (d) { return String(r[d]); }).join('|'); (groups[k] = groups[k] || []).push(r); });
-          Object.keys(groups).forEach(function (k) { cache[k] = evalT(node.e, { rows: groups[k], row: null, all: env.all, lodCache: env.lodCache }); });
-          env.lodCache.set(node, cache);
+          base.forEach(function (r) { var k = dims.map(function (d) { return String(r[d]); }).join('|'); (groups[k] = groups[k] || []).push(r); });
+          Object.keys(groups).forEach(function (k) { cache[k] = evalT(node.e, { rows: groups[k], row: null, all: env.all, lodCache: env.lodCache, view: env.view, marks: [groups[k]], mark: 0 }); });
+          byBase.set(base, cache);
         }
         return cache[key];
       }
@@ -453,9 +552,32 @@
         if (TAGG[f]) {
           if (a.length !== 1) fail(f + ' takes one field');
           if (env.row) fail('You cannot nest aggregations: ' + f + ' inside another aggregation');
-          var vals = env.rows.map(function (r) { return evalT(a[0], { rows: env.rows, row: r, all: env.all, lodCache: env.lodCache }); });
+          var vals;
+          if (a[0].t === 'lod') { // a LOD value counts once per group, as in Tableau (not once per underlying row)
+            var once = {};
+            vals = [];
+            env.rows.forEach(function (r) {
+              var sub = { rows: env.rows, row: r, all: env.all, lodCache: env.lodCache, view: env.view };
+              var k = lodGroup(a[0], sub).dims.map(function (d) { return String(r[d]); }).join('|');
+              if (!once[k]) { once[k] = 1; vals.push(evalT(a[0], sub)); }
+            });
+          } else vals = env.rows.map(function (r) { return evalT(a[0], { rows: env.rows, row: r, all: env.all, lodCache: env.lodCache, view: env.view }); });
           if (f === 'ATTR') { var u = vals.filter(function (x, i) { return vals.indexOf(x) === i; }); return u.length === 1 ? u[0] : '*'; }
           return agg(f, vals);
+        }
+        if (TCALC[f]) {
+          if (env.row) fail(f + ' is a table calculation: use it on aggregates, like ' + f + '(SUM([qty]))');
+          var marks = env.marks || [env.rows], at = env.mark || 0;
+          if (f === 'INDEX') return at + 1;
+          if (a.length !== 1) fail(f + ' takes one aggregate, like ' + f + '(SUM([qty]))');
+          if (f === 'TOTAL') return evalT(a[0], { rows: env.all, row: null, all: env.all, lodCache: env.lodCache, view: null, marks: [env.all], mark: 0 });
+          var vals = marks.map(function (rows, j) { return evalT(a[0], { rows: rows, row: null, all: env.all, lodCache: env.lodCache, view: env.view, marks: marks, mark: j }); });
+          var nums = vals.map(function (v) { return blank(v) ? 0 : toNum(v); });
+          if (f === 'RUNNING_SUM') return nums.slice(0, at + 1).reduce(function (x, y) { return x + y; }, 0);
+          if (f === 'WINDOW_SUM') return nums.reduce(function (x, y) { return x + y; }, 0);
+          if (f === 'WINDOW_AVG') return nums.reduce(function (x, y) { return x + y; }, 0) / nums.length;
+          if (f === 'WINDOW_MAX') return Math.max.apply(null, nums);
+          if (f === 'RANK') return blank(vals[at]) ? null : 1 + nums.filter(function (v) { return v > nums[at]; }).length;
         }
         switch (f) {
           case 'IIF': if (a.length < 2) fail('IIF(test, then, else)'); return evalT(a[0], env) ? evalT(a[1], env) : (a[2] ? evalT(a[2], env) : null);
@@ -472,7 +594,7 @@
           }
           case 'DIV': return Math.floor(toNum(evalT(a[0], env)) / toNum(evalT(a[1], env)));
         }
-        fail('Unknown function ' + f + '. DotBI knows SUM, AVG, MIN, MAX, COUNT, COUNTD, MEDIAN, IIF, IF THEN ELSE END, ZN, ROUND, YEAR, MONTH, DATEPART and { FIXED ... }.');
+        fail('Unknown function ' + f + '. DotBI knows SUM, AVG, MIN, MAX, COUNT, COUNTD, MEDIAN, IIF, IF THEN ELSE END, ZN, ROUND, YEAR, MONTH, DATEPART, { FIXED / INCLUDE / EXCLUDE ... } and the table calculations RUNNING_SUM, WINDOW_SUM, WINDOW_AVG, WINDOW_MAX, RANK, INDEX and TOTAL.');
       }
       case 'name': fail("Unknown name '" + node.v + "'. Fields are written in brackets, like [qty]");
       case 'let': fail('VAR / RETURN is DAX syntax');
@@ -499,11 +621,19 @@
     'Sales[category]': { table: 'Sales', col: 'category', label: 'category' },
     'Sales[product]': { table: 'Sales', col: 'product', label: 'product' },
     'Customers[segment]': { table: 'Customers', col: 'segment', label: 'segment' },
+    'Sales[month]': { table: 'Sales', col: 'month', label: 'month' },
+    'Members[plan]': { table: 'Members', col: 'plan', label: 'plan' },
+    'Members[start_month]': { table: 'Members', col: 'start_month', label: 'start month' },
+    'Invoices[month]': { table: 'Invoices', col: 'month', label: 'month' },
   };
+  BI.dimsFor = function (model) { return Object.keys(BI.dims).filter(function (k) { return !!model.tables[BI.dims[k].table]; }); };
 
-  BI.breakdown = function (model, mode, formula, dimKey) {
+  // opts.where (Tableau only): a filter on the Sales rows, applied before anything is computed (the Filters shelf).
+  BI.breakdown = function (model, mode, formula, dimKey, opts) {
     var tree = BI.parse(formula, mode);
-    var sales = model.table('Sales').rows;
+    if (mode === 'tableau' && !model.tables.Sales) fail('Tableau calculations here work on the café Sales data');
+    var sales = mode === 'tableau' ? model.table('Sales').rows : [];
+    if (mode === 'tableau' && opts && opts.where) sales = sales.filter(opts.where);
     var members = [];
     var dim = dimKey ? BI.dims[dimKey] : null;
     if (dim) {
@@ -518,13 +648,18 @@
       if (v instanceof TableVal) fail('This returns a table, not a number. Wrap it, e.g. COUNTROWS(...)');
       return v;
     }
+    function rowsFor(member) {
+      if (!dim || member === undefined) return sales;
+      if (dim.table === 'Sales') return sales.filter(function (r) { return r[dim.col] === member; });
+      var cust = {}; model.table('Customers').rows.forEach(function (c) { if (c[dim.col] === member) cust[c.customer_id] = 1; });
+      return sales.filter(function (r) { return cust[r.customer_id]; });
+    }
+    var marks = null;
     function tabAt(member) {
-      var rows = sales;
-      if (dim && member !== undefined) {
-        if (dim.table === 'Sales') rows = sales.filter(function (r) { return r[dim.col] === member; });
-        else { var cust = {}; model.table('Customers').rows.forEach(function (c) { if (c[dim.col] === member) cust[c.customer_id] = 1; }); rows = sales.filter(function (r) { return cust[r.customer_id]; }); }
-      }
-      var v = evalT(tree, { rows: rows, row: null, all: sales, lodCache: cacheT });
+      var rows = rowsFor(member), view = dim && member !== undefined && dim.table === 'Sales' ? dim.col : null;
+      if (!marks) marks = dim ? members.map(rowsFor) : [sales];
+      var idx = dim && member !== undefined ? members.indexOf(member) : 0;
+      var v = evalT(tree, { rows: rows, row: null, all: sales, lodCache: cacheT, view: view, marks: member === undefined ? [sales] : marks, mark: idx });
       if (typeof v === 'boolean') v = v ? 1 : 0;
       return v;
     }

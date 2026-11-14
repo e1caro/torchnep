@@ -4,12 +4,12 @@
   var DA = (window.DA = window.DA || {});
   var ui = DA.ui, h = ui.h, L = DA.labgame, P = DA.python;
   DA.views = DA.views || {};
-  var lab = null, drafts = {};
+  var drafts = {};
   var MEM = 'data-analyst-path.py-drafts.v1';
   try { drafts = JSON.parse(localStorage.getItem(MEM) || '{}') || {}; } catch (e) { drafts = {}; }
   function saveDrafts() { try { localStorage.setItem(MEM, JSON.stringify(drafts)); } catch (e) { } }
 
-  function getLab() { return lab || (lab = L.register(DA.labPython)); }
+  function getLab() { return L.get('python'); }
 
   DA.views.python = function (params) {
     var lb = getLab();
@@ -21,7 +21,7 @@
     return L.mapView(lb);
   };
 
-  function starter() { return '# df, customers, stores and messy are loaded\nresult = '; }
+  function starter(c) { return c && c.starter ? c.starter : '# df, customers, stores and messy are loaded\nresult = '; }
 
   function page(lb, c) {
     var P2 = L.page(lb, c, { useExample: function (ex) { setCode(ex.code); ui.toast('Example loaded. Press Run (Ctrl+Enter).'); } });
@@ -31,7 +31,8 @@
     var undo = [editor.value], redo = [];
 
     function setCode(v) { undo.push(editor.value); editor.value = v; remember(); editor.focus({ preventScroll: true }); }
-    function remember() { drafts[c.id] = editor.value; saveDrafts(); }
+    function remember() { drafts[c.id] = editor.value; saveDrafts(); grow(); }
+    var grow = ui.autogrow(editor);
     function insert(text, back) {
       var a = editor.selectionStart, b = editor.selectionEnd, v = editor.value;
       undo.push(v); redo = [];
@@ -48,12 +49,14 @@
     work.appendChild(h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'Python shortcuts' },
       KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); })));
     work.appendChild(editor);
+    P2.editor({ set: function (v) { undo.push(editor.value); editor.value = v; remember(); }, extra: ['.sum()', '.mean()', 'df', '==', '1'] });
 
     var out = h('div', { class: 'result', 'aria-live': 'polite' });
     var runBtn = h('button', { class: 'btn', type: 'button', onclick: function () { run(false); } }, '▶ Run');
     var checkBtn = h('button', { class: 'btn accent', type: 'button', onclick: function () { run(true); } }, '✓ Check');
     var resetBtn = h('button', { class: 'btn ghost', type: 'button', onclick: function () { setCode(starter(c)); ui.clear(out); } }, 'Reset code');
-    work.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, resetBtn, h('span', { class: 'muted small', text: 'Ctrl+Enter runs' })));
+    work.appendChild(P2.actions(runBtn, checkBtn));
+    work.appendChild(h('div', { class: 'row actions-more' }, resetBtn, h('span', { class: 'muted small', text: 'Ctrl+Enter runs' })));
     work.appendChild(h('details', { class: 'schema' }, h('summary', null, h('strong', { text: '📋 Data you can use' })),
       h('ul', { class: 'small' },
         h('li', null, h('code', { text: 'df' }), ' café order lines: order_id, order_date, store_city, channel, customer_id, product, category, qty, unit_price'),
@@ -101,6 +104,7 @@
 
     function run(check) {
       var code = editor.value;
+      P2.ran();
       if (!check) { show(P.run(code, { echo: true })); return; }
       var res = P.run(code, { echo: true });
       show(res);

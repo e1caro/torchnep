@@ -107,7 +107,7 @@
   F.crimeChart = crime;
 
   function scatter(pts, showLine, r) {
-    var svg = S('svg', { viewBox: '0 0 240 240', class: 'scatter', role: 'img', 'aria-label': 'Scatter plot of 40 points' });
+    var svg = S('svg', { viewBox: '0 0 240 240', class: 'scatter', role: 'img', 'aria-label': 'Scatter plot of ' + pts.length + ' points' });
     svg.appendChild(S('rect', { x: 14, y: 14, width: 212, height: 212, rx: 10, class: 'sc-bg' }));
     pts.forEach(function (p) { svg.appendChild(S('circle', { cx: (26 + 188 * p[0]).toFixed(1), cy: (214 - 188 * p[1]).toFixed(1), r: 4.2, class: 'sc-pt' })); });
     if (showLine) {
@@ -140,7 +140,8 @@
     return {
       el: h('div', { class: 'fc-actions' }, saveBtn,
         h('button', { class: 'fc-act', type: 'button', onclick: function () { share(c); } }, h('span', { 'aria-hidden': 'true', text: '↗' }), ' Share'),
-        l ? h('a', { class: 'fc-act deep', href: '#/lesson/' + l.id }, h('span', { 'aria-hidden': 'true', text: '📘' }), ' Lesson ' + l.number) : null),
+        l ? h('a', { class: 'fc-act deep', href: '#/lesson/' + l.id }, h('span', { 'aria-hidden': 'true', text: '📘' }), ' Lesson ' + l.number) : null,
+        c.src ? h('a', { class: 'fc-act', href: c.src.url, target: '_blank', rel: 'noopener noreferrer', title: c.src.label, 'aria-label': 'Source: ' + c.src.label + ' (opens a new page)' }, h('span', { 'aria-hidden': 'true', text: '🔗' }), ' Source') : null),
       paint: paint,
     };
   }
@@ -328,7 +329,7 @@
       });
     }, { root: feed, threshold: [0, 0.6, 1] });
     function more(n) {
-      if (rendered + n > items.length && !(items.length === 1 && items[0].type === 'empty')) {
+      if (filter !== 'Saved' && rendered + n > items.length && !(items.length === 1 && items[0].type === 'empty')) { // bookmarks are a finite list, never repeated
         var nextBatch = F.cycle ? F.cycle(filter, ++cycleNum) : [];
         if (nextBatch.length) items = items.concat(nextBatch);
       }

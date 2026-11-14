@@ -43,6 +43,54 @@
 
   /* ---------- toast, clipboard, download ---------- */
 
+  // A bottom sheet (a dialog that slides up on phones): focus stays inside, Esc or the scrim closes it, focus returns afterwards.
+  ui.sheet = function (title, body) {
+    ui.closeSheets();
+    var prev = document.activeElement, id = 'sheet-' + Date.now();
+    var closeBtn = h('button', { class: 'icon-btn sheet-close', type: 'button', 'aria-label': 'Close' }, '✕');
+    var panel = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-labelledby': id },
+      h('div', { class: 'sheet-head' }, h('h2', { id: id, text: title }), closeBtn), h('div', { class: 'sheet-body' }, body));
+    var scrim = h('div', { class: 'sheet-scrim' }, panel);
+    function close() {
+      document.removeEventListener('keydown', onKey, true);
+      if (scrim.parentNode) scrim.parentNode.removeChild(scrim);
+      if (prev && prev.focus && prev.isConnected) prev.focus({ preventScroll: true });
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.key !== 'Tab') return;
+      var f = panel.querySelectorAll('a[href], button:not([disabled]), textarea, input, select, [tabindex="0"]');
+      if (!f.length) return;
+      if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1].focus(); }
+      else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0].focus(); }
+    }
+    scrim.addEventListener('click', function (e) { if (e.target === scrim) close(); });
+    closeBtn.addEventListener('click', close);
+    document.addEventListener('keydown', onKey, true);
+    scrim._close = close;
+    document.body.appendChild(scrim);
+    closeBtn.focus({ preventScroll: true });
+    return { close: close, panel: panel };
+  };
+  ui.closeSheets = function () {
+    if (typeof document === 'undefined') return;
+    Array.prototype.forEach.call(document.querySelectorAll('.sheet-scrim'), function (s) { if (s._close) s._close(); });
+  };
+
+  // Phones: a code editor starts at four lines and grows with its content, up to 45% of the screen.
+  ui.narrow = function () { return !!(window.matchMedia && window.matchMedia('(max-width: 900px)').matches); };
+  ui.autogrow = function (ta) {
+    function grow() {
+      if (!ta.isConnected || !ui.narrow()) { ta.style.height = ''; return; }
+      ta.style.height = 'auto';
+      ta.style.height = Math.max(108, Math.min(ta.scrollHeight + 2, Math.round(window.innerHeight * 0.45))) + 'px';
+    }
+    ['input', 'focus'].forEach(function (ev) { ta.addEventListener(ev, grow); });
+    ta._grow = grow;
+    setTimeout(grow, 0);
+    return grow;
+  };
+
   var toastTimer;
   ui.toast = function (msg) {
     if (typeof document === 'undefined') return;
@@ -137,6 +185,9 @@
     blockStar: 3,    // the first time a SQL blocks puzzle gets 3 stars
     blockLevel: 15,  // solving every puzzle of a SQL blocks level
     module: 25,      // finishing every lesson of a module
+    scenario: 5,     // each decision in a mission's case Try, paid once when the case is closed
+    arcadeLevel: 10, // clearing an arcade level (a round with 3+ solved), once per level
+    arcadeStar: 5,   // three stars in an arcade level, once per level
     gameCap: 20,     // most XP a mini-game can pay per day (they are endless)
   };
 
@@ -155,11 +206,15 @@
       quests: {},  // date -> {lesson, drill, sql: true, chest: bonus XP}
       srs: {},     // question id -> {box 1..5, due date, t: ms of last review}
       badges: {},  // badge id -> date earned
-      stats: { drills: 0, perfect: 0, answers: 0, correct: 0, queries: 0, bestCombo: 0, questsAll: 0, corrBest: 0, corrGames: 0, blockRounds: 0 },
+      stats: { drills: 0, perfect: 0, answers: 0, correct: 0, queries: 0, bestCombo: 0, questsAll: 0, corrBest: 0, corrGames: 0, blockRounds: 0,
+        xrayBest: 0, xrayGames: 0, pipeBest: 0, pipeGames: 0, safeBest: 0, safeGames: 0, pillBest: 0, pillGames: 0 },
       seen: {},    // one-time hints
       cards: {},   // feed card id -> date it was first read ("collected")
       saved: {},   // feed card id -> true (bookmarked)
       blocks: {},  // SQL blocks puzzle id -> stars (1 to 3)
+      journey: {}, // lesson id -> bits: 1 brief seen, 2 learn cards done, 4 tested out, 8 scenario Try done (the rest of a mission is derived)
+      bosses: {},  // module id -> best stars (1 to 3) in that chapter's boss case
+      arcade: {},  // "game:level" -> best stars (1 to 3) of a round in that arcade level
       repaired: {},// date -> true: a missed day bridged by a streak repair
       boost: 0,    // time (ms) until which XP is doubled
     };
@@ -224,6 +279,9 @@
     // SQL blocks: stars 1-3 per solved puzzle (older saves stored true, which counts as 1 star)
     eachKey(src.blocks, function (id, v) { var n = v === true ? 1 : Math.floor(Number(v)); if (n >= 1 && n <= 3 && (!DA.puzzleById || DA.puzzleById[id])) s.blocks[id] = n; }, 500);
     eachKey(src.repaired, function (d, v) { if (isDate(d) && v === true) s.repaired[d] = true; }, 800);
+    eachKey(src.journey, function (id, v) { var n = Math.floor(Number(v)); if (DA.lessonById[id] && n >= 1 && n <= 15) s.journey[id] = n; }, 500);
+    eachKey(src.bosses, function (id, v) { var n = Math.floor(Number(v)); if (n >= 1 && n <= 3 && DA.modules.some(function (m) { return m.id === id; })) s.bosses[id] = n; }, 50);
+    eachKey(src.arcade, function (k, v) { var n = Math.floor(Number(v)), m = /^(\w+):([\w-]+)$/.exec(k); if (m && n >= 1 && n <= 3 && DA.arcadeKeyOk && DA.arcadeKeyOk(m[1], m[2])) s.arcade[k] = n; }, 200);
     var boost = Math.floor(Number(src.boost));
     if (boost > 0 && boost < 1e14) s.boost = boost;
 
@@ -255,8 +313,11 @@
     var t = ui.state.profile.theme, root = document.documentElement;
     if (t === 'light' || t === 'dark') root.setAttribute('data-theme', t); else root.removeAttribute('data-theme');
     var dark = t === 'dark' || (t === 'auto' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    var m = document.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', dark ? '#0d1320' : '#2158d6');
+    // The browser bar matches the top bar: white in light mode, the dark surface in dark mode (a forced theme sets both media variants).
+    Array.prototype.forEach.call(document.querySelectorAll('meta[name="theme-color"]'), function (m) {
+      var isDarkMeta = /dark/.test(m.getAttribute('media') || '');
+      m.setAttribute('content', (t === 'auto' ? isDarkMeta : dark) ? '#131b2e' : '#ffffff');
+    });
   };
 
   // Deterministic shuffle (same seed, same order): used so a lesson quiz always shows its options in the same order.
@@ -273,12 +334,20 @@
 
   ui.doneCount = function () { return DA.lessons.filter(function (l) { return ui.state.done[l.id]; }).length; };
   ui.doneHours = function () { return DA.lessons.reduce(function (s, l) { return s + (ui.state.done[l.id] ? l.hours : 0); }, 0); };
+  // The first unfinished lesson. Lessons added later to a chapter that is already closed (its bonus paid) do not pull you back:
+  // they wait on the map, marked New, and become next only when everything else is done.
   ui.nextLesson = function () {
-    for (var i = 0; i < DA.lessons.length; i++) if (!ui.state.done[DA.lessons[i].id]) return DA.lessons[i];
-    return null;
+    var first = null;
+    for (var i = 0; i < DA.lessons.length; i++) {
+      var l = DA.lessons[i];
+      if (ui.state.done[l.id]) continue;
+      if (!ui.state.xp['module:' + l.module.id]) return l;
+      first = first || l;
+    }
+    return first;
   };
   ui.moduleDone = function (m) { return m.lessons.filter(function (l) { return ui.state.done[l.id]; }).length; };
-  ui.fmtHours = function (x) { return (Math.round(x * 10) / 10) + ' h'; };
+  ui.fmtHours = function (x) { var v = String(Math.round(x * 10) / 10); return (DA.lang === 'es' ? v.replace('.', ',') : v) + ' h'; };
 
   ui.progressBar = function (pct, label) {
     return h('div', { class: 'progress', role: 'progressbar', 'aria-valuemin': '0', 'aria-valuemax': '100', 'aria-valuenow': String(Math.round(pct)), 'aria-label': label || 'Progress' },
@@ -294,13 +363,30 @@
   };
   ui.bgText = function () {
     var b = ui.bg();
-    if (!b) return 'a career changer (background not specified)';
-    if (b.custom) return ui.state.profile.custom.trim() || 'a career changer with a non-technical background';
+    if (!b) return DA.L('a career changer (background not specified)', 'alguien que cambia de carrera (perfil sin especificar)');
+    if (b.custom) return ui.state.profile.custom.trim() || DA.L('a career changer with a non-technical background', 'alguien que cambia de carrera desde un perfil no técnico');
     return b.persona;
   };
+  // The prompts are written in the app's language; ask for another language only when the learner chose one.
+  var LANG_ES = { English: 'inglés', Spanish: 'español', French: 'francés', German: 'alemán', Portuguese: 'portugués', Italian: 'italiano', Dutch: 'neerlandés', Polish: 'polaco', Turkish: 'turco', Hindi: 'hindi', Arabic: 'árabe', Chinese: 'chino' };
   ui.langLine = function () {
-    var l = ui.state.profile.lang;
-    return l && l !== 'English' ? 'Please write your answer in ' + l + '.' : '';
+    var l = ui.state.profile.lang, same = DA.lang === 'es' ? 'Spanish' : 'English';
+    if (!l || l === same) return '';
+    return DA.L('Please write your answer in ' + l + '.', 'Por favor, responde en ' + (LANG_ES[l] || l) + '.');
+  };
+  // The app's own language (English or Spanish), as two radio cards. Changing it reloads the app.
+  ui.appLangChoice = function (big) {
+    var p = ui.state.profile;
+    return h('fieldset', { class: 'choice lang-choice' + (big ? '' : ' compact'), translate: 'no' }, h('legend', { class: big ? 'sr-only' : 'lang-legend', text: 'App language · Idioma de la app' }),
+      DA.i18n.LANGS.map(function (o) {
+        return h('label', { class: 'choice-card' }, h('input', { type: 'radio', name: 'appLang', value: o[0], checked: o[0] === DA.lang, onchange: function () {
+          // the language of AI answers follows, unless the learner picked a third one
+          if (o[0] === 'es' && (!p.lang || p.lang === 'English')) p.lang = 'Spanish';
+          if (o[0] === 'en' && p.lang === 'Spanish') p.lang = 'English';
+          ui.save();
+          DA.i18n.setLang(o[0]);
+        } }), h('strong', { text: o[0] === 'es' ? '🇪🇸 ' + o[1] : '🇬🇧 ' + o[1] }), h('span', { class: 'muted small', text: o[0] === 'es' ? 'Toda la app en español' : 'The whole app in English' }));
+      }));
   };
   // The dataset that fits the learner's background (used by lessons that open the SQL Lab).
   ui.defaultDataset = function () { var b = ui.bg(); return b ? b.dataset : 'retail'; };

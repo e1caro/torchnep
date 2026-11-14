@@ -1,0 +1,464 @@
+{
+ "v": 2,
+ "profile": {
+  "bg": "",
+  "custom": "",
+  "lang": "English",
+  "hours": 8,
+  "goal": "",
+  "dailyGoal": 40,
+  "theme": "auto",
+  "sound": false,
+  "haptics": true,
+  "remind": false,
+  "remindAt": "19:00"
+ },
+ "done": {
+  "l0-1": true,
+  "l0-2": true,
+  "l0-3": true,
+  "l1-1": true,
+  "l1-2": true,
+  "l1-3": true,
+  "l1-4": true,
+  "l1-5": true,
+  "l1-6": true,
+  "l1-7": true,
+  "l2-1": true,
+  "l2-2": true,
+  "l3-1": true,
+  "l5-2": true
+ },
+ "quiz": {
+  "l0-1": {
+   "sel": 1,
+   "ok": true
+  },
+  "l0-2": {
+   "sel": 1,
+   "ok": true
+  },
+  "l0-3": {
+   "sel": 1,
+   "ok": true
+  },
+  "l1-1": {
+   "sel": 2,
+   "ok": false
+  },
+  "l1-2": {
+   "sel": 1,
+   "ok": true
+  },
+  "l1-3": {
+   "sel": 2,
+   "ok": true
+  },
+  "l1-4": {
+   "sel": 0,
+   "ok": true
+  },
+  "l1-5": {
+   "sel": 2,
+   "ok": false
+  },
+  "l1-6": {
+   "sel": 0,
+   "ok": true
+  },
+  "l1-7": {
+   "sel": 0,
+   "ok": true
+  },
+  "l2-1": {
+   "sel": 1,
+   "ok": true
+  },
+  "l2-2": {
+   "sel": 2,
+   "ok": false
+  },
+  "l3-1": {
+   "sel": 1,
+   "ok": true
+  },
+  "l5-2": {
+   "sel": 1,
+   "ok": true
+  }
+ },
+ "notes": {
+  "l0-1": "My notes about What a data analyst really does and what I want to try next.",
+  "l1-1": "My notes about Tidy data and cleaning and what I want to try next.",
+  "l1-4": "My notes about Excel Mastery: Dynamic Arrays, XLOOKUP, INDEX/MATCH and LET and what I want to try next.",
+  "l1-7": "My notes about Spreadsheet Modeling: Scenarios, Cohorts and Error-Proofing and what I want to try next.",
+  "l3-1": "My notes about Notebooks and your first DataFrame and what I want to try next."
+ },
+ "sql": {
+  "r1": true,
+  "r2": true,
+  "s1": true,
+  "r3": true,
+  "r4": true
+ },
+ "sheets": {
+  "s_l1_2_1": true,
+  "sx_w1_1": true,
+  "s_l1_3_1": true,
+  "s_l1_1_1": true
+ },
+ "labs": {
+  "sheets": {
+   "s_l1_2_1": 1,
+   "sx_w1_1": 2,
+   "s_l1_3_1": 3,
+   "s_l1_1_1": 1
+  },
+  "python": {
+   "py01": 3,
+   "py02": 2,
+   "py04": 1
+  },
+  "bi": {
+   "bi01": 2,
+   "bi13": 3
+  },
+  "sql": {
+   "r1": 3,
+   "r2": 1,
+   "s1": 2,
+   "r3": 3,
+   "r4": 2
+  }
+ },
+ "xp": {
+  "lesson:l0-1": {
+   "d": "2026-10-20",
+   "n": 30
+  },
+  "quiz:l0-1": {
+   "d": "2026-10-20",
+   "n": 10
+  },
+  "goal:2026-10-20": {
+   "d": "2026-10-20",
+   "n": 10
+  },
+  "note:l0-1": {
+   "d": "2026-10-20",
+   "n": 5
+  },
+  "lesson:l0-2": {
+   "d": "2026-10-21",
+   "n": 35
+  },
+  "quiz:l0-2": {
+   "d": "2026-10-21",
+   "n": 10
+  },
+  "goal:2026-10-21": {
+   "d": "2026-10-21",
+   "n": 10
+  },
+  "lesson:l0-3": {
+   "d": "2026-10-22",
+   "n": 35
+  },
+  "quiz:l0-3": {
+   "d": "2026-10-22",
+   "n": 10
+  },
+  "goal:2026-10-22": {
+   "d": "2026-10-22",
+   "n": 10
+  },
+  "module:m0": {
+   "d": "2026-10-22",
+   "n": 25
+  },
+  "lesson:l1-1": {
+   "d": "2026-10-24",
+   "n": 60
+  },
+  "goal:2026-10-24": {
+   "d": "2026-10-24",
+   "n": 10
+  },
+  "note:l1-1": {
+   "d": "2026-10-24",
+   "n": 5
+  },
+  "lesson:l1-2": {
+   "d": "2026-10-25",
+   "n": 70
+  },
+  "goal:2026-10-25": {
+   "d": "2026-10-25",
+   "n": 10
+  },
+  "quiz:l1-2": {
+   "d": "2026-10-25",
+   "n": 10
+  },
+  "lesson:l1-3": {
+   "d": "2026-10-27",
+   "n": 60
+  },
+  "goal:2026-10-27": {
+   "d": "2026-10-27",
+   "n": 10
+  },
+  "quiz:l1-3": {
+   "d": "2026-10-27",
+   "n": 10
+  },
+  "lesson:l1-4": {
+   "d": "2026-10-28",
+   "n": 65
+  },
+  "goal:2026-10-28": {
+   "d": "2026-10-28",
+   "n": 10
+  },
+  "quiz:l1-4": {
+   "d": "2026-10-28",
+   "n": 10
+  },
+  "note:l1-4": {
+   "d": "2026-10-28",
+   "n": 5
+  },
+  "lesson:l1-5": {
+   "d": "2026-10-20",
+   "n": 65
+  },
+  "lesson:l1-6": {
+   "d": "2026-10-21",
+   "n": 65
+  },
+  "quiz:l1-6": {
+   "d": "2026-10-21",
+   "n": 10
+  },
+  "lesson:l1-7": {
+   "d": "2026-10-22",
+   "n": 60
+  },
+  "quiz:l1-7": {
+   "d": "2026-10-22",
+   "n": 10
+  },
+  "note:l1-7": {
+   "d": "2026-10-22",
+   "n": 5
+  },
+  "module:m1": {
+   "d": "2026-10-22",
+   "n": 25
+  },
+  "lesson:l2-1": {
+   "d": "2026-10-24",
+   "n": 50
+  },
+  "quiz:l2-1": {
+   "d": "2026-10-24",
+   "n": 10
+  },
+  "lesson:l2-2": {
+   "d": "2026-10-25",
+   "n": 60
+  },
+  "lesson:l3-1": {
+   "d": "2026-10-27",
+   "n": 80
+  },
+  "quiz:l3-1": {
+   "d": "2026-10-27",
+   "n": 10
+  },
+  "note:l3-1": {
+   "d": "2026-10-27",
+   "n": 5
+  },
+  "lesson:l5-2": {
+   "d": "2026-10-28",
+   "n": 70
+  },
+  "quiz:l5-2": {
+   "d": "2026-10-28",
+   "n": 10
+  },
+  "sheet:s_l1_2_1": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "sheet:sx_w1_1": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "sheet:s_l1_3_1": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "goal:2026-10-29": {
+   "d": "2026-10-29",
+   "n": 10
+  },
+  "sheet:s_l1_1_1": {
+   "d": "2026-10-29",
+   "n": 30
+  },
+  "py:py01": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "py:py02": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "py:py04": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "bi:bi01": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "bi:bi13": {
+   "d": "2026-10-29",
+   "n": 30
+  },
+  "sql:r1": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "sql:r2": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "sql:s1": {
+   "d": "2026-10-29",
+   "n": 15
+  },
+  "sql:r3": {
+   "d": "2026-10-29",
+   "n": 30
+  },
+  "sql:r4": {
+   "d": "2026-10-29",
+   "n": 45
+  }
+ },
+ "met": {
+  "2026-10-20": true,
+  "2026-10-21": true,
+  "2026-10-22": true,
+  "2026-10-24": true,
+  "2026-10-25": true,
+  "2026-10-27": true,
+  "2026-10-28": true,
+  "2026-10-29": true
+ },
+ "quests": {
+  "2026-10-20": {
+   "lesson": true
+  },
+  "2026-10-21": {
+   "lesson": true
+  },
+  "2026-10-22": {
+   "lesson": true
+  },
+  "2026-10-24": {
+   "lesson": true
+  },
+  "2026-10-25": {
+   "lesson": true
+  },
+  "2026-10-27": {
+   "lesson": true
+  },
+  "2026-10-28": {
+   "lesson": true
+  },
+  "2026-10-29": {
+   "sql": true,
+   "drill": true
+  }
+ },
+ "srs": {
+  "l:l0-1": {
+   "box": 1,
+   "due": "2026-10-30",
+   "t": 1793275200000
+  },
+  "l:l0-2": {
+   "box": 1,
+   "due": "2026-10-29",
+   "t": 1793275200000
+  },
+  "l:l0-3": {
+   "box": 1,
+   "due": "2026-10-30",
+   "t": 1793275200000
+  },
+  "l:l1-1": {
+   "box": 1,
+   "due": "2026-10-29",
+   "t": 1793275200000
+  },
+  "l:l1-2": {
+   "box": 1,
+   "due": "2026-10-30",
+   "t": 1793275200000
+  },
+  "l:l1-3": {
+   "box": 1,
+   "due": "2026-10-29",
+   "t": 1793275200000
+  }
+ },
+ "badges": {
+  "first-lesson": "2026-10-20",
+  "mod-m0": "2026-10-22",
+  "streak-3": "2026-10-22",
+  "goal-5": "2026-10-25",
+  "quiz-5": "2026-10-27",
+  "level-5": "2026-10-22",
+  "excel-pro": "2026-10-22",
+  "mod-m1": "2026-10-22",
+  "comeback": "2026-10-24",
+  "notes-5": "2026-10-27",
+  "streak-7": "2026-10-28",
+  "sheet-1": "2026-10-29",
+  "sql-1": "2026-10-29",
+  "drill-1": "2026-10-29"
+ },
+ "stats": {
+  "drills": 3,
+  "perfect": 0,
+  "answers": 15,
+  "correct": 12,
+  "queries": 0,
+  "bestCombo": 6,
+  "questsAll": 0,
+  "corrBest": 0,
+  "corrGames": 0,
+  "blockRounds": 0
+ },
+ "seen": {
+  "welcome": true
+ },
+ "cards": {},
+ "saved": {},
+ "blocks": {
+  "b01": 3,
+  "b02": 1
+ },
+ "repaired": {
+  "2026-10-23": true,
+  "2026-10-26": true
+ },
+ "boost": 0,
+ "_note": "Saved state captured from the build before the journey revamp (commit c25114d). Do not edit: tests compare against it."
+}

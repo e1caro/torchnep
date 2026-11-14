@@ -25,7 +25,7 @@ rsync -a --delete --exclude tests --exclude tools --exclude README.md --exclude 
 gradle -p android-analyst assembleDebug
 ```
 
-Launcher icons are generated from `data-analyst-path/icons/icon.svg` by `node data-analyst-path/tools/make-icons.js`.
+Launcher icons (adaptive foreground and background, the themed monochrome layer for Android 13+, legacy square and round mipmaps) and the notification icon are generated from `data-analyst-path/tools/icon-concept.js` by `node data-analyst-path/tools/make-icons.js`.
 
 ## Updating
 

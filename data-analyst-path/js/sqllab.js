@@ -51,16 +51,6 @@
   /* ---------- editor memory & undo/redo store ---------- */
 
   var MEM_KEY = 'data-analyst-path.sql-mem.v1';
-  var LEVELS = DA.sqlLevels || {
-    1: 'Level 1: Foundations — SELECT, WHERE & ORDER BY',
-    2: 'Level 2: Aggregations — COUNT, SUM, AVG & GROUP BY',
-    3: 'Level 3: Multi-Table Joins & HAVING',
-    4: 'Level 4: Dates, CASE WHEN & Conditional Metrics',
-    5: 'Level 5: Subqueries, CTEs (WITH) & Anti-Joins',
-    6: 'Level 6: Window Functions — Ranking & Running Totals',
-    7: 'Level 7: Time-Series, LAG/LEAD & Repeat Behavior',
-    8: 'Level 8: Staff Analyst & Executive Case Studies',
-  };
   var drafts = {};     // typed queries, kept in memory & localStorage
   var histories = {};  // draftKey -> { stack: [{v, s, e}], idx: number, lastTs: number }
   var recentQueries = {}; // dsId -> [sql, ...]
@@ -105,8 +95,7 @@
   // Shared with the SQL blocks game, which checks answers by running them.
   DA.sqlEngine = { load: loadEngine, ref: getRef };
 
-  var sqlLab = null;
-  function getSqlLab() { return sqlLab || (sqlLab = DA.labgame.register(DA.buildSqlLab())); }
+  function getSqlLab() { return DA.labgame.get('sql'); }
   DA.sqlLab = getSqlLab;
 
   DA.views.lab = function (params) {
@@ -131,8 +120,10 @@
       Object.keys(DA.datasets).map(function (id) {
         return h('a', { class: 'tab' + (id === dsId ? ' active' : ''), href: '#/lab/' + id, 'aria-current': id === dsId ? 'page' : null, text: DA.datasets[id].short || DA.datasets[id].title });
       }));
-    root.appendChild(tabs);
-    root.appendChild(h('p', { class: 'muted lab-blurb', text: ds.blurb }));
+    if (!L.embed) {
+      root.appendChild(tabs);
+      root.appendChild(h('p', { class: 'muted lab-blurb', text: ds.blurb }));
+    }
 
     var status = h('div', { class: 'callout info compact', role: 'status' }, 'Loading the SQL engine…');
     root.appendChild(status);
@@ -149,8 +140,9 @@
       class: 'sql-editor', spellcheck: 'false', autocapitalize: 'off', autocomplete: 'off', rows: '9',
       'aria-label': 'SQL query', placeholder: 'Write your SQL here, then press Run (Ctrl/Cmd + Enter). Undo any time with Ctrl/Cmd + Z or ↶ Undo.',
     });
-    var initVal = drafts[draftKey] !== undefined ? drafts[draftKey] : '';
+    var initVal = drafts[draftKey] !== undefined ? drafts[draftKey] : (cur && cur.starter) || '';
     editor.value = initVal;
+    var grow = ui.autogrow(editor);
 
     function getHistory() {
       if (!histories[draftKey] || !histories[draftKey].stack || !histories[draftKey].stack.length) {
@@ -163,6 +155,7 @@
     var redoBtn = h('button', { class: 'btn ghost', type: 'button', title: 'Redo (Ctrl/Cmd + Y)', 'aria-label': 'Redo', onclick: function () { redo(); } }, '↷ Redo');
 
     function syncUndoButtons() {
+      grow();
       var hist = getHistory();
       undoBtn.disabled = hist.idx <= 0;
       redoBtn.disabled = hist.idx >= hist.stack.length - 1;
@@ -251,7 +244,7 @@
     });
 
     var runBtn = h('button', { class: 'btn', type: 'button', disabled: true, onclick: function () { run(false); } }, '▶ Run');
-    var checkBtn = cur ? h('button', { class: 'btn accent', type: 'button', disabled: true, onclick: function () { run(true); } }, '✓ Check my answer') : null;
+    var checkBtn = cur ? h('button', { class: 'btn accent', type: 'button', disabled: true, onclick: function () { run(true); } }, '✓ Check') : null;
     var resetBtn = h('button', { class: 'btn ghost', type: 'button', disabled: true, onclick: function () {
       getDb(SQL, dsId, true); dirty = false; showResult(null); ui.toast('Data reset to the original.');
     } }, 'Reset data');
@@ -265,24 +258,28 @@
     var aiBox = h('div', { class: 'ai-box' });
 
     /* task panel */
+    var fold = function () {}, hintBtn = null;
     if (cur) {
-      var hintBox = h('div', { class: 'callout tip hidden' }, h('strong', { text: 'Hint. ' }), cur.hint);
-      var solBox = h('div', { class: 'hidden' }, h('p', { class: 'muted small', text: 'Reference solution (there are often several valid queries):' }), ui.codeBlock({ lang: 'sql', title: 'Solution', text: cur.solution }));
+      root.classList.add('lab-play');
+      hintBtn = L.hintButton('Hint · ' + cur.title, cur.hint.replace(/&/g, '&amp;').replace(/</g, '&lt;'), function () { session.hinted = true; });
       var solBtn = h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () {
-        if (!attempts[cur.id]) { ui.toast('Try the query and press "Check my answer" at least once first.'); return; }
+        if (!attempts[cur.id]) { ui.toast('Try the query and press "Check" at least once first.'); return; }
         session.hinted = true;
-        solBox.classList.toggle('hidden');
+        ui.sheet('Solution · ' + cur.title, h('div', null, h('p', { class: 'muted small', text: 'Reference solution (there are often several valid queries):' }), ui.codeBlock({ lang: 'sql', title: 'Solution', text: cur.solution })));
       } }, 'Show solution');
-      main.appendChild(h('div', { class: 'task' },
-        h('div', { class: 'task-head' },
-          h('span', { class: 'badge level' + cur.level, text: 'Level ' + wcur.level.world.n + '.' + wcur.level.n }),
-          h('strong', { text: cur.title }),
-          h('span', { class: 'muted small', text: cur.concept }),
-          L.stars('sql', cur.id) ? h('span', { class: 'lab-stars', 'aria-label': 'Best so far: ' + L.stars('sql', cur.id) + ' of 3 stars', text: L.starText(L.stars('sql', cur.id)) }) : h('span', { class: 'muted small', text: '+' + ui.XP.sql(cur.level) + ' XP' })),
-        h('p', { html: cur.task }),
-        h('div', { class: 'row' },
-          h('button', { class: 'btn tiny ghost', type: 'button', onclick: function () { session.hinted = true; hintBox.classList.toggle('hidden'); } }, 'Show hint'), solBtn),
-        hintBox, solBox));
+      var head = h('div', { class: 'task-head' },
+        h('span', { class: 'badge level' + cur.level, text: 'Level ' + wcur.level.world.n + '.' + wcur.level.n }),
+        L.typeBadge(wcur),
+        h('strong', { text: cur.title }),
+        h('span', { class: 'muted small', text: cur.concept }),
+        L.stars('sql', cur.id) ? h('span', { class: 'lab-stars', 'aria-label': 'Best so far: ' + L.stars('sql', cur.id) + ' of 3 stars', text: L.starText(L.stars('sql', cur.id)) }) : h('span', { class: 'muted small', text: '+' + ui.XP.sql(cur.level) + ' XP' }));
+      var taskText = h('p', { html: cur.task });
+      var task = h('div', { class: 'task' }, head, L.taskExtras(wcur, taskText), taskText, cur.type === 'predict' ? null : h('div', { class: 'row task-more' }, solBtn));
+      fold = L.foldTask(task, head);
+      var intro = L.worldIntro(lab, wcur);
+      if (intro) main.appendChild(intro);
+      main.appendChild(task);
+      if (cur.type === 'predict') main.appendChild(L.predictBox(cur, function (r) { verdict(r); }));
     } else {
       main.appendChild(h('div', { class: 'task' }, h('strong', { text: 'Free exploration' }),
         h('p', { class: 'muted', text: 'Try any query on this database, inspect a table below with one click, or pick a challenge on the levels map (🗺 Levels).' })));
@@ -304,9 +301,12 @@
     var keys = h('div', { class: 'sql-keys', role: 'toolbar', 'aria-label': 'SQL shortcuts' },
       ds.tables.map(function (t) { return h('button', { class: 'key table-key', type: 'button', onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(t.name + ' '); } }, t.name); }),
       KEYS.map(function (k) { return h('button', { class: 'key', type: 'button', 'aria-label': 'Insert ' + k[0], onmousedown: function (e) { e.preventDefault(); }, onclick: function () { insert(k[1], k[2]); } }, k[0]); }));
-    main.appendChild(keys);
-    main.appendChild(editor);
-    main.appendChild(h('div', { class: 'row actions' }, runBtn, checkBtn, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
+    var setCode = function (v) { applyValueWithMemory(v, v.length, v.length); };
+    if (cur && cur.type === 'order' && cur.lines) main.appendChild(L.orderBox(cur, setCode));
+    else if (cur && cur.type !== 'predict' && L.embed && ui.narrow()) main.appendChild(L.tapBox(cur, setCode, ['WHERE', 'COUNT(*)', ',']));
+    var editorBits = h('div', { class: cur && cur.type === 'predict' ? 'hidden' : '' }, keys, editor, L.actionBar([hintBtn, runBtn, checkBtn]),
+      h('div', { class: 'row actions-more' }, undoBtn, redoBtn, resetBtn, aiBtn, schemaBtn));
+    main.appendChild(editorBits);
 
     // Quick table viewer bar: shows any table directly without writing anything into the SQL editor
     var tableBtns = {};
@@ -451,11 +451,11 @@
 
     inner.appendChild(h('h2', { class: 'side-title', text: 'Challenges on this database' }));
     inner.appendChild(h('a', { class: 'chal' + (!cur ? ' active' : ''), href: '#/lab/' + dsId }, h('span', { class: 'mark', text: '·' }), 'Free exploration'));
-    [1, 2, 3, 4, 5, 6, 7, 8].forEach(function (lv) {
-      var items = list.filter(function (c) { return c.level === lv; });
+    lab.levels.forEach(function (wl) {
+      var items = list.filter(function (c) { return lab.byId[c.id] && lab.byId[c.id].level === wl; });
       if (!items.length) return;
-      var wl = lab.byId[items[0].id].level, open = L.levelState(lab, wl).unlocked;
-      inner.appendChild(h('div', { class: 'level-label', text: (open ? '' : '🔒 ') + 'Level ' + wl.world.n + '.' + wl.n + ' · ' + (LEVELS[lv] || '').replace(/^Level \d+:\s*/, '') }));
+      var open = L.levelState(lab, wl).unlocked;
+      inner.appendChild(h('div', { class: 'level-label', text: (open ? '' : '🔒 ') + 'Level ' + wl.world.n + '.' + wl.n + ' · ' + wl.title.replace(/ · .*$/, '') }));
       items.forEach(function (c) {
         var k = L.stars('sql', c.id);
         inner.appendChild(h('a', { class: 'chal' + (cur && cur.id === c.id ? ' active' : '') + (open ? '' : ' locked'), href: '#/lab/' + dsId + '/' + c.id, 'aria-current': cur && cur.id === c.id ? 'page' : null },
@@ -498,6 +498,7 @@
 
     function run(check) {
       if (!SQL) return;
+      fold();
       var sql = editor.value.trim();
       ui.clear(aiBox);
       lastError = '';
@@ -526,42 +527,51 @@
       if (dirty) { setFeedback('warn', 'You changed the data, so the check would be unfair. Press "Reset data" and run your query again.'); return; }
       var want = lastResult(getRef(SQL, dsId).exec(cur.solution));
       var cmp = DA.compareResults(res, want, { decimals: cur.decimals, ordered: /order\s+by/i.test(cur.solution) });
-      if (cmp.ok) {
+      if (cmp.ok && cur.finding && !session.found) {
+        setFeedback('ok', '✔ ' + cmp.message + ' ', L.findingBox(cur, function () { session.found = true; won(cmp); }));
+        return;
+      }
+      if (cmp.ok) won(cmp);
+      else setFeedback('bad', '✗ ' + cmp.message, h('div', { class: 'small' }, 'Compare your table with the task: columns, filters, ordering and rounding.'));
+    }
+
+    // A predict task answers through its options; it still records stars and XP like a solved query.
+    function verdict(r) {
+      attempts[cur.id] = (attempts[cur.id] || 0) + 1;
+      if (r.ok) won(r); else setFeedback('bad', '✗ ' + r.message);
+    }
+
+    function won(cmp) {
         var firstTime = !ui.state.sql[cur.id];
         var rec = L.record(lab, wcur, { hinted: session.hinted, tries: attempts[cur.id] });
         DA.game.quest('sql');
         DA.game.sound('done'); DA.game.buzz(30); DA.game.confetti(rec.stars === 3);
-        var nx = L.next(lab, wcur);
         setFeedback('ok', '✔ ' + cmp.message, h('div', null,
           h('p', { class: 'lab-won' }, h('span', { class: 'lab-stars', 'aria-label': rec.stars + ' of 3 stars', text: L.starText(rec.stars) }),
             rec.best > rec.stars ? h('span', { class: 'muted small', text: ' (best: ' + L.starText(rec.best) + ')' }) : null,
             rec.xp ? h('span', { class: 'small', text: ' +' + rec.xp + ' XP' }) : null),
           rec.unlocked ? h('p', { class: 'small lab-unlocked' }, h('strong', { text: '🔓 Level ' + rec.unlocked.world.n + '.' + rec.unlocked.n + ' unlocked: ' }), rec.unlocked.title) : null,
-          h('div', { class: 'row' },
-            nx ? h('a', { class: 'btn small accent', href: L.href(lab, nx) }, 'Next challenge →') : null,
-            h('a', { class: 'btn small ghost', href: '#/lab' }, 'Levels'),
+          L.worldNote(lab, rec),
+          h('div', { class: 'row' }, L.afterSolve(lab, wcur),
             h('button', { class: 'btn small ghost', type: 'button', onclick: function () { showAi(true); } }, '🤖 Ask AI to review my query'))));
         if (firstTime) {
           var mark = side.querySelector('a.chal.active .mark');
           if (mark) mark.textContent = '✔';
           ui.refreshChrome();
         }
-      } else {
-        setFeedback('bad', '✗ ' + cmp.message, h('div', { class: 'small' }, 'Compare your table with the task: columns, filters, ordering and rounding.'));
-      }
     }
 
     function showAi(review) {
       var sql = editor.value.trim();
       var parts = [];
-      parts.push("I'm learning SQL (SQLite) with a practice database. My background: " + ui.bgText() + '.');
-      if (cur) parts.push('Task: ' + cur.task.replace(/<[^>]+>/g, ''));
-      parts.push('Schema:\n' + DA.schemaText(dsId));
-      parts.push('My query:\n' + (sql || '(nothing yet)'));
-      if (lastError) parts.push('The error I get:\n' + lastError);
-      else if (lastRun && lastRun.res) parts.push('It returns ' + lastRun.res.values.length + ' rows with columns: ' + lastRun.res.columns.join(', ') + '.');
-      if (review) parts.push('My query is correct. Review it like a senior analyst: readability, naming, an alternative approach, and one edge case I should think about. Keep it short.');
-      else parts.push("Don't give me the full solution. 1) Explain in plain words what my query does. 2) Tell me what is wrong or missing and why. 3) Give me one hint for the next step. Then ask me a question to check I understood.");
+      parts.push(DA.L("I'm learning SQL (SQLite) with a practice database. My background: ", 'Estoy aprendiendo SQL (SQLite) con una base de datos de práctica. Mi perfil: ') + ui.bgText() + '.');
+      if (cur) parts.push(DA.L('Task: ', 'Tarea: ') + cur.task.replace(/<[^>]+>/g, ''));
+      parts.push(DA.L('Schema:', 'Esquema:') + '\n' + DA.schemaText(dsId));
+      parts.push(DA.L('My query:', 'Mi consulta:') + '\n' + (sql || DA.L('(nothing yet)', '(nada todavía)')));
+      if (lastError) parts.push(DA.L('The error I get:', 'El error que me da:') + '\n' + lastError);
+      else if (lastRun && lastRun.res) parts.push(DA.L('It returns ' + lastRun.res.values.length + ' rows with columns: ', 'Devuelve ' + lastRun.res.values.length + ' filas con las columnas: ') + lastRun.res.columns.join(', ') + '.');
+      if (review) parts.push(DA.L('My query is correct. Review it like a senior analyst: readability, naming, an alternative approach, and one edge case I should think about. Keep it short.', 'Mi consulta es correcta. Revísala como lo haría un analista sénior: legibilidad, nombres, un enfoque alternativo y un caso límite en el que debería pensar. Sé breve.'));
+      else parts.push(DA.L("Don't give me the full solution. 1) Explain in plain words what my query does. 2) Tell me what is wrong or missing and why. 3) Give me one hint for the next step. Then ask me a question to check I understood.", 'No me des la solución completa. 1) Explícame con palabras sencillas qué hace mi consulta. 2) Dime qué está mal o qué falta y por qué. 3) Dame una pista para el siguiente paso. Después hazme una pregunta para comprobar que lo he entendido.'));
       var l = ui.langLine();
       if (l) parts.push(l);
       ui.clear(aiBox);

@@ -144,7 +144,18 @@
     return S.serial(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
   };
   FN.DAYS = function (end, start) { return S.toNum(end) - S.toNum(start); };
-  FN.WEEKDAY = function (date, type) { return S.weekday(S.toNum(date)); };
+  // WEEKDAY(date, [type]): 1 Sunday=1..Saturday=7 (default), 2 or 11 Monday=1..Sunday=7, 3 Monday=0..Sunday=6, 12-17 weeks that start Tuesday..Sunday.
+  FN.WEEKDAY = function (date, type) {
+    var w = S.weekday(S.toNum(date)), t = type === undefined || type === null || type === '' ? 1 : Math.floor(S.toNum(type));
+    if (t === 1 || t === 17) return w;
+    if (t === 2 || t === 11) return w === 1 ? 7 : w - 1;
+    if (t === 3) return w === 1 ? 6 : w - 2;
+    if (t >= 12 && t <= 16) return ((w - (t - 9) + 7) % 7) + 1;
+    return S.E.NUM;
+  };
+
+  FN.ROWS = function (r) { return Array.isArray(r) ? r.length : 1; };
+  FN.COLUMNS = function (r) { return Array.isArray(r) ? (r[0] || []).length : 1; };
 
   // Additional Lookup & Logic
   FN.CHOOSE = function (idx) {

@@ -31,6 +31,21 @@ async function dismissModals(page, wait = 1400) {
 }
 
 // Plays a practice round by reading the right answer from the question bank. wrongAt = first-try positions to miss.
+async function answerAll(page, right) {
+  const n = await page.locator('.qcard').count();
+  for (let i = 0; i < n; i++) {
+    await dismissModals(page, 200);
+    const pick = await page.evaluate(([i, right]) => {
+      const card = document.querySelectorAll('.qcard')[i], text = card.querySelector('.qtext').textContent;
+      const q = DA.drill.bank().find((x) => x.q === text), want = q.options[q.answer];
+      const opts = [...card.querySelectorAll('.quiz-opt')];
+      return opts.findIndex((b) => (b.querySelector('span:last-child').textContent === want) === right);
+    }, [i, right]);
+    await page.locator('.qcard').nth(i).locator('.quiz-opt').nth(pick).click();
+    await sleep(150);
+  }
+}
+
 async function playRound(page, wrongAt = []) {
   let first = 0, answered = 0;
   for (let guard = 0; guard < 12; guard++) {
@@ -143,7 +158,7 @@ async function playRound(page, wrongAt = []) {
   ok(/locked/.test(await txt(page, '.callout.warn')), 'SQLab: a challenge in a locked level shows the lock, not the editor');
   await page.goto(BASE + '/index.html#/lab');
   await page.waitForSelector('.lab-world');
-  ok(await page.locator('.lab-world').count() === 5 && await page.locator('.lab-level').count() === 16, 'SQLab: a world map with 4 worlds, 16 levels and free exploration');
+  ok(await page.locator('.lab-world').count() === 9 && await page.locator('.lab-level').count() === 32, 'SQLab: a world map with 8 worlds, 32 levels and free exploration');
   await page.goto(BASE + '/index.html#/lab/retail/r1');
   await page.waitForSelector('.callout.ok', { timeout: 20000 });
   ok(await page.locator('.sql-keys .key').count() > 15, 'SQL shortcut keys are shown');
@@ -154,7 +169,7 @@ async function playRound(page, wrongAt = []) {
   await page.click('.sql-keys .table-key:has-text("orders")');
   ok((await page.inputValue('.sql-editor')).trim() === 'SELECT * FROM orders', 'shortcut keys type SQL: "' + (await page.inputValue('.sql-editor')).trim() + '"');
   await page.fill('.sql-editor', await page.evaluate(() => DA.challenges.find((c) => c.id === 'r1').solution));
-  await page.click('button:has-text("Check my answer")');
+  await page.click('.lab-actions button:has-text("Check")');
   await page.waitForSelector('.feedback .callout.ok');
   ok(/★/.test(await txt(page, '.feedback')) && await page.evaluate(() => DA.ui.state.labs.sql.r1 === 3 && DA.ui.state.sql.r1 === true), 'SQLab: solving at the first try gives 3 stars and keeps the old solved mark');
   const q3 = await page.evaluate(() => DA.game.quests());
@@ -189,7 +204,7 @@ async function playRound(page, wrongAt = []) {
   ok(await page.locator('.hero-card .dot-bubble').count() === 1 && (await txt(page, '.hero-card .dot-bubble')).length > 20, 'home: Dot says something useful: "' + (await txt(page, '.hero-card .dot-bubble p')).slice(0, 60) + '…"');
   ok(await page.locator('.hud-chip.boost').count() >= 1, 'double-XP boost is running after the quest chest (shown in the HUD)');
   ok(await page.locator('.race .race-row').count() >= 1 && await page.locator('.teaser .teaser-card').count() === 3, 'home shows the week race and three Discover picks');
-  ok(await page.locator('.next-card').count() === 1 && await page.locator('.arcade-tiles .game-tile').count() === 2, 'home shows the next lesson and the arcade');
+  ok(await page.locator('.hero-card .continue-btn').count() === 1 && await page.locator('.arcade-tiles .game-tile').count() === 6, 'home shows the Continue button in the hero, and the six arcade games');
 
   /* ---------- Discover feed ---------- */
   const mult = async () => page.evaluate(() => (DA.game.boostLeft() > 0 ? 2 : 1));
@@ -254,19 +269,39 @@ async function playRound(page, wrongAt = []) {
   ok(await page.locator('.fcard[data-id]').count() === 1, 'Saved shows only the bookmarked card');
   await page.screenshot({ path: path.join(SHOTS, 'desktop-feed.png') });
 
-  /* ---------- learning path ---------- */
+  /* ---------- journey map ---------- */
   await page.goto(BASE + '/index.html#/roadmap');
-  await page.waitForSelector('.unit');
-  const pathInfo = await page.evaluate(() => ({ units: document.querySelectorAll('.unit').length, lessons: document.querySelectorAll('a.node[href^="#/lesson/"]').length, current: document.querySelectorAll('.node.current').length, done: document.querySelectorAll('.node.done:not(.chest)').length }));
-  ok(pathInfo.units === 9 && pathInfo.lessons === 41 && pathInfo.current === 1 && pathInfo.done === 1, 'path: 9 units, 41 lesson stops, one done, one marked as next');
-  await page.click('.node.current');
-  await page.waitForSelector('.lesson');
-  ok((await txt(page, 'h1')).includes('Learn with AI'), 'the pulsing stop opens the next lesson');
+  await page.waitForSelector('.chapter');
+  const pathInfo = await page.evaluate(() => ({ chapters: document.querySelectorAll('.chapter').length, current: document.querySelectorAll('.jnode.current').length, done: document.querySelectorAll('.jnode.done:not(.boss)').length,
+    open: document.querySelectorAll('.ch-toggle[aria-expanded="true"]').length, bosses: document.querySelectorAll('.jnode.boss').length, labelled: [...document.querySelectorAll('a.jnode')].every((a) => a.getAttribute('aria-label').length > 20) }));
+  ok(pathInfo.chapters === 9 && pathInfo.current === 1 && pathInfo.done === 1 && pathInfo.open === 1 && pathInfo.bosses === 1 && pathInfo.labelled, 'journey (old #/roadmap link): 9 chapters, the current one open with its boss, one mission done, one current, every stop labelled');
+  const before2 = await page.locator('a.jnode').count();
+  await page.click('.chapter:nth-of-type(2) .ch-toggle');
+  await page.waitForFunction(() => document.querySelectorAll('.ch-toggle[aria-expanded="true"]').length === 2);
+  ok(await page.locator('a.jnode').count() > before2, 'a collapsed chapter opens with all its missions and its boss');
+  await page.click('.jnode.current');
+  await page.waitForSelector('.view.mission');
+  ok((await txt(page, 'h1')).includes('Learn with AI') && await page.locator('.m-steps a').count() === 5, 'the current stop opens the next mission, with its five steps (a case Try where there is no lab level)');
 
-  /* ---------- arcade ---------- */
+  /* ---------- arcade: every game is a map of 4 worlds × 4 levels with endless puzzles ---------- */
+  const SEED = Math.floor(0.5 * 2147483647); // DA.arcade.rand = () => 0.5 makes the round seed known
+  async function startLevel(game, key) {
+    await page.goto(BASE + '/index.html#/practice');
+    await page.evaluate(() => { DA.arcade.rand = () => 0.5; });
+    await page.evaluate(([g, k]) => { location.hash = '#/arcade/' + g + '/' + k; }, [game, key]);
+    await page.waitForSelector('.aw-intro, .g2-body, .qcard');
+    if (await page.locator('.aw-intro').count()) await page.click('.aw-intro .btn');
+  }
+  await page.goto(BASE + '/index.html#/arcade');
+  await page.waitForSelector('.arcade-tiles');
+  ok(await page.locator('.arcade .game-tile').count() === 6, 'arcade: six games');
   await page.goto(BASE + '/index.html#/arcade/corr');
+  await page.waitForSelector('.aw-world');
+  ok(await page.locator('.aw-world').count() === 4 && await page.locator('.aw-level').count() === 16 && await page.locator('.aw-world .aw-concepts li').count() >= 12,
+    'correlation: a map of 4 worlds, 16 levels, each world listing its new concepts');
+  await page.click('a:has-text("Classic")');
   await page.waitForSelector('.scatter');
-  ok(await page.locator('.scatter .sc-pt').count() === 40, 'correlation game draws 40 points');
+  ok(await page.locator('.scatter .sc-pt').count() === 40, 'classic correlation game draws 40 points');
   for (let i = 0; i < 40 && !(await page.locator('.results').count()); i++) {
     await page.click('.qcard button:has-text("Guess")');
     await page.waitForSelector('.quiz-fb .callout');
@@ -274,12 +309,30 @@ async function playRound(page, wrongAt = []) {
     await page.click('.quiz-fb .btn');
   }
   await page.waitForSelector('.results');
-  ok(await page.evaluate(() => DA.ui.state.stats.corrGames === 1), 'the game ends after three misses and the score is saved');
+  ok(await page.evaluate(() => DA.ui.state.stats.corrGames === 1), 'the classic game ends after three misses and the score is saved');
   await dismissModals(page, 900);
+  // a correlation level: guess each plot's true r
+  await startLevel('corr', '3-1');
+  for (let i = 0; i < 5; i++) {
+    await page.waitForSelector('.qcard input[type=range]:not([disabled])');
+    const r = await page.evaluate(([s, i]) => DA.arcade.corrPlot(s + i * 7919, DA.arcadeWorlds.level('corr', '3-1')).r, [SEED, i]);
+    await page.evaluate((v) => { const el = document.querySelector('.qcard input[type=range]'); el.value = String(Math.round(v * 20) / 20); el.dispatchEvent(new Event('input')); }, r);
+    await page.click('.qcard button:has-text("Guess")');
+    await page.waitForSelector('.quiz-fb .callout');
+    if (i === 0) ok(/💡/.test(await txt(page, '.quiz-fb')), 'correlation level: each plot explains its trap (an outlier here)');
+    await page.click('.quiz-fb .btn');
+  }
+  await page.waitForSelector('.results');
+  ok(await page.evaluate(() => DA.ui.state.arcade['corr:3-1'] === 3 && !!DA.ui.state.xp['arcade:corr:3-1']), 'correlation level: five close guesses clear the level with three stars, paid once');
+  await dismissModals(page, 900);
+
   await page.goto(BASE + '/index.html#/arcade/blocks');
-  await page.waitForSelector('.level-card');
-  ok(await page.locator('.level-card').count() === 8, 'SQL blocks: a map of 8 levels');
-  await page.click('.blocks-map .next-card');
+  await page.waitForSelector('.aw-world');
+  ok(await page.locator('.aw-world').count() === 4 && await page.locator('.aw-level').count() === 16, 'SQL blocks: 4 worlds and 16 levels');
+  await page.click('.aw-map .next-card');
+  await page.waitForSelector('.aw-intro');
+  ok((await txt(page, '.aw-intro')).includes('SELECT and FROM'), 'the first level of a world introduces its concepts');
+  await page.click('.aw-intro .btn');
   await page.waitForSelector('.bank .tile');
   await page.waitForFunction(() => !!window.initSqlJs, null, { timeout: 15000 });
   await page.waitForTimeout(400);
@@ -301,16 +354,17 @@ async function playRound(page, wrongAt = []) {
     await dismissModals(page, 500);
   }
   await page.waitForSelector('.results');
-  ok(await page.evaluate(() => Object.keys(DA.ui.state.blocks).length === 5 && DA.ui.state.stats.blockRounds === 1), 'SQL blocks: five puzzles solved by tapping tiles, checked by running the query');
+  ok(await page.evaluate(() => Object.keys(DA.ui.state.blocks).length === 5 && DA.ui.state.stats.blockRounds === 1), 'SQL blocks: the first five handmade puzzles solved by tapping tiles, checked by running the query');
   const bst = await page.evaluate(() => DA.ui.state.blocks);
   ok(Object.values(bst).filter((n) => n === 3).length === 4 && Object.values(bst).includes(2), 'SQL blocks: 3 stars at the first try, 2 after a wrong Check (' + JSON.stringify(bst) + ')');
-  ok((await page.locator('.results .round-list li').count()) === 5 && /★/.test(await txt(page, '.results .big-stars')), 'SQL blocks: results list the stars of each puzzle');
+  ok((await page.locator('.results .round-list li').count()) === 5 && await page.evaluate(() => DA.ui.state.arcade['blocks:1'] === 3) && await page.locator('.results a:has-text("Level 1.2")').count() === 1,
+    'SQL blocks: 14 of 15 stars clear level 1.1 with three stars and offer level 1.2');
   await dismissModals(page, 1200);
   await page.screenshot({ path: path.join(SHOTS, 'desktop-blocks-results.png') });
   // a "fix the bug" puzzle: the broken query is already in the tray
   await page.evaluate(() => { DA.arcade.levelPuzzles(1).forEach((p) => { if (!p.fix) DA.ui.state.blocks[p.id] = DA.ui.state.blocks[p.id] || 3; }); DA.ui.save(); });
   await page.goto(BASE + '/index.html#/arcade/blocks');
-  await page.click('.level-card >> nth=0');
+  await page.click('.aw-level >> nth=0');
   await page.waitForSelector('.badge.bug');
   await page.waitForSelector('.target summary');
   ok((await txt(page, '.target summary')).includes('3 rows'), 'SQL blocks: the target result is shown (' + (await txt(page, '.target summary')) + ')');
@@ -323,8 +377,81 @@ async function playRound(page, wrongAt = []) {
   await page.click('button:has-text("Check")');
   await page.waitForSelector('.quiz-fb .callout.ok');
   ok(await page.evaluate(() => DA.ui.state.blocks[DA.puzzles.find((p) => p.fix && p.lv === 1).id] === 2), 'SQL blocks: fixed with one hint = 2 stars');
+  // a generated puzzle in a new world: missing values in the Dot & Co. support data
+  await startLevel('blocks', '9');
+  await page.waitForSelector('.qcard .qtext');
+  const g9 = await page.evaluate((s) => { const p = DA.arcade.blockRound(9, 5, s)[0]; return { tiles: p.tiles, fix: p.fix, ask: p.ask }; }, SEED);
+  ok((await txt(page, '.qtext')) === g9.ask && await page.locator('.qmeta:has-text("new puzzle")').count() === 1, 'SQL blocks: level 3.1 makes a new puzzle (' + g9.ask.slice(0, 60) + ')');
+  if (!g9.fix) {
+    await page.waitForSelector('.target summary');
+    for (const t of g9.tiles) await page.evaluate((text) => [...document.querySelectorAll('.bank .tile:not([disabled])')].find((b) => b.textContent === text).click(), t);
+    await page.click('button:has-text("Check")');
+    await page.waitForSelector('.quiz-fb .callout.ok');
+    ok(true, 'SQL blocks: the generated puzzle is solved and checked on the real tickets table');
+  }
   await page.goto(BASE + '/index.html#/');
   await dismissModals(page, 1200);
+
+  /* ---------- tool arcades: Formula X-ray, Pandas pipeline, Slicer safe, Pill match ---------- */
+  await page.goto(BASE + '/index.html#/arcade/xray');
+  await page.waitForSelector('.aw-world');
+  ok(await page.locator('.aw-world').count() === 4 && await page.locator('.aw-level').count() === 16 && /Level 1\.1/.test(await txt(page, '.aw-map .next-card')), 'X-ray: a world map that starts at level 1.1');
+  await startLevel('xray', '2-3');
+  const before3 = await page.evaluate(() => DA.ui.state.stats.xrayGames || 0);
+  for (let i = 0; i < 5; i++) {
+    await page.waitForSelector('.g2-body .xr-cell');
+    const xp = await page.evaluate(([s, i]) => DA.arcade2.xray(s + i * 7919, DA.arcadeWorlds.level('xray', '2-3')), [SEED, i]);
+    ok(await txt(page, '.xr-fx code') === xp.formula, 'X-ray 2.3 puzzle ' + (i + 1) + ': ' + xp.formula);
+    if (i === 0 && xp.cells.length > 1) {
+      await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
+      await page.click('button:has-text("X-ray it")');
+      ok((await txt(page, '[role="status"] .callout.warn')).includes('missing'), 'X-ray: a partial answer says which cells are missing');
+      await page.click('.xr-cell[aria-label^="' + xp.cells[0] + ':"]');
+    }
+    for (const c of xp.cells) await page.click('.xr-cell[aria-label^="' + c + ':"]');
+    await page.click('button:has-text("X-ray it")');
+    await page.waitForSelector('.g2-done .callout');
+    if (i === 0) ok(/★/.test(await txt(page, '.g2-done')) && (await txt(page, '[role="status"] .callout.ok')).includes('returns ' + xp.value), 'X-ray: tapping exactly the cells the formula uses solves it and shows the result');
+    await page.click('.g2-done button');
+  }
+  await page.waitForSelector('.results');
+  ok(await page.evaluate((b) => DA.ui.state.stats.xrayGames === b + 1 && DA.ui.state.arcade['xray:2-3'] >= 2 && !!DA.ui.state.xp['arcade:xray:2-3'], before3) && await page.locator('.results a:has-text("Level 2.4")').count() === 1,
+    'X-ray: a round of five clears level 2.3, saves its stars, pays once and offers level 2.4');
+  await dismissModals(page, 900);
+  await page.goto(BASE + '/index.html#/arcade/xray');
+  await page.waitForSelector('.aw-level.done');
+  ok(await page.locator('.aw-level.done').count() === 1 && /Level 2\.3/.test(await page.locator('.aw-level.done').getAttribute('aria-label')), 'X-ray: the map shows the cleared level with its stars');
+  await startLevel('pipe', '4-4');
+  const pp = await page.evaluate((s) => DA.arcade2.pipe(s, DA.arcadeWorlds.level('pipe', '4-4')), SEED);
+  if (pp.extra) ok(await page.locator('.g2-body:has-text("regions")').count() === 1, 'Pandas pipeline: a merge puzzle shows the second table');
+  for (const l of pp.ref) await page.evaluate((t) => [...document.querySelectorAll('.pp-card')].find((b) => b.textContent === t).click(), l.replace(/^t = /, ''));
+  await page.waitForSelector('.g2-done .callout');
+  ok(/par/.test(await txt(page, '[role="status"] .callout.ok')), 'Pandas pipeline level 4.4 (' + pp.kind + '): the reference cards reach the target, measured against par');
+  await startLevel('safe', '4-2');
+  const sp = await page.evaluate((s) => { const x = DA.arcade2.safe(s, DA.arcadeWorlds.level('safe', '4-2')); return { secret: x.secret, slicers: x.slicers }; }, SEED);
+  ok(sp.slicers.includes('month') && await page.locator('.sf-slicer[aria-label^="Month"]').count() === 1, 'Slicer safe level 4.2: a month slicer for time intelligence');
+  for (const k of sp.slicers) {
+    if (!sp.secret[k]) continue;
+    await page.evaluate(([k, v]) => { document.querySelector('.sf-slicer .chip[aria-label="' + DA.arcade2.SLICERS[k].label + ': ' + v + '"]').click(); }, [k, sp.secret[k]]);
+  }
+  await page.waitForSelector('.g2-done .callout');
+  ok((await txt(page, '[role="status"] .callout.ok')).includes('DATEADD'), 'Slicer safe: the secret slicers open the safe and explain DATEADD');
+  await startLevel('pills', '3-1');
+  const pl = await page.evaluate((s) => { const x = DA.arcade2.pills(s, DA.arcadeWorlds.level('pills', '3-1')); const lab = (k) => Object.values(DA.arcade2.DIM).concat(Object.values(DA.arcade2.MEA)).find((d) => d[0] === k)[1]; return { dim: lab(x.dim), meas: lab(x.meas), fdim: lab(x.filter.dim), fval: x.filter.value }; }, SEED);
+  const pickPill = (t) => page.evaluate((t) => [...document.querySelectorAll('.pm-palette .tpill')].find((b) => b.textContent === t).click(), t);
+  await pickPill(pl.meas);
+  await page.click('.shelf >> nth=0');
+  ok((await txt(page, '[role="status"]')).includes('blue pill'), 'Pill match: a green pill on Rows is refused with the reason');
+  await pickPill(pl.dim); await page.click('.shelf >> nth=0');
+  await pickPill(pl.meas); await page.click('.shelf >> nth=1');
+  await page.click('.g2-body button:has-text("Check")');
+  ok(/filter/.test(await txt(page, '[role="status"]')), 'Pill match: without the filter the bars are too long, and the game says so');
+  await pickPill(pl.fdim); await page.click('.shelf >> nth=2');
+  await page.evaluate((v) => [...document.querySelectorAll('.pm-fvals .chip')].find((c) => c.textContent === v).click(), pl.fval);
+  await page.click('.g2-body button:has-text("Check")');
+  await page.waitForSelector('.g2-done .callout');
+  ok(/★★/.test(await txt(page, '.g2-done')), 'Pill match level 3.1: Rows, Columns and a filter on another field rebuild the chart');
+  await dismissModals(page, 900);
 
   /* ---------- settings: goal, theme, reminder ---------- */
   await page.goto(BASE + '/index.html#/settings');
@@ -365,7 +492,7 @@ async function playRound(page, wrongAt = []) {
 
   /* ---------- phone layout ---------- */
   const sizes = {};
-  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/retail/r1'], ['me', '#/me'], ['settings', '#/settings'], ['roadmap', '#/roadmap'], ['prompts', '#/prompts'], ['feed', '#/feed'], ['collection', '#/collection'], ['arcade', '#/arcade'], ['blocks', '#/arcade/blocks'], ['corr', '#/arcade/corr']]) {
+  for (const [name, hash] of [['home', '#/'], ['practice', '#/practice'], ['lesson', '#/lesson/l2-2'], ['lab', '#/lab/retail/r1'], ['me', '#/me'], ['settings', '#/settings'], ['journey', '#/journey'], ['mission', '#/mission/l2-3/learn'], ['prompts', '#/prompts'], ['feed', '#/feed'], ['collection', '#/collection'], ['arcade', '#/arcade'], ['blocks', '#/arcade/blocks'], ['corr', '#/arcade/corr']]) {
     await phone.goto(BASE + '/index.html' + hash);
     await phone.waitForSelector('main .view');
     if (name === 'lab') await phone.waitForSelector('.callout.ok', { timeout: 20000 });
@@ -375,7 +502,7 @@ async function playRound(page, wrongAt = []) {
     await phone.screenshot({ path: path.join(SHOTS, 'phone-' + name + '.png'), fullPage: name === 'home' });
   }
   ok(Object.values(sizes).every((s) => s.over <= 1), 'no horizontal scrolling on phone: ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.over]))));
-  ok(Object.entries(sizes).every(([k, s]) => s.tab || k === 'blocks' || k === 'corr'), 'bottom tab bar on every phone page (hidden only inside a game)');
+  ok(Object.entries(sizes).every(([k, s]) => ['blocks', 'corr'].includes(k) || s.tab === !['mission', 'lab'].includes(k)), 'bottom tab bar on every phone page (hidden only inside a game, a mission or a challenge): ' + JSON.stringify(Object.fromEntries(Object.entries(sizes).map(([k, v]) => [k, v.tab]))));
   // the feed on a phone: full-height cards, no top bar, one swipe = one card
   await phone.goto(BASE + '/index.html#/feed');
   await phone.waitForSelector('.feed .fcard');
@@ -404,13 +531,168 @@ async function playRound(page, wrongAt = []) {
   await phone.waitForSelector('.quiz-fb .callout');
   await phone.screenshot({ path: path.join(SHOTS, 'phone-round-answered.png') });
 
+  /* ---------- journey on the phone: map, Continue, the five steps, Try in place, test out, boss ---------- */
+  await phone.goto(BASE + '/index.html#/journey');
+  await phone.waitForSelector('[aria-current="step"]');
+  await sleep(300);
+  const jm = await phone.evaluate(() => { const r = document.querySelector('[aria-current="step"]').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, vh: innerHeight, h: document.documentElement.scrollHeight }; });
+  ok(jm.top >= 0 && jm.bottom <= jm.vh, 'phone journey: the map opens scrolled to the current mission (at ' + Math.round(jm.top) + 'px of ' + jm.vh + ')');
+  ok(jm.h < 4000, 'phone journey: chapters fold, so the map is ' + jm.h + 'px tall instead of 12,000');
+  await phone.goto(BASE + '/index.html#/');
+  await phone.waitForSelector('.continue-btn');
+  const cb = await phone.evaluate(() => Math.round(document.querySelector('.continue-btn').getBoundingClientRect().top));
+  ok(cb < 360, 'phone home: Continue is near the top (' + cb + 'px)');
+  const mid = await phone.evaluate(() => DA.journey.current().lesson.id);
+  await phone.tap('.continue-btn');
+  await phone.waitForSelector('.view.mission');
+  ok((await phone.evaluate(() => location.hash)).startsWith('#/mission/' + mid + '/'), 'phone home: Continue opens the current mission at its current step');
+  await phone.goto(BASE + '/index.html#/mission/' + mid + '/brief');
+  await phone.waitForSelector('.view.mission .m-brief');
+  ok(!(await phone.locator('.tabbar').isVisible()) && await phone.locator('.m-actions .btn.accent').isVisible(), 'phone mission: focus mode with the main button in the thumb zone');
+  const pillInk = await phone.evaluate(() => [...document.querySelectorAll('.view.mission .meta .pill')].map((e) => { const c = getComputedStyle(e); return c.color !== c.backgroundColor && c.color !== 'rgb(255, 255, 255)'; }));
+  ok(pillInk.length === 3 && pillInk.every(Boolean), 'phone mission: the time, steps and XP pills are readable (no other style overrides them)');
+  await phone.tap('.m-actions .btn.accent');
+  await phone.waitForSelector('.deck .lcard');
+  let guard = 0;
+  while (/Next card/.test(await txt(phone, '.m-actions .btn.accent')) && guard++ < 12) { await phone.tap('.m-actions .btn.accent'); await sleep(120); }
+  ok(await phone.evaluate((id) => DA.journey.stepDone(id, 'learn'), mid), 'phone mission: reading every card completes Learn (' + guard + ' cards)');
+  await phone.goto(BASE + '/index.html#/mission/' + mid + '/check');
+  await phone.waitForSelector('.qcard');
+  const quest0 = await phone.evaluate(() => DA.game.quests().drill);
+  await answerAll(phone, true);
+  ok(await phone.evaluate((id) => DA.ui.state.quiz[id] && DA.ui.state.quiz[id].ok && DA.game.quests().drill, mid) && (quest0 || true), 'phone mission: Check records the quiz and counts as the Practise quest');
+  await phone.goto(BASE + '/index.html#/mission/' + mid + '/debrief');
+  await phone.waitForSelector('.m-actions .btn.big');
+  const xp0 = await phone.evaluate(() => DA.game.totalXp());
+  await phone.tap('.m-actions button.btn.big');
+  await dismissModals(phone, 900);
+  const xp1 = await phone.evaluate((id) => ({ xp: DA.game.totalXp(), done: !!DA.ui.state.done[id], lxp: DA.ui.XP.lesson(DA.lessonById[id]) }), mid);
+  ok(xp1.done && xp1.xp - xp0 >= xp1.lxp, 'phone mission: Debrief completes the mission with its XP (+' + (xp1.xp - xp0) + ')');
+  await phone.goto(BASE + '/index.html#/mission/l2-1/try');
+  await phone.waitForSelector('.tcard a.btn');
+  await phone.tap('.tcard a.btn >> nth=0');
+  await phone.waitForSelector('.callout.ok', { timeout: 20000 });
+  const tid = await phone.evaluate(() => location.hash.split('/').pop());
+  await phone.fill('.sql-editor', await phone.evaluate((id) => DA.challenges.find((c) => c.id === id).solution, tid));
+  await phone.tap('.lab-actions button:has-text("Check")');
+  await phone.waitForSelector('.feedback .callout.ok');
+  ok(await phone.locator('.feedback a:has-text("Back to the mission")').count() === 1 && await phone.evaluate((id) => DA.labgame.stars('sql', id) >= 1 && DA.game.quests().sql, tid), 'phone mission: a Try challenge is solved in place, its stars go to SQLab and it counts as the Code quest');
+  await dismissModals(phone, 900);
+  // A case Try (no lab level): a wrong pick explains and stays open; all right closes the case once.
+  await phone.goto(BASE + '/index.html#/mission/l4-1/try');
+  await phone.waitForSelector('.scen .quiz-opt');
+  const cases = await phone.evaluate(() => DA.scenarios['l4-1'].map((s) => ({ right: s.options[s.answer], wrong: s.options[(s.answer + 1) % 4] })));
+  const cxp0 = await phone.evaluate(() => DA.game.totalXp());
+  for (let i = 0; i < cases.length; i++) {
+    const card = phone.locator('.scen').nth(i);
+    await card.locator('.quiz-opt', { hasText: cases[i].wrong }).first().tap();
+    ok(await card.locator('.callout.warn').count() === 1 && await card.locator('.quiz-opt:not([disabled])').count() === 3, 'phone case ' + (i + 1) + ': a wrong pick explains and leaves the other options open');
+    await card.locator('.quiz-opt', { hasText: cases[i].right }).first().tap();
+  }
+  await dismissModals(phone, 900);
+  const cst = await phone.evaluate(() => ({ tried: (DA.ui.state.journey['l4-1'] & 8) === 8, done: DA.journey.stepDone('l4-1', 'try'), xp: DA.game.totalXp(), key: !!DA.ui.state.xp['scenario:l4-1'] }));
+  const toCheck = await phone.locator('.m-actions a.btn.big:has-text("Check")').count() + await phone.locator('.scen .quiz-opt.wrong .letter:text("✗")').count() - cases.length;
+  ok(cst.tried && cst.done && cst.key && cst.xp > cxp0 && toCheck === 1, 'phone case Try: every decision right closes the case, pays once and points to Check ' + JSON.stringify(Object.assign({ toCheck }, cst)));
+  await phone.screenshot({ path: path.join(SHOTS, 'phone-case.png') });
+  await phone.goto(BASE + '/index.html#/mission/l4-2/test');
+  await phone.waitForSelector('.qcard');
+  await answerAll(phone, true);
+  await dismissModals(phone, 900);
+  ok(await phone.evaluate(() => !!DA.ui.state.done['l4-2'] && DA.journey.tested('l4-2')), 'phone: testing out with every answer right completes the mission');
+  await phone.goto(BASE + '/index.html#/boss/m0/q');
+  await phone.waitForSelector('.qcard');
+  const bossXp = await phone.evaluate(() => !!DA.ui.state.xp['module:m0']);
+  await answerAll(phone, true);
+  await dismissModals(phone, 900);
+  ok(await phone.evaluate(() => DA.ui.state.bosses.m0 === 3 && !!DA.ui.state.xp['module:m0']) && !bossXp, 'phone: the chapter 1 boss case pays the chapter bonus with three stars');
+  await phone.screenshot({ path: path.join(SHOTS, 'phone-boss.png') });
+
+  /* ---------- phone-first matrix: three phone sizes, light and dark ---------- */
+  const seedDone = {}; ['l0-1', 'l0-2', 'l0-3', 'l1-1', 'l1-2', 'l1-3', 'l1-4', 'l1-5', 'l1-6', 'l1-7', 'l2-1', 'l2-2'].forEach((id) => { seedDone[id] = true; });
+  const plays = [['SQLab', '#/lab/retail/r1'], ['DotPython', '#/python/play/py02'], ['DotSheets', '#/sheets/play/s_l1_2_1'], ['DotBI', '#/bi/play/bi01']];
+  const rows = [];
+  for (const theme of ['light', 'dark']) {
+    for (const [w, hh] of [[360, 740], [390, 844], [412, 915]]) {
+      const ctx = await browser.newContext({ viewport: { width: w, height: hh }, isMobile: true, hasTouch: true, colorScheme: theme });
+      await ctx.addInitScript((st) => { if (!localStorage.getItem('data-analyst-path.v1')) localStorage.setItem('data-analyst-path.v1', JSON.stringify(st)); },
+        { v: 2, profile: { bg: 'science', theme: 'auto' }, done: seedDone, seen: { welcome: true }, labs: { sql: { r1: 3 }, sheets: {}, python: { py01: 3 }, bi: {} } });
+      const pg = await ctx.newPage();
+      watch(pg, 'phone ' + w + ' ' + theme);
+      const r = { at: w + 'x' + hh + ' ' + theme, over: 0, bars: [] };
+      await pg.goto(BASE + '/index.html#/');
+      await pg.waitForSelector('.continue-btn');
+      r.cont = await pg.evaluate(() => Math.round(document.querySelector('.continue-btn').getBoundingClientRect().top));
+      r.dark = await pg.evaluate(() => { const c = getComputedStyle(document.body).backgroundColor.match(/\d+/g).map(Number); return c[0] + c[1] + c[2] < 200; });
+      await pg.goto(BASE + '/index.html#/journey');
+      await pg.waitForSelector('[aria-current="step"]');
+      await sleep(250);
+      r.journey = await pg.evaluate(() => { const b = document.querySelector('[aria-current="step"]').getBoundingClientRect(); return { inView: b.top >= 0 && b.bottom <= innerHeight, h: document.documentElement.scrollHeight }; });
+      for (const [name, hash] of plays) {
+        await pg.goto(BASE + '/index.html' + hash);
+        await pg.waitForSelector('.lab-actions');
+        await sleep(name === 'SQLab' ? 900 : 400);
+        r.bars.push(await pg.evaluate((n) => { const b = document.querySelector('.lab-actions').getBoundingClientRect(); return { n, ok: b.top >= 0 && b.bottom <= innerHeight + 1 && getComputedStyle(document.querySelector('.tabbar')).display === 'none' }; }, name));
+        r.over = Math.max(r.over, await pg.evaluate(() => document.documentElement.scrollWidth - innerWidth));
+      }
+      await pg.goto(BASE + '/index.html#/python/play/py02');
+      await pg.waitForSelector('.py-editor');
+      await pg.focus('.py-editor');
+      await pg.setViewportSize({ width: w, height: 420 });
+      await sleep(300);
+      r.kb = await pg.evaluate(() => { const b = document.querySelector('.lab-actions').getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight + 1; });
+      await pg.setViewportSize({ width: w, height: hh });
+      await pg.goto(BASE + '/index.html#/sheets');
+      await pg.waitForSelector('.lab-road');
+      r.map = await pg.evaluate(() => ({ stars: document.querySelectorAll('.lab-level:not(.locked) .lab-lv-stars').length, locks: document.querySelectorAll('.lab-lock-msg').length, lockedLabelled: [...document.querySelectorAll('.lab-level.locked')].every((x) => /Locked/.test(x.getAttribute('aria-label'))), cols: getComputedStyle(document.querySelector('.lab-road')).gridTemplateColumns.split(' ').length }));
+      for (const hash of ['#/', '#/journey', '#/me', '#/practice', '#/mission/l2-3/learn']) {
+        await pg.goto(BASE + '/index.html' + hash);
+        await pg.waitForSelector('main .view');
+        await sleep(150);
+        r.over = Math.max(r.over, await pg.evaluate(() => document.documentElement.scrollWidth - innerWidth));
+      }
+      if (w === 360) await pg.screenshot({ path: path.join(SHOTS, 'phone360-' + theme + '-mission.png') });
+      rows.push(r);
+      await ctx.close();
+    }
+  }
+  const brief = (f) => rows.map((r) => r.at + ': ' + f(r)).join('; ');
+  ok(rows.every((r) => r.cont < 360), 'F1 Continue near the top on every phone: ' + brief((r) => r.cont + 'px'));
+  ok(rows.every((r) => r.journey.inView && r.journey.h < 4000), 'F2 journey opens on the current mission and stays short: ' + brief((r) => r.journey.h + 'px'));
+  ok(rows.every((r) => r.bars.every((b) => b.ok)), 'F3 Run, Check and Hint stay visible above the fold in all four labs, tab bar hidden: ' + brief((r) => r.bars.filter((b) => b.ok).length + '/4'));
+  ok(rows.every((r) => r.kb), 'F3 with the keyboard open (viewport 420px) the action bar is still on screen');
+  ok(rows.every((r) => r.map.stars >= 1 && r.map.locks === 1 && r.map.lockedLabelled && r.map.cols === 1), 'F8 level map: one column, real stars, a single lock message, locked levels labelled');
+  ok(rows.every((r) => r.over <= 1), 'no horizontal scrolling at any size or theme');
+  ok(rows.filter((r) => r.at.endsWith('dark')).every((r) => r.dark) && rows.filter((r) => r.at.endsWith('light')).every((r) => !r.dark), 'dark mode follows the system on every phone size');
+
+  /* ---------- keyboard only: journey map, mission, hint sheet ---------- */
+  await page.goto(BASE + '/index.html#/journey');
+  await page.waitForSelector('[aria-current="step"]');
+  let tabs = 0, onNode = false;
+  while (tabs++ < 60 && !onNode) { await page.keyboard.press('Tab'); onNode = await page.evaluate(() => document.activeElement && document.activeElement.classList.contains('jnode')); }
+  const ring = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+  ok(onNode && ring !== 'none', 'keyboard: Tab reaches the journey stops with a visible focus ring (' + tabs + ' presses)');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.view.mission');
+  ok(true, 'keyboard: Enter on a stop opens its mission');
+  await page.goto(BASE + '/index.html#/python/play/py02');
+  await page.waitForSelector('.lab-hint');
+  await page.focus('.lab-hint');
+  await page.keyboard.press('Enter');
+  await page.waitForSelector('.sheet[role="dialog"]');
+  const inSheet = await page.evaluate(() => !!document.activeElement.closest('.sheet'));
+  await page.keyboard.press('Tab'); await page.keyboard.press('Tab');
+  const stillIn = await page.evaluate(() => !!document.activeElement.closest('.sheet'));
+  await page.keyboard.press('Escape');
+  const back = await page.evaluate(() => !document.querySelector('.sheet') && document.activeElement.classList.contains('lab-hint'));
+  ok(inSheet && stillIn && back, 'keyboard: the hint opens as a dialog, focus stays inside, Esc closes it and returns focus');
+
   /* ---------- DotSheets, DotPython, DotBI ---------- */
   for (const [route, name] of [['sheets', 'DotSheets'], ['python', 'DotPython'], ['bi', 'DotBI']]) {
     await page.goto(BASE + '/index.html#/' + route);
     await page.waitForSelector('.lab-world');
     const seen = await page.evaluate((r) => ({ h1: document.querySelector('h1').textContent, title: document.title, menu: document.querySelector('.nav a[data-nav="' + r + '"]').textContent.trim(), open: document.querySelectorAll('a.lab-level').length, locked: document.querySelectorAll('.lab-level.locked').length }), route);
     ok(seen.h1 === name && seen.title.startsWith(name) && seen.menu === name, route + ': opens with its name "' + name + '" in the heading, page title and menu');
-    ok(seen.open >= 1 && seen.locked >= 12, route + ': world map with 16 levels, later ones locked (' + seen.locked + ' locked)');
+    ok(seen.open >= 1 && seen.locked >= 12, route + ': world map with its levels, later ones locked (' + seen.locked + ' locked)');
   }
   await page.goto(BASE + '/index.html#/sheets/play/s_l1_2_1');
   await page.waitForSelector('.sheets-canvas');
@@ -511,7 +793,7 @@ async function playRound(page, wrongAt = []) {
   await page.goto(BASE + '/index.html#/lab/retail/r2');
   await page.waitForSelector('.callout.ok', { timeout: 20000 });
   await page.fill('.sql-editor', "SELECT COUNT(*) FROM orders WHERE channel = 'delivery'");
-  await page.click('button:has-text("Check my answer")');
+  await page.click('.lab-actions button:has-text("Check")');
   await page.waitForSelector('.feedback .callout.ok');
   ok(true, 'offline: the SQL engine (WebAssembly) runs and checks an answer');
   await page.goto(BASE + '/index.html#/practice/play');

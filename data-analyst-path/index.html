@@ -6,13 +6,14 @@
   <title>Data Analyst Path</title>
   <meta name="description" content="Learn to become a data analyst starting from your own background: a free daily-habit course with spreadsheets, SQL, Python, statistics, dashboards, an in-browser SQLab, practice rounds and AI tutor prompts. Works offline on phone and computer.">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#2158d6">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#131b2e" media="(prefers-color-scheme: dark)">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Analyst Path">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
   <link rel="icon" href="icons/favicon.png" type="image/png" sizes="32x32">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <script>
@@ -46,7 +47,7 @@
     <ul class="nav">
       <li><a href="#/" data-nav="home"><span aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M3.5 11 12 3.8 20.5 11M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8M10 20.5v-5.5a2 2 0 0 1 4 0v5.5"/></svg></span> Home</a></li>
       <li><a href="#/feed" data-nav="feed"><span aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M12 3l2.4 6.1L20.5 11.5l-6.1 2.4L12 20l-2.4-6.1L3.5 11.5l6.1-2.4L12 3z"/></svg></span> Discover</a></li>
-      <li><a href="#/roadmap" data-nav="roadmap"><span aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5L3.5 20V6.5zM9 4v13.5M15 6.5V20"/></svg></span> Learning path</a></li>
+      <li><a href="#/journey" data-nav="journey"><span aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5L3.5 20V6.5zM9 4v13.5M15 6.5V20"/></svg></span> Journey</a></li>
       <li><a href="#/practice" data-nav="practice"><span aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5h6.5L10 21.5l9.5-11.5H13L13 2.5z"/></svg></span> Practice</a></li>
       <li><a href="#/arcade" data-nav="arcade"><span aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><rect x="2.5" y="6.5" width="19" height="12" rx="4"/><path d="M7.5 10.5v4M5.5 12.5h4M15.5 11.5h.01M17.5 13.5h.01"/></svg></span> Arcade</a></li>
       <li><a href="#/lab" data-nav="lab"><span aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><ellipse cx="12" cy="6" rx="8" ry="3.2"/><path d="M4 6v6c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2V6M4 12v6c0 1.8 3.6 3.2 8 3.2s8-1.4 8-3.2v-6"/></svg></span> SQLab</a></li>
@@ -68,10 +69,10 @@
 
   <nav class="tabbar" aria-label="Primary">
     <a href="#/" data-nav="home"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M3.5 11 12 3.8 20.5 11M5.5 9.8V19a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9.8M10 20.5v-5.5a2 2 0 0 1 4 0v5.5"/></svg></span><span>Home</span></a>
-    <a href="#/feed" data-nav="feed"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M12 3l2.4 6.1L20.5 11.5l-6.1 2.4L12 20l-2.4-6.1L3.5 11.5l6.1-2.4L12 3z"/></svg></span><span>Discover</span></a>
+    <a href="#/journey" data-nav="journey"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5L3.5 20V6.5zM9 4v13.5M15 6.5V20"/></svg></span><span>Journey</span></a>
     <a href="#/practice" data-nav="practice" class="t-main"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5h6.5L10 21.5l9.5-11.5H13L13 2.5z"/></svg></span><span>Practice</span></a>
-    <a href="#/roadmap" data-nav="roadmap"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M3.5 6.5 9 4l6 2.5L20.5 4v13.5L15 20l-6-2.5L3.5 20V6.5zM9 4v13.5M15 6.5V20"/></svg></span><span>Path</span></a>
-    <button id="menuBtn" type="button" aria-expanded="false" aria-controls="sidebar"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span>More</span></button>
+    <a href="#/feed" data-nav="feed"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><path d="M12 3l2.4 6.1L20.5 11.5l-6.1 2.4L12 20l-2.4-6.1L3.5 11.5l6.1-2.4L12 3z"/></svg></span><span>Discover</span></a>
+    <a href="#/me" data-nav="me"><span class="t-ico" aria-hidden="true"><svg class="da-ico" viewBox="0 0 24 24"><circle cx="12" cy="9" r="5.5"/><path d="M9 13.8 7 21l5-2.5L17 21l-2-7.2"/></svg></span><span>You</span></a>
   </nav>
 
   <canvas id="fx" aria-hidden="true"></canvas>
@@ -79,27 +80,49 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="updateBar" class="update-bar" role="status"></div>
 
+  <script src="js/i18n.js"></script>
   <script src="js/data/backgrounds.js"></script>
   <script src="js/data/datasets.js"></script>
+  <script src="js/data/datasets-dotco.js"></script>
+  <script src="js/data/sql-worlds.js"></script>
   <script src="js/data/curriculum.js"></script>
   <script src="js/data/prompts.js"></script>
   <script src="js/data/questions.js"></script>
   <script src="js/data/feed.js"></script>
   <script src="js/data/puzzles.js"></script>
+  <script src="js/data/arcade-worlds.js"></script>
   <script src="js/data/sheets-challenges.js"></script>
   <script src="js/data/lab-sheets.js"></script>
   <script src="js/data/lab-python.js"></script>
   <script src="js/data/lab-bi.js"></script>
   <script src="js/data/lab-sql.js"></script>
+  <script src="js/data/missions.js"></script>
+  <script src="js/i18n/es-ui.js"></script>
+  <script src="js/i18n/es-curriculum.js"></script>
+  <script src="js/i18n/es-missions.js"></script>
+  <script src="js/i18n/es-questions.js"></script>
+  <script src="js/i18n/es-feed.js"></script>
+  <script src="js/i18n/es-extra.js"></script>
+  <script src="js/i18n/es-backgrounds.js"></script>
+  <script src="js/i18n/es-labs.js"></script>
+  <script src="js/i18n/es-labs-python.js"></script>
+  <script src="js/i18n/es-labs-bi.js"></script>
+  <script src="js/i18n/es-labs-sql.js"></script>
+  <script src="js/i18n/es-arcade.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/mascot.js"></script>
   <script src="js/game.js"></script>
   <script src="js/drill-core.js"></script>
   <script src="js/feed-core.js"></script>
   <script src="js/arcade-core.js"></script>
+  <script src="js/arcade-sqlgen.js"></script>
+  <script src="js/arcade-worlds.js"></script>
+  <script src="js/arcade2-core.js"></script>
+  <script src="js/journey-core.js"></script>
   <script src="js/drill.js"></script>
   <script src="js/feed.js"></script>
   <script src="js/arcade.js"></script>
+  <script src="js/arcade2.js"></script>
   <script src="js/path.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/cloud.js"></script>
@@ -127,6 +150,7 @@
   <script src="js/bi/engine.js"></script>
   <script src="js/bilab.js"></script>
   <script src="js/sqllab.js"></script>
+  <script src="js/mission.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

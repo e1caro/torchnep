@@ -45,10 +45,27 @@
         return h('div', { class: 'stat' }, h('b', { text: String(x[1]) }), h('span', { text: x[0] }));
       })));
 
+    root.appendChild(h('h2', { class: 'section-h', text: 'Workshop' }));
+    root.appendChild(h('p', { class: 'muted small', text: 'The four labs, level by level. Stars you win in a mission count here too.' }));
+    root.appendChild(workshop());
+
     root.appendChild(h('h2', { class: 'section-h', text: 'Arcade' }));
     root.appendChild(DA.arcade.tiles());
     root.appendChild(ui.callout('info', 'How review works. ', 'A question you get right returns after 1, 3, 7, 14 and then 30 days. A miss comes back sooner. When you have seen every question, they cycle back in a fresh order.'));
     return root;
+  }
+
+  function workshop() {
+    var L = DA.labgame, icons = { sql: '🗄️', sheets: '📊', python: '🐍', bi: '📈' };
+    return h('div', { class: 'ws-grid' }, ['sql', 'sheets', 'python', 'bi'].map(function (id) {
+      var lab = L.get(id), t = L.totals(lab);
+      return h('a', { class: 'ws-tile', href: '#/' + lab.route, 'aria-label': lab.name + ': ' + t.solved + ' of ' + t.total + ' challenges solved, ' + t.stars + ' of ' + t.max + ' stars' },
+        h('span', { class: 'ws-icon', 'aria-hidden': 'true', text: icons[id] }),
+        h('span', { class: 'grow', 'aria-hidden': 'true' }, h('strong', { text: lab.name }),
+          h('small', { text: lab.worlds.length + ' worlds · ' + t.solved + '/' + t.total + ' solved' }),
+          h('span', { class: 'ws-bar' }, h('span', { style: 'width:' + Math.round(100 * t.solved / Math.max(1, t.total)) + '%' }))),
+        h('span', { class: 'ws-stars', 'aria-hidden': 'true', text: '★ ' + t.stars }));
+    }));
   }
 
   /* ================================================================ round */

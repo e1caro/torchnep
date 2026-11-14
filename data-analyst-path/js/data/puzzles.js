@@ -1,6 +1,7 @@
 /* SQL blocks: build a query by tapping tiles in the right order (no typing: made for phones).
  *
- * Eight levels, from SELECT to window functions. Two kinds of puzzle:
+ * Sixteen levels in four worlds, from SELECT to funnels. Levels 1-8 have handmade puzzles (below); every level also
+ * generates endless puzzles (js/arcade-sqlgen.js). Two kinds of handmade puzzle:
  *   P(level, dataset, question, answer tiles in order, extra tiles that do not belong, why)
  *   F(level, dataset, question, answer tiles, BROKEN tiles, extra tiles, why)  -- "fix the bug": the broken query
  *     is already built; take the wrong tile out and put the right one in.
@@ -24,6 +25,15 @@
     { n: 6, icon: '📅', name: 'Dates and CASE', teaches: 'strftime, date ranges, CASE WHEN' },
     { n: 7, icon: '🪆', name: 'Subqueries and CTEs', teaches: 'IN (SELECT …), WITH … AS' },
     { n: 8, icon: '🏆', name: 'Window functions', teaches: 'RANK, ROW_NUMBER, LAG, running totals' },
+    // Levels 9-16 have no handmade puzzles: every puzzle is generated (js/arcade-sqlgen.js).
+    { n: 9, icon: '🕳️', name: 'Missing values', teaches: 'IS NULL, COUNT(column), COALESCE' },
+    { n: 10, icon: '🔤', name: 'Messy text', teaches: 'LOWER, TRIM, LIKE, SUBSTR' },
+    { n: 11, icon: '🔢', name: 'Numbers and rounding', teaches: 'ROUND, 100.0 * …, arithmetic' },
+    { n: 12, icon: '👯', name: 'Duplicates', teaches: 'COUNT(DISTINCT), HAVING COUNT(*) > 1' },
+    { n: 13, icon: '🧮', name: 'Conditional counts', teaches: 'SUM(CASE WHEN … THEN 1 ELSE 0 END)' },
+    { n: 14, icon: '🕵️', name: 'Missing matches', teaches: 'LEFT JOIN … IS NULL, NOT IN' },
+    { n: 15, icon: '🥇', name: 'Top N per group', teaches: 'ROW_NUMBER() OVER (PARTITION BY …)' },
+    { n: 16, icon: '🔻', name: 'Funnels and conversion', teaches: 'COUNT(DISTINCT CASE …), rates per group' },
   ];
 
   function add(lv, ds, ask, tiles, broken, extra, why) {

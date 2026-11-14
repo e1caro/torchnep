@@ -6,28 +6,34 @@ A free, static web app that teaches you to become a data analyst **starting from
 
 **Learn**
 - **Personalised.** Pick your background (science, engineering, finance, marketing, healthcare, sport, teaching, software, operations, humanities, or describe your own). Analogies, practice data, portfolio ideas, CV examples and every AI prompt adapt to it.
-- **A realistic roadmap.** 9 modules, 29 lessons, about 130 hours: spreadsheets, SQL, Python/pandas, statistics, dashboards, AI-assisted analysis, portfolio, job search. Each lesson has key ideas, a hands-on task, an AI prompt, a quiz and notes.
-- **SQLab.** Real SQLite in the browser (sql.js / WebAssembly), two practice databases, 16 challenges checked automatically. On a phone it has a keyword/table/column toolbar so you rarely need the keyboard for syntax.
-- **Worlds in SQLab too.** SQLab's 64 challenges are grouped into 4 worlds × 4 levels (one level per SQL level and database) with the same map, stars and unlocking as the other labs (solve 2 of 3, 3 of 4 or 4 of 5 to open the next level). Challenges solved before count as 1 star, a level where you already solved something stays open, and free exploration of each database is always open.
-- **DotSheets, DotPython and DotBI.** Three more labs with the same layout as SQLab, each with 4 worlds × 4 levels × 3 challenges (48 each) and a world map. Solving 2 of the 3 challenges in a level opens the next one; each challenge earns 1 to 3 stars (★ solved, ★ no hint, ★ first try), XP once, and has a hint, a worked example per level and a solution shown after the first check. Progress is saved in the same state as everything else, so it syncs between devices.
+- **One journey with Dot & Co.** 9 chapters, 51 missions, about 220 hours: asking good questions and data ethics, spreadsheets and Power Query, SQL (cleaning, funnels, cohorts and retention), Python/pandas and data validation, statistics and experiment design, Power BI (service, security, storage modes, Copilot) and Tableau (relationships, blends, publishing), AI-assisted analysis, portfolio and job search. Each mission has five steps: **Brief** (a request from someone at Dot & Co., a fictional café chain with an ordering app and a coffee club), **Learn** (swipeable key ideas), **Try** (lab levels, or a short case with decisions for the missions without a lab), **Check** (one question plus spaced review) and **Debrief** (the task, the AI prompt and your notes). Every mission is open; if you already know it, *Test out* with all answers right.
+- **Boss cases.** Each chapter ends with a case for Dot & Co.: five questions, plus the chapter's hardest lab levels when it has any. Winning pays the chapter bonus once.
+- **SQLab.** Real SQLite in the browser (sql.js / WebAssembly) with four practice databases (a café chain, a training study, the Dot & Co. app and Dot & Co. growth and support): 112 challenges in 8 worlds × 4 levels, with the same map, stars and unlocking as the other labs. Challenges solved before the worlds existed count as 1 star, and free exploration of each database is always open. On a phone it has a keyword/table/column toolbar so you rarely need the keyboard for syntax.
+- **DotSheets, DotPython and DotBI.** Three more labs with the same layout as SQLab, each with 8 worlds × 4 levels × 3 challenges (96 each) and a world map. Worlds 5 to 8 use the Dot & Co. app and growth data (1,200 users, 9,178 events, 7,000 test assignments, 1,200 support tickets) and add level types: 🐞 bug hunt, 🔮 predict the output, 🧩 put in order, 🌐 Rosetta (the same idea in another tool), 🗂️ case file, 💬 stakeholder request, 🎤 interview, 🧽 cleaning gauntlet and 👾 boss levels. Each world has its own colour, intro and stamp. Solving 2 of the 3 challenges in a level opens the next one; each challenge earns 1 to 3 stars (★ solved, ★ no hint, ★ first try), XP once, and has a hint, a worked example per level and a solution shown after the first check. Progress is saved in the same state as everything else, so it syncs between devices.
   - **DotSheets** is a real spreadsheet on a canvas: click or arrow keys to move, Shift+arrows to select, type to replace a cell, F2 or double-click to edit, Enter/Tab to save and move, Escape to cancel, Delete, Ctrl+C/V/Z/Y, Ctrl+arrows to jump to the data edge, Home, Ctrl+Home, PageUp/PageDown. On a phone, tap to select and tap again to type. Checks compare your cell with the reference formula computed on the same data.
   - **DotPython** runs a safe subset of Python with real pandas syntax (`df.shape`, `sort_values("qty", ascending=False)`, `df[df["qty"] >= 2]`, groupby/agg, merge, `.str`, `.dt`, pivot_table). Tab indents, Ctrl+Enter runs. Your answer goes in `result` and is compared with the reference result.
-  - **DotBI** evaluates DAX measures with real filter context (CALCULATE, FILTER, ALL, SUMX, RELATED, VAR/RETURN, relationships) and Tableau calculations (IIF, DATEPART, `{ FIXED ... }`). The Rows shelf splits the measure into a matrix and a chart; the check compares your measure with the answer in total and in every row.
+  - **DotBI** evaluates DAX measures with real filter context (CALCULATE, FILTER, ALL, SUMX, RELATED, VAR/RETURN, relationships, time intelligence with DATEADD, DATESYTD and TOTALYTD, RANKX and TOPN) and Tableau calculations (IIF, DATEPART, `{ FIXED / INCLUDE / EXCLUDE ... }`, RUNNING_SUM, WINDOW_SUM, RANK, INDEX). The Rows shelf splits the measure into a matrix and a chart; the check compares your measure with the answer in total and in every row.
 - **Prompt library and AI rules.** 50 prompts with fill-in blanks, *Copy*, *Open in ChatGPT / Claude*, and answers in any of 12 languages.
 
 **Discover (the scroll feed)**
-- A vertical, snap-scrolling feed of **131 short cards**: data stories (the missing bullet holes, the map that stopped cholera, the $125 million unit error, 15,841 COVID cases lost in a spreadsheet…), statistics ideas in 30 seconds, SQL / spreadsheet / pandas / AI tips with code, career advice, quotes and a glossary. Facts were checked against their sources; where a number is only reported or attributed, the card says so.
+- A vertical, snap-scrolling feed of **268 short cards**: data stories (the missing bullet holes, the map that stopped cholera, the $125 million unit error, 15,841 COVID cases lost in a spreadsheet…), statistics ideas in 30 seconds, SQL / spreadsheet / pandas / AI tips with code, career advice, quotes and a glossary. Facts were checked against their sources; where a number is only reported or attributed, the card says so. Cards about tools link to the official documentation (🔗 Source, opened only when you tap it).
 - Interactive cards: **myth or fact** (tap to answer), **chart crimes** (tap to see the fix), a **review question** every fourth card (it feeds the spaced-repetition schedule) and a quick **guess-the-correlation** round.
 - Reading a card **collects** it (+2 XP once). Five new cards a day is the Discover goal (+10 XP), followed by a "you are caught up" card: a natural place to stop. Save with ♡ or a double-tap, share, or jump to the matching lesson.
 - "For you" favours the topics you are studying, keeps the same picks all day, and never shows two cards of the same kind in a row.
 
 **Come back every day**
 - **Daily goal** (20, 40 or 80 XP) with a progress ring, and **three daily quests** (learn, practise, code). Finishing all three opens a surprise chest of bonus XP.
-- **Practice rounds.** Five questions, about two minutes, from a bank of 91 (29 lesson quizzes plus 62 more). Combo bonus, a second chance for every miss, and a **spaced-repetition schedule**: a question you get right returns after 1, 3, 7, 14, then 30 days; a miss returns sooner. "Mastered" means you answered it right on several different days.
-- **XP, levels and titles** (Curious Beginner → Query Cadet → Junior Analyst → Data Legend), **streaks** with freezes, a 12-week **activity calendar**, a weekly chart and **43 badges**.
-- **Learning path.** Every lesson is a stop on a winding, colour-coded road: finished stops are ticked, the next one pulses, and each unit ends with practice and a +25 XP chest. Nothing is locked.
-- **Arcade.** *Guess the correlation* (read a scatter plot, three lives) and *SQL blocks*.
-- **SQL blocks: 95 puzzles in 8 levels** (pick and sort → filter rows → count and sum → groups → joins → dates and CASE → subqueries and CTEs → window functions). Build a query by tapping colour-coded tiles (keywords, functions, conditions, tables, columns, subqueries): no typing. Every answer is checked by running it on the practice database, so any equivalent query passes. 🐞 *Fix the bug* puzzles (two or more per level) start with a broken query: tap the wrong tile to take it out and tap the right one to drop it in at the cursor. Each puzzle shows the result to aim for, has a hint that points at the wrong tile or the next one, and earns 1 to 3 stars (each extra Check or hint costs one). A level map with stars per level, "Continue", replays that bring back low-star puzzles first, and a mixed review. XP: 6 per puzzle once, +3 for three stars, +15 per level cleared; badges for clearing a level, fixing 8 bugs and collecting 150 stars. A round counts for the daily "Code" quest.
+- **Practice rounds.** Five questions, about two minutes, from a bank of 298 (51 mission questions, 202 practice questions and 45 boss case questions). Combo bonus, a second chance for every miss, and a **spaced-repetition schedule**: a question you get right returns after 1, 3, 7, 14, then 30 days; a miss returns sooner. "Mastered" means you answered it right on several different days.
+- **XP, levels and titles** (Curious Beginner → Query Cadet → Junior Analyst → Data Legend), **streaks** with freezes, a 12-week **activity calendar**, a weekly chart and **80 badges**.
+- **The journey map.** Every mission is a stop on a winding, colour-coded road: finished stops are ticked, Dot stands on the current one, missions added later are marked *New* (they never pull you back to a chapter you already closed), and each chapter ends with its boss case. Nothing is locked.
+- **Arcade: six games, each a map of 4 worlds × 4 levels (96 levels).** Every world introduces a few new concepts (listed on the map and on the first level), the levels of a world get harder, and **every round makes new puzzles from a seed, so no level ever runs out**. A round is five puzzles; 3 solved clears the level (★), 4 with 10 stars gives ★★, all 5 with 13 stars ★★★. The best result per level is kept and synced; clearing a level pays 10 XP once and three stars 5 XP once, rounds pay at most 20 XP a day per game, and nothing is locked.
+  - 🧱 *SQL blocks* (below): first queries → combine and reshape → clean data → analyst patterns.
+  - 🩻 *Formula X-ray* (Excel: tap the cells a formula really uses): ranges, SUM/AVERAGE/MAX and blanks → one condition (COUNTIF, SUMIF, "<>") → many conditions (COUNTIFS, SUMIFS, wildcards, a limit in a cell) → lookups and arrays (XLOOKUP's first match, VLOOKUP column numbers, INDEX/MATCH, FILTER, SUMPRODUCT). Every answer agrees with the DotSheets engine.
+  - 🐼 *Pandas pipeline* (chain operation cards until your table matches the target): sorting and columns → boolean filters, isin, & and | → groupby, value_counts, reset_index → dropna/fillna, drop_duplicates, assign, pivot_table and merge. Par and the number of decoy cards grow with the worlds.
+  - 🔐 *Slicer safe* (Power BI: set the slicers so the KPI card shows the secret number): slicers and filter context → CALCULATE with ALL, filter arguments and REMOVEFILTERS (some slicers stop mattering) → DIVIDE shares, AVERAGE vs AVERAGEX, SUMX → a month slicer with DATEADD, TOTALYTD and RANKX.
+  - 💊 *Pill match* (Tableau: rebuild a chart with blue and green pills): dimensions and measures → SUM, AVG, MIN, MAX, COUNT and COUNTD → the Filters shelf and Top N → quick table calculations (percent of total, running total, rank).
+  - 🎯 *Guess the correlation*: read the cloud → weak relationships and tiny samples → outliers and clusters → curves, U-shapes and restricted ranges, each with a note on the trap. The classic three-lives mode is still there.
+- **SQL blocks: 16 levels in 4 worlds**: first queries (pick and sort, filter rows, count and sum, groups) → combine and reshape (joins, dates and CASE, subqueries and CTEs, window functions) → clean data (NULL and COALESCE, messy text with LOWER/TRIM/LIKE, rounding and decimals, duplicates) → analyst patterns (conditional counts, anti-joins, top N per group, funnels and A/B conversion). Levels 1-8 start with 123 handmade puzzles; every level, 1 to 16, then generates endless puzzles over the four practice databases (worlds 3 and 4 use the Dot & Co. app, events, tickets and A/B test data, with real NULLs and messy text). Progress from the handmade puzzles shows as level stars on the map. Build a query by tapping colour-coded tiles (keywords, functions, conditions, tables, columns, subqueries): no typing. Every answer is checked by running it on the practice database, so any equivalent query passes. 🐞 *Fix the bug* puzzles (two or more per level) start with a broken query: tap the wrong tile to take it out and tap the right one to drop it in at the cursor. Each puzzle shows the result to aim for, has a hint that points at the wrong tile or the next one, and earns 1 to 3 stars (each extra Check or hint costs one). "Continue", rounds that bring back unsolved and low-star handmade puzzles first, and a mixed review. XP: 6 per puzzle once, +3 for three stars, +15 per level cleared; badges for clearing a level, fixing 8 bugs and collecting 150 stars. A round counts for the daily "Code" quest.
 - **Double XP.** Opening the quest chest starts 15 minutes of double XP.
 - **Streak repair.** Losing a long streak to one missed day makes people quit, so the day after a miss you can win it back by earning twice your daily goal (once, the next day only, for runs of 3+ days).
 - **You vs. last week.** An honest league: this week's XP against where you were at the same point last week. No invented rivals.
@@ -71,17 +77,23 @@ files, copying, sharing and the calendar reminder go through a small native brid
 ## Tests
 
 ```bash
-node tests/unit.js                                   # 73 tests, Node only
-node tests/unit-labs.js                              # the three labs: rules, keyboard logic, all 144 challenge checkers
+node tests/unit.js                                   # 75 tests, Node only
+node tests/unit-labs.js                              # the four labs: rules, level types, all 400 challenge checkers
+node tests/unit-journey.js                           # missions, boss cases, case Try, migration of old saves
+node tests/unit-arcade2.js                           # the four tool games against the real engines
+node tests/unit-arcade-worlds.js                     # 96 arcade levels: every generator, the SQL in sql.js, level stars
 BASE=http://localhost:8000 node tests/e2e.js          # real browser (needs: npm i -g playwright)
 BASE=http://localhost:8000 node tests/e2e-cloud.js    # a computer and a phone syncing through a fake account service
 ```
 
+- `tests/unit-journey.js` (run on its own): every mission and boss case resolves, every lab level is practised by a mission or a boss, a saved state from before the journey loads with identical XP, stars, lessons, quizzes, notes and badges, the case Try, test out, and merging the new fields (idempotent, commutative, safe with an old client).
+- `tests/unit-arcade2.js` (run on its own): every generated X-ray, pipeline, safe and pill puzzle is solvable and its answer is what the spreadsheet, pandas and DAX engines compute.
+- `tests/unit-arcade-worlds.js` (run on its own): the catalog (6 games × 4 worlds × 4 levels, new concepts per world), every level's generator over many seeds (X-ray values from the spreadsheet engine, pipelines run in the Python interpreter, safes and charts from the DAX/Tableau engine, the true r of every plot), 640 generated SQL blocks puzzles run in sql.js with their broken versions really broken, level stars (best kept, paid once), Continue, the new badges, and merging the `arcade` field.
 - `tests/unit-labs.js`, `unit-python-bi.js`, `unit-sheets*.js` (run on their own): unlock rules and stars, saving and merging lab progress, DotSheets navigation and editing (arrows, Ctrl+arrows, Enter/Tab, copy/paste with shifted references, undo/redo), the Python interpreter (pandas syntax, errors, sandbox), DAX and Tableau evaluation, and every challenge: each one fails without work and passes with its solution.
 - `tests/unit-cloud.js` (part of `unit.js`): sign up / sign in on two devices against a fake Supabase, nothing lost in either direction, no writes when nothing changed, one sync per burst of changes, expired and revoked sessions, offline, clear error messages, account deletion.
 - `tests/unit-v3.js` (part of `unit.js`): feed content rules and sequencing, double XP, streak repair, week race, the correlation generator (the answer shown is the true correlation of the picture) and every SQL blocks puzzle executed on the practice database.
-- `tests/unit.js`: XP, levels, streaks and freezes (with a fake clock and daylight-saving edges), quests, badges, the review schedule, the question bank, state merging (idempotent, commutative, no double-counted XP), transfer codes, the calendar file, and static checks that `sw.js`, the manifest and `index.html` agree with the files on disk.
-- `tests/e2e.js`: plays a practice round, completes a lesson and a SQL challenge, checks quests, chest and badges, moves progress from a desktop to a phone profile, checks the phone layout (no sideways scrolling, tab bar, touch targets), opens the three labs (name, world map), types into DotSheets with the keyboard, solves two challenges in each lab and sees the next level open, reloads to check stars and XP, checks the labs at phone width in dark mode, then goes offline and checks the app, the SQL engine and practice still work.
+- `tests/unit.js`: XP, levels, streaks and freezes (with a fake clock and daylight-saving edges), quests, badges, the review schedule, the question bank (including a check that the right answer does not give itself away by length), content rules (ids that never move, boss questions, case options, card sources), state merging (idempotent, commutative, no double-counted XP), transfer codes, the calendar file, and static checks that `sw.js`, the manifest and `index.html` agree with the files on disk.
+- `tests/e2e.js`: plays a practice round, walks a mission from Brief to Debrief on a phone, solves a Try challenge in place, closes a case Try, tests out of a mission, wins a boss case, plays levels of all six arcade games (a correlation level, SQL blocks handmade, fix-the-bug and generated puzzles, a full X-ray level cleared with its stars on the map, a merge pipeline, a month slicer, a filtered Tableau chart), checks the journey and the four labs on three phone sizes in light and dark (thumb-zone buttons, no sideways scrolling), completes a lesson and a SQL challenge, checks quests, chest and badges, moves progress from a desktop to a phone profile, checks the phone layout (no sideways scrolling, tab bar, touch targets), opens the three labs (name, world map), types into DotSheets with the keyboard, solves two challenges in each lab and sees the next level open, reloads to check stars and XP, checks the labs at phone width in dark mode, then goes offline and checks the app, the SQL engine and practice still work.
 
 ## Editing the site
 
@@ -91,7 +103,7 @@ After editing **any** file, regenerate the service worker's file list and versio
 python3 tools/update-sw.py
 ```
 
-(`node tests/unit.js` fails if you forget.) Users see a small "A new version is ready. Reload" bar; each release is cached atomically, so nobody runs a mix of old and new files. `node tools/make-icons.js` re-renders the PNG icons from `icons/icon.svg`.
+(`node tests/unit.js` fails if you forget.) Users see a small "A new version is ready. Reload" bar; each release is cached atomically, so nobody runs a mix of old and new files. `node tools/make-icons.js` rebuilds every icon (web, iOS, Android launcher, monochrome and notification) from the single concept in `tools/icon-concept.js`.
 
 ## Layout
 
@@ -104,9 +116,15 @@ js/game.js              XP, levels, streaks, quests, badges, confetti, celebrati
 js/mascot.js            Dot: SVG character with moods, and what Dot says on the home page
 js/feed-core.js         Discover: what to show next, collecting, daily five (pure logic)
 js/feed.js              Discover feed screen, chart crimes, collection
-js/arcade-core.js       correlation generator and scoring, SQL blocks checking (pure logic)
-js/arcade.js            the two games
-js/path.js              the learning path
+js/arcade-core.js       correlation generators and scoring, SQL blocks rounds and checking (pure logic)
+js/arcade-sqlgen.js     SQL blocks: endless puzzles for each of the 16 levels (pure logic)
+js/arcade-worlds.js     the arcade's worlds and levels: level stars, Continue, totals (pure logic)
+js/arcade.js            lobby, world maps, level intro and results; Guess the correlation and SQL blocks
+js/path.js              the journey map
+js/journey-core.js      missions, steps, case Try, test out and boss cases (pure logic)
+js/mission.js           the mission and boss case screens
+js/arcade2-core.js      the four tool games: puzzle generators and checks (pure logic)
+js/arcade2.js           the four tool games
 js/drill-core.js        question picking and spaced repetition (pure logic)
 js/drill.js             practice lobby and round screen
 js/sync.js              merge, transfer code, calendar reminder (pure logic)
@@ -115,12 +133,13 @@ js/pwa.js               service worker, install prompt, update notice
 js/me.js                You page: level, streak calendar, weekly chart, badges
 js/settings.js          daily goal, theme, reminder, devices, reset
 js/sqllab.js            SQLab               js/app.js   other pages and the router
-js/labgame.js           shared progression of the three labs: worlds, levels, stars, unlocks, map, task card
+js/labgame.js           shared progression of the four labs: worlds, levels, level types, stars, unlocks, map, task card
 js/sheetslab.js js/sheets/   DotSheets (grid.js canvas grid, edit.js keyboard and editing logic, engine.js formulas)
 js/pythonlab.js js/python/   DotPython (interp.js Python subset, engine.js pandas subset)
 js/bilab.js js/bi/           DotBI (engine.js DAX and Tableau)
 js/data/lab-*.js        the worlds, levels and challenges of the labs (lab-sql.js groups SQLab's existing challenges)
-js/data/                backgrounds, curriculum, prompts, questions, feed cards, SQL block puzzles, datasets and SQL challenges
+js/data/                backgrounds, curriculum, missions (cast, briefs, Try mapping, cases, boss cases), arcade worlds, prompts, questions,
+                        feed cards, SQL block puzzles, datasets (datasets-dotco.js: the Dot & Co. data) and SQL challenges
 vendor/sql.js/          sql.js 1.15.2 (MIT), SQLite compiled to WebAssembly
 tests/  tools/          unit and browser tests; service-worker and icon generators (not published)
 ```
@@ -128,11 +147,12 @@ tests/  tools/          unit and browser tests; service-worker and icon generato
 ## Extending it
 
 - **A background:** add one object to `js/data/backgrounds.js`.
-- **A lesson:** edit `js/data/curriculum.js` (the fields are documented at the top). Roadmap, progress, prompt library, practice questions and badges update automatically.
+- **A lesson:** add it with `more(chapter, {...})` in `js/data/curriculum.js` (the fields are documented at the top), never in the middle: ids and numbers are saved progress. Then give it a mission in `js/data/missions.js`: who asks, the brief, and either lab levels for Try or two decisions in `DA.scenarios`. The tests fail until every lesson has a mission and every lab level is used by one.
 - **Practice questions:** add `Q(category, question, right answer, [3 wrong ones], explanation)` to `js/data/questions.js`; options are shuffled for you.
 - **A SQL challenge or dataset:** `js/data/datasets.js`. The reference `solution` defines the expected result; the task text must name the output columns in order, because the checker compares values, not column names.
 - **A badge:** add an entry to the list in `js/game.js`.
-- **A Discover card:** one line in `js/data/feed.js` (`story`, `idea`, `tip`, `myth`, `chart`, `quote` or `word`). Keep it under 70 words and check the facts; the tests enforce the length and the links.
+- **A Discover card:** one line in `js/data/feed.js` (`story`, `idea`, `tip`, `myth`, `chart`, `quote` or `word`), followed by `src(label, url)` when it rests on official documentation. Keep it under 70 words and check the facts; the tests enforce the length and the links.
+- **An arcade level:** add a level object (name, teaches, generator settings) at the end of a world in `js/data/arcade-worlds.js`, or a world at the end of a game; level keys are saved progress, so never rename them. New puzzle kinds go in the game's generator (`arcade2-core.js`, `arcade-core.js` or, for SQL, a template in `arcade-sqlgen.js`), and `tests/unit-arcade-worlds.js` checks every level over many seeds.
 - **A SQL blocks puzzle:** `P(level, dataset, question, answer tiles, extra tiles, why)`, or `F(level, dataset, question, answer tiles, broken tiles, extra tiles, why)` for a bug to fix, at the END of `js/data/puzzles.js` (ids are saved progress). The tests run every reference query on the practice data and check that every broken query really is broken.
 
 The practice data is generated in the browser from a fixed seed, so everyone gets identical data and answers stay checkable.

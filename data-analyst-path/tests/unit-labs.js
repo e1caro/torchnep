@@ -16,14 +16,16 @@ const labs = { sheets: L.register(DA.labSheets), python: L.register(DA.labPython
 
 /* ---------------------------------------------------------------- progression */
 
-test('labs: names, and 4 worlds x 4 levels x 3 challenges in each lab', () => {
+test('labs: names, and worlds x 4 levels x 3 challenges in each lab', () => {
   assert.deepStrictEqual([L.names.sheets, L.names.python, L.names.bi, L.names.sql], ['DotSheets', 'DotPython', 'DotBI', 'SQLab']);
+  const WORLDS = { sheets: 8, python: 8, bi: 8 };
   Object.values(labs).forEach((lab) => {
-    assert.strictEqual(lab.worlds.length, 4, lab.id);
+    const nw = WORLDS[lab.id];
+    assert.strictEqual(lab.worlds.length, nw, lab.id);
     lab.worlds.forEach((w) => { assert.strictEqual(w.levels.length, 4, lab.id + ' ' + w.title); w.levels.forEach((lv) => { assert.strictEqual(lv.challenges.length, 3, lab.id + ' ' + lv.title); assert.ok(lv.example && lv.example.code && lv.example.explain, lab.id + ' ' + lv.title + ' example'); }); });
-    assert.strictEqual(lab.levels.length, 16);
+    assert.strictEqual(lab.levels.length, nw * 4);
     const ids = Object.keys(lab.byId);
-    assert.strictEqual(ids.length, 48, lab.id + ' ids are unique');
+    assert.strictEqual(ids.length, nw * 12, lab.id + ' ids are unique');
     ids.forEach((id) => { const c = lab.byId[id]; assert.ok(c.title && c.task && c.hint && c.solution, lab.id + ' ' + id); });
   });
   const old = DA.sheetsChallenges.map((c) => c.id);
@@ -76,12 +78,17 @@ test('labs: progress survives saving, sanitising and merging two devices; old Do
   assert.ok(reloaded.sql && reloaded.sheets.s_l1_1_1, 'SQLab and old sheets progress untouched');
 });
 
-test('SQLab: 64 existing challenges in 4 worlds x 4 levels; old progress keeps its stars, levels and XP', () => {
+test('SQLab: the 64 original challenges keep worlds 1-4, 48 new ones fill worlds 5-8; old progress keeps its stars, levels and XP', () => {
   const lab = L.register(DA.buildSqlLab());
-  assert.strictEqual(lab.worlds.length, 4);
-  assert.strictEqual(lab.levels.length, 16);
+  assert.strictEqual(lab.worlds.length, 8);
+  assert.strictEqual(lab.levels.length, 32);
   assert.strictEqual(Object.keys(lab.byId).length, DA.challenges.length);
-  lab.levels.forEach((lv) => { assert.ok(lv.challenges.length >= 3 && lv.example, lv.title); assert.ok(lv.challenges.every((c) => c.src.level === lv.sqlLevel && c.src.ds === lv.ds)); });
+  assert.strictEqual(DA.challenges.filter((c) => !c.wl).length, 64);
+  lab.levels.slice(0, 16).forEach((lv) => { assert.ok(lv.challenges.length >= 3 && lv.example, lv.title); assert.ok(lv.challenges.every((c) => c.src.level === lv.sqlLevel && c.src.ds === lv.ds)); });
+  lab.levels.slice(16).forEach((lv) => { assert.ok(lv.challenges.length === 3 && lv.example, lv.title); assert.ok(lv.challenges.every((c) => c.src.wl === lv.key)); });
+  const ids = DA.challenges.map((c) => c.id);
+  assert.strictEqual(new Set(ids).size, ids.length, 'SQLab ids are unique');
+  assert.ok(DA.challenges.every((c) => DA.ui.XP.sql(Math.min(8, c.level)) <= 120), 'XP per challenge is capped');
   assert.ok(DA.challenges.every((c) => typeof c.level === 'number'), 'the SQLab challenges themselves are not changed');
   ui.state = ui.sanitize({ v: 2, sql: { r1: true, r33: true } });
   assert.strictEqual(L.stars('sql', 'r1'), 1, 'a challenge solved before counts as 1 star');
@@ -184,6 +191,17 @@ test('DotSheets: every challenge fails on the original data and passes with its 
     wb.recalc();
     const r = c.check(wb);
     assert.strictEqual(r.ok, true, c.id + ': ' + r.message);
+    if (c.starter) {
+      const bw = S.datasetWorkbook(c.ds);
+      c.starter.forEach(([a, f]) => { const p = S.parseAddr(a); S.setInput(bw.activeSheet(), p.r, p.c, f); });
+      bw.recalc();
+      assert.strictEqual(c.check(bw).ok, false, c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.type === 'predict') {
+      const v = S.refValue(c.ds, [['L1', c.code]]), shown = S.formatValue(v, null);
+      assert.strictEqual(c.options[c.answer], shown, c.id + ' the marked option is what the formula returns');
+      assert.strictEqual(c.options.filter((o) => o === shown).length, 1, c.id + ' only one option is right');
+    }
   });
   const c = labs.sheets.byId.sx_w1_1, wb = S.datasetWorkbook('retail');
   S.setInput(wb.activeSheet(), 1, 10, '4.2'); wb.recalc();
@@ -234,6 +252,18 @@ test('DotPython: every challenge passes with its solution and fails with a wrong
     assert.strictEqual(P.compareResult(P.run('print("hello")').env.result, want, c.ordered).ok, false, c.id + ' passes with only a print');
     assert.strictEqual(P.compareResult(P.run('result = df').env.result, want, c.ordered).ok, false, c.id + ' passes with df');
   });
+  Object.values(labs.python.byId).forEach((c) => {
+    if (c.type === 'predict') {
+      const got = P.repr(P.run(c.code).env.result);
+      assert.strictEqual(c.options[c.answer], got, c.id + ' the marked option is what the code gives');
+      assert.strictEqual(c.options.filter((o) => o === got).length, 1, c.id + ' only one option is right');
+    }
+    if (c.type === 'bug') {
+      const st = P.run(c.starter);
+      assert.ok(!st.ok || !P.compareResult(st.env.result, P.run(c.solution).env.result, c.ordered).ok, c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.finding) assert.ok(c.finding.options.length === 4 && c.finding.options[c.finding.answer], c.id + ' finding');
+  });
   const c = labs.python.byId.py16;
   assert.ok(P.compareResult(P.run('result = df.groupby("channel").size()').env.result, P.run(c.solution).env.result, false).ok, 'an equivalent answer (groupby size vs value_counts) is accepted');
 });
@@ -266,17 +296,140 @@ test('DotBI: Tableau calculations and FIXED level of detail', () => {
   assert.strictEqual(total('SUM([qty]) / MIN({ FIXED : SUM([qty]) })', 'tableau'), 1);
   assert.strictEqual(total("SUM(IIF(DATEPART('month', [order_date]) = 12, [qty], 0))", 'tableau'), total('SUM(IIF(MONTH([order_date]) = 12, [qty], 0))', 'tableau'));
   assert.throws(() => total('[qty]', 'tableau'), /wrap it in an aggregation/);
-  assert.throws(() => total('{ INCLUDE [customer_id] : SUM([qty]) }', 'tableau'), /not available/);
+  assert.throws(() => total('{ INCLUDE [customer_id] : SUM([qty]) }', 'tableau'), /returns one value per row/);
+});
+
+test('DotBI: INCLUDE, EXCLUDE and table calculations follow the view', () => {
+  const by = (f, dim) => BI.breakdown(model, 'tableau', f, dim);
+  const rows = model.table('Sales').rows, cities = [...new Set(rows.map((r) => r.store_city))].sort();
+  const inc = by('AVG({ INCLUDE [customer_id] : SUM([qty]) })', 'Sales[store_city]');
+  const madrid = rows.filter((r) => r.store_city === 'Madrid'), per = {};
+  madrid.forEach((r) => { per[r.customer_id] = (per[r.customer_id] || 0) + r.qty; });
+  const avg = Object.values(per).reduce((a, b) => a + b, 0) / Object.keys(per).length;
+  assert.ok(Math.abs(inc.rows.find((x) => x.member === 'Madrid').value - avg) < 1e-9, 'INCLUDE adds customer to the view: average per customer within each city');
+  const share = by('SUM([qty]) / MIN({ EXCLUDE [store_city] : SUM([qty]) })', 'Sales[store_city]');
+  assert.ok(Math.abs(share.rows.reduce((a, x) => a + x.value, 0) - 1) < 1e-9 && share.total === 1, 'EXCLUDE the view dimension gives the share of the total');
+  const run = by('RUNNING_SUM(SUM([qty]))', 'Sales[month]');
+  assert.strictEqual(run.rows[run.rows.length - 1].value, 8552, 'running sum ends at the grand total');
+  assert.strictEqual(run.rows[0].value, rows.filter((r) => r.month === '2025-01').reduce((a, r) => a + r.qty, 0));
+  const rank = by('RANK(SUM([qty]))', 'Sales[store_city]');
+  assert.deepStrictEqual(rank.rows.map((x) => x.value).sort(), [1, 2, 3, 4, 5]);
+  assert.strictEqual(by('SUM([qty]) / TOTAL(SUM([qty]))', 'Sales[store_city]').total, 1);
+  assert.strictEqual(by('INDEX()', 'Sales[store_city]').rows[cities.length - 1].value, cities.length);
+  assert.throws(() => total('RANK([qty])', 'tableau'), /row-level field/);
+  assert.throws(() => total('SUM(RANK(SUM([qty])))', 'tableau'), /nest aggregations|table calculation/);
+});
+
+test('DotBI: time intelligence, RANKX, TOPN and the subscription model', () => {
+  const by = (f, dim, m) => BI.breakdown(m || model, 'dax', f, dim);
+  const monthQty = (ym) => model.table('Sales').rows.filter((r) => r.month === ym).reduce((a, r) => a + r.qty, 0);
+  const ytd = by('TOTALYTD(SUM(Sales[qty]), Sales[order_date])', 'Sales[month]');
+  assert.strictEqual(ytd.rows.find((x) => x.member === '2025-03').value, monthQty('2025-01') + monthQty('2025-02') + monthQty('2025-03'));
+  assert.strictEqual(ytd.total, 8552);
+  const prev = by('CALCULATE(SUM(Sales[qty]), DATEADD(Sales[order_date], -1, MONTH))', 'Sales[month]');
+  assert.strictEqual(prev.rows.find((x) => x.member === '2025-06').value, monthQty('2025-05'));
+  assert.strictEqual(prev.rows.find((x) => x.member === '2025-01').value, null, 'no month before January');
+  assert.strictEqual(by('CALCULATE(SUM(Sales[qty]), PREVIOUSMONTH(Sales[order_date]))', 'Sales[month]').rows.find((x) => x.member === '2025-09').value, monthQty('2025-08'));
+  const rk = by('RANKX(ALL(Sales[product]), SUM(Sales[qty]))', 'Sales[product]');
+  const top = rk.rows.find((x) => x.value === 1).member, qtyOf = (p) => model.table('Sales').rows.filter((r) => r.product === p).reduce((a, r) => a + r.qty, 0);
+  assert.ok(rk.rows.every((x) => qtyOf(x.member) <= qtyOf(top)), 'rank 1 is the best seller');
+  const top3 = total('CALCULATE(SUM(Sales[qty]), TOPN(3, ALL(Sales[product]), SUM(Sales[qty])))');
+  const sorted = [...new Set(model.table('Sales').rows.map((r) => r.product))].map(qtyOf).sort((a, b) => b - a);
+  assert.strictEqual(top3, sorted[0] + sorted[1] + sorted[2]);
+  assert.throws(() => total('DATESYTD(Sales[order_date])'), /inside CALCULATE/);
+  const club = BI.clubModel(), app = DA.gen.app();
+  assert.deepStrictEqual(BI.dimsFor(club).sort(), ['Invoices[month]', 'Members[plan]', 'Members[start_month]']);
+  assert.strictEqual(by('COUNTROWS(Members)', null, club).total, app.members.length);
+  const plus = by('SUM(Invoices[amount])', 'Members[plan]', club).rows.find((x) => x.member === 'plus').value;
+  const want = app.invoices.filter((i) => app.members.find((m) => m[0] === i[1])[2] === 'plus').reduce((a, i) => a + i[3], 0);
+  assert.ok(Math.abs(plus - want) < 1e-6, 'invoices follow the relationship to members');
 });
 
 test('DotBI: every challenge matches its reference in total and per row, and a different measure fails', () => {
+  const club = BI.clubModel();
   Object.values(labs.bi.byId).forEach((c) => {
-    const want = BI.breakdown(model, c.mode, c.solution, c.by);
-    const wrong = BI.breakdown(model, c.mode, c.mode === 'dax' ? (c.solution === 'SUM(Sales[qty])' ? 'COUNTROWS(Sales)' : 'SUM(Sales[qty])') : (c.solution === 'SUM([qty])' ? 'COUNT([qty])' : 'SUM([qty])'), c.by);
+    const m = c.model === 'club' ? club : model;
+    const want = BI.breakdown(m, c.mode, c.solution, c.by);
+    const other = c.model === 'club' ? (c.solution === 'COUNTROWS(Members)' ? 'SUM(Invoices[amount])' : 'COUNTROWS(Members)') : c.mode === 'dax' ? (c.solution === 'SUM(Sales[qty])' ? 'COUNTROWS(Sales)' : 'SUM(Sales[qty])') : (c.solution === 'SUM([qty])' ? 'COUNT([qty])' : 'SUM([qty])');
+    const wrong = BI.breakdown(m, c.mode, other, c.by);
+    if (c.type === 'predict') {
+      assert.strictEqual(c.options[c.answer], String(want.total), c.id + ' the marked option is the real total');
+      assert.strictEqual(c.options.filter((o) => o === String(want.total)).length, 1, c.id + ' only one option is right');
+    }
+    if (c.type === 'bug') {
+      const st = BI.breakdown(m, c.mode, c.starter, c.by);
+      assert.ok(!(BI.same(st.total, want.total) && st.rows.every((r, i) => BI.same(r.value, want.rows[i].value))), c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.type === 'order') assert.strictEqual(c.lines.join('\n'), c.solution, c.id + ' the lines in order are the solution');
+    if (c.by) assert.ok(BI.dimsFor(m).includes(c.by), c.id + ' rows field exists in its model');
     const same = BI.same(wrong.total, want.total) && wrong.rows.every((r, i) => BI.same(r.value, want.rows[i].value));
     assert.ok(!same, c.id + ' accepts a different measure');
     assert.ok(want.total !== undefined, c.id);
   });
 });
 
+/* ---------------------------------------------------------------- SQLab */
+
+test('SQLab: every reference query returns rows, a different query fails, starters fail, predict options match the real result', async () => {
+  const initSqlJs = require(path.join(root, 'vendor/sql.js/sql-wasm.js'));
+  const SQL = await initSqlJs();
+  const dbs = {};
+  const db = (ds) => dbs[ds] || (dbs[ds] = DA.buildDb(SQL, ds));
+  const last = (r) => r[r.length - 1];
+  const opts = (c) => ({ decimals: c.decimals, ordered: /order\s+by/i.test(c.solution) });
+  DA.challenges.forEach((c) => {
+    const want = last(db(c.ds).exec(c.solution));
+    assert.ok(want && want.values.length, c.id + ' returns rows');
+    assert.ok(DA.compareResults(last(db(c.ds).exec(c.solution)), want, opts(c)).ok, c.id + ' passes with its reference');
+    assert.ok(!DA.compareResults(last(db(c.ds).exec('SELECT 1 AS x')), want, opts(c)).ok, c.id + ' fails with an unrelated query');
+    if (c.starter) {
+      let got = null;
+      try { got = last(db(c.ds).exec(c.starter)); } catch (e) { got = null; }
+      assert.ok(!got || !DA.compareResults(got, want, opts(c)).ok, c.id + ' the bug-hunt starter must not pass');
+    }
+    if (c.type === 'predict') {
+      const shown = String(want.values[0][0]);
+      assert.strictEqual(c.options[c.answer], shown, c.id + ' the marked option is the real result');
+      assert.strictEqual(c.options.filter((o) => o === shown).length, 1, c.id + ' only one option is right');
+    }
+  });
+  const app = DA.gen.app(), growth = DA.gen.growth();
+  [['app', app], ['growth', growth]].forEach(([id, data]) => DA.datasets[id].tables.forEach((t) => {
+    assert.strictEqual(db(id).exec('SELECT COUNT(*) FROM ' + t.name)[0].values[0][0], data[t.name].length, id + '.' + t.name + ' is loaded');
+  }));
+  assert.deepStrictEqual([app.users.length, app.events.length, app.members.length, app.invoices.length], [1200, 9178, 436, 2444], 'the app data is the same for everyone');
+  assert.deepStrictEqual([growth.assignments.length, growth.conversions.length, growth.tickets.length], [7000, 505, 1200], 'the growth data is the same for everyone');
+  Object.values(dbs).forEach((d) => d.close());
+});
+
+test('sheets: numeric criteria such as ">=2" work in COUNTIF, COUNTIFS, SUMIF and AVERAGEIF', () => {
+  const v = (f) => S.refValue('retail', [['K2', f]]);
+  assert.ok(v('=COUNTIFS(C2:C100, "Madrid", H2:H100, ">=2")') > 0, 'was always 0 before parseNumber existed');
+  assert.strictEqual(v('=COUNTIF(H2:H100, ">=1")'), 99);
+  assert.strictEqual(v('=COUNTIF(H2:H100, ">=1")'), v('=COUNTIF(H2:H100, ">0")'));
+  assert.strictEqual(v('=SUMIF(H2:H100, ">1")'), 2 * v('=COUNTIF(H2:H100, ">1")'), 'the largest qty here is 2');
+  assert.ok(Math.abs(v('=AVERAGEIF(C2:C100, "Madrid", H2:H100)') - v('=AVERAGEIFS(H2:H100, C2:C100, "Madrid")')) < 1e-9);
+  assert.deepStrictEqual([S.parseNumber('3'), S.parseNumber(' -2.5 '), S.parseNumber('15%'), S.parseNumber('abc'), S.parseNumber('')], [3, -2.5, 0.15, null, null]);
+});
+
+test('worlds: completing a world says so once, and adds a stamp to the collection', () => {
+  ui.state = ui.sanitize({ v: 2 });
+  const lab = labs.python, w = lab.worlds[6], all = w.levels.flatMap((lv) => lv.challenges);
+  let done = null;
+  all.forEach((c, i) => { const r = L.record(lab, c, { hinted: false, tries: 1 }); if (r.worldDone) { assert.strictEqual(i, all.length - 1, 'only the last challenge completes the world'); done = r.worldDone; } });
+  assert.strictEqual(done, w);
+  assert.strictEqual(L.record(lab, all[0], { hinted: false, tries: 1 }).worldDone, null, 'never twice');
+  const st = L.stamps();
+  assert.strictEqual(st.length, 32, '8 worlds in each of the 4 labs');
+  assert.deepStrictEqual(st.filter((x) => x.done).map((x) => x.lab.id + ' ' + x.world.n), ['python 7']);
+  assert.ok(L.WORLD_COLORS.length >= 8);
+});
+
+test('level types: tokens for tap mode, and the type labels', () => {
+  assert.deepStrictEqual(L.tokens('SELECT name, COUNT(*) FROM t WHERE x >= 2'), ['SELECT', 'name', ',', 'COUNT(', '*', ')', 'FROM', 't', 'WHERE', 'x', '>=', '2']);
+  assert.deepStrictEqual(L.tokens('df["qty"].sum()'), ['df', '["qty"]', '.', 'sum(', ')']);
+  assert.ok(['bug', 'predict', 'order', 'rosetta', 'case', 'ask', 'interview', 'gauntlet', 'boss'].every((k) => L.TYPES[k]));
+});
+
 runAll();
+
