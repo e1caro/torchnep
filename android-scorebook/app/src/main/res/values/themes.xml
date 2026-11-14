@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Scorebook" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/stage</item>
+        <item name="android:statusBarColor">@color/stage</item>
+        <item name="android:navigationBarColor">@color/stage</item>
+    </style>
+    <color name="stage">#FF0E0F12</color>
+    <color name="ink">#FFF3EBDD</color>
+    <color name="gold">#FFE0A458</color>
+</resources>

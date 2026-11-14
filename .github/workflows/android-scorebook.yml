@@ -1,0 +1,104 @@
+name: android-scorebook
+
+# Builds the Scorebook Android app (android-scorebook/: a plain-Kotlin core and the Compose app).
+# - On pushes and pull requests that touch it: runs the core tests (transcription, key/tempo/chords, note
+#   correction, engraving, exports) and builds the APK, downloadable from the run's artifacts.
+# - Run by hand (Actions > android-scorebook > Run workflow): also publishes a release "Scorebook 1.N"
+#   (tag scorebook-N) with the APK. Tags are never v* (PyPI), app-N (FitQuest) or analyst-N; not marked "latest".
+#
+# Signing reuses the repository's sideload key (secrets FITQUEST_KEYSTORE / FITQUEST_KEY_PASS), so every APK
+# installs over the previous one. Without them a one-off key is generated (a later APK will not update it).
+
+on:
+  push:
+    branches: [master, "claude/**"]
+    paths: ["android-scorebook/**", ".github/workflows/android-scorebook.yml"]
+  pull_request:
+    branches: [master]
+    paths: ["android-scorebook/**", ".github/workflows/android-scorebook.yml"]
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "What's new in this version"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-scorebook-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Core tests
+        run: gradle -p android-scorebook :core:test --no-daemon --console=plain
+
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.FITQUEST_KEYSTORE }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > android-scorebook/scorebook.jks
+          else
+            echo "::warning::No FITQUEST_KEYSTORE secret: signing with a one-off key, so a later APK will not be able to update this one."
+            keytool -genkeypair -keystore android-scorebook/scorebook.jks -alias fitquest -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass fitquest -keypass fitquest -dname "CN=Scorebook"
+          fi
+
+      - name: Build
+        env:
+          SCOREBOOK_KEY_PASS: ${{ secrets.FITQUEST_KEY_PASS || 'fitquest' }}
+        run: |
+          gradle -p android-scorebook :app:assembleRelease \
+            -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon --console=plain
+
+      - name: Name the APK and check it
+        run: |
+          APK=Scorebook-1.${{ github.run_number }}.apk
+          cp android-scorebook/app/build/outputs/apk/release/app-release.apk "$APK"
+          ls -la "$APK"
+          # the model, the music font and the LiteRT runtime must be inside
+          unzip -l "$APK" | grep -E "assets/basic_pitch.tflite|assets/Bravura.otf"
+          unzip -l "$APK" | grep -E "lib/arm64-v8a/.*\.so"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - name: Show package and signature
+        continue-on-error: true
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs "$APK" | head -5
+          "$BT/aapt2" dump badging "$APK" | grep -E "^package|^sdkVersion|^targetSdkVersion|^application-label:|^uses-permission"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Scorebook-1.${{ github.run_number }}
+          path: Scorebook-1.${{ github.run_number }}.apk
+
+      - name: Publish the release
+        if: github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: scorebook-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Scorebook 1.${{ github.run_number }}
+          body: |
+            ${{ github.event.inputs.notes || 'Scorebook for Android: play the piano, get sheet music. Offline transcription, key and tempo detection, AI note correction, PDF / MIDI / MusicXML export.' }}
+
+            **Install on Android:** download `Scorebook-1.${{ github.run_number }}.apk` on your phone, open it and allow "Install unknown apps" for your browser when asked.
+          files: Scorebook-1.${{ github.run_number }}.apk
+          make_latest: false
