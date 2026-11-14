@@ -14,6 +14,6 @@ ls -la device-out
 cat device-out/report.txt || true
 # screenshots inline in the log as well (base64), for reviewers who cannot download artifacts
 if [ "${SCOREBOOK_PRINT_SHOTS:-0}" = "1" ]; then
-  for f in device-out/*.png; do echo "BEGIN-PNG $(basename "$f")"; base64 -w 0 "$f"; echo; echo "END-PNG"; done
+  for f in device-out/*.jpg; do echo "BEGIN-JPG $(basename "$f") $(stat -c %s "$f")"; base64 -w 0 "$f"; echo; echo "END-JPG"; done
 fi
 grep -q "^OK (" instrument.txt

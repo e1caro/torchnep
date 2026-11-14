@@ -3,6 +3,7 @@ package io.github.e1caro.scorebook
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Color
+import android.graphics.Paint
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import androidx.lifecycle.ViewModelProvider
@@ -14,6 +15,7 @@ import io.github.e1caro.scorebook.core.correct.AnalysisSettings
 import io.github.e1caro.scorebook.core.correct.AutoTitle
 import io.github.e1caro.scorebook.core.correct.Decision
 import io.github.e1caro.scorebook.core.correct.Transcriber
+import io.github.e1caro.scorebook.core.engrave.Smufl
 import io.github.e1caro.scorebook.core.library.Library
 import io.github.e1caro.scorebook.core.library.Song
 import io.github.e1caro.scorebook.core.library.TakeData
@@ -70,8 +72,15 @@ class OnDeviceTest {
         // the C#5 passing note in bar 7 is kept
         assertTrue(t.notes.any { it.pitch == 73 })
 
-        // save it as the app does, export the PDF
+        // the music font really provides every glyph the engraver uses (no empty boxes on screen or in the PDF)
         val app = ctx.applicationContext as ScorebookApp
+        val paint = Paint().apply { typeface = app.music }
+        for (c in listOf(Smufl.G_CLEF, Smufl.F_CLEF, Smufl.BRACE, Smufl.NOTEHEAD_BLACK, Smufl.NOTEHEAD_HALF, Smufl.NOTEHEAD_WHOLE, Smufl.SHARP,
+            Smufl.FLAT, Smufl.NATURAL, Smufl.REST_QUARTER, Smufl.REST_8, Smufl.FLAG_8_UP, Smufl.TIME_SIG_0, Smufl.DOT)) {
+            assertTrue("glyph U+%04X".format(c.code), paint.hasGlyph(c.toString()))
+        }
+
+        // save it as the app does, export the PDF
         val id = "devicetest"
         app.repository.save(TakeData(id, events, settings = AnalysisSettings(musical = 0.6), hasAudio = false))
         val title = AutoTitle.make(t.mainKey, 14, 11)
@@ -96,6 +105,13 @@ class OnDeviceTest {
                     bmp.eraseColor(Color.WHITE)
                     page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                     File(out, "4-pdf-page1.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    // ink on the page (title, staves, notes): not blank
+                    val px = IntArray(bmp.width * bmp.height).also { bmp.getPixels(it, 0, bmp.width, 0, 0, bmp.width, bmp.height) }
+                    val dark = px.count { Color.red(it) < 128 }
+                    assertTrue("dark pixels on PDF page 1: $dark", dark > px.size / 200)
+                    // a small crop of the first system, for a quick look in the CI log
+                    small(Bitmap.createBitmap(bmp, 0, (bmp.height * 0.06).toInt(), bmp.width, (bmp.height * 0.3).toInt()), 520, "pdf-crop.jpg")
+                }
                 }
             }
         }
@@ -120,6 +136,14 @@ class OnDeviceTest {
     private fun shot(name: String) {
         val bmp: Bitmap = instrumentation.uiAutomation.takeScreenshot() ?: return
         File(out, name).outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        small(bmp, 300, name.replace(".png", "-small.jpg"))
+    }
+
+    /** A low-resolution JPEG copy (printed into the CI log). */
+    private fun small(src: Bitmap, width: Int, name: String) {
+        val h = (src.height.toLong() * width / src.width).toInt()
+        val b = Bitmap.createScaledBitmap(src, width, h, true)
+        File(out, name).outputStream().use { b.compress(Bitmap.CompressFormat.JPEG, 45, it) }
     }
 
     /** 16-bit mono WAV → floats. */
