@@ -84,7 +84,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
     }
     LaunchedEffect(Unit) {
         vm.startListening(granted)
-        if (!granted && ui.handsFree) launcher.launch(Manifest.permission.RECORD_AUDIO)
+        if (!granted && ui.midiDevice == null && (vm.handsFree || vm.commands.value.enabled)) launcher.launch(Manifest.permission.RECORD_AUDIO)
     }
     val recording = ui.status == ListenStatus.RECORDING
     val micOn = recording || ui.status == ListenStatus.LISTENING
@@ -125,14 +125,15 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             val headline = when (ui.status) {
                 ListenStatus.RECORDING -> "Recording  ${vm.durationText(ui.seconds)}"
                 ListenStatus.SAVING -> "Writing your score…"
-                ListenStatus.LISTENING -> "Just play."
+                ListenStatus.LISTENING -> if (ui.handsFree) "Just play." else "Listening for commands"
                 else -> "Ready when you are."
             }
             val sub = when (ui.status) {
                 ListenStatus.RECORDING -> if (ui.handsFree) "Keep playing. The take ends by itself after ${vm.silenceSeconds} s of silence."
                 else "Play your piece, then tap the button again to stop and save."
                 ListenStatus.SAVING -> "Finding the key, tempo and chords, and engraving the sheet music."
-                ListenStatus.LISTENING -> "Hands-free: recording starts when you play and stops after ${vm.silenceSeconds} s of silence."
+                ListenStatus.LISTENING -> if (ui.handsFree) "Hands-free: recording starts when you play and stops after ${vm.silenceSeconds} s of silence."
+                else "Play your start motif (after a short silence), or tap the red button. Nothing is recorded until a take starts."
                 else -> "Tap the red button to start recording. Nothing is recorded until you do."
             }
             Text(headline, fontSize = 24.sp, fontWeight = FontWeight.Bold, color = if (recording) RecordRed else Ink)
@@ -142,6 +143,7 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Chip(if (ui.midiDevice != null) "MIDI · ${ui.midiDevice}" else if (micOn) "Microphone on" else "Microphone off", background = Stage)
                 if (ui.handsFree) Chip("Hands-free", color = Gold, background = Stage)
+                if (ui.commands) Chip("Piano commands", color = Gold, background = Stage)
                 if (recording && ui.notes.isNotEmpty()) Chip("Key · ${ui.key.displayName}", color = Gold, background = Stage)
                 if (recording && ui.bpm > 0) Chip("♩ ≈ ${ui.bpm}", background = Stage)
                 if (recording && ui.notes.isNotEmpty()) Chip("${ui.notes.size} notes", background = Stage)
@@ -222,6 +224,22 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             ) {
                 Text(msg, color = Ink, fontSize = 15.sp, modifier = Modifier.weight(1f))
                 if (ui.lastSaved != null) Text("Open", color = Gold, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
+            }
+        }
+
+        // the piano commands, as a cheat sheet
+        val cmds by vm.commands.collectAsState()
+        if (cmds.enabled) {
+            Column(Modifier.padding(horizontal = 16.dp, vertical = 6.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(StageRaised).padding(16.dp)) {
+                Text("PIANO COMMANDS", color = Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text("Pause for 2 seconds, then play the notes on their own.", color = InkDim, fontSize = 13.sp)
+                Spacer(Modifier.height(8.dp))
+                for (m in cmds.motifs.sortedBy { it.command.ordinal }) {
+                    Row(Modifier.padding(vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(m.command.title, color = Ink, fontSize = 14.sp, modifier = Modifier.weight(1f))
+                        Text(m.names, color = Gold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
             }
         }
 

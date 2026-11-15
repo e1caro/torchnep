@@ -8,6 +8,10 @@ import io.github.e1caro.scorebook.audio.AudioEngine
 import io.github.e1caro.scorebook.audio.MidiInput
 import io.github.e1caro.scorebook.audio.TfliteModel
 import io.github.e1caro.scorebook.audio.WavWriter
+import io.github.e1caro.scorebook.core.commands.Command
+import io.github.e1caro.scorebook.core.commands.CommandConfig
+import io.github.e1caro.scorebook.core.commands.CommandSpotter
+import io.github.e1caro.scorebook.core.commands.PhraseListener
 import io.github.e1caro.scorebook.core.correct.AnalysisSettings
 import io.github.e1caro.scorebook.core.correct.AutoTitle
 import io.github.e1caro.scorebook.core.correct.Decision
@@ -60,10 +64,17 @@ data class ListenUi(
     val midiDevice: String? = null,
     val micError: Boolean = false,
     val handsFree: Boolean = false,
+    val commands: Boolean = false,
     val lastSaved: TakeMeta? = null,
     val lastSavedTitle: String? = null,
     val message: String? = null,
 )
+
+/** The confirmation shown after a piano command; [done] is false when there was nothing to do. */
+data class CommandFlash(val command: Command, val text: String, val done: Boolean, val id: Long)
+
+/** Teaching a motif: what was heard, and whether it can be used. */
+data class TeachState(val command: Command, val heard: List<Int>? = null, val problem: String? = null, val warning: String? = null)
 
 enum class PlaySource { SCORE, RECORDING }
 
@@ -126,6 +137,25 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private var liveJob: Job? = null
     @Volatile private var midiName: String? = null
 
+    // ------------------------------------------------------------------ piano commands
+    private val _commands = MutableStateFlow(prefs.commands)
+    /** The piano commands: on/off and the motif of each. */
+    val commands: StateFlow<CommandConfig> = _commands
+    private val _flash = MutableStateFlow<CommandFlash?>(null)
+    /** The big on-screen confirmation of the last command. */
+    val flash: StateFlow<CommandFlash?> = _flash
+    private val _teach = MutableStateFlow<TeachState?>(null)
+    /** Teaching a new motif for a command (Settings). */
+    val teach: StateFlow<TeachState?> = _teach
+    private val beeper = io.github.e1caro.scorebook.audio.Player()
+    private var idleDecimator = Decimator2()
+    private val phrases = PhraseListener({ audio -> transcribePhrase(audio) })
+    private val idleMidi = ArrayList<CommandSpotter.Note>()
+    private var lastIdleMidiHit = Double.NEGATIVE_INFINITY
+    private var lastTakeHit = Double.NEGATIVE_INFINITY
+    @Volatile private var muteUntil = 0L
+    private var undo: (() -> String)? = null
+
     private val midi = MidiInput(app,
         onNoteOn = { p, v -> worker.execute { midiNote(p, v) } },
         onNoteOff = { p -> worker.execute { session?.midi?.noteOff(p, midiNow()) } },
@@ -133,31 +163,43 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         onConnected = { name -> midiName = name; _listen.update { it.copy(midiDevice = name) } },
     )
 
+    /** The microphone listens between takes: hands-free mode, piano commands, or teaching a motif. */
+    private fun micListensWhenIdle(): Boolean = prefs.handsFree || _commands.value.enabled || _teach.value != null
+
     /**
      * The app came to the foreground. In the default (manual) mode nothing is recorded and the microphone stays
-     * off until the record button is pressed; in hands-free mode the microphone listens for playing to start.
+     * off until the record button is pressed; with hands-free or piano commands it listens between takes.
      */
     fun startListening(micAllowed: Boolean) {
         this.micAllowed = micAllowed
         if (_listen.value.status != ListenStatus.OFF) {
-            // already running: the microphone was just allowed while hands-free is on
-            if (micAllowed && prefs.handsFree && !audio.isRunning) worker.execute {
-                if (recorder.state != AutoRecorder.State.RECORDING && active) _listen.update { it.copy(micError = !audio.start()) }
-            }
+            worker.execute { updateIdleMic() }
             return
         }
         active = true
         midi.start()
         val handsFree = prefs.handsFree
-        val ok = if (handsFree && micAllowed) audio.start() else true
-        _listen.update { it.copy(status = if (handsFree) ListenStatus.LISTENING else ListenStatus.READY, micError = !ok, handsFree = handsFree) }
-        // keeps the take clock running when the microphone is off (MIDI takes)
+        _listen.update { it.copy(status = idleStatus(), handsFree = handsFree, commands = _commands.value.enabled) }
+        worker.execute { updateIdleMic() }
+        // keeps the take clock running when the microphone is off (MIDI takes), and checks MIDI motifs
         viewModelScope.launch {
             while (isActive && _listen.value.status != ListenStatus.OFF) {
                 delay(200)
-                if (!audio.isRunning) worker.execute { onAudio(FloatArray(AudioEngine.SAMPLE_RATE / 5)) }
+                worker.execute {
+                    if (!audio.isRunning) onAudio(FloatArray(AudioEngine.SAMPLE_RATE / 5))
+                    checkIdleMidi()
+                }
             }
         }
+    }
+
+    /** Opens or closes the microphone between takes, as the settings ask (worker thread). */
+    private fun updateIdleMic() {
+        if (!active || recorder.state == AutoRecorder.State.RECORDING) return
+        if (micListensWhenIdle() && micAllowed && midiName == null) {
+            if (!audio.isRunning) _listen.update { it.copy(micError = !audio.start()) }
+        } else if (audio.isRunning) audio.stop()
+        _listen.update { it.copy(status = if (it.status == ListenStatus.SAVING) it.status else idleStatus()) }
     }
 
     fun stopListening() {
@@ -170,16 +212,37 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The record button: start a take (opening the microphone), or stop it and save. */
     fun toggleTake() = worker.execute {
-        if (recorder.state == AutoRecorder.State.RECORDING) {
-            recorder.forceStop()
-            if (!prefs.handsFree) audio.stop()
-            finishTake()
-        } else {
-            if (!audio.isRunning && micAllowed && midiName == null) {
-                if (!audio.start()) _listen.update { it.copy(micError = true) }
-            }
-            recorder.forceStart()?.let { startTake(it.preRoll) }
+        if (recorder.state == AutoRecorder.State.RECORDING) stopAndSave(null) else startRecordingNow()
+    }
+
+    private fun startRecordingNow() {
+        if (recorder.state == AutoRecorder.State.RECORDING) return
+        if (!audio.isRunning && micAllowed && midiName == null) {
+            if (!audio.start()) _listen.update { it.copy(micError = true) }
         }
+        recorder.forceStart()?.let { startTake(FloatArray(0)) }
+    }
+
+    /** Ends the take and saves it; [trimFrom]: drop the notes from there on (a stop motif). */
+    private fun stopAndSave(trimFrom: Double?) {
+        recorder.forceStop()
+        finishTake(trimFrom)
+        if (!micListensWhenIdle()) audio.stop()
+        phrases.reset()
+    }
+
+    /** Throws the take away without saving it. */
+    private fun discardTake() {
+        recorder.forceStop()
+        session = null
+        liveJob?.cancel()
+        wav?.close()
+        wav = null
+        takeId?.let { repo.audioFile(it).delete() }
+        takeId = null
+        if (!micListensWhenIdle()) audio.stop()
+        phrases.reset()
+        _listen.update { it.copy(status = idleStatus(), notes = emptyList(), levelDb = -90.0) }
     }
 
     /** Hands-free: start when playing begins, stop after silence (keeps the microphone on while the app is open). */
@@ -187,19 +250,15 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         prefs.handsFree = on
         recorder.autoStart = on
         recorder.autoStop = on
-        worker.execute {
-            if (recorder.state != AutoRecorder.State.RECORDING && active) {
-                if (on && micAllowed) audio.start() else if (!on) audio.stop()
-            }
-            _listen.update { it.copy(handsFree = on, status = if (it.status == ListenStatus.RECORDING || it.status == ListenStatus.SAVING || it.status == ListenStatus.OFF) it.status else idleStatus()) }
-        }
+        _listen.update { it.copy(handsFree = on) }
+        worker.execute { updateIdleMic() }
     }
 
     val handsFree: Boolean get() = prefs.handsFree
 
     private fun idleStatus(): ListenStatus = when {
         !active -> ListenStatus.OFF
-        prefs.handsFree -> ListenStatus.LISTENING
+        micListensWhenIdle() && (audio.isRunning || midiName != null) -> ListenStatus.LISTENING
         else -> ListenStatus.READY
     }
 
@@ -211,7 +270,12 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun midiNote(pitch: Int, velocity: Int) {
         if (recorder.state != AutoRecorder.State.RECORDING) {
-            if (!prefs.handsFree) return // manual mode: only the record button starts a take
+            if (_commands.value.enabled || _teach.value != null) {
+                val now = System.nanoTime() / 1e9
+                idleMidi.add(CommandSpotter.Note(now, pitch))
+                idleMidi.removeAll { now - it.time > 12 }
+            }
+            if (!prefs.handsFree) return // only the record button (or a start motif) starts a take
             recorder.forceStart()?.let { startTake(it.preRoll) }
         }
         recorder.noteActivity()
@@ -227,7 +291,151 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         }
         if (!audio.isRunning && block.all { it == 0f } && recorder.state != AutoRecorder.State.RECORDING) return
         if (recorder.state == AutoRecorder.State.RECORDING) feed(block)
+        else if (audio.isRunning && (_commands.value.enabled || _teach.value != null)) listenForMotif(block)
         _listen.update { it.copy(levelDb = recorder.levelDb, seconds = recorder.recordingSeconds) }
+    }
+
+    // ---- motifs between takes: phrases cut from the microphone, or MIDI notes
+
+    private fun listenForMotif(block44k: FloatArray) {
+        val x = idleDecimator.process(block44k)
+        if (System.nanoTime() < muteUntil) { phrases.reset(); return } // our own confirmation sound
+        val notes = phrases.push(x) ?: return
+        onIdlePhrase(notes.map { it.pitch })
+    }
+
+    private fun checkIdleMidi() {
+        if (recorder.state == AutoRecorder.State.RECORDING || idleMidi.isEmpty()) return
+        val now = System.nanoTime() / 1e9
+        if (_teach.value != null) {
+            val last = idleMidi.last()
+            if (now - last.time < CommandSpotter.POST_SILENCE) return
+            var i = idleMidi.size - 1
+            while (i > 0 && idleMidi[i].time - idleMidi[i - 1].time < CommandSpotter.PRE_SILENCE) i--
+            val phrase = idleMidi.subList(i, idleMidi.size).map { it.pitch }
+            idleMidi.clear()
+            onIdlePhrase(phrase)
+            return
+        }
+        val hit = CommandSpotter.spotTail(idleMidi, now, _commands.value.motifs, after = lastIdleMidiHit) ?: return
+        lastIdleMidiHit = hit.start
+        idleMidi.clear()
+        execute(hit.command, null)
+    }
+
+    private fun onIdlePhrase(pitches: List<Int>) {
+        val teaching = _teach.value
+        if (teaching != null) {
+            val cfg = _commands.value
+            _teach.value = teaching.copy(
+                heard = pitches,
+                problem = CommandConfig.problem(pitches, teaching.command, cfg),
+                warning = CommandConfig.warning(pitches),
+            )
+            return
+        }
+        if (!_commands.value.enabled) return
+        CommandSpotter.match(pitches, _commands.value.motifs)?.let { execute(it, null) }
+    }
+
+    /** The model and decoder on one short phrase (worker thread). */
+    private fun transcribePhrase(audio: FloatArray): List<io.github.e1caro.scorebook.core.transcribe.NoteEvent> {
+        val m = model ?: (try { TfliteModel(getApplication()) } catch (e: Exception) { null })?.also { model = it } ?: return emptyList()
+        val st = BasicPitchStream(m)
+        st.push(audio)
+        st.flush()
+        return io.github.e1caro.scorebook.core.transcribe.NoteDecoder(repo.personal().calibration).decode(st.grid)
+    }
+
+    /** Motifs inside a take (a stop motif after a pause, etc.): checked as the take goes on. */
+    private fun spotInTake(s: LiveSession, now: Double) {
+        if (!_commands.value.enabled) return
+        val notes = CommandSpotter.notesOf(s.events(now))
+        val hit = CommandSpotter.spotTail(notes, s.knownUntil(now), _commands.value.motifs, after = lastTakeHit) ?: return
+        lastTakeHit = hit.start
+        if (hit.command == Command.START) return // already recording
+        execute(hit.command, hit)
+    }
+
+    /** Carries out a piano command (worker thread), with a sound and a big flash to confirm it. */
+    private fun execute(c: Command, hit: CommandSpotter.Hit?) {
+        val recording = recorder.state == AutoRecorder.State.RECORDING
+        var effect: Command? = c
+        val text: String = when (c) {
+            Command.START -> if (recording) { effect = null; "Already recording" } else { startAfterBeep(); "Recording" }
+            Command.STOP -> if (recording) { stopAndSave(hit?.start); "Saved" } else { effect = null; "Not recording" }
+            Command.DISCARD -> if (recording) { discardTake(); "Take discarded" } else {
+                val song = repo.library().lastSong()
+                if (song == null) { effect = null; "Nothing to discard" } else {
+                    trashSongs(setOf(song.id))
+                    undo = { restoreSongs(setOf(song.id)); "“${song.title}” is back" }
+                    "“${song.title}” moved to the trash"
+                }
+            }
+            Command.RESTART -> { if (recording) discardTake(); startAfterBeep(); "Starting over" }
+            Command.FAVORITE -> {
+                val song = repo.library().lastSong()
+                if (song == null) { effect = null; "No score yet" } else {
+                    if (!song.favorite) toggleFavoriteSong(song.id)
+                    undo = { if (repo.library().song(song.id)?.favorite == true) toggleFavoriteSong(song.id); "Favourite removed" }
+                    "“${song.title}” is a favourite"
+                }
+            }
+            Command.UNDO -> {
+                val u = undo
+                undo = null
+                if (u == null) { effect = null; "Nothing to undo" } else u()
+            }
+        }
+        muteUntil = System.nanoTime() + 900_000_000L
+        beeper.play(io.github.e1caro.scorebook.core.commands.Beeps.pcm(effect), 22050, 0.0, 1f)
+        _flash.value = CommandFlash(c, text, effect != null, System.nanoTime())
+    }
+
+    /** Starts a take once the confirmation sound is over (so it is not recorded). */
+    private fun startAfterBeep() {
+        viewModelScope.launch {
+            delay(600)
+            worker.execute { startRecordingNow() }
+        }
+    }
+
+    fun setCommandsEnabled(on: Boolean) {
+        val c = _commands.value.copy(enabled = on)
+        _commands.value = c
+        prefs.commands = c
+        _listen.update { it.copy(commands = on) }
+        worker.execute { updateIdleMic() }
+    }
+
+    /** Starts teaching a new motif for [c]: the next short phrase played is captured. */
+    fun startTeaching(c: Command) {
+        _teach.value = TeachState(c)
+        idleMidi.clear()
+        worker.execute { phrases.reset(); updateIdleMic() }
+    }
+
+    fun keepTaught() {
+        val t = _teach.value ?: return
+        val heard = t.heard ?: return
+        if (t.problem != null) return
+        val c = _commands.value.with(t.command, heard)
+        _commands.value = c
+        prefs.commands = c
+        cancelTeaching()
+    }
+
+    fun retryTeaching() { _teach.update { it?.copy(heard = null, problem = null, warning = null) } }
+
+    fun cancelTeaching() {
+        _teach.value = null
+        worker.execute { updateIdleMic() }
+    }
+
+    fun resetMotifs() {
+        val c = CommandConfig(enabled = _commands.value.enabled)
+        _commands.value = c
+        prefs.commands = c
     }
 
     private fun feed(block44k: FloatArray) {
@@ -246,6 +454,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         takeId = id
         takeStartNanos = System.nanoTime()
         decimator = Decimator2()
+        lastTakeHit = Double.NEGATIVE_INFINITY
         val useModel = midiName == null && audio.isRunning
         if (useModel && model == null) model = try { TfliteModel(getApplication()) } catch (e: Exception) { null }
         session = LiveSession(if (useModel) model else null, repo.personal(), currentSettings())
@@ -259,19 +468,22 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 val s = session ?: break
                 val now = if (midiName != null) midiNow() else s.seconds
                 val view = withContext(workerDispatcher) { s.view(now) }
+                if (session !== s) break
                 _listen.update { it.copy(notes = view.notes, key = view.key, now = now, bpm = view.bpm) }
+                worker.execute { if (session === s) spotInTake(s, now) }
             }
         }
     }
 
-    private fun finishTake() {
+    private fun finishTake(trimFrom: Double? = null) {
         val s = session ?: return
         val id = takeId ?: return
         session = null
         liveJob?.cancel()
         _listen.update { it.copy(status = ListenStatus.SAVING) }
         val now = if (midiName != null) midiNow() else s.seconds
-        val events = s.finish(now)
+        // the notes of a stop motif are not part of the music
+        val events = s.finish(now).let { ev -> if (trimFrom != null) ev.filter { it.onset < trimFrom - 0.05 } else ev }
         wav?.close()
         val hasAudio = wav != null
         wav = null
@@ -516,6 +728,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         player.stop()
+        beeper.stop()
         audio.stop()
         midi.stop()
         worker.shutdown()

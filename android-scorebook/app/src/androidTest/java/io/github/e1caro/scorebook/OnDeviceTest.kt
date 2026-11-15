@@ -11,6 +11,12 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.e1caro.scorebook.audio.TfliteModel
+import io.github.e1caro.scorebook.core.commands.Command
+import io.github.e1caro.scorebook.core.commands.CommandConfig
+import io.github.e1caro.scorebook.core.commands.CommandSpotter
+import io.github.e1caro.scorebook.core.commands.PhraseListener
+import io.github.e1caro.scorebook.core.transcribe.BasicPitchStream
+import io.github.e1caro.scorebook.core.transcribe.NoteDecoder
 import io.github.e1caro.scorebook.core.correct.AnalysisSettings
 import io.github.e1caro.scorebook.core.correct.AutoTitle
 import io.github.e1caro.scorebook.core.correct.Decision
@@ -141,6 +147,30 @@ class OnDeviceTest {
             val i2 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, tab).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ActivityScenario.launch<MainActivity>(i2).use { Thread.sleep(3000); shot(file) }
         }
+    }
+
+    /** The start motif (E7 C7 E7, a real piano recording) through the phrase listener and the real model. */
+    @Test
+    fun aPlayedStartMotifStartsRecording() {
+        val pcm = readWav(instrumentation.context.assets.open("motif_start.wav"))
+        val model = TfliteModel(ctx)
+        val listener = PhraseListener({ audio ->
+            val st = BasicPitchStream(model)
+            st.push(audio)
+            st.flush()
+            NoteDecoder().decode(st.grid)
+        })
+        var heard: List<Int>? = null
+        var i = 0
+        val block = FloatArray(441)
+        while (i + block.size <= pcm.size) {
+            System.arraycopy(pcm, i, block, 0, block.size)
+            listener.push(block)?.let { heard = it.map { n -> n.pitch } }
+            i += block.size
+        }
+        File(out, "motif.txt").writeText("heard $heard\n")
+        println("start motif heard as $heard")
+        assertEquals(Command.START, CommandSpotter.match(heard ?: emptyList(), CommandConfig.DEFAULTS))
     }
 
     private fun shot(name: String) {

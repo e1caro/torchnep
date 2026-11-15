@@ -69,6 +69,10 @@ class Prefs(context: Context) {
     var handsFree: Boolean
         get() = sp.getBoolean("handsFree", false)
         set(v) = sp.edit().putBoolean("handsFree", v).apply()
+    /** Piano commands (motifs and on/off), as JSON. */
+    var commands: io.github.e1caro.scorebook.core.commands.CommandConfig
+        get() = try { sp.getString("commands", null)?.let { io.github.e1caro.scorebook.core.library.Codec.commands(it) } ?: io.github.e1caro.scorebook.core.commands.CommandConfig() } catch (_: Exception) { io.github.e1caro.scorebook.core.commands.CommandConfig() }
+        set(v) = sp.edit().putString("commands", io.github.e1caro.scorebook.core.library.Codec.encode(v)).apply()
     var autoPdf: Boolean
         get() = sp.getBoolean("autoPdf", true)
         set(v) = sp.edit().putBoolean("autoPdf", v).apply()

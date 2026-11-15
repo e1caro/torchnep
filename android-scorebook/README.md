@@ -12,6 +12,12 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 - **You decide when it records.** Tap the red button to start a take and tap it again to stop and save; the
   microphone is off the rest of the time. Optional *hands-free* mode (Settings): a take starts when you start
   playing (keeping 1.5 s from before, so the first note is not lost) and ends after 5 s of silence (adjustable).
+- **Piano commands.** Control Scorebook without touching the phone (Settings → Piano commands): after a 2-second
+  pause, play a short note pattern on its own. Defaults: *Start recording* E7 C7 E7, *Stop and save* C7 E7 C7,
+  *Start over* A1 C2 E2, *Favourite* C2 E2 G2, *Discard* C2 B1 C2 (the take being recorded, or the last saved one,
+  which goes to the trash), *Undo* G2 E2 C2. Change any of them by playing new notes. Each command answers with
+  its own short sound and a big flash; the command's notes are cut out of the score. Works with MIDI keyboards
+  too. While it is on, the microphone listens between takes, but nothing is saved until a take starts.
 - **Live grand staff.** Notes appear on a treble + bass staff as they are heard, spelled in the current key, with
   the detected key shown; lighter notes are the ones the AI had to decide.
 - **On-device transcription.** Basic Pitch (Spotify, Apache-2.0, 204 KB) on LiteRT. The decoder keeps a
@@ -34,8 +40,8 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 - **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 
-What comes next (albums and multiple takes per song, hands-free piano commands, idea catcher, take comparison,
-a piano-specific model) is listed at the end of ARCHITECTURE.md.
+What comes next (albums and multiple takes per song, more piano commands such as bookmarks and a metronome,
+idea catcher, take comparison, a piano-specific model) is listed at the end of ARCHITECTURE.md.
 
 ## How well it works
 
@@ -78,6 +84,7 @@ To regenerate the test fixtures (FluidSynth with a GM soundfont, and `pip instal
 
 ```bash
 python tools/make_fixtures.py --model app/src/main/assets/basic_pitch.tflite --out core/src/test/resources/fixtures
+cd tools && python make_command_fixtures.py --model ../app/src/main/assets/basic_pitch.tflite --out ../core/src/test/resources/commands
 ```
 
 `RenderTest` writes SVG pages, MusicXML and MIDI for every fixture when `SCOREBOOK_RENDER_DIR` is set.

@@ -43,6 +43,9 @@ data class Library(
     val songs: List<Song> = emptyList(),
     val takes: List<TakeMeta> = emptyList(),
 ) {
+    /** The most recently saved song that is not in the trash. */
+    fun lastSong(): Song? = takes.filter { it.trashedAt == null }.maxByOrNull { it.created }?.let { song(it.songId) }
+
     fun takesOf(songId: String) = takes.filter { it.songId == songId && it.trashedAt == null }.sortedBy { it.created }
     fun song(id: String) = songs.firstOrNull { it.id == id }
 
@@ -97,4 +100,6 @@ object Codec {
     fun take(s: String): TakeData = json.decodeFromString(s)
     fun encode(p: PersonalModel): String = json.encodeToString(p)
     fun personal(s: String): PersonalModel = json.decodeFromString(s)
+    fun encode(c: io.github.e1caro.scorebook.core.commands.CommandConfig): String = json.encodeToString(c)
+    fun commands(s: String): io.github.e1caro.scorebook.core.commands.CommandConfig = json.decodeFromString(s)
 }

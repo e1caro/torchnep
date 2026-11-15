@@ -24,7 +24,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import io.github.e1caro.scorebook.core.commands.Command
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -119,6 +127,7 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
         } else {
             Tabs(vm, tab) { tab = it }
         }
+        CommandFlashOverlay(vm)
         if (opening) {
             Box(Modifier.fillMaxSize().background(Stage.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -165,6 +174,34 @@ private fun Tabs(vm: ScorebookViewModel, tab: Tab, setTab: (Tab) -> Unit) {
                 Tab.LIBRARY -> LibraryScreen(vm)
                 Tab.SETTINGS -> SettingsScreen(vm)
             }
+        }
+    }
+}
+
+/** The big confirmation after a piano command: readable from the piano bench. */
+@Composable
+private fun CommandFlashOverlay(vm: ScorebookViewModel) {
+    val flash by vm.flash.collectAsState()
+    val f = flash ?: return
+    val alpha = remember(f.id) { Animatable(0f) }
+    LaunchedEffect(f.id) {
+        alpha.snapTo(1f)
+        delay(900)
+        alpha.animateTo(0f, tween(700))
+    }
+    if (alpha.value <= 0.01f) return
+    val color = when {
+        !f.done -> StageHigh
+        f.command == Command.START || f.command == Command.RESTART -> RecordRed
+        f.command == Command.DISCARD -> Color(0xFF8E2F33)
+        f.command == Command.UNDO -> AiBlue
+        else -> Gold
+    }
+    Box(Modifier.fillMaxSize().alpha(alpha.value).background(color.copy(alpha = 0.92f)), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+            Text(f.command.title.uppercase(), color = Stage.copy(alpha = 0.7f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(10.dp))
+            Text(f.text, color = if (f.done) Stage else Ink, fontSize = 40.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, lineHeight = 46.sp)
         }
     }
 }

@@ -1,0 +1,31 @@
+{
+ "name": "motif_start",
+ "frames": 666,
+ "expect": "START",
+ "notes": [
+  {
+   "pitch": 100,
+   "on": 2.5,
+   "off": 2.8,
+   "vel": 96,
+   "hand": "R",
+   "cents": 0.0
+  },
+  {
+   "pitch": 96,
+   "on": 2.83,
+   "off": 3.13,
+   "vel": 96,
+   "hand": "R",
+   "cents": 0.0
+  },
+  {
+   "pitch": 100,
+   "on": 3.16,
+   "off": 3.46,
+   "vel": 96,
+   "hand": "R",
+   "cents": 0.0
+  }
+ ]
+}

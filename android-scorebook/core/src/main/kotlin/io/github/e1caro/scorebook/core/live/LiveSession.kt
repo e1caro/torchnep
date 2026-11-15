@@ -39,6 +39,9 @@ class LiveSession(model: FrameModel?, private val personal: PersonalModel = Pers
 
     fun midiTime(nowSeconds: Double): Double { if (midiStart < 0) midiStart = nowSeconds; return nowSeconds - midiStart }
 
+    /** Up to when the notes are known (MIDI: now; audio: what the model has decoded). */
+    fun knownUntil(now: Double): Double = if (midi.events.isNotEmpty() || stream == null) now else decoder.decodedSeconds
+
     fun events(now: Double): List<NoteEvent> = if (midi.events.isNotEmpty() || stream == null) midi.snapshot(now) else decoder.events
 
     fun view(now: Double): LiveView {

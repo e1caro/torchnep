@@ -1,7 +1,13 @@
 package io.github.e1caro.scorebook.ui
 
 import androidx.compose.foundation.background
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.core.content.ContextCompat
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
@@ -355,6 +361,7 @@ fun SettingsScreen(vm: ScorebookViewModel) {
                 )
             }
         }
+        PianoCommandsSection(vm)
         Section("NEW TAKES START AT") {
             Text("Unclear notes", color = Ink, fontSize = 16.sp)
             LabeledSlider("Literal", "Musical", musical) { musical = it; prefs.musical = it }
@@ -383,4 +390,83 @@ fun SettingsScreen(vm: ScorebookViewModel) {
         }
         Spacer(Modifier.height(16.dp))
     }
+}
+
+/** Piano commands: on/off, the notes of each command, and teaching new ones by playing them. */
+@Composable
+private fun PianoCommandsSection(vm: ScorebookViewModel) {
+    val cfg by vm.commands.collectAsState()
+    val teach by vm.teach.collectAsState()
+    val context = LocalContext.current
+    var pending by remember { mutableStateOf<(() -> Unit)?>(null) }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        vm.startListening(ok)
+        if (ok) pending?.invoke()
+        pending = null
+    }
+    fun withMic(action: () -> Unit) {
+        val granted = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
+        if (granted || vm.listen.value.midiDevice != null) { vm.startListening(granted); action() } else { pending = action; launcher.launch(Manifest.permission.RECORD_AUDIO) }
+    }
+    Section("PIANO COMMANDS") {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("Control Scorebook from the piano", color = Ink, fontSize = 16.sp)
+                Text(
+                    if (cfg.enabled) "Pause for 2 seconds, then play a few notes on their own. The microphone listens while the app is open; nothing is saved until a take starts."
+                    else "Off. Turn on to start, stop and manage takes by playing short note patterns.",
+                    color = InkDim, fontSize = 13.sp, lineHeight = 18.sp,
+                )
+            }
+            Switch(
+                checked = cfg.enabled,
+                onCheckedChange = { on -> if (on) withMic { vm.setCommandsEnabled(true) } else vm.setCommandsEnabled(false) },
+                colors = SwitchDefaults.colors(checkedTrackColor = Gold, checkedThumbColor = Stage),
+            )
+        }
+        Spacer(Modifier.height(10.dp))
+        for (m in cfg.motifs.sortedBy { it.command.ordinal }) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(m.command.title, color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                    Text(m.command.help, color = InkDim, fontSize = 12.sp, lineHeight = 16.sp)
+                }
+                Spacer(Modifier.width(8.dp))
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(m.names, color = Gold, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                    TextButton(onClick = { withMic { vm.startTeaching(m.command) } }) { Text("Change", color = Ink) }
+                }
+            }
+        }
+        TextButton(onClick = { vm.resetMotifs() }) { Text("Back to the default notes", color = Gold) }
+    }
+
+    val t = teach ?: return
+    AlertDialog(
+        onDismissRequest = { vm.cancelTeaching() },
+        title = { Text("New notes for “${t.command.title}”") },
+        text = {
+            Column {
+                val heard = t.heard
+                if (heard == null) {
+                    Text("Wait two seconds in silence, then play 3 to 5 notes on their own.", fontSize = 15.sp, lineHeight = 21.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text("Tip: the top of the keyboard (C7, E7) and the low end (A1 to G2) are heard most reliably and rarely turn up alone in music.", color = InkDim, fontSize = 13.sp, lineHeight = 18.sp)
+                    Spacer(Modifier.height(14.dp))
+                    LinearProgressIndicator(Modifier.fillMaxWidth(), color = Gold)
+                    Text("Listening…", color = InkDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                } else {
+                    Text("Heard:", color = InkDim, fontSize = 13.sp)
+                    Text(if (heard.isEmpty()) "no clear notes" else io.github.e1caro.scorebook.core.commands.Motif(t.command, heard).names, color = Gold, fontSize = 26.sp, fontWeight = FontWeight.Bold)
+                    t.problem?.let { Text(it, color = RecordRed, fontSize = 14.sp, modifier = Modifier.padding(top = 6.dp)) }
+                    if (t.problem == null) t.warning?.let { Text(it, color = InkDim, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 6.dp)) }
+                    TextButton(onClick = { vm.retryTeaching() }) { Text("Play them again", color = Ink) }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { vm.keepTaught() }, enabled = t.heard != null && t.problem == null) { Text("Use these notes", color = if (t.heard != null && t.problem == null) Gold else InkDim) }
+        },
+        dismissButton = { TextButton(onClick = { vm.cancelTeaching() }) { Text("Cancel") } },
+    )
 }
