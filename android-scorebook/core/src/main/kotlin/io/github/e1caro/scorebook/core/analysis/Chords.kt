@@ -83,6 +83,10 @@ class ChordTracker {
         return out
     }
 
+    /** The single chord that best explains [chroma] over [bass] in [key] (no memory of what came before). */
+    fun best(chroma: DoubleArray, bass: Int, key: Key): Chord? =
+        if (chroma.sum() < 1e-6) null else chords.maxByOrNull { emission(it, chroma, bass, key) }
+
     private fun emission(ch: Chord, v: DoubleArray, bass: Int, key: Key): Double {
         val tones = ch.pitchClasses
         val inP = ln(0.85 / tones.size)
