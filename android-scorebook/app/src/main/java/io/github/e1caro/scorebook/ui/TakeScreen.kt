@@ -290,14 +290,21 @@ private fun ActionBar(vm: ScorebookViewModel, ui: TakeUi, pb: PlaybackUi, onAdju
             }
             BarAction("Adjust", onClick = onAdjust) { Icon(painterResource(R.drawable.ic_tune), contentDescription = null, tint = Ink) }
             BarAction("Cut", onClick = { vm.stopPlayback(); vm.setEditing(true) }) { Icon(painterResource(R.drawable.ic_cut), contentDescription = null, tint = Ink) }
+            // transpose: compact, on one line, whatever the screen width
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { vm.transpose(-1) }) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Transpose down", tint = Ink) }
+                Icon(
+                    Icons.Filled.KeyboardArrowDown, contentDescription = "Transpose down", tint = Ink,
+                    modifier = Modifier.size(36.dp).clip(CircleShape).clickable { vm.transpose(-1) }.padding(6.dp),
+                )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     val tr = ui.data.settings.transpose
-                    Text(t.mainKey.displayName, color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                    Text(if (tr == 0) "Transpose" else (if (tr > 0) "+$tr" else "$tr") + " semitones", color = InkDim, fontSize = 11.sp)
+                    Text(t.mainKey.shortName, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+                    Text(if (tr == 0) "Key" else if (tr > 0) "+$tr" else "$tr", color = InkDim, fontSize = 11.sp, maxLines = 1, softWrap = false)
                 }
-                IconButton(onClick = { vm.transpose(1) }) { Icon(Icons.Filled.KeyboardArrowUp, contentDescription = "Transpose up", tint = Ink) }
+                Icon(
+                    Icons.Filled.KeyboardArrowUp, contentDescription = "Transpose up", tint = Ink,
+                    modifier = Modifier.size(36.dp).clip(CircleShape).clickable { vm.transpose(1) }.padding(6.dp),
+                )
             }
             Box {
                 BarAction("Export", onClick = { share = true }) { Icon(Icons.Filled.Share, contentDescription = null, tint = Ink) }
@@ -325,11 +332,11 @@ private fun PlayChip(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 private fun BarAction(label: String, onClick: () -> Unit, icon: @Composable () -> Unit) {
     Column(
-        Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 4.dp),
+        Modifier.clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(horizontal = 9.dp, vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         icon()
-        Text(label, color = InkDim, fontSize = 11.sp)
+        Text(label, color = InkDim, fontSize = 11.sp, maxLines = 1, softWrap = false)
     }
 }
 
