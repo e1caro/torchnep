@@ -23,6 +23,8 @@
 
   function starter(c) { return c && c.starter ? c.starter : '# df, customers, stores and messy are loaded\nresult = '; }
 
+  DA.labPages = DA.labPages || {};
+  DA.labPages.python = function (lb, c) { return page(lb, c); };
   function page(lb, c) {
     var P2 = L.page(lb, c, { useExample: function (ex) { setCode(ex.code); ui.toast('Example loaded. Press Run (Ctrl+Enter).'); } });
     var work = P2.work;
@@ -57,6 +59,7 @@
         h('li', null, h('code', { text: 'df' }), ' café order lines: order_id, order_date, store_city, channel, customer_id, product, category, qty, unit_price'),
         h('li', null, h('code', { text: 'customers' }), ' customer_id, signup_date, city, segment'),
         h('li', null, h('code', { text: 'stores' }), ' store_id, city, opened_year'),
+        DA.biz ? h('li', null, h('code', { text: 'pd.read_csv("biz_sales.csv")' }), DA.L(' your business, one row per sale line: ticket_id, date, month, weekday, hour, channel, payment_method, customer_id, product, category, quantity, unit_price, line_total, unit_cost. Also biz_days.csv (one row per day), biz_products.csv and biz_customers.csv', ' tu negocio, una fila por línea de venta: ticket_id, date, month, weekday, hour, channel, payment_method, customer_id, product, category, quantity, unit_price, line_total, unit_cost. También biz_days.csv (una fila por día), biz_products.csv y biz_customers.csv')) : null,
         h('li', null, h('code', { text: 'messy' }), ' hand-typed orders with gaps and typos: Order ID, Date, Customer, Product, Qty, Price, City'))));
     work.appendChild(out);
 

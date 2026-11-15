@@ -13,6 +13,9 @@ export function Chart({ option, height = 280, label }: { option: object; height?
     ro.observe(el.current!);
     return () => { ro.disconnect(); c.dispose(); chart.current = null; };
   }, []);
-  useEffect(() => { chart.current?.setOption(option as never, true); }, [option]);
+  // Only the first draw is animated. While the simulation plays the option changes every second, and replaying the
+  // entrance animation each time left lines half drawn.
+  const drawn = useRef(false);
+  useEffect(() => { chart.current?.setOption((drawn.current ? { ...option, animation: false } : option) as never, true); drawn.current = true; }, [option]);
   return <div ref={el} role="img" aria-label={label} style={{ height, width: '100%' }} />;
 }

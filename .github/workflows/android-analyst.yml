@@ -4,6 +4,8 @@ name: android-analyst
 # - On pull requests that touch the app: builds the APK as a check (downloadable from the run's artifacts).
 # - Run by hand (Actions > android-analyst > Run workflow, or asked from Claude): builds and publishes a release
 #   "Analyst Path 1.N" (tag analyst-N) with the APK, which can be downloaded and installed straight from a phone.
+# Each release also carries web.zip (the web app) and shell-S (the native version it needs): installed apps download
+# web.zip by themselves and show it from the next time they open, so the APK is only reinstalled when the shell changes.
 # Tags are analyst-N, never v* (that would start the PyPI publish workflow) and never app-N (FitQuest's updater
 # looks for those); releases are not marked "latest".
 #
@@ -53,6 +55,13 @@ jobs:
           mkdir -p android-analyst/app/src/main/assets/www
           rsync -a --delete --exclude tests --exclude tools --exclude README.md --exclude sw.js \
             data-analyst-path/ android-analyst/app/src/main/assets/www/
+
+      - name: Pack the web app for installed apps to update themselves
+        run: |
+          (cd android-analyst/app/src/main/assets/www && zip -qr "$GITHUB_WORKSPACE/web.zip" .)
+          SHELL_V=$(grep -oE "analystShell'\) \?: '[0-9]+'" android-analyst/app/build.gradle | grep -oE "[0-9]+" | tail -1)
+          echo "$SHELL_V" > "shell-$SHELL_V" # not empty: GitHub refuses empty release files
+          ls -la web.zip shell-*
 
       - name: Signing key
         env:
@@ -108,5 +117,8 @@ jobs:
             **Instalar en Android:** descarga `AnalystPath-1.${{ github.run_number }}.apk` en el móvil, ábrelo y permite "Instalar apps desconocidas" para tu navegador cuando te lo pida.
 
             Your progress is stored on the phone. To bring it from another device: Settings, create a code there, and merge it here.
-          files: AnalystPath-1.${{ github.run_number }}.apk
+          files: |
+            AnalystPath-1.${{ github.run_number }}.apk
+            web.zip
+            shell-*
           make_latest: false

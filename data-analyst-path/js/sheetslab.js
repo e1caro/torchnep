@@ -6,6 +6,7 @@
   DA.views = DA.views || {};
   var S = DA.sheets;
   var books = {};
+  if (S.onDropDataset) S.onDropDataset(function (ds) { var lb = L.labs.sheets; Object.keys(books).forEach(function (id) { if (!lb || !lb.byId[id] || lb.byId[id].ds === ds) delete books[id]; }); });
 
   function getLab() { return L.get('sheets'); }
 
@@ -38,6 +39,8 @@
     return wb;
   }
 
+  DA.labPages = DA.labPages || {};
+  DA.labPages.sheets = function (lb, c) { return page(lb, c); };
   function page(lb, c) {
     var P = L.page(lb, c, { wide: true, useExample: function (ex) { useExample(ex); } });
     var work = P.work;

@@ -53,6 +53,9 @@ export interface Template {
   rentM2: [number, number, number];  // euros per m² and month by location tier
   fitoutM2: number;                  // recommended investment per m²
   utilitiesM2: number;               // euros per m² and month
+  overheadM2: number;                // insurance, software, cleaning, accountancy…: euros per m² and month
+  overheadPct: number;               // packaging, shrinkage and other costs that follow sales: share of net revenue
+  minStock: number;                  // units kept of every product however slowly it sells
   marketingScale: number;            // monthly spend that gets about two thirds of the maximum lift
   hoursDefault: [number, number]; closedDefault: number;
   menuPrices?: boolean;              // prices end in .00/.50 instead of .95/.99

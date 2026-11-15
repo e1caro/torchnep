@@ -30,12 +30,12 @@ export interface Dash {
   channels: { name: string; rev: number; tx: number }[];
 }
 
-function txRange(sim: Sim, from: number, to: number): [number, number] {
+export function txRange(sim: Sim, from: number, to: number): [number, number] {
   const date = sim.T.transactions.ints('date'), n = sim.T.transactions.n;
   const lower = (d: number) => { let lo = 0, hi = n; while (lo < hi) { const m = (lo + hi) >> 1; if (date[m] < d) lo = m + 1; else hi = m; } return lo; };
   return [lower(from), lower(to + 1)];
 }
-function itemStart(sim: Sim, txRow: number): number {
+export function itemStart(sim: Sim, txRow: number): number {
   const tx = sim.T.transaction_items.ints('transaction_id'), n = sim.T.transaction_items.n;
   let lo = 0, hi = n; while (lo < hi) { const m = (lo + hi) >> 1; if (tx[m] < txRow + 1) lo = m + 1; else hi = m; } return lo;
 }
@@ -180,7 +180,7 @@ export function dashboard(sim: Sim, filters: Filters): Dash {
     for (let c = 0; c < C.n; c++) if (firstSeen[c] <= to && custN[c]) { cm[c] = mOf(firstSeen[c]); size[cm[c]]++; }
     const [, e] = txRange(sim, 0, to);
     for (let t = 0; t < e; t++) { const c = txCust[t]; if (c === NULL_INT) continue; const m = mOf(txDate[t]); if (mark[c - 1] !== m) { mark[c - 1] = m; act[cm[c - 1]][m - cm[c - 1]]++; } }
-    for (let m = Math.max(0, nM - 12); m < nM; m++) if (size[m]) cohorts.push({ cohort: labels[m], size: size[m], rate: Array.from(act[m].subarray(0, nM - m), v => v / size[m]) });
+    for (let m = Math.max(0, nM - 12); m < nM; m++) if (size[m] && nM - m > 1) cohorts.push({ cohort: labels[m], size: size[m], rate: Array.from(act[m].subarray(0, nM - m), v => v / size[m]) });
   }
 
   // RFM at the end of the period

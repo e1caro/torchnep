@@ -30,10 +30,22 @@ import android.window.OnBackInvokedDispatcher;
 import androidx.core.content.FileProvider;
 import androidx.webkit.WebViewAssetLoader;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 /**
  * Data Analyst Path as an Android app.
@@ -49,15 +61,27 @@ import java.nio.charset.StandardCharsets;
  *  - pick a file (import a backup), and show confirm / alert boxes;
  *  - one optional notification a day at the time chosen in Settings (Reminder, ReminderReceiver, BootReceiver).
  * The web side finds these through window.AnalystNative (see ui.native in js/ui.js).
+ *
+ * Updates itself, like FitQuest (android/): each release (tag analyst-N) carries web.zip, the whole web app. When one
+ * is newer than what the app shows, it is downloaded in the background into the app's own storage and used the next
+ * time the app comes back to the screen. Progress is kept: it lives in the WebView's storage for the same origin.
+ * The APK only needs reinstalling when this native part changes (a release with a shell-S higher than SHELL).
  */
 public class MainActivity extends Activity {
     private static final String HOST = "appassets.androidplatform.net";
-    private static final String START = "https://" + HOST + "/assets/www/index.html";
+    private static final String RELEASES = "https://api.github.com/repos/e1caro/torchnep/releases?per_page=30";
     private static final int REQ_SAVE = 41;
     private static final int REQ_PICK = 42;
     private static final int REQ_NOTIFY = 43;
 
     private WebView web;
+    private String home; // the app's own page: packed in the APK, or a newer downloaded copy
+    private int shown; // the web version on screen (the APK's own one is its versionCode)
+    private volatile boolean ready; // a newer web version is downloaded and waits for the next resume
+    private long lastCheck;
+
+    private SharedPreferences webPrefs() { return getSharedPreferences("web", MODE_PRIVATE); }
+    private File webDir(int v) { return new File(getFilesDir(), "web/" + v); }
     private ValueCallback<Uri[]> chooser;
     private byte[] pendingSave;
 
@@ -68,13 +92,26 @@ public class MainActivity extends Activity {
         // The assets are served by the app itself. The default handler has no type for .wasm, which stops the
         // browser from compiling the SQL engine while it downloads; give it the right one.
         final WebViewAssetLoader.AssetsPathHandler assets = new WebViewAssetLoader.AssetsPathHandler(this);
-        final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
+        // a downloaded web version newer than the one packed in this APK is shown instead of it
+        int saved = webPrefs().getInt("ver", 0);
+        final boolean local = saved > BuildConfig.VERSION_CODE && new File(webDir(saved), "index.html").exists();
+        shown = local ? saved : BuildConfig.VERSION_CODE;
+        WebViewAssetLoader.Builder lb = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", path -> {
                     WebResourceResponse r = assets.handle(path);
                     if (r != null && path.endsWith(".wasm")) r.setMimeType("application/wasm");
                     return r;
-                })
-                .build();
+                });
+        if (local) {
+            final WebViewAssetLoader.InternalStoragePathHandler files = new WebViewAssetLoader.InternalStoragePathHandler(this, webDir(saved));
+            lb.addPathHandler("/local/", path -> {
+                WebResourceResponse r = files.handle(path);
+                if (r != null && path.endsWith(".wasm")) r.setMimeType("application/wasm");
+                return r;
+            });
+        }
+        final WebViewAssetLoader loader = lb.build();
+        home = "https://" + HOST + (local ? "/local/index.html" : "/assets/www/index.html");
 
         web = new WebView(this);
         WebSettings s = web.getSettings();
@@ -82,7 +119,7 @@ public class MainActivity extends Activity {
         s.setDomStorageEnabled(true);
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
-        s.setUserAgentString(s.getUserAgentString() + " AnalystPathApp/1");
+        s.setUserAgentString(s.getUserAgentString() + " AnalystPathApp/1 AnalystPathWeb/" + shown);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER); // no stretch or glow when you swipe past the top or bottom
         web.addJavascriptInterface(new Bridge(), "AnalystNative");
 
@@ -163,7 +200,10 @@ public class MainActivity extends Activity {
         }
 
         Reminder.schedule(this); // keeps the daily reminder alive if the system dropped it
-        if (state == null || web.restoreState(state) == null) web.loadUrl(START);
+        // a saved page is only restored when it belongs to the web version now shown
+        if (state == null || state.getInt("webVer", 0) != shown || web.restoreState(state) == null) web.loadUrl(home);
+        cleanOld(shown);
+        new Thread(this::checkUpdate).start();
     }
 
     private void goBackOrFinish() {
@@ -208,6 +248,7 @@ public class MainActivity extends Activity {
     protected void onSaveInstanceState(Bundle out) {
         super.onSaveInstanceState(out);
         web.saveState(out);
+        out.putInt("webVer", shown);
     }
 
     @Override
@@ -220,6 +261,103 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
+        // switch to a downloaded version when nothing is half done (a file being picked or saved), else look for one
+        if (ready && chooser == null && pendingSave == null) { ready = false; recreate(); }
+        else if (!ready) new Thread(this::checkUpdate).start();
+    }
+
+    // ---------- updates (the same scheme as FitQuest's MainActivity) ----------
+
+    private void checkUpdate() {
+        if (System.currentTimeMillis() - lastCheck < 10 * 60e3) return;
+        lastCheck = System.currentTimeMillis();
+        try {
+            JSONArray rs = new JSONArray(read(RELEASES));
+            int best = Math.max(shown, webPrefs().getInt("ver", 0));
+            String zip = null;
+            Pattern tag = Pattern.compile("^analyst-(\\d+)$"), shell = Pattern.compile("^shell-(\\d+)$");
+            for (int i = 0; i < rs.length(); i++) {
+                JSONObject r = rs.getJSONObject(i);
+                Matcher m = tag.matcher(r.optString("tag_name"));
+                if (!m.find() || r.optBoolean("draft")) continue;
+                int n = Integer.parseInt(m.group(1));
+                if (n <= best) continue;
+                JSONArray as = r.getJSONArray("assets");
+                String url = null;
+                int needs = 1;
+                for (int j = 0; j < as.length(); j++) {
+                    JSONObject a = as.getJSONObject(j);
+                    String name = a.optString("name");
+                    if (name.equals("web.zip")) url = a.optString("browser_download_url");
+                    Matcher sm = shell.matcher(name);
+                    if (sm.find()) needs = Integer.parseInt(sm.group(1));
+                }
+                if (url != null && needs <= BuildConfig.SHELL) { best = n; zip = url; }
+            }
+            if (zip == null) return;
+            File dir = webDir(best), tmp = new File(getFilesDir(), "web/tmp");
+            deleteAll(tmp);
+            unzip(zip, tmp);
+            if (!new File(tmp, "index.html").exists() || !new File(tmp, "js/app.js").exists()) { deleteAll(tmp); return; }
+            deleteAll(dir);
+            if (!tmp.renameTo(dir)) return;
+            webPrefs().edit().putInt("ver", best).commit();
+            ready = true;
+        } catch (Exception ignored) {
+            // offline or GitHub busy: try again later
+        }
+    }
+
+    private static HttpURLConnection open(String url) throws Exception {
+        HttpURLConnection c = (HttpURLConnection) new URL(url).openConnection();
+        c.setConnectTimeout(15000);
+        c.setReadTimeout(30000);
+        c.setRequestProperty("Accept", "application/vnd.github+json");
+        c.setInstanceFollowRedirects(true);
+        return c;
+    }
+
+    private static String read(String url) throws Exception {
+        HttpURLConnection c = open(url);
+        try (InputStream in = new BufferedInputStream(c.getInputStream())) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            byte[] buf = new byte[8192];
+            for (int k; (k = in.read(buf)) > 0; ) out.write(buf, 0, k);
+            return out.toString("UTF-8");
+        } finally { c.disconnect(); }
+    }
+
+    private static void unzip(String url, File into) throws Exception {
+        HttpURLConnection c = open(url);
+        String rootPath = into.getCanonicalPath() + File.separator;
+        try (ZipInputStream z = new ZipInputStream(new BufferedInputStream(c.getInputStream()))) {
+            byte[] buf = new byte[16384];
+            for (ZipEntry e; (e = z.getNextEntry()) != null; ) {
+                File f = new File(into, e.getName());
+                if (!f.getCanonicalPath().startsWith(rootPath)) throw new SecurityException("bad entry"); // stay inside the folder
+                if (e.isDirectory()) { f.mkdirs(); continue; }
+                f.getParentFile().mkdirs();
+                try (OutputStream out = new FileOutputStream(f)) {
+                    for (int k; (k = z.read(buf)) > 0; ) out.write(buf, 0, k);
+                }
+            }
+        } finally { c.disconnect(); }
+    }
+
+    // keep only the version on screen (and a newer one that may be waiting)
+    private void cleanOld(int keep) {
+        File[] ds = new File(getFilesDir(), "web").listFiles();
+        if (ds == null) return;
+        for (File d : ds) {
+            try { if (Integer.parseInt(d.getName()) < keep) deleteAll(d); } catch (NumberFormatException ignored) { /* tmp */ }
+        }
+    }
+
+    private static void deleteAll(File f) {
+        if (f == null || !f.exists()) return;
+        File[] kids = f.listFiles();
+        if (kids != null) for (File k : kids) deleteAll(k);
+        f.delete();
     }
 
     @Override

@@ -29,4 +29,6 @@ Launcher icons (adaptive foreground and background, the themed monochrome layer 
 
 ## Updating
 
-There is no self-update: install the newer APK over the old one (same signing key, so the data is kept).
+The app updates itself. Every release `analyst-N` carries `web.zip`, the whole web app; the app looks for a newer one when it opens (at most every 10 minutes), downloads it in the background into its own storage and shows it the next time it comes back to the screen. Progress is kept. Nothing has to be downloaded or installed by hand.
+
+Only a change to this native shell needs a new APK: raise `analystShell` in `app/build.gradle`, and releases marked with that `shell-S` are skipped by older shells. Installing a newer APK over the old one keeps the data (same signing key).

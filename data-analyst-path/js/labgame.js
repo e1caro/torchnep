@@ -5,7 +5,7 @@
   var ui = DA.ui, h = ui.h;
   var L = (DA.labgame = {});
 
-  L.names = { sql: 'SQLab', sheets: 'DotSheets', python: 'DotPython', bi: 'DotBI' };
+  L.names = { sql: 'SQLab', sheets: 'DotSheets', python: 'DotPython', bi: 'DotBI', biz: 'Business base' };
   L.labs = {};
   L.NEED = 2 / 3;
 
@@ -30,6 +30,7 @@
     python: function () { return DA.labPython; },
     bi: function () { return DA.labBI; },
     sql: function () { return DA.buildSqlLab(); },
+    biz: function () { return DA.labBiz; }, // challenges about the learner's own BizSim business (js/data/lab-biz.js)
   };
   L.get = function (id) { return L.labs[id] || (SOURCES[id] ? L.register(SOURCES[id]()) : null); };
   L.WORLD_COLORS = ['#2563eb', '#16a34a', '#7c3aed', '#ea580c', '#0d9488', '#db2777', '#ca8a04', '#4f46e5'];
@@ -77,7 +78,7 @@
     var solved = 0, stars = 0;
     lv.challenges.forEach(function (c) { var k = L.stars(lab.id, c.id, s); if (k) solved++; stars += k; });
     var prev = lab.levels[lv.index - 1];
-    var unlocked = !prev || solved > 0 || L.levelState(lab, prev, s).passed;
+    var unlocked = !prev || !!lv.world.open || solved > 0 || L.levelState(lab, prev, s).passed;
     return { solved: solved, total: lv.challenges.length, stars: stars, max: lv.challenges.length * 3, passed: solved >= L.need(lv), complete: solved === lv.challenges.length, unlocked: unlocked };
   };
 

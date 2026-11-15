@@ -30,6 +30,35 @@ Everything is synthetic: every person, product, supplier and company is invented
   **dirty-data** switch adds missing values, duplicates, outliers, mixed date formats and messy text, with an answer key.
 - **English and Spanish**, dark and light themes.
 
+## Updates inside the Android app
+
+The installed app updates itself (`src/native/update.ts`). Each release `bizsim-N` carries `web.zip`, the whole web
+app. When the app opens it looks for a newer release, downloads it in the background and shows *Update now*; one tap
+restarts it on the new version. Businesses and the account are kept. Settings shows the version and a *Check for
+updates* button. Only a release that needs a newer native shell (`SHELL` in that file, published as `shell-S`) asks
+for a new APK. The web version needs none of this: it is always the latest.
+
+## Linked with Analyst Path
+
+BizSim and Analyst Path (`../data-analyst-path`, the app for learning data analysis) share businesses.
+
+- **Practise in Analyst Path**: a button on every business opens Analyst Path with that business loaded. The recipe
+  travels in the link, so it works without any account.
+- **The same engine in both**: `npm run build:engine` builds `src/engine/` into one plain script,
+  `../data-analyst-path/vendor/bizsim/engine.js` (entry point `src/embed.ts`). Analyst Path has no build step, so the
+  file is committed; CI fails if it is not the one built from the current source. After rebuilding it, run
+  `python3 tools/update-sw.py` in `data-analyst-path/`.
+- **Linked accounts**: in Analyst Path's Settings, *Link BizSim* signs in to the BizSim account, so businesses from
+  BizSim become practice data there and businesses created there appear here. In BizSim's Settings, *Analyst Path*
+  signs in to the Analyst Path account (read only) and shows how many business challenges have been solved.
+  The two accounts stay separate; each app keeps only a session for the other, never a password.
+
+## Realistic by construction
+
+`tests/realism.test.ts` simulates two years of a default business of each type and checks that gross margin, net
+margin, labour and rent as a share of revenue, average ticket, conversion, inventory turns, waste and return rate
+all land inside ranges typical of a small independent business of that kind.
+
 ## Run it
 
 ```bash
@@ -37,7 +66,8 @@ npm install
 npm run dev        # http://localhost:5173
 npm test           # engine, exports and sync (Vitest)
 npm run build      # type-check and build into dist/
-npm run e2e        # two browsers, one account: create on one, see it on the other (needs the build)
+npm run e2e        # browser tests: two devices on one account, and BizSim with Analyst Path (needs the build)
+npm run build:engine   # rebuilds the engine bundle that Analyst Path loads
 ```
 
 Android (needs the Android SDK and Java 21):

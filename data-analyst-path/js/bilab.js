@@ -9,6 +9,7 @@
   try { drafts = JSON.parse(localStorage.getItem(MEM) || '{}') || {}; } catch (e) { drafts = {}; }
 
   function getLab() { return L.get('bi'); }
+  DA.biLabReset = function (name) { delete models[name]; };
   function getModel(name) { name = name || 'retail'; return models[name] || (models[name] = BI.model(name)); }
 
   DA.views.bi = function (params) {
@@ -75,6 +76,8 @@
     }
   }
 
+  DA.labPages = DA.labPages || {};
+  DA.labPages.bi = function (lb, c) { return page(lb, c); };
   function page(lb, c) {
     var P = L.page(lb, c, { useExample: function (ex) { setText(ex.code.split('   with')[0]); evaluate(); } });
     var work = P.work, m = getModel(c.model), tab = c.mode === 'tableau', club = c.model === 'club';
@@ -115,8 +118,10 @@
     work.appendChild(chart);
     work.appendChild(h('details', { class: 'schema' }, h('summary', null, h('strong', { text: '📋 The data model' })),
       h('ul', { class: 'small' },
-        h('li', null, h('code', { text: 'Sales' }), ' (one row per order line): order_id, order_date, store_city, channel, customer_id, product, category, qty, unit_price'),
-        h('li', null, h('code', { text: 'Customers' }), ': customer_id, signup_date, city, segment'),
+        c.model === 'biz' ? h('li', null, h('code', { text: 'Sales' }), DA.L(' (your business, one row per sale line): ', ' (tu negocio, una fila por línea de venta): ') + 'ticket_id, date, month, weekday, hour, channel, payment_method, customer_id, product, category, quantity, unit_price, line_total, unit_cost')
+          : h('li', null, h('code', { text: 'Sales' }), ' (one row per order line): order_id, order_date, store_city, channel, customer_id, product, category, qty, unit_price'),
+        c.model === 'biz' ? h('li', null, h('code', { text: 'Customers' }), ': customer_id, first_seen, segment, age_band, acquisition_channel, loyalty_member')
+          : h('li', null, h('code', { text: 'Customers' }), ': customer_id, signup_date, city, segment'),
         h('li', null, 'Relationship: Customers[customer_id] 1 → * Sales[customer_id]. ' + (tab ? 'In Tableau, write the fields as [qty], [order_date]…' : 'Filters on Customers flow to Sales.')))));
     var last = null;
 
