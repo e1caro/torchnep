@@ -32,6 +32,10 @@ class Repository(context: Context) {
 
     fun audioFile(id: String) = File(takesDir, "$id.wav")
 
+    fun deleteTakeFiles(ids: List<String>) {
+        for (id in ids) { File(takesDir, "$id.json").delete(); audioFile(id).delete() }
+    }
+
     /** Removes takes that have been in the trash for more than 30 days. */
     @Synchronized
     fun purgeTrash(now: Long) {
@@ -61,6 +65,14 @@ class Prefs(context: Context) {
     var strictness: Float
         get() = sp.getFloat("strictness", 0.5f)
         set(v) = sp.edit().putFloat("strictness", v).apply()
+    /** Hands-free recording (start when playing begins, stop after silence). Off: the record button does it. */
+    var handsFree: Boolean
+        get() = sp.getBoolean("handsFree", false)
+        set(v) = sp.edit().putBoolean("handsFree", v).apply()
+    /** Piano commands (motifs and on/off), as JSON. */
+    var commands: io.github.e1caro.scorebook.core.commands.CommandConfig
+        get() = try { sp.getString("commands", null)?.let { io.github.e1caro.scorebook.core.library.Codec.commands(it) } ?: io.github.e1caro.scorebook.core.commands.CommandConfig() } catch (_: Exception) { io.github.e1caro.scorebook.core.commands.CommandConfig() }
+        set(v) = sp.edit().putString("commands", io.github.e1caro.scorebook.core.library.Codec.encode(v)).apply()
     var autoPdf: Boolean
         get() = sp.getBoolean("autoPdf", true)
         set(v) = sp.edit().putBoolean("autoPdf", v).apply()

@@ -3,12 +3,36 @@ package io.github.e1caro.scorebook.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.material3.darkColorScheme
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import io.github.e1caro.scorebook.core.commands.Command
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -16,20 +40,27 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import io.github.e1caro.scorebook.R
 
 val Stage = Color(0xFF0E0F12)
 val StageRaised = Color(0xFF181A20)
+val StageHigh = Color(0xFF22252D)
 val Ink = Color(0xFFF3EBDD)
-val InkDim = Color(0xFF8C8577)
+val InkDim = Color(0xFF9A9384)
 val Gold = Color(0xFFE0A458)
 val AiBlue = Color(0xFF6FA8DC)
 val RecordRed = Color(0xFFE5484D)
@@ -39,7 +70,8 @@ fun ScorebookTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Gold, onPrimary = Stage, secondary = AiBlue, background = Stage, surface = StageRaised,
-            onBackground = Ink, onSurface = Ink, surfaceVariant = StageRaised, onSurfaceVariant = InkDim, error = RecordRed,
+            onBackground = Ink, onSurface = Ink, surfaceVariant = StageHigh, onSurfaceVariant = InkDim, error = RecordRed,
+            secondaryContainer = StageHigh, onSecondaryContainer = Gold, surfaceContainer = StageRaised,
         ),
     ) { Surface(Modifier.fillMaxSize(), color = Stage, content = content) }
 }
@@ -55,19 +87,29 @@ fun KeepScreenOn() {
 }
 
 @Composable
-fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null) {
-    var screen by rememberSaveable { mutableStateOf("listen") }
-    LaunchedEffect(openTake) { if (openTake != null) vm.openTake(openTake) }
+fun Chip(text: String, color: Color = Ink, background: Color = StageHigh) {
+    Text(
+        text, color = color, fontSize = 13.sp,
+        modifier = Modifier.clip(RoundedCornerShape(50)).background(background).padding(horizontal = 12.dp, vertical = 6.dp),
+    )
+}
+
+private enum class Tab(val label: String) { LISTEN("Listen"), LIBRARY("Library"), SETTINGS("Settings") }
+
+@Composable
+fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null, startTab: String? = null) {
+    var tab by rememberSaveable { mutableStateOf(Tab.entries.firstOrNull { it.name.equals(startTab, true) } ?: Tab.LISTEN) }
     val take by vm.take.collectAsState()
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(openTake) { if (openTake != null) vm.openTake(openTake) }
 
     // listen while the app is on screen; stop when it goes to the background
     DisposableEffect(lifecycle) {
         val obs = LifecycleEventObserver { _, e ->
             val mic = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             when (e) {
-                Lifecycle.Event.ON_START -> if (mic) vm.startListening(true)
+                Lifecycle.Event.ON_START -> vm.startListening(mic)
                 Lifecycle.Event.ON_STOP -> vm.stopListening()
                 else -> {}
             }
@@ -76,15 +118,90 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
         onDispose { lifecycle.removeObserver(obs) }
     }
 
+    val opening by vm.opening.collectAsState()
     Box(Modifier.fillMaxSize()) {
         val current = take
         if (current != null) {
             BackHandler { vm.closeTake() }
             TakeScreen(vm, current, onBack = { vm.closeTake() })
-        } else when (screen) {
-            "library" -> { BackHandler { screen = "listen" }; LibraryScreen(vm, onBack = { screen = "listen" }) }
-            "settings" -> { BackHandler { screen = "listen" }; SettingsScreen(vm, onBack = { screen = "listen" }) }
-            else -> ListenScreen(vm, onLibrary = { screen = "library" }, onSettings = { screen = "settings" })
+        } else {
+            Tabs(vm, tab) { tab = it }
+        }
+        CommandFlashOverlay(vm)
+        if (opening) {
+            Box(Modifier.fillMaxSize().background(Stage.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    CircularProgressIndicator(color = Gold)
+                    Spacer(Modifier.height(14.dp))
+                    Text("Writing the score…", color = Ink, fontSize = 16.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Tabs(vm: ScorebookViewModel, tab: Tab, setTab: (Tab) -> Unit) {
+    if (tab != Tab.LISTEN) BackHandler { setTab(Tab.LISTEN) }
+    Scaffold(
+        containerColor = Stage,
+        bottomBar = {
+            NavigationBar(containerColor = StageRaised) {
+                for (t in Tab.entries) {
+                    NavigationBarItem(
+                        selected = tab == t,
+                        onClick = { setTab(t) },
+                        icon = {
+                            when (t) {
+                                Tab.LISTEN -> Icon(painterResource(R.drawable.ic_mic), contentDescription = null)
+                                Tab.LIBRARY -> Icon(painterResource(R.drawable.ic_library), contentDescription = null)
+                                Tab.SETTINGS -> Icon(Icons.Filled.Settings, contentDescription = null)
+                            }
+                        },
+                        label = { Text(t.label) },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = Stage, selectedTextColor = Gold, indicatorColor = Gold,
+                            unselectedIconColor = InkDim, unselectedTextColor = InkDim,
+                        ),
+                    )
+                }
+            }
+        },
+    ) { padding: PaddingValues ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            when (tab) {
+                Tab.LISTEN -> ListenScreen(vm, onLibrary = { setTab(Tab.LIBRARY) })
+                Tab.LIBRARY -> LibraryScreen(vm)
+                Tab.SETTINGS -> SettingsScreen(vm)
+            }
+        }
+    }
+}
+
+/** The big confirmation after a piano command: readable from the piano bench. */
+@Composable
+private fun CommandFlashOverlay(vm: ScorebookViewModel) {
+    val flash by vm.flash.collectAsState()
+    val f = flash ?: return
+    val alpha = remember(f.id) { Animatable(0f) }
+    LaunchedEffect(f.id) {
+        alpha.snapTo(1f)
+        delay(900)
+        alpha.animateTo(0f, tween(700))
+    }
+    if (alpha.value <= 0.01f) return
+    val color = when {
+        !f.done -> StageHigh
+        f.command == Command.START || f.command == Command.RESTART -> RecordRed
+        f.command == Command.DISCARD -> Color(0xFF8E2F33)
+        f.command == Command.UNDO -> AiBlue
+        else -> Gold
+    }
+    Box(Modifier.fillMaxSize().alpha(alpha.value).background(color.copy(alpha = 0.92f)), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(32.dp)) {
+            Text(f.command.title.uppercase(), color = Stage.copy(alpha = 0.7f), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(10.dp))
+            Text(f.text, color = if (f.done) Stage else Ink, fontSize = 40.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center, lineHeight = 46.sp)
         }
     }
 }

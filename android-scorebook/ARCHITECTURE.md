@@ -262,11 +262,27 @@ analysis from the stored evidence instantly, and a better model later can re-tra
 
 1. *Album:* albums, tags, favourites, search and filters by key and tempo; multiple takes per song; playback with
    a piano sound (sample-based synth) while the score scrolls; trash bin with 30-day recovery.
-2. *Hands-free commands:* motif recording (3–5 notes), matching on the MIDI or decoded note stream only after
-   ≥ 2 s of silence, register suggestions at the extremes of the keyboard, confirmation sound + full-screen
-   flash, undo. Commands: discard, save and start new song, redo last section, favourite, bookmark, metronome,
-   undo.
+2. *More hands-free commands:* bookmark, metronome on/off, redo the last section, save and start a new song in
+   the same album. (Start, stop and save, start over, discard, favourite and undo are in; see §10.)
 3. *Extras:* idea-catcher mode (foreground service, always listening, short sketches), practice statistics
    (minutes, keys, streaks), side-by-side take comparison (aligned by beats).
 4. *Model:* the distilled piano-specific model (§2), tuning estimation from the pitch contour output (detuned
    pianos), sustain-pedal detection for better durations, two voices per staff.
+
+## 10. Piano commands
+
+Short note patterns (3–5 notes) played on their own control the app (`core/commands`):
+
+* **When a pattern counts.** Only as a phrase of its own: at least 2 s with no new notes before it, nothing
+  after it for 0.7 s, at most 4 s long. The same notes inside a piece never fire (checked on a rendered run that
+  contains the start pattern). One stray extra note (an overtone, a sympathetic string) is tolerated.
+* **Between takes** the microphone listens only for such phrases: a level gate cuts out sound that follows 2 s of
+  quiet and ends after 0.8 s of quiet; only phrases shorter than 6 s are transcribed (the same model and
+  decoder), so leaving the app open while practising costs little. MIDI notes are matched directly.
+* **During a take** the live decoder's notes are watched for a pattern after a pause; a stop pattern's own notes
+  are cut out of the take before the score is written.
+* **Defaults** were chosen from what the model actually hears (`tools/make_command_fixtures.py`, `CommandsTest`):
+  C7 and E7 at the top, A1 to G2 at the bottom. The lowest notes (A0–C1) come out as their overtones and G7–C8
+  are often missed, so patterns there get a warning when you teach them.
+* **Confirmation**: a distinct two- or three-tone sound per command and a full-screen flash. The microphone
+  ignores input for 0.9 s after the sound, and a start command begins recording once the sound is over.

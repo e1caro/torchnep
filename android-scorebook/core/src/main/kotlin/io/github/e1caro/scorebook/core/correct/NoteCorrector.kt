@@ -53,7 +53,7 @@ data class NoteDecision(
 
 /** The player's own choice for a note: another pitch, or no note at all. */
 @Serializable
-data class NoteOverride(val pitch: Int? = null, val deleted: Boolean = false)
+data class NoteOverride(val pitch: Int? = null, val deleted: Boolean = false, val hand: Hand? = null)
 
 /**
  * Musical context at one moment, as seen by the corrector. Built from what was heard clearly.
@@ -154,12 +154,12 @@ class NoteCorrector(val personal: PersonalModel = PersonalModel()) {
         }
         var pitch = best.pitch
         var present = presence >= 0.5
-        if (override != null) {
+        if (override != null && (override.pitch != null || override.deleted)) {
             decision = Decision.USER
             if (override.pitch != null) pitch = override.pitch
             present = !override.deleted
         }
-        val reasons = if (ambiguous || override != null) reasons(e, results, pitch, ctx, chord, rep, prev, lambda, gate) else emptyList()
+        val reasons = if (ambiguous || decision == Decision.USER) reasons(e, results, pitch, ctx, chord, rep, prev, lambda, gate) else emptyList()
         return NoteDecision(e.id, pitch, present, presence, decision, results, gate, reasons)
     }
 

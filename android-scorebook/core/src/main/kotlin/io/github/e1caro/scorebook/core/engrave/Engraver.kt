@@ -144,6 +144,7 @@ class Engraver(val style: EngraveStyle = EngraveStyle()) {
         for ((pi, sysIdx) in pages.withIndex()) {
             val items = ArrayList<Item>()
             val hits = ArrayList<Hit>()
+            val bars = ArrayList<BarBox>()
             var yy = style.margin
             if (pi == 0 && style.title) { drawTitle(score, width, items); yy += titleH }
             for (si in sysIdx) {
@@ -158,9 +159,11 @@ class Engraver(val style: EngraveStyle = EngraveStyle()) {
                 for (b in sys.boxes) { b.place(stretch); b.x = x; x += b.width }
                 val top = yy + vb.above * sp
                 drawSystem(score, sys, x0, x, top, top + (4 + vb.gap) * sp, si == 0, last, items, hits, ties)
+                val bottom = top + (4 + vb.gap + 4) * sp
+                for (b in sys.boxes) bars.add(BarBox(b.m.number, b.x, top - 3 * sp, b.width, bottom - top + 6 * sp))
                 yy += (vb.total + style.systemGap) * sp
             }
-            out.add(Page(width, pageHeight ?: (yy + style.margin), items, hits))
+            out.add(Page(width, pageHeight ?: (yy + style.margin), items, hits, bars))
         }
         return out
     }

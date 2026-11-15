@@ -28,7 +28,12 @@ data class Text(val text: String, val x: Double, val y: Double, val size: Double
 /** A rectangle that answers taps on a note. */
 data class Hit(val eventId: Int, val x: Double, val y: Double, val w: Double, val h: Double)
 
-class Page(val width: Double, val height: Double, val items: List<Item>, val hits: List<Hit>) {
+/** The area of one bar (both staves), for selecting bars to cut. */
+data class BarBox(val number: Int, val x: Double, val y: Double, val w: Double, val h: Double)
+
+class Page(val width: Double, val height: Double, val items: List<Item>, val hits: List<Hit>, val bars: List<BarBox> = emptyList()) {
+    fun barAt(x: Double, y: Double): Int? = bars.firstOrNull { x >= it.x && x <= it.x + it.w && y >= it.y && y <= it.y + it.h }?.number
+
     fun hitAt(x: Double, y: Double, slop: Double = 0.0): Int? =
         hits.filter { x >= it.x - slop && x <= it.x + it.w + slop && y >= it.y - slop && y <= it.y + it.h + slop }
             .minByOrNull { val cx = it.x + it.w / 2; val cy = it.y + it.h / 2; (cx - x) * (cx - x) + (cy - y) * (cy - y) }?.eventId

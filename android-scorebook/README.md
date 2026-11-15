@@ -9,8 +9,15 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 
 ## What version 1 does
 
-- **Hands-free takes.** Open the app and play: a take starts when you start (keeping 1.5 s from before, so the
-  first note is not lost) and ends after 5 s of silence (adjustable). The big button starts or ends one by hand.
+- **You decide when it records.** Tap the red button to start a take and tap it again to stop and save; the
+  microphone is off the rest of the time. Optional *hands-free* mode (Settings): a take starts when you start
+  playing (keeping 1.5 s from before, so the first note is not lost) and ends after 5 s of silence (adjustable).
+- **Piano commands.** Control Scorebook without touching the phone (Settings → Piano commands): after a 2-second
+  pause, play a short note pattern on its own. Defaults: *Start recording* E7 C7 E7, *Stop and save* C7 E7 C7,
+  *Start over* A1 C2 E2, *Favourite* C2 E2 G2, *Discard* C2 B1 C2 (the take being recorded, or the last saved one,
+  which goes to the trash), *Undo* G2 E2 C2. Change any of them by playing new notes. Each command answers with
+  its own short sound and a big flash; the command's notes are cut out of the score. Works with MIDI keyboards
+  too. While it is on, the microphone listens between takes, but nothing is saved until a take starts.
 - **Live grand staff.** Notes appear on a treble + bass staff as they are heard, spelled in the current key, with
   the detected key shown; lighter notes are the ones the AI had to decide.
 - **On-device transcription.** Basic Pitch (Spotify, Apache-2.0, 204 KB) on LiteRT. The decoder keeps a
@@ -21,16 +28,24 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
   their probabilities and the reasons; one tap switches it; Scorebook learns from every switch.
 - **Rhythm.** Tempo and beat tracking (follows rubato), meter (2/4, 3/4, 4/4, 6/8), quantization with a
   *Loose ↔ Strict* slider, ties across beats and bars, triplets.
+- **Editing.** *Cut*: tap a bar, then another, to select bars, then keep only those, delete them (the gap closes)
+  or copy them to a new song; every cut can be undone, or the original restored, and the recording is cut the
+  same way. *Adjust*: fix a tempo read at double or half speed, choose the time signature or the key, besides the
+  Literal ↔ Musical and rhythm sliders. Tap a note to switch its pitch, remove it or move it to the other hand.
 - **Score.** Engraved with the Bravura music font: hands split automatically, key signatures (with key changes),
   chord symbols, accidentals, beams. One-tap transpose.
 - **Exports.** A PDF is saved to *Downloads/Scorebook* after every take (can be turned off); PDF, MIDI and
   MusicXML can be shared or saved from any take.
+- **Playback.** Play any score with a built-in piano sound (or play the take's own recording) while the notes
+  light up and the page follows; 0.5× / 0.75× / 1× speed for practice.
 - **Library.** Every take is kept with its audio, auto-titled ("Idea in D minor, 14 Nov") with date, duration,
-  key and tempo; search, favourites, trash with 30-day recovery.
+  key and tempo; search and favourites. Swipe a score left to delete it (with Undo), or select several or all and
+  delete them at once; deleted scores stay in the Trash for 30 days (restore, delete for good, empty trash).
+- **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 
-What comes next (albums and multiple takes per song, playback, hands-free piano commands, idea catcher, practice
-statistics, take comparison, a piano-specific model) is listed at the end of ARCHITECTURE.md.
+What comes next (albums and multiple takes per song, more piano commands such as bookmarks and a metronome,
+idea catcher, take comparison, a piano-specific model) is listed at the end of ARCHITECTURE.md.
 
 ## How well it works
 
@@ -73,6 +88,7 @@ To regenerate the test fixtures (FluidSynth with a GM soundfont, and `pip instal
 
 ```bash
 python tools/make_fixtures.py --model app/src/main/assets/basic_pitch.tflite --out core/src/test/resources/fixtures
+cd tools && python make_command_fixtures.py --model ../app/src/main/assets/basic_pitch.tflite --out ../core/src/test/resources/commands
 ```
 
 `RenderTest` writes SVG pages, MusicXML and MIDI for every fixture when `SCOREBOOK_RENDER_DIR` is set.

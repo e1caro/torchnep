@@ -1,0 +1,31 @@
+{
+ "name": "motif_favorite",
+ "frames": 670,
+ "expect": "FAVORITE",
+ "notes": [
+  {
+   "pitch": 36,
+   "on": 2.5,
+   "off": 2.8,
+   "vel": 96,
+   "hand": "R",
+   "cents": 0.0
+  },
+  {
+   "pitch": 40,
+   "on": 2.83,
+   "off": 3.13,
+   "vel": 96,
+   "hand": "R",
+   "cents": 0.0
+  },
+  {
+   "pitch": 43,
+   "on": 3.16,
+   "off": 3.46,
+   "vel": 96,
+   "hand": "R",
+   "cents": 0.0
+  }
+ ]
+}

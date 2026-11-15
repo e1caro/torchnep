@@ -238,6 +238,10 @@ class LiveDecoder(private val decoder: NoteDecoder = NoteDecoder()) {
 
     val events: List<NoteEvent> get() = emitted
 
+    /** Seconds of audio decoded so far: no onset before this time is still to come. */
+    var decodedSeconds = 0.0
+        private set
+
     /** Returns the new events. [final] = the take ended: decode up to the last frame. */
     fun update(grid: ProbabilityGrid, final: Boolean = false): List<NoteEvent> {
         val safeTo = if (final) grid.frames else grid.frames - LOOKAHEAD
@@ -248,6 +252,7 @@ class LiveDecoder(private val decoder: NoteDecoder = NoteDecoder()) {
         val out = all.filter { it.onset >= grid.time(doneUntil) - 1e-9 }
         emitted.addAll(out)
         doneUntil = safeTo
+        decodedSeconds = grid.time(safeTo)
         return out
     }
 

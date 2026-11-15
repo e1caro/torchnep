@@ -11,6 +11,12 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import io.github.e1caro.scorebook.audio.TfliteModel
+import io.github.e1caro.scorebook.core.commands.Command
+import io.github.e1caro.scorebook.core.commands.CommandConfig
+import io.github.e1caro.scorebook.core.commands.CommandSpotter
+import io.github.e1caro.scorebook.core.commands.PhraseListener
+import io.github.e1caro.scorebook.core.transcribe.BasicPitchStream
+import io.github.e1caro.scorebook.core.transcribe.NoteDecoder
 import io.github.e1caro.scorebook.core.correct.AnalysisSettings
 import io.github.e1caro.scorebook.core.correct.AutoTitle
 import io.github.e1caro.scorebook.core.correct.Decision
@@ -104,7 +110,7 @@ class OnDeviceTest {
                     val bmp = Bitmap.createBitmap(page.width * 2, page.height * 2, Bitmap.Config.ARGB_8888)
                     bmp.eraseColor(Color.WHITE)
                     page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    File(out, "4-pdf-page1.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                    File(out, "6-pdf-page1.png").outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
                     // ink on the page (title, staves, notes): not blank
                     val px = IntArray(bmp.width * bmp.height).also { bmp.getPixels(it, 0, bmp.width, 0, 0, bmp.width, bmp.height) }
                     val dark = px.count { Color.red(it) < 128 }
@@ -118,7 +124,14 @@ class OnDeviceTest {
         // the app: take screen, a tapped AI-decided note, the listening screen
         val intent = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAKE, id).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         ActivityScenario.launch<MainActivity>(intent).use { scenario ->
-            Thread.sleep(5000)
+            var loaded = false
+            for (k in 0 until 60) {
+                scenario.onActivity { loaded = ViewModelProvider(it)[ScorebookViewModel::class.java].take.value != null }
+                if (loaded) break
+                Thread.sleep(500)
+            }
+            assertTrue("the take opens", loaded)
+            Thread.sleep(1500)
             shot("1-take.png")
             val ai = t.notes.firstOrNull { it.decision == Decision.CONTEXT }?.eventId ?: t.notes[t.notes.size / 2].eventId
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].select(ai) }
@@ -126,10 +139,50 @@ class OnDeviceTest {
             shot("2-note-sheet.png")
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].select(null) }
             Thread.sleep(1500)
+            // cut mode with bars 2 to 4 selected
+            scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; vm.setEditing(true); vm.tapBar(2); vm.tapBar(4) }
+            Thread.sleep(1500)
+            shot("7-cut.png")
+            scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; vm.deleteSelection() }
+            Thread.sleep(4000)
+            var bars = 0
+            scenario.onActivity { bars = ViewModelProvider(it)[ScorebookViewModel::class.java].take.value!!.score.measures.size }
+            File(out, "cut.txt").writeText("bars after cutting 2-4: $bars\n")
+            assertTrue("bars after cut: $bars", bars in 11..14)
+            scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; vm.setEditing(false) }
+            Thread.sleep(1000)
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].closeTake() }
             Thread.sleep(2500)
             shot("3-listen.png")
         }
+        for ((tab, file) in listOf("library" to "4-library.png", "settings" to "5-settings.png")) {
+            val i2 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, tab).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            ActivityScenario.launch<MainActivity>(i2).use { Thread.sleep(3000); shot(file) }
+        }
+    }
+
+    /** The start motif (E7 C7 E7, a real piano recording) through the phrase listener and the real model. */
+    @Test
+    fun aPlayedStartMotifStartsRecording() {
+        val pcm = readWav(instrumentation.context.assets.open("motif_start.wav"))
+        val model = TfliteModel(ctx)
+        val listener = PhraseListener({ audio ->
+            val st = BasicPitchStream(model)
+            st.push(audio)
+            st.flush()
+            NoteDecoder().decode(st.grid)
+        })
+        var heard: List<Int>? = null
+        var i = 0
+        val block = FloatArray(441)
+        while (i + block.size <= pcm.size) {
+            System.arraycopy(pcm, i, block, 0, block.size)
+            listener.push(block)?.let { heard = it.map { n -> n.pitch } }
+            i += block.size
+        }
+        File(out, "motif.txt").writeText("heard $heard\n")
+        println("start motif heard as $heard")
+        assertEquals(Command.START, CommandSpotter.match(heard ?: emptyList(), CommandConfig.DEFAULTS))
     }
 
     private fun shot(name: String) {
