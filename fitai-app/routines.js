@@ -28,7 +28,7 @@ function routineView(id) {
   const hasAbs = r.items.some(it => BY[it.id]?.m?.includes('abdominals'));
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/plan'">${ic('back', 18)} Back</button><h1>Edit routine</h1>
   <div class="lbl">Name</div><input id="rt-name" value="${esc(r.name)}" maxlength="40">
-  <div class="mut" style="margin-top:8px">${r.items.length} exercises · ${sets} sets · ~${Math.max(5, Math.round(sets * 2.2))} min</div>
+  <div class="mut" style="margin-top:8px">${r.items.length} exercises · ${sets} sets · ~${Math.max(5, Math.round((WARMUP + r.items.reduce((t, it) => t + exSecs(it), 0)) / 60))} min</div>
   <div class="row" style="margin-top:10px">${r.items.length ? `<button class="btn grow" onclick="startRoutine('${r.id}')">Start routine</button>` : ''}<button class="btn ghost sm" onclick="rtComplete('${r.id}')">${ic('plus', 16)} ${hasAbs ? 'Complete routine' : 'Add Abs & complete'}</button></div>
   ${r.items.length ? '' : '<div class="card mut" style="margin-top:10px">No exercises yet. Add some below.</div>'}
   ${r.items.map((it, i) => { const e = BY[it.id]; if (!e) return ''; return `<section class="card rt-item"><div class="row"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><b>${esc(e.n)}</b><div class="mut">${e.m[0]} · ${e.e}</div></div></a></div>

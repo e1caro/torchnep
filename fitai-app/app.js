@@ -155,11 +155,12 @@ function allowed(e, p, have) {
 
 // How long an exercise really takes: about 40 s per set plus its rest, and 1 minute to set up and move on.
 // Timed items ("8 min" of cardio, "30s" stretches) count their own time.
+const REST_OVER = 1.25, SET_SECS = 50, CHANGE_SECS = 150;
 function exSecs(it) {
-  const m = String(it.reps).match(/^(\d+)\s*min/), s = String(it.reps).match(/^(\d+)\s*s/);
-  if (m) return +m[1] * 60 + 45;
-  if (s) return it.sets * (+s[1] + it.rest) - it.rest + 25; // holds and stretches move on quickly
-  return it.sets * (40 + it.rest) - it.rest + 60;
+  const m = String(it.reps).match(/^(\d+)\s*min/), s = String(it.reps).match(/^(\d+)\s*s/), r = (+it.rest || 0) * REST_OVER;
+  if (m) return +m[1] * 60 + 90;
+  if (s) return it.sets * (+s[1] + r) - r + 40; // holds and stretches move on quickly
+  return it.sets * (SET_SECS + r) - r + CHANGE_SECS;
 }
 const WARMUP = 4 * 60;
 // cardio: none, at the start (it doubles as the warm-up) or at the end; fat loss defaults to the end
@@ -209,6 +210,15 @@ if (S.plan && !S.plan.timed && S.profile) {
   });
   S.plan.timed = 1; save('plan', S.plan);
 }
+if (S.plan && S.plan.timed !== 2 && S.profile) {
+  S.plan.days.forEach(d => {
+    if (d.routine) return;
+    const tot = () => WARMUP + d.items.reduce((a, it) => a + exSecs(it), 0);
+    const strength = () => d.items.filter(it => !/min|s$/.test(String(it.reps)) && BY[it.id]?.m[0] !== 'abdominals');
+    while (tot() > S.profile.minutes * 60 + 180 && strength().length > 2) d.items.splice(d.items.lastIndexOf(strength().pop()), 1);
+  });
+  S.plan.timed = 2; save('plan', S.plan);
+}
 function generatePlan(p) {
   const r = rng(Date.now() & 0xffffff), have = equipSet(p);
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
@@ -227,8 +237,8 @@ function generatePlan(p) {
     if (!c.length) return null;
     used.add(c[0].id); return c[0];
   };
-  const minStr = p.minutes <= 30 ? 3 : p.minutes <= 45 ? 4 : p.minutes <= 60 ? 5 : 6;
-  const maxStr = p.minutes <= 30 ? 4 : p.minutes <= 45 ? 5 : p.minutes <= 60 ? 5 : p.minutes <= 75 ? 6 : 7;
+  const minStr = p.minutes <= 45 ? 2 : p.minutes <= 75 ? 3 : 4;
+  const maxStr = p.minutes <= 30 ? 3 : p.minutes <= 45 ? 4 : p.minutes <= 75 ? 5 : p.minutes <= 90 ? 6 : 7;
   const days = SPLITS[p.days].map((kind, di) => {
     const slots = [...DAYS[kind], ...DAYS[kind]], allow = KIND_MUSCLES[kind]; // long sessions go round the muscles again
     const extra = shuffle(focusMuscles.filter(m => !allow || allow.includes(m)), r).slice(0, 1);
@@ -253,7 +263,7 @@ function generatePlan(p) {
       const ab = pick('abdominals', items);
       if (ab) {
         const abIt = { id: ab.id, sets: focusMuscles.includes('abdominals') ? sets + 1 : sets, reps: p.goal === 'strength' ? '12-15' : reps, rest: Math.min(rest, 60) };
-        if (items.length >= maxStr) items[items.length - 1] = abIt;
+        if (items.length >= maxStr || exSecs(abIt) > left + 120) items[items.length - 1] = abIt;
         else items.push(abIt);
       }
     }
@@ -790,7 +800,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE && !APP_PLAY && !APP_DEV ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 204</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
+  <div class="mut setfoot"><span>FitQuest version 205</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
