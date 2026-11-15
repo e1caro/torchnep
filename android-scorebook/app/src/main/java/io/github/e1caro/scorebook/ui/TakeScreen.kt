@@ -240,19 +240,21 @@ private fun EditBar(vm: ScorebookViewModel, ui: TakeUi) {
     val has = ui.selection != null
     Column(Modifier.fillMaxWidth().background(StageRaised).padding(horizontal = 8.dp, vertical = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            TextButton(onClick = { vm.selectAllBars() }) { Text("Select all", color = Ink) }
-            if (ui.data.edits.isNotEmpty()) {
-                TextButton(onClick = { vm.undoEdit() }) { Text("Undo cut", color = Gold) }
-                TextButton(onClick = { vm.restoreOriginal() }) { Text("Restore original", color = Gold) }
+            Row(Modifier.weight(1f).horizontalScroll(rememberScrollState()), verticalAlignment = Alignment.CenterVertically) {
+                TextButton(onClick = { vm.selectAllBars() }) { Text("Select all", color = Ink, maxLines = 1, softWrap = false) }
+                if (ui.data.edits.isNotEmpty()) {
+                    TextButton(onClick = { vm.undoEdit() }) { Text("Undo cut", color = Gold, maxLines = 1, softWrap = false) }
+                    TextButton(onClick = { vm.restoreOriginal() }) { Text("Restore original", color = Gold, maxLines = 1, softWrap = false) }
+                }
             }
-            Spacer(Modifier.weight(1f))
             Box(Modifier.clip(RoundedCornerShape(50)).background(Gold).clickable { vm.setEditing(false) }.padding(horizontal = 18.dp, vertical = 8.dp)) {
                 Text("Done", color = Stage, fontWeight = FontWeight.Bold)
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+        // one line of actions, scrolling sideways on narrow screens (never wrapping into a tall column)
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             EditAction("Keep only these", enabled = has, onClick = { vm.keepSelection() })
-            EditAction("Delete these bars", enabled = has, danger = true, onClick = { vm.deleteSelection() })
+            EditAction("Delete bars", enabled = has, danger = true, onClick = { vm.deleteSelection() })
             EditAction("Copy to new song", enabled = has, onClick = { vm.copySelectionToNewSong() })
         }
     }
@@ -261,7 +263,7 @@ private fun EditBar(vm: ScorebookViewModel, ui: TakeUi) {
 @Composable
 private fun EditAction(label: String, enabled: Boolean, danger: Boolean = false, onClick: () -> Unit) {
     Text(
-        label, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+        label, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
         color = if (!enabled) InkDim else if (danger) RecordRed else Ink,
         modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (enabled) StageHigh else Color.Transparent)
             .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
