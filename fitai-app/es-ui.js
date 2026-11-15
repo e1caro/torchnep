@@ -359,3 +359,11 @@ i18nAdd({ 'Weight goal:': 'Reto de peso:' });
 i18nAdd({ Grades: 'Notas', 'You have no grade here yet.': 'Aún no tienes nota aquí.', 'Your best grade here': 'Tu mejor nota aquí', 'Dungeon grade': 'Nota de la mazmorra' });
 i18nAdd({ 'Common mistakes': 'Errores comunes' });
 i18nAdd({ 'free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).': 'gratis, sin anuncios. Sin cuenta, todo se queda en este dispositivo. Las estimaciones son orientativas, no consejo médico. Ejercicios: free-exercise-db (Unlicense). Mapas musculares: react-native-body-highlighter (MIT). Tipografías: Google Fonts (SIL OFL).', Privacy: 'Privacidad', Credits: 'Créditos' });
+i18nAdd({
+  'Four heavy lifts, {n} × {n}, long rests. Triple XP for the brave.': 'Cuatro levantamientos pesados, {n} × {n}, descansos largos. XP triple para los valientes.',
+  'Ten exercises, two sets each, almost no rest.': 'Diez ejercicios, dos series cada uno, casi sin descanso.',
+  'Five heavy compound lifts around the whole body, {n} × {n}.': 'Cinco ejercicios compuestos pesados para todo el cuerpo, {n} × {n}.',
+  'Eight exercises back to back, {n} × {n}, twenty seconds of rest.': 'Ocho ejercicios seguidos, {n} × {n}, veinte segundos de descanso.',
+  'Three heavy lifts, {n} × {n}, three-minute rests. Quadruple-ish XP.': 'Tres levantamientos pesados, {n} × {n}, descansos de tres minutos. Casi el cuádruple de XP.',
+  'Five exercises for legs and back, {n} × {n}. The mountain does not move; you do.': 'Cinco ejercicios de pierna y espalda, {n} × {n}. La montaña no se mueve; tú sí.',
+  'Eight exercises, every major muscle, {n} × {n}. The last trial. Five times the XP.': 'Ocho ejercicios, todos los músculos principales, {n} × {n}. La última prueba. Cinco veces la XP.' });
