@@ -45,7 +45,18 @@ data class PersonalModel(
     val pitchBias: Map<Int, Double> = emptyMap(),
     val calibration: AudioCalibration = AudioCalibration(),
     val corrections: Int = 0,
+    /** This piano's tuning in cents from concert pitch (negative = flat), learned from the takes; 0 = unknown / in tune. */
+    val tuningCents: Double = 0.0,
+    val tuningTakes: Int = 0,
 ) {
+    /** A new measurement of the piano's tuning: the estimate settles over the first takes and then follows slowly. */
+    fun withTuning(cents: Double): PersonalModel {
+        val jumped = kotlin.math.abs(cents - tuningCents) > 15 // another piano, or the tuner came
+        val n = if (jumped) 0 else tuningTakes
+        val w = 1.0 / (minOf(n, 5) + 1)
+        return copy(tuningCents = tuningCents * (1 - w) + cents * w, tuningTakes = n + 1)
+    }
+
     fun bias(pitch: Int): Double = pitchBias[pitch] ?: 0.0
 
     /** One gradient step on the soft-max cross-entropy of the decision the player corrected. */

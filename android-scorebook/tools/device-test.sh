@@ -3,6 +3,7 @@
 # (the real LiteRT model on a rendered recording, PDF export, screenshots) and pulls the results into device-out/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+tools/fetch_model.sh
 gradle :app:installDebug :app:installDebugAndroidTest --no-daemon --console=plain
 adb shell pm grant io.github.e1caro.scorebook android.permission.RECORD_AUDIO || true
 adb shell am instrument -w -e class io.github.e1caro.scorebook.OnDeviceTest \
@@ -11,7 +12,7 @@ mkdir -p device-out
 adb pull /sdcard/Android/data/io.github.e1caro.scorebook/files/. device-out/ || true
 adb logcat -d -t 400 > device-out/logcat.txt || true
 ls -la device-out
-cat device-out/report.txt device-out/motif.txt device-out/cut.txt || true
+cat device-out/report.txt device-out/motif.txt device-out/cut.txt device-out/accompaniment.txt || true
 # screenshots inline in the log as well (base64), for reviewers who cannot download artifacts
 if [ "${SCOREBOOK_PRINT_SHOTS:-0}" = "1" ]; then
   for f in device-out/*.jpg; do echo "BEGIN-JPG $(basename "$f") $(stat -c %s "$f")"; base64 -w 0 "$f"; echo; echo "END-JPG"; done

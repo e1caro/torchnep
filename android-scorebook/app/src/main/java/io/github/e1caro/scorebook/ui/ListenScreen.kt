@@ -227,6 +227,12 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             }
         }
 
+        // what to try today (not while a take is being recorded)
+        if (!recording && ui.status != ListenStatus.SAVING) {
+            val pick = remember(lib) { vm.dailyPick() }
+            DailyAccompanimentCard(pick) { vm.openAccompaniment() }
+        }
+
         // the piano commands, as a cheat sheet
         val cmds by vm.commands.collectAsState()
         if (cmds.enabled) {

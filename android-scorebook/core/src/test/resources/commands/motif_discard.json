@@ -1,6 +1,7 @@
 {
  "name": "motif_discard",
- "frames": 670,
+ "frames": 243,
+ "fps": 31.25,
  "expect": "DISCARD",
  "notes": [
   {

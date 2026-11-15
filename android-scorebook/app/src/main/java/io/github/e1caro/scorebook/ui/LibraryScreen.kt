@@ -380,11 +380,17 @@ fun SettingsScreen(vm: ScorebookViewModel) {
         }
         Section("WHAT SCOREBOOK LEARNED") {
             Text("Scorebook adapts to your piano, room and playing from your corrections. So far: $corrections.", color = Ink, fontSize = 15.sp, lineHeight = 21.sp)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                vm.tuningText()?.let { "Your piano is $it as a whole. Scorebook compensates, so chords are heard as well as on a tuned piano." }
+                    ?: "Piano tuning: at concert pitch (or not measured yet). It is measured on every take.",
+                color = InkDim, fontSize = 13.sp, lineHeight = 18.sp,
+            )
             TextButton(onClick = { vm.resetLearning(); corrections = 0 }) { Text("Reset what Scorebook learned", color = Gold) }
         }
         Section("ABOUT") {
             Text(
-                "Transcription model: Basic Pitch by Spotify (Apache 2.0).\nMusic font: Bravura by Steinberg (SIL Open Font License).",
+                "Transcription model: Onsets and Frames by Google Magenta (Apache 2.0), trained on piano.\nMusic font: Bravura by Steinberg (SIL Open Font License).",
                 color = InkDim, fontSize = 13.sp, lineHeight = 19.sp,
             )
         }

@@ -124,7 +124,7 @@ object CommandSpotter {
 }
 
 /**
- * Listens for short phrases while nothing is being recorded. Audio comes in at 22.05 kHz; a phrase begins when
+ * Listens for short phrases while nothing is being recorded. Audio comes in at the model's sample rate; a phrase begins when
  * the sound rises after at least [CommandSpotter.PRE_SILENCE] seconds of quiet and ends after [endSilence]
  * seconds of quiet. Only phrases shorter than [maxPhrase] are transcribed (by [transcribe], the model + decoder),
  * so playing music while idle costs almost nothing and never triggers a command.

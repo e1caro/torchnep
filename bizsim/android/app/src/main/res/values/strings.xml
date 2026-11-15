@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">BizSim</string>
+    <string name="title_activity_main">BizSim</string>
+    <string name="package_name">io.github.e1caro.bizsim</string>
+    <string name="custom_url_scheme">io.github.e1caro.bizsim</string>
+</resources>

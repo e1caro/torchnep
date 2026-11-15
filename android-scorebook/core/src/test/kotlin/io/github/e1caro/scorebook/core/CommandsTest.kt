@@ -5,7 +5,8 @@ import io.github.e1caro.scorebook.core.commands.CommandConfig
 import io.github.e1caro.scorebook.core.commands.CommandSpotter
 import io.github.e1caro.scorebook.core.commands.CommandSpotter.Note
 import io.github.e1caro.scorebook.core.commands.PhraseListener
-import io.github.e1caro.scorebook.core.transcribe.NoteDecoder
+import io.github.e1caro.scorebook.core.transcribe.ModelSpec
+import io.github.e1caro.scorebook.core.transcribe.OnsetsFramesDecoder
 import io.github.e1caro.scorebook.core.transcribe.NoteEvent
 import io.github.e1caro.scorebook.core.transcribe.ProbabilityGrid
 import kotlinx.serialization.json.Json
@@ -25,8 +26,8 @@ class CommandsTest {
 
     private fun decode(name: String): List<NoteEvent> {
         val meta = Json.parseToJsonElement(CommandsTest::class.java.getResourceAsStream("/commands/$name.json")!!.bufferedReader().readText()).jsonObject
-        val grid = ProbabilityGrid.readBytes(CommandsTest::class.java.getResourceAsStream("/commands/$name.probs.gz")!!, meta["frames"]!!.jsonPrimitive.int)
-        return NoteDecoder().decode(grid)
+        val grid = ProbabilityGrid.readBytes(CommandsTest::class.java.getResourceAsStream("/commands/$name.probs.gz")!!, meta["frames"]!!.jsonPrimitive.int, ModelSpec.ONSETS_FRAMES.fps)
+        return OnsetsFramesDecoder().decode(grid)
     }
 
     @Test

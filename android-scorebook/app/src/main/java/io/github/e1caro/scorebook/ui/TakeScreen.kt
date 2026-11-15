@@ -89,6 +89,7 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
     var share by remember { mutableStateOf(false) }
     var renaming by remember { mutableStateOf(false) }
     var adjusting by remember { mutableStateOf(false) }
+    var accompanying by remember { mutableStateOf(false) }
     val t = ui.transcription
     val pb by vm.playback.collectAsState()
     // the score follows playback: notes sounding now are lit, and the page scrolls to them
@@ -115,6 +116,7 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
             Box {
                 IconButton(onClick = { menu = true }) { Icon(Icons.Filled.MoreVert, contentDescription = "More", tint = Ink) }
                 DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(text = { Text("Add an accompaniment…") }, onClick = { menu = false; vm.stopPlayback(); accompanying = true })
                     DropdownMenuItem(text = { Text("Rename") }, onClick = { menu = false; renaming = true })
                     DropdownMenuItem(text = { Text("Move to trash") }, onClick = { menu = false; vm.trashSong(ui.songId) })
                 }
@@ -222,6 +224,7 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
 
     if (ui.selected != null) NoteSheet(vm, ui, ui.selected)
     if (adjusting) AdjustSheet(vm, ui, onDismiss = { adjusting = false })
+    if (accompanying) AccompanySheet(vm, ui, onDismiss = { accompanying = false })
     if (renaming) {
         var text by remember { mutableStateOf(ui.title) }
         AlertDialog(

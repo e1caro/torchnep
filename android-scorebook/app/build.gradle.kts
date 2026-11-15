@@ -52,6 +52,11 @@ android {
         compose = true
     }
 
+    // the piano model is memory-mapped straight from the APK
+    androidResources {
+        noCompress += "tflite"
+    }
+
     packaging {
         jniLibs { useLegacyPackaging = false }
     }

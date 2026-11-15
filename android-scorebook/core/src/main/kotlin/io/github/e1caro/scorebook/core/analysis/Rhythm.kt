@@ -78,7 +78,7 @@ object Ticks {
  */
 class RhythmAnalyzer(val strictness: Double = 0.5) {
 
-    fun analyze(notes: List<TimedNote>, meterHint: Pair<Int, Boolean>? = null, tempoScale: Double = 1.0): BeatGrid {
+    fun analyze(notes: List<TimedNote>, meterHint: Pair<Int, Boolean>? = null, tempoScale: Double = 1.0, barLineAt: Double? = null): BeatGrid {
         val sorted = notes.sortedBy { it.onset }
         if (sorted.size < 4) {
             val start = sorted.firstOrNull()?.onset ?: 0.0
@@ -89,7 +89,11 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
         val period = tempoPeriod(env)
         var beats = trackBeats(env, period, sorted)
         if (tempoScale < 0.75) beats = halve(beats, sorted) else if (tempoScale > 1.5) beats = double(beats)
-        val (bpb, phase) = meterHint?.let { it.first to bestPhase(beats, sorted, it.first) } ?: meter(beats, sorted)
+        val (bpb, phase) = meterHint?.let { hint ->
+            // a known bar line fixes where bars start; otherwise the accents decide
+            val known = barLineAt?.let { t -> Math.floorMod(beats.indices.minByOrNull { abs(beats[it] - t) }!!, hint.first) }
+            hint.first to (known ?: bestPhase(beats, sorted, hint.first))
+        } ?: meter(beats, sorted)
         val compound = meterHint?.second ?: isCompound(beats, sorted)
         beats = extendToCover(beats, sorted)
         return BeatGrid(beats, bpb, compound, phase)

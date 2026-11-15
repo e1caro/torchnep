@@ -8,6 +8,11 @@ import io.github.e1caro.scorebook.audio.AudioEngine
 import io.github.e1caro.scorebook.audio.MidiInput
 import io.github.e1caro.scorebook.audio.TfliteModel
 import io.github.e1caro.scorebook.audio.WavWriter
+import io.github.e1caro.scorebook.core.accompany.Accompaniment
+import io.github.e1caro.scorebook.core.accompany.Daily
+import io.github.e1caro.scorebook.core.accompany.DailyPick
+import io.github.e1caro.scorebook.core.accompany.Pattern
+import io.github.e1caro.scorebook.core.accompany.Progressions
 import io.github.e1caro.scorebook.core.commands.Command
 import io.github.e1caro.scorebook.core.commands.CommandConfig
 import io.github.e1caro.scorebook.core.commands.CommandSpotter
@@ -24,13 +29,17 @@ import io.github.e1caro.scorebook.core.library.Song
 import io.github.e1caro.scorebook.core.library.TakeData
 import io.github.e1caro.scorebook.core.library.TakeMeta
 import io.github.e1caro.scorebook.core.live.AutoRecorder
+import io.github.e1caro.scorebook.core.analysis.TuningCompensation
+import io.github.e1caro.scorebook.core.analysis.TuningEstimator
 import io.github.e1caro.scorebook.core.live.Decimator2
+import io.github.e1caro.scorebook.core.live.Resampler
+import io.github.e1caro.scorebook.core.transcribe.Decoder
+import io.github.e1caro.scorebook.core.transcribe.FrameStream
 import io.github.e1caro.scorebook.core.live.LiveSession
 import io.github.e1caro.scorebook.core.music.Key
 import io.github.e1caro.scorebook.core.music.Mode
 import io.github.e1caro.scorebook.core.score.Score
 import io.github.e1caro.scorebook.core.score.ScoreBuilder
-import io.github.e1caro.scorebook.core.transcribe.BasicPitchStream
 import io.github.e1caro.scorebook.data.Exporter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -98,6 +107,23 @@ data class TakeUi(
     val message: String? = null,
 )
 
+/**
+ * The accompaniment screen: a left-hand pattern written out in a key over a chord progression.
+ * [target]: the song "Use it on…" would accompany (the newest one), when its meter fits the pattern.
+ */
+data class AccompanyUi(
+    val pick: DailyPick,
+    val today: Boolean,
+    val transcription: Transcription,
+    val score: Score,
+    val lastTakeId: String? = null,
+    val lastTitle: String? = null,
+    val lastMeter: String? = null,
+    val message: String? = null,
+) {
+    val fitsLastSong: Boolean get() = lastMeter == pick.pattern.meter.label
+}
+
 class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private val sb = app as ScorebookApp
     private val repo = sb.repository
@@ -124,13 +150,15 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "scorebook-worker") }
     private val workerDispatcher = worker.asCoroutineDispatcher()
     private val audio = AudioEngine { block, n -> val copy = block.copyOf(n); worker.execute { onAudio(copy) } }
-    private val recorder = AutoRecorder(AudioEngine.SAMPLE_RATE, silenceSeconds = prefs.silenceSeconds.toDouble()).apply {
+    private val recorder = AutoRecorder(audio.sampleRate, silenceSeconds = prefs.silenceSeconds.toDouble()).apply {
         autoStart = prefs.handsFree
         autoStop = prefs.handsFree
     }
     @Volatile private var active = false
     @Volatile private var micAllowed = false
-    private var decimator = Decimator2()
+    private var wavDecimator = Decimator2() // the take's recording is kept at half the capture rate
+    private var toModel: Resampler? = null // capture rate → the model's rate, with tuning compensation
+    private var takeTuning = 0.0 // the compensation (cents) the current take is transcribed with
     private var model: TfliteModel? = null
     private var session: LiveSession? = null
     private var wav: WavWriter? = null
@@ -151,12 +179,14 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     /** Teaching a new motif for a command (Settings). */
     val teach: StateFlow<TeachState?> = _teach
     private val beeper = io.github.e1caro.scorebook.audio.Player()
-    private var idleDecimator = Decimator2()
-    private val phrases = PhraseListener({ audio -> transcribePhrase(audio) })
+    private var idleResampler: Resampler? = null
+    private var idleTuning = Double.NaN
+    private var phrases: PhraseListener? = null
     private val idleMidi = ArrayList<CommandSpotter.Note>()
     private var lastIdleMidiHit = Double.NEGATIVE_INFINITY
     private var lastTakeHit = Double.NEGATIVE_INFINITY
     @Volatile private var muteUntil = 0L
+    private var playbackHeardUntil = 0L
     private var undo: (() -> String)? = null
 
     private val midi = MidiInput(app,
@@ -183,13 +213,13 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         midi.start()
         val handsFree = prefs.handsFree
         _listen.update { it.copy(status = idleStatus(), handsFree = handsFree, commands = _commands.value.enabled) }
-        worker.execute { updateIdleMic() }
+        worker.execute { updateIdleMic(); ensureModel() }
         // keeps the take clock running when the microphone is off (MIDI takes), and checks MIDI motifs
         viewModelScope.launch {
             while (isActive && _listen.value.status != ListenStatus.OFF) {
                 delay(200)
                 worker.execute {
-                    if (!audio.isRunning) onAudio(FloatArray(AudioEngine.SAMPLE_RATE / 5))
+                    if (!audio.isRunning) onAudio(FloatArray(audio.sampleRate / 5))
                     checkIdleMidi()
                 }
             }
@@ -231,7 +261,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         recorder.forceStop()
         finishTake(trimFrom)
         if (!micListensWhenIdle()) audio.stop()
-        phrases.reset()
+        phrases?.reset()
     }
 
     /** Throws the take away without saving it. */
@@ -244,7 +274,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         takeId?.let { repo.audioFile(it).delete() }
         takeId = null
         if (!micListensWhenIdle()) audio.stop()
-        phrases.reset()
+        phrases?.reset()
         _listen.update { it.copy(status = idleStatus(), notes = emptyList(), levelDb = -90.0) }
     }
 
@@ -287,6 +317,12 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onAudio(block: FloatArray) {
         lastBlockNanos = System.nanoTime()
+        // the app's own playback (a score, a recording, an accompaniment) is not the player playing: between takes
+        // it neither starts a hands-free take nor counts as a command
+        if (recorder.state != AutoRecorder.State.RECORDING) {
+            if (player.isPlaying) playbackHeardUntil = lastBlockNanos + 700_000_000L
+            if (lastBlockNanos < playbackHeardUntil) { phrases?.reset(); return }
+        }
         when (val e = recorder.process(block, block.size)) {
             is AutoRecorder.Event.Started -> { startTake(e.preRoll); return }
             AutoRecorder.Event.Stopped -> { finishTake(); return }
@@ -300,10 +336,18 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- motifs between takes: phrases cut from the microphone, or MIDI notes
 
-    private fun listenForMotif(block44k: FloatArray) {
-        val x = idleDecimator.process(block44k)
-        if (System.nanoTime() < muteUntil) { phrases.reset(); return } // our own confirmation sound
-        val notes = phrases.push(x) ?: return
+    private fun listenForMotif(block: FloatArray) {
+        val m = ensureModel() ?: return
+        val tuning = appliedTuning()
+        if (idleResampler == null || idleTuning != tuning) {
+            idleResampler = Resampler(TuningCompensation(audio.sampleRate, tuning).effectiveRate, m.spec.sampleRate)
+            idleTuning = tuning
+            phrases = PhraseListener({ a -> transcribePhrase(a) }, m.spec.sampleRate)
+        }
+        val listener = phrases ?: return
+        val x = idleResampler!!.process(block)
+        if (System.nanoTime() < muteUntil) { listener.reset(); return } // our own confirmation sound
+        val notes = listener.push(x) ?: return
         onIdlePhrase(notes.map { it.pitch })
     }
 
@@ -343,11 +387,23 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The model and decoder on one short phrase (worker thread). */
     private fun transcribePhrase(audio: FloatArray): List<io.github.e1caro.scorebook.core.transcribe.NoteEvent> {
-        val m = model ?: (try { TfliteModel(getApplication()) } catch (e: Exception) { null })?.also { model = it } ?: return emptyList()
-        val st = BasicPitchStream(m)
+        val m = ensureModel() ?: return emptyList()
+        val st = FrameStream(m)
         st.push(audio)
         st.flush()
-        return io.github.e1caro.scorebook.core.transcribe.NoteDecoder(repo.personal().calibration).decode(st.grid)
+        return Decoder.forModel(m.spec, repo.personal().calibration).decode(st.grid)
+    }
+
+    /** The transcription model, loaded once (the piano model is 109 MB, memory-mapped). */
+    private fun ensureModel(): TfliteModel? = model ?: (try { TfliteModel.load(getApplication()) } catch (e: Exception) { null })?.also { model = it }
+
+    /** The tuning compensation in use: this piano's learned tuning, or none if it is close to concert pitch. */
+    private fun appliedTuning(): Double = repo.personal().tuningCents.let { if (kotlin.math.abs(it) < TuningCompensation.MIN_CENTS) 0.0 else it }
+
+    /** "32 cents flat", for Settings; null when in tune or not yet known. */
+    fun tuningText(): String? {
+        val t = appliedTuning()
+        return if (t == 0.0) null else "${kotlin.math.abs(t).roundToInt()} cents ${if (t < 0) "flat" else "sharp"}"
     }
 
     /** Motifs inside a take (a stop motif after a pause, etc.): checked as the take goes on. */
@@ -415,7 +471,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     fun startTeaching(c: Command) {
         _teach.value = TeachState(c)
         idleMidi.clear()
-        worker.execute { phrases.reset(); updateIdleMic() }
+        worker.execute { phrases?.reset(); updateIdleMic() }
     }
 
     fun keepTaught() {
@@ -441,13 +497,13 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         prefs.commands = c
     }
 
-    private fun feed(block44k: FloatArray) {
+    private fun feed(block: FloatArray) {
         val s = session ?: return
         if (!audio.isRunning) return
-        val x = decimator.process(block44k)
-        wav?.write(x)
+        wav?.write(wavDecimator.process(block))
         if (midiName == null) {
-            val heard = s.pushAudio(x)
+            val r = toModel ?: return
+            val heard = s.pushAudio(r.process(block))
             if (heard.isNotEmpty()) recorder.noteActivity()
         }
     }
@@ -456,12 +512,16 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         val id = "t" + System.currentTimeMillis().toString(36) + UUID.randomUUID().toString().take(4)
         takeId = id
         takeStartNanos = System.nanoTime()
-        decimator = Decimator2()
+        wavDecimator = Decimator2()
         lastTakeHit = Double.NEGATIVE_INFINITY
         val useModel = midiName == null && audio.isRunning
-        if (useModel && model == null) model = try { TfliteModel(getApplication()) } catch (e: Exception) { null }
-        session = LiveSession(if (useModel) model else null, repo.personal(), currentSettings())
-        wav = if (audio.isRunning) WavWriter(repo.audioFile(id), BasicPitchStream.SAMPLE_RATE) else null
+        val m = if (useModel) ensureModel() else null
+        // a piano that is flat or sharp as a whole is fed to the model a little faster or slower (see TuningCompensation)
+        takeTuning = appliedTuning()
+        val comp = TuningCompensation(audio.sampleRate, takeTuning)
+        toModel = m?.let { Resampler(comp.effectiveRate, it.spec.sampleRate) }
+        session = LiveSession(m, repo.personal(), currentSettings(), comp.timeScale)
+        wav = if (audio.isRunning) WavWriter(repo.audioFile(id), audio.sampleRate / 2) else null
         if (preRoll.isNotEmpty()) feed(preRoll)
         _listen.update { it.copy(status = ListenStatus.RECORDING, notes = emptyList(), bpm = 0, now = 0.0, message = null) }
         liveJob?.cancel()
@@ -485,11 +545,15 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         liveJob?.cancel()
         _listen.update { it.copy(status = ListenStatus.SAVING) }
         val now = if (midiName != null) midiNow() else s.seconds
-        // the notes of a stop motif are not part of the music
-        val events = s.finish(now).let { ev -> if (trimFrom != null) ev.filter { it.onset < trimFrom - 0.05 } else ev }
+        var heard = s.finish(now)
         wav?.close()
         val hasAudio = wav != null
         wav = null
+        toModel = null
+        var tuningNote = ""
+        if (hasAudio && midiName == null) retune(id, heard)?.let { (again, note) -> heard = again; tuningNote = note }
+        // the notes of a stop motif are not part of the music
+        val events = heard.let { ev -> if (trimFrom != null) ev.filter { it.onset < trimFrom - 0.05 } else ev }
         if (events.size < 2) {
             repo.audioFile(id).delete()
             _listen.update { it.copy(status = idleStatus(), message = "Nothing was heard in that take") }
@@ -509,7 +573,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         val newLib = lib.copy(songs = lib.songs + Song(songId, Library.INBOX, title, true, created), takes = lib.takes + meta)
         repo.save(newLib)
         _library.value = newLib
-        var msg = "Saved “$title”"
+        var msg = "Saved “$title”$tuningNote"
         if (prefs.autoPdf) {
             try {
                 val score = ScoreBuilder().build(t, title, subtitle(t))
@@ -520,12 +584,46 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         _listen.update { it.copy(status = idleStatus(), lastSaved = meta, lastSavedTitle = title, message = msg, levelDb = -90.0) }
     }
 
+    /**
+     * Measures the piano's tuning from the take's recording and remembers it. If it differs from the compensation
+     * the take was transcribed with, the take is transcribed again from the recording with the right one: returns
+     * the new notes and a line for the "saved" message; null if nothing changes.
+     */
+    private fun retune(takeId: String, heard: List<io.github.e1caro.scorebook.core.transcribe.NoteEvent>): Pair<List<io.github.e1caro.scorebook.core.transcribe.NoteEvent>, String>? {
+        val m = model ?: return null
+        if (heard.size < 12) return null
+        val (pcm, sr) = io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(takeId)) ?: return null
+        val n = minOf(pcm.size, sr * 90) // the first minute and a half is plenty to measure
+        val est = TuningEstimator.estimate(FloatArray(n) { pcm[it] / 32768f }, sr) ?: return null
+        if (est.confidence < 0.4) return null
+        val personal = repo.personal().withTuning(est.cents)
+        repo.save(personal)
+        val target = if (kotlin.math.abs(personal.tuningCents) < TuningCompensation.MIN_CENTS) 0.0 else personal.tuningCents
+        val note = if (target == 0.0) "" else " · piano ${kotlin.math.abs(target).roundToInt()} cents ${if (target < 0) "flat" else "sharp"}, compensated"
+        if (kotlin.math.abs(target - takeTuning) < 8.0) return if (note.isEmpty()) null else heard to note
+        val comp = TuningCompensation(sr, target)
+        val r = Resampler(comp.effectiveRate, m.spec.sampleRate)
+        val st = FrameStream(m)
+        val block = FloatArray(4800)
+        var i = 0
+        while (i < pcm.size) {
+            val k = minOf(block.size, pcm.size - i)
+            for (j in 0 until k) block[j] = pcm[i + j] / 32768f
+            st.push(r.process(block, k))
+            i += k
+        }
+        st.flush()
+        val again = Decoder.forModel(m.spec, personal.calibration).decode(st.grid)
+            .map { it.copy(onset = it.onset * comp.timeScale, offset = it.offset * comp.timeScale) }
+        return again to note
+    }
+
     private fun currentSettings() = AnalysisSettings(musical = prefs.musical.toDouble(), strictness = prefs.strictness.toDouble())
 
     // ------------------------------------------------------------------ take review
     private var analysisJob: Job? = null
 
-    fun openTake(takeId: String) {
+    fun openTake(takeId: String, message: String? = null) {
         val lib = repo.library()
         val meta = lib.takes.firstOrNull { it.id == takeId } ?: return
         val song = lib.song(meta.songId) ?: return
@@ -534,7 +632,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val data = withContext(Dispatchers.IO) { repo.take(takeId) } ?: return@launch
                 val (t, score) = withContext(Dispatchers.Default) { analyze(data, song.title) }
-                _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id))
+                _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id), message = message)
             } finally {
                 _opening.value = false
             }
@@ -747,6 +845,124 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         reanalyze(c.data.copy(edits = emptyList()), message = "Back to the full recording")
     }
 
+    // ------------------------------------------------------------------ accompaniments
+    private val _accompany = MutableStateFlow<AccompanyUi?>(null)
+    /** The accompaniment screen, when it is open. */
+    val accompany: StateFlow<AccompanyUi?> = _accompany
+
+    /** The keys the player uses most (from the library), most used first. */
+    private fun favoriteKeys(): List<Key> = _library.value.takes.filter { it.trashedAt == null }.groupingBy { it.key }.eachCount()
+        .entries.sortedByDescending { it.value }.mapNotNull { e -> try { Key.parse(e.key) } catch (_: Exception) { null } }
+
+    /** Today's accompaniment: the same all day, in one of the player's own keys most days. */
+    fun dailyPick(): DailyPick = Daily.pick(java.time.LocalDate.now().toEpochDay(), favoriteKeys())
+
+    private fun accompanyUi(pick: DailyPick): AccompanyUi {
+        val t = Accompaniment.transcription(pick)
+        val score = ScoreBuilder().build(t, pick.pattern.name, pick.harmony)
+        val lib = _library.value
+        val last = lib.takes.filter { it.trashedAt == null }.maxByOrNull { it.created }
+        return AccompanyUi(pick, pick == dailyPick(), t, score, last?.id, last?.let { lib.song(it.songId)?.title }, last?.meter)
+    }
+
+    /** Opens the accompaniment screen on today's pick, or on [pattern] (in today's key). */
+    fun openAccompaniment(pattern: Pattern? = null) {
+        stopPlayback()
+        val today = dailyPick()
+        _accompany.value = accompanyUi(if (pattern == null || pattern.id == today.pattern.id) today else Daily.withPattern(pattern, today.key))
+    }
+
+    fun closeAccompaniment() { stopPlayback(); _accompany.value = null }
+
+    private fun changePick(change: (DailyPick) -> DailyPick) {
+        val a = _accompany.value ?: return
+        stopPlayback()
+        _accompany.value = accompanyUi(change(a.pick))
+    }
+
+    /** Another pattern, in the key on screen. */
+    fun accompanyPattern(pattern: Pattern) = changePick { cur ->
+        val today = dailyPick()
+        if (pattern.id == today.pattern.id && cur.key == today.key) today else Daily.withPattern(pattern, cur.key)
+    }
+    fun accompanyTranspose(semitones: Int) = changePick { Daily.transpose(it, semitones) }
+    fun accompanyTempo(delta: Int) = changePick { Daily.tempo(it, delta) }
+
+    /** The next chord progression that suits the pattern. */
+    fun accompanyNextChords() = changePick { p ->
+        val ids = p.pattern.progressions
+        p.copy(progression = Progressions.byId(ids[(ids.indexOf(p.progression.id) + 1) % ids.size]))
+    }
+
+    /** How many times the progression is played through. */
+    fun accompanyRepeats(pick: DailyPick): Int = if (pick.chords.size > 8) 1 else 2
+
+    fun toggleAccompanyPlay() {
+        if (_playback.value.playing || _playback.value.preparing) { stopPlayback(); return }
+        val a = _accompany.value ?: return
+        playJob?.cancel()
+        player.stop()
+        _playback.update { it.copy(preparing = true, playing = false) }
+        playJob = viewModelScope.launch {
+            val pcm = withContext(Dispatchers.Default) {
+                val synth = io.github.e1caro.scorebook.core.play.PianoSynth
+                synth.render(synth.voices(Accompaniment.transcription(a.pick, accompanyRepeats(a.pick))), 22050)
+            }
+            val ok = player.play(pcm, 22050, 0.0, 1f)
+            _playback.update { it.copy(preparing = false, playing = ok, length = pcm.size / 22050.0) }
+            while (ok && player.isPlaying) delay(100)
+            if (ok) _playback.update { it.copy(playing = false) }
+        }
+    }
+
+    /**
+     * "Accompany my song": saves a new song with the take's right hand as it was played and [pattern] in the left
+     * hand, following the chords of each bar on the take's own beats, and opens it.
+     */
+    fun accompanySong(takeId: String, pattern: Pattern) {
+        val lib = _library.value
+        val meta = lib.takes.firstOrNull { it.id == takeId } ?: return
+        val song = lib.song(meta.songId) ?: return
+        stopPlayback()
+        _opening.value = true
+        viewModelScope.launch {
+            val title = "${song.title} + ${pattern.name}"
+            val newId = try {
+                withContext(Dispatchers.Default) {
+                    val data = repo.take(takeId) ?: return@withContext null
+                    val personal = repo.personal()
+                    val source = data.editedEvents()
+                    // in the key it was played in: transposition is applied again when the new song is shown
+                    val t = Transcriber(personal).analyze(source, data.settings.copy(transpose = 0), data.overrides)
+                    val events = Accompaniment.apply(pattern, t, source) ?: return@withContext null
+                    val id = "t" + System.currentTimeMillis().toString(36) + UUID.randomUUID().toString().take(4)
+                    val kept = events.map { it.id }.toSet()
+                    val newData = TakeData(id, events, data.overrides.filterKeys { it in kept }, Accompaniment.settingsFor(t, data.settings), hasAudio = false)
+                    repo.save(newData)
+                    val t2 = Transcriber(personal).analyze(events, newData.settings, newData.overrides)
+                    val created = System.currentTimeMillis()
+                    val newMeta = TakeMeta(id, "s$id", created, events.maxOfOrNull { it.offset } ?: 0.0, t2.mainKey.displayName, t2.bpm,
+                        "${t2.grid.numerator}/${t2.grid.denominator}", meta.source, t2.notes.size)
+                    val now = repo.library()
+                    val newLib = now.copy(songs = now.songs + Song("s$id", Library.INBOX, title, false, created), takes = now.takes + newMeta)
+                    repo.save(newLib)
+                    _library.value = newLib
+                    id
+                }
+            } finally {
+                _opening.value = false
+            }
+            if (newId != null) {
+                _accompany.value = null
+                openTake(newId, "Saved as “$title”: your right hand, with a new left hand")
+            } else {
+                val msg = "A ${pattern.meter.label} pattern does not fit this song (${meta.meter})"
+                _accompany.update { it?.copy(message = msg) }
+                _take.update { it?.copy(message = msg) }
+            }
+        }
+    }
+
     fun setStrictness(v: Float) { val c = _take.value ?: return; prefs.strictness = v; reanalyze(c.data.copy(settings = c.data.settings.copy(strictness = v.toDouble())), 150) }
     fun transpose(semitones: Int) {
         val c = _take.value ?: return
@@ -850,7 +1066,11 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     fun resetLearning() { repo.save(io.github.e1caro.scorebook.core.correct.PersonalModel()) }
     fun corrections(): Int = repo.personal().corrections
 
-    fun clearMessage() { _listen.update { it.copy(message = null) }; _take.update { it?.copy(message = null) } }
+    fun clearMessage() {
+        _listen.update { it.copy(message = null) }
+        _take.update { it?.copy(message = null) }
+        _accompany.update { it?.copy(message = null) }
+    }
 
     fun aiDecidedCount(t: Transcription): Int = t.notes.count { it.decision == Decision.CONTEXT || it.decision == Decision.UNSURE }
 
