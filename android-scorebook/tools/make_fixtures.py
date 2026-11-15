@@ -1,9 +1,10 @@
-"""Render test pieces with a real piano sound, run the Basic Pitch model on them, save fixtures for the core tests.
+"""Render test pieces with a piano sound, run the transcription models on them, save fixtures for the core tests.
 
 The core library (android-scorebook/core) is tested on the exact model outputs the app sees on a phone:
 the pieces below are rendered to audio with FluidSynth (General MIDI grand piano), the audio goes through
-nmp.tflite with the same streaming windows the app uses (core: BasicPitchStream), and the onset and note
-probability matrices are saved next to the ground truth.
+the models with the same streaming windows the app uses (core: FrameStream), and the probability matrices are
+saved next to the ground truth: <name>.of.probs.gz for Onsets and Frames (the app's model; onset, frame and
+velocity planes, 31.25 frames per second) and <name>.probs.gz for Basic Pitch (the fallback; onset and note).
 
 Each piece is rendered twice:
   clean    - an in-tune piano
@@ -11,10 +12,12 @@ Each piece is rendered twice:
              them between two keys (F or F#?). This is where the musical-context prior has to decide.
 
 Requirements: fluidsynth with a GM soundfont (apt-get install fluidsynth), and
-  pip install numpy mido soundfile ai-edge-litert
+  pip install numpy scipy mido soundfile ai-edge-litert
 
 Usage:
-  python tools/make_fixtures.py --model app/src/main/assets/basic_pitch.tflite --out core/src/test/resources/fixtures
+  tools/fetch_model.sh
+  python tools/make_fixtures.py --model app/src/main/assets/basic_pitch.tflite \
+      --of-model app/src/main/assets/onsets_frames.tflite --out core/src/test/resources/fixtures
 """
 
 import argparse
@@ -187,9 +190,48 @@ def run_model(model_path, audio):
     return np.concatenate(onsets)[:n_frames], np.concatenate(frames)[:n_frames]
 
 
+OF_SR, OF_HOP, OF_WINDOW, OF_FRAMES, OF_EDGE = 16000, 512, 17920, 32, 4
+
+
+def run_onsets_frames(model_path, audio, sr=SR):
+    """Onsets and Frames with the app's windows: kept frame j of window k is global frame k*24 + j.
+
+    Returns onset and frame probabilities and velocities (0..1), frames x 88.
+    """
+    from ai_edge_litert.interpreter import Interpreter
+    from scipy.signal import resample_poly
+    from math import gcd
+
+    g = gcd(sr, OF_SR)
+    a = resample_poly(audio, OF_SR // g, sr // g).astype(np.float32)
+    it = Interpreter(model_path=model_path, num_threads=4)
+    it.allocate_tensors()
+    inp = it.get_input_details()[0]["index"]
+    out = {d["name"]: d["index"] for d in it.get_output_details()}
+    keep = OF_FRAMES - 2 * OF_EDGE
+    stream = np.concatenate([np.zeros(OF_EDGE * OF_HOP, np.float32), a, np.zeros(OF_WINDOW, np.float32)])
+    planes = {"onset_logits": [], "frame_logits": [], "velocity_values": []}
+    for start in range(0, len(a) + OF_EDGE * OF_HOP, keep * OF_HOP):
+        it.set_tensor(inp, stream[start:start + OF_WINDOW])
+        it.invoke()
+        for k in planes:
+            planes[k].append(it.get_tensor(out[k])[0, OF_EDGE:OF_EDGE + keep])
+    n = int(np.ceil(len(a) / OF_HOP))
+    sig = lambda z: 1 / (1 + np.exp(-z))  # noqa: E731
+    return (sig(np.concatenate(planes["onset_logits"])[:n]), sig(np.concatenate(planes["frame_logits"])[:n]),
+            np.clip(np.concatenate(planes["velocity_values"])[:n], 0, 1))
+
+
+def save_planes(path, *planes):
+    with gzip.open(path, "wb") as f:
+        for p in planes:
+            f.write(np.round(p * 255).astype(np.uint8).tobytes())
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
+    ap.add_argument("--of-model", help="Onsets and Frames TFLite model (tools/fetch_model.sh): also write <name>.of.probs.gz")
     ap.add_argument("--out", required=True)
     ap.add_argument("--sf2", default="/usr/share/sounds/sf2/FluidR3_GM.sf2")
     ap.add_argument("--seed", type=int, default=7)
@@ -220,6 +262,11 @@ def main():
                 f.write(np.round(note * 255).astype(np.uint8).tobytes())
             meta = dict(name=name, frames=int(onset.shape[0]), fps=SR / HOP, bpm=piece["bpm"], meter=piece["meter"],
                         keys=piece["keys"], notes=notes, seconds=round(len(audio) / SR, 3))
+            if args.of_model:
+                o, f_, v = run_onsets_frames(args.of_model, audio)
+                save_planes(os.path.join(args.out, name + ".of.probs.gz"), o, f_, v)
+                meta["of_frames"] = int(o.shape[0])
+                meta["of_fps"] = OF_SR / OF_HOP
             with open(os.path.join(args.out, name + ".json"), "w") as f:
                 json.dump(meta, f, indent=1)
             print(f"{name}: {len(notes)} notes, {onset.shape[0]} frames, max onset {onset.max():.2f}")

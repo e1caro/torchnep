@@ -1,6 +1,7 @@
 {
  "name": "music_with_motif_notes",
- "frames": 746,
+ "frames": 271,
+ "fps": 31.25,
  "expect": null,
  "notes": [
   {

@@ -1,5 +1,6 @@
 package io.github.e1caro.scorebook.core
 
+import io.github.e1caro.scorebook.core.transcribe.ModelSpec
 import io.github.e1caro.scorebook.core.transcribe.ProbabilityGrid
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
@@ -19,6 +20,7 @@ class Fixture(val name: String) {
     ).jsonObject
 
     val frames = meta["frames"]!!.jsonPrimitive.int
+    val ofFrames = meta["of_frames"]?.jsonPrimitive?.int ?: 0
     val bpm = meta["bpm"]!!.jsonPrimitive.double
     val meter = meta["meter"]!!.jsonArray.map { it.jsonPrimitive.int }
     val keys = meta["keys"]!!.jsonArray.map { it.jsonObject["bar"]!!.jsonPrimitive.int to it.jsonObject["key"]!!.jsonPrimitive.content }
@@ -28,7 +30,12 @@ class Fixture(val name: String) {
             o["hand"]!!.jsonPrimitive.content, o["cents"]!!.jsonPrimitive.double)
     }
 
+    /** Basic Pitch output (the fallback model). */
     fun grid(): ProbabilityGrid = ProbabilityGrid.readBytes(Fixture::class.java.getResourceAsStream("/fixtures/$name.probs.gz")!!, frames)
+
+    /** Onsets and Frames output (the model the app ships with): onset, frame and velocity planes. */
+    fun ofGrid(): ProbabilityGrid =
+        ProbabilityGrid.readBytes(Fixture::class.java.getResourceAsStream("/fixtures/$name.of.probs.gz")!!, ofFrames, ModelSpec.ONSETS_FRAMES.fps)
 
     companion object {
         val ALL = listOf("modulation", "waltz", "nocturne").flatMap { listOf("${it}_clean", "${it}_detuned") }

@@ -3,6 +3,7 @@
 # (the real LiteRT model on a rendered recording, PDF export, screenshots) and pulls the results into device-out/.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+tools/fetch_model.sh
 gradle :app:installDebug :app:installDebugAndroidTest --no-daemon --console=plain
 adb shell pm grant io.github.e1caro.scorebook android.permission.RECORD_AUDIO || true
 adb shell am instrument -w -e class io.github.e1caro.scorebook.OnDeviceTest \

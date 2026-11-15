@@ -24,13 +24,17 @@ import io.github.e1caro.scorebook.core.library.Song
 import io.github.e1caro.scorebook.core.library.TakeData
 import io.github.e1caro.scorebook.core.library.TakeMeta
 import io.github.e1caro.scorebook.core.live.AutoRecorder
+import io.github.e1caro.scorebook.core.analysis.TuningCompensation
+import io.github.e1caro.scorebook.core.analysis.TuningEstimator
 import io.github.e1caro.scorebook.core.live.Decimator2
+import io.github.e1caro.scorebook.core.live.Resampler
+import io.github.e1caro.scorebook.core.transcribe.Decoder
+import io.github.e1caro.scorebook.core.transcribe.FrameStream
 import io.github.e1caro.scorebook.core.live.LiveSession
 import io.github.e1caro.scorebook.core.music.Key
 import io.github.e1caro.scorebook.core.music.Mode
 import io.github.e1caro.scorebook.core.score.Score
 import io.github.e1caro.scorebook.core.score.ScoreBuilder
-import io.github.e1caro.scorebook.core.transcribe.BasicPitchStream
 import io.github.e1caro.scorebook.data.Exporter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -124,13 +128,15 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private val worker = Executors.newSingleThreadExecutor { r -> Thread(r, "scorebook-worker") }
     private val workerDispatcher = worker.asCoroutineDispatcher()
     private val audio = AudioEngine { block, n -> val copy = block.copyOf(n); worker.execute { onAudio(copy) } }
-    private val recorder = AutoRecorder(AudioEngine.SAMPLE_RATE, silenceSeconds = prefs.silenceSeconds.toDouble()).apply {
+    private val recorder = AutoRecorder(audio.sampleRate, silenceSeconds = prefs.silenceSeconds.toDouble()).apply {
         autoStart = prefs.handsFree
         autoStop = prefs.handsFree
     }
     @Volatile private var active = false
     @Volatile private var micAllowed = false
-    private var decimator = Decimator2()
+    private var wavDecimator = Decimator2() // the take's recording is kept at half the capture rate
+    private var toModel: Resampler? = null // capture rate → the model's rate, with tuning compensation
+    private var takeTuning = 0.0 // the compensation (cents) the current take is transcribed with
     private var model: TfliteModel? = null
     private var session: LiveSession? = null
     private var wav: WavWriter? = null
@@ -151,8 +157,9 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     /** Teaching a new motif for a command (Settings). */
     val teach: StateFlow<TeachState?> = _teach
     private val beeper = io.github.e1caro.scorebook.audio.Player()
-    private var idleDecimator = Decimator2()
-    private val phrases = PhraseListener({ audio -> transcribePhrase(audio) })
+    private var idleResampler: Resampler? = null
+    private var idleTuning = Double.NaN
+    private var phrases: PhraseListener? = null
     private val idleMidi = ArrayList<CommandSpotter.Note>()
     private var lastIdleMidiHit = Double.NEGATIVE_INFINITY
     private var lastTakeHit = Double.NEGATIVE_INFINITY
@@ -183,13 +190,13 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         midi.start()
         val handsFree = prefs.handsFree
         _listen.update { it.copy(status = idleStatus(), handsFree = handsFree, commands = _commands.value.enabled) }
-        worker.execute { updateIdleMic() }
+        worker.execute { updateIdleMic(); ensureModel() }
         // keeps the take clock running when the microphone is off (MIDI takes), and checks MIDI motifs
         viewModelScope.launch {
             while (isActive && _listen.value.status != ListenStatus.OFF) {
                 delay(200)
                 worker.execute {
-                    if (!audio.isRunning) onAudio(FloatArray(AudioEngine.SAMPLE_RATE / 5))
+                    if (!audio.isRunning) onAudio(FloatArray(audio.sampleRate / 5))
                     checkIdleMidi()
                 }
             }
@@ -231,7 +238,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         recorder.forceStop()
         finishTake(trimFrom)
         if (!micListensWhenIdle()) audio.stop()
-        phrases.reset()
+        phrases?.reset()
     }
 
     /** Throws the take away without saving it. */
@@ -244,7 +251,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         takeId?.let { repo.audioFile(it).delete() }
         takeId = null
         if (!micListensWhenIdle()) audio.stop()
-        phrases.reset()
+        phrases?.reset()
         _listen.update { it.copy(status = idleStatus(), notes = emptyList(), levelDb = -90.0) }
     }
 
@@ -300,10 +307,18 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     // ---- motifs between takes: phrases cut from the microphone, or MIDI notes
 
-    private fun listenForMotif(block44k: FloatArray) {
-        val x = idleDecimator.process(block44k)
-        if (System.nanoTime() < muteUntil) { phrases.reset(); return } // our own confirmation sound
-        val notes = phrases.push(x) ?: return
+    private fun listenForMotif(block: FloatArray) {
+        val m = ensureModel() ?: return
+        val tuning = appliedTuning()
+        if (idleResampler == null || idleTuning != tuning) {
+            idleResampler = Resampler(TuningCompensation(audio.sampleRate, tuning).effectiveRate, m.spec.sampleRate)
+            idleTuning = tuning
+            phrases = PhraseListener({ a -> transcribePhrase(a) }, m.spec.sampleRate)
+        }
+        val listener = phrases ?: return
+        val x = idleResampler!!.process(block)
+        if (System.nanoTime() < muteUntil) { listener.reset(); return } // our own confirmation sound
+        val notes = listener.push(x) ?: return
         onIdlePhrase(notes.map { it.pitch })
     }
 
@@ -343,11 +358,23 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The model and decoder on one short phrase (worker thread). */
     private fun transcribePhrase(audio: FloatArray): List<io.github.e1caro.scorebook.core.transcribe.NoteEvent> {
-        val m = model ?: (try { TfliteModel(getApplication()) } catch (e: Exception) { null })?.also { model = it } ?: return emptyList()
-        val st = BasicPitchStream(m)
+        val m = ensureModel() ?: return emptyList()
+        val st = FrameStream(m)
         st.push(audio)
         st.flush()
-        return io.github.e1caro.scorebook.core.transcribe.NoteDecoder(repo.personal().calibration).decode(st.grid)
+        return Decoder.forModel(m.spec, repo.personal().calibration).decode(st.grid)
+    }
+
+    /** The transcription model, loaded once (the piano model is 109 MB, memory-mapped). */
+    private fun ensureModel(): TfliteModel? = model ?: (try { TfliteModel.load(getApplication()) } catch (e: Exception) { null })?.also { model = it }
+
+    /** The tuning compensation in use: this piano's learned tuning, or none if it is close to concert pitch. */
+    private fun appliedTuning(): Double = repo.personal().tuningCents.let { if (kotlin.math.abs(it) < TuningCompensation.MIN_CENTS) 0.0 else it }
+
+    /** "32 cents flat", for Settings; null when in tune or not yet known. */
+    fun tuningText(): String? {
+        val t = appliedTuning()
+        return if (t == 0.0) null else "${kotlin.math.abs(t).roundToInt()} cents ${if (t < 0) "flat" else "sharp"}"
     }
 
     /** Motifs inside a take (a stop motif after a pause, etc.): checked as the take goes on. */
@@ -415,7 +442,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     fun startTeaching(c: Command) {
         _teach.value = TeachState(c)
         idleMidi.clear()
-        worker.execute { phrases.reset(); updateIdleMic() }
+        worker.execute { phrases?.reset(); updateIdleMic() }
     }
 
     fun keepTaught() {
@@ -441,13 +468,13 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         prefs.commands = c
     }
 
-    private fun feed(block44k: FloatArray) {
+    private fun feed(block: FloatArray) {
         val s = session ?: return
         if (!audio.isRunning) return
-        val x = decimator.process(block44k)
-        wav?.write(x)
+        wav?.write(wavDecimator.process(block))
         if (midiName == null) {
-            val heard = s.pushAudio(x)
+            val r = toModel ?: return
+            val heard = s.pushAudio(r.process(block))
             if (heard.isNotEmpty()) recorder.noteActivity()
         }
     }
@@ -456,12 +483,16 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         val id = "t" + System.currentTimeMillis().toString(36) + UUID.randomUUID().toString().take(4)
         takeId = id
         takeStartNanos = System.nanoTime()
-        decimator = Decimator2()
+        wavDecimator = Decimator2()
         lastTakeHit = Double.NEGATIVE_INFINITY
         val useModel = midiName == null && audio.isRunning
-        if (useModel && model == null) model = try { TfliteModel(getApplication()) } catch (e: Exception) { null }
-        session = LiveSession(if (useModel) model else null, repo.personal(), currentSettings())
-        wav = if (audio.isRunning) WavWriter(repo.audioFile(id), BasicPitchStream.SAMPLE_RATE) else null
+        val m = if (useModel) ensureModel() else null
+        // a piano that is flat or sharp as a whole is fed to the model a little faster or slower (see TuningCompensation)
+        takeTuning = appliedTuning()
+        val comp = TuningCompensation(audio.sampleRate, takeTuning)
+        toModel = m?.let { Resampler(comp.effectiveRate, it.spec.sampleRate) }
+        session = LiveSession(m, repo.personal(), currentSettings(), comp.timeScale)
+        wav = if (audio.isRunning) WavWriter(repo.audioFile(id), audio.sampleRate / 2) else null
         if (preRoll.isNotEmpty()) feed(preRoll)
         _listen.update { it.copy(status = ListenStatus.RECORDING, notes = emptyList(), bpm = 0, now = 0.0, message = null) }
         liveJob?.cancel()
@@ -485,11 +516,15 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         liveJob?.cancel()
         _listen.update { it.copy(status = ListenStatus.SAVING) }
         val now = if (midiName != null) midiNow() else s.seconds
-        // the notes of a stop motif are not part of the music
-        val events = s.finish(now).let { ev -> if (trimFrom != null) ev.filter { it.onset < trimFrom - 0.05 } else ev }
+        var heard = s.finish(now)
         wav?.close()
         val hasAudio = wav != null
         wav = null
+        toModel = null
+        var tuningNote = ""
+        if (hasAudio && midiName == null) retune(id, heard)?.let { (again, note) -> heard = again; tuningNote = note }
+        // the notes of a stop motif are not part of the music
+        val events = heard.let { ev -> if (trimFrom != null) ev.filter { it.onset < trimFrom - 0.05 } else ev }
         if (events.size < 2) {
             repo.audioFile(id).delete()
             _listen.update { it.copy(status = idleStatus(), message = "Nothing was heard in that take") }
@@ -509,7 +544,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         val newLib = lib.copy(songs = lib.songs + Song(songId, Library.INBOX, title, true, created), takes = lib.takes + meta)
         repo.save(newLib)
         _library.value = newLib
-        var msg = "Saved “$title”"
+        var msg = "Saved “$title”$tuningNote"
         if (prefs.autoPdf) {
             try {
                 val score = ScoreBuilder().build(t, title, subtitle(t))
@@ -518,6 +553,40 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
             } catch (_: Exception) {}
         }
         _listen.update { it.copy(status = idleStatus(), lastSaved = meta, lastSavedTitle = title, message = msg, levelDb = -90.0) }
+    }
+
+    /**
+     * Measures the piano's tuning from the take's recording and remembers it. If it differs from the compensation
+     * the take was transcribed with, the take is transcribed again from the recording with the right one: returns
+     * the new notes and a line for the "saved" message; null if nothing changes.
+     */
+    private fun retune(takeId: String, heard: List<io.github.e1caro.scorebook.core.transcribe.NoteEvent>): Pair<List<io.github.e1caro.scorebook.core.transcribe.NoteEvent>, String>? {
+        val m = model ?: return null
+        if (heard.size < 12) return null
+        val (pcm, sr) = io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(takeId)) ?: return null
+        val n = minOf(pcm.size, sr * 90) // the first minute and a half is plenty to measure
+        val est = TuningEstimator.estimate(FloatArray(n) { pcm[it] / 32768f }, sr) ?: return null
+        if (est.confidence < 0.4) return null
+        val personal = repo.personal().withTuning(est.cents)
+        repo.save(personal)
+        val target = if (kotlin.math.abs(personal.tuningCents) < TuningCompensation.MIN_CENTS) 0.0 else personal.tuningCents
+        val note = if (target == 0.0) "" else " · piano ${kotlin.math.abs(target).roundToInt()} cents ${if (target < 0) "flat" else "sharp"}, compensated"
+        if (kotlin.math.abs(target - takeTuning) < 8.0) return if (note.isEmpty()) null else heard to note
+        val comp = TuningCompensation(sr, target)
+        val r = Resampler(comp.effectiveRate, m.spec.sampleRate)
+        val st = FrameStream(m)
+        val block = FloatArray(4800)
+        var i = 0
+        while (i < pcm.size) {
+            val k = minOf(block.size, pcm.size - i)
+            for (j in 0 until k) block[j] = pcm[i + j] / 32768f
+            st.push(r.process(block, k))
+            i += k
+        }
+        st.flush()
+        val again = Decoder.forModel(m.spec, personal.calibration).decode(st.grid)
+            .map { it.copy(onset = it.onset * comp.timeScale, offset = it.offset * comp.timeScale) }
+        return again to note
     }
 
     private fun currentSettings() = AnalysisSettings(musical = prefs.musical.toDouble(), strictness = prefs.strictness.toDouble())

@@ -139,7 +139,7 @@ class NoteCorrector(val personal: PersonalModel = PersonalModel()) {
         bonus = bonus.coerceIn(-1.0, 1.0)
         // likely an overtone of a louder note, or a flicker inside a held note: never rescued by context
         if (e.harmonicOf >= 0 || e.sustained) bonus = minOf(bonus, -0.5)
-        val presence = sigmoid(presLogit + lambda * presGate * bonus * w[0].coerceAtLeast(0.5))
+        val presence = sigmoid(presLogit + lambda * presGate * bonus * w[0].coerceAtLeast(0.5) * PRESENCE_SCALE)
 
         // AI-decided: the context had a real say (or changed the answer). Unsure: the audio itself is torn
         // (worse than 75/25 between two pitches, or presence between 30 and 70 %) and context did not decide.
@@ -195,6 +195,11 @@ class NoteCorrector(val personal: PersonalModel = PersonalModel()) {
     }
 
     companion object {
+        /**
+         * How much the context may tip "was a key struck at all?". Kept below the pitch context: on real piano
+         * recordings a doubtful candidate that fits the key is a real note only about one time in three.
+         */
+        const val PRESENCE_SCALE = 0.6
         const val CONTEXT_SCALE = 1.5
         const val CONTEXT_CAP = 3.0
 

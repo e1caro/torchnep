@@ -1485,5 +1485,7 @@
    "cents": 0.0
   }
  ],
- "seconds": 24.422
+ "seconds": 24.422,
+ "of_frames": 764,
+ "of_fps": 31.25
 }

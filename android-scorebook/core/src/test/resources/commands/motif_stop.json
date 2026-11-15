@@ -1,6 +1,7 @@
 {
  "name": "motif_stop",
- "frames": 666,
+ "frames": 242,
+ "fps": 31.25,
  "expect": "STOP",
  "notes": [
   {

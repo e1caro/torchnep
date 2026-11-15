@@ -48,6 +48,10 @@ jobs:
       - name: Core tests
         run: gradle -p android-scorebook :core:test --no-daemon --console=plain
 
+      # Onsets and Frames (109 MB) is too large for git: fetched and checked (SHA-256) at build time
+      - name: Piano transcription model
+        run: android-scorebook/tools/fetch_model.sh
+
       - name: Signing key
         env:
           KEYSTORE: ${{ secrets.FITQUEST_KEYSTORE }}
@@ -73,6 +77,7 @@ jobs:
           cp android-scorebook/app/build/outputs/apk/release/app-release.apk "$APK"
           ls -la "$APK"
           # the model, the music font and the LiteRT runtime must be inside
+          unzip -l "$APK" | grep -E "assets/onsets_frames.tflite"
           unzip -l "$APK" | grep -E "assets/basic_pitch.tflite|assets/Bravura.otf"
           unzip -l "$APK" | grep -E "lib/arm64-v8a/.*\.so"
           echo "APK=$APK" >> "$GITHUB_ENV"
