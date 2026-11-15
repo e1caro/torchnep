@@ -1257,7 +1257,9 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         beeper.stop()
         audio.stop()
         midi.stop()
+        // the model is released by the worker itself, after whatever it is doing: closing it under a running
+        // inference crashes, and closing "nothing" while it is still loading would leak it
+        worker.execute { model?.close(); model = null }
         worker.shutdown()
-        model?.close()
     }
 }

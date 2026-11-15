@@ -165,15 +165,14 @@ fun AccompanimentScreen(vm: ScorebookViewModel, ui: AccompanyUi, onBack: () -> U
             IconButton(onClick = onBack) { Icon(Icons.Filled.ArrowBack, contentDescription = "Back", tint = Ink) }
             Column(Modifier.weight(1f)) {
                 val kind = if (pick != null) "ACCOMPANIMENT" else "MOTIF"
-                Text(if (ui.today) "TODAY'S $kind" else kind, color = Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                Text(if (ui.today) "TODAY'S $kind" else kind, color = Gold, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(study.name, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (ui.bestStars > 0) Text("★".repeat(ui.bestStars) + "☆".repeat(3 - ui.bestStars), color = Gold, fontSize = 16.sp, modifier = Modifier.padding(end = 8.dp))
             // not this one: a different recommendation of the same kind
             Text(
-                "Another one", color = Gold, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
-                modifier = Modifier.padding(end = 10.dp).clip(RoundedCornerShape(50)).background(StageHigh).clickable { vm.anotherRecommendation(motif = pick == null) }
-                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                "Another one", color = Gold, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false,
+                modifier = Modifier.padding(start = 6.dp, end = 10.dp).clip(RoundedCornerShape(50)).background(StageHigh).clickable { vm.anotherRecommendation(motif = pick == null) }
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }
         BoxWithConstraints(Modifier.fillMaxWidth().weight(1f).clipToBounds()) {
@@ -194,6 +193,7 @@ fun AccompanimentScreen(vm: ScorebookViewModel, ui: AccompanyUi, onBack: () -> U
             }
             Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
                 Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 4.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (ui.bestStars > 0) Chip("★".repeat(ui.bestStars) + "☆".repeat(3 - ui.bestStars) + "  your best", color = Gold)
                     Chip(study.style, color = Gold)
                     Chip(study.level.label, color = levelColor(study.level))
                     Chip(study.meter.label)

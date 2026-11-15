@@ -62,7 +62,7 @@ class OnDeviceTest {
     @Test
     fun transcribeSaveExportAndShow() {
         val pcm = readWav(instrumentation.context.assets.open("modulation_clean.wav")) // 22.05 kHz
-        val model = TfliteModel.load(ctx)
+        val model = sharedModel(ctx)
         // the APK must carry the piano model (tools/fetch_model.sh), not just the small fallback
         assertEquals(ModelSpec.ONSETS_FRAMES.name, model.spec.name)
         val session = LiveSession(model)
@@ -238,7 +238,7 @@ class OnDeviceTest {
     @Test
     fun aPlayedStartMotifStartsRecording() {
         val pcm = readWav(instrumentation.context.assets.open("motif_start.wav"))
-        val model = TfliteModel.load(ctx)
+        val model = sharedModel(ctx)
         val listener = PhraseListener({ audio ->
             val st = FrameStream(model)
             st.push(audio)
@@ -265,7 +265,7 @@ class OnDeviceTest {
      */
     @Test
     fun thePlayAlongCheckHearsWhatIsPlayed() {
-        val model = TfliteModel.load(ctx)
+        val model = sharedModel(ctx)
         val studies: List<Study> = listOf(
             Daily.withPattern(Patterns.byId("alberti"), Key.parse("C major")),
             Daily.withPattern(Patterns.byId("waltz"), Key.parse("A minor")),
@@ -296,6 +296,14 @@ class OnDeviceTest {
             assertTrue(line, r.stars >= 2)
             assertTrue(line, r.bpm != null && kotlin.math.abs(r.bpm!! - study.bpm) <= 3)
         }
+    }
+
+    companion object {
+        private var shared: TfliteModel? = null
+
+        /** One model for all the tests: it is 109 MB, and each instance has its own working memory. */
+        @Synchronized
+        fun sharedModel(ctx: android.content.Context): TfliteModel = shared ?: TfliteModel.load(ctx).also { shared = it }
     }
 
     private fun shot(name: String) {
