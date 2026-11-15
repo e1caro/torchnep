@@ -12,11 +12,13 @@ class MainActivity : ComponentActivity() {
         // "take": open a saved take directly (used by the on-device test, and later by notifications)
         val take = intent?.getStringExtra(EXTRA_TAKE)
         val tab = intent?.getStringExtra(EXTRA_TAB)
-        setContent { ScorebookTheme { ScorebookRoot(openTake = take, startTab = tab) } }
+        val accompaniment = intent?.getBooleanExtra(EXTRA_ACCOMPANIMENT, false) ?: false
+        setContent { ScorebookTheme { ScorebookRoot(openTake = take, startTab = tab, openAccompaniment = accompaniment) } }
     }
 
     companion object {
         const val EXTRA_TAKE = "take"
         const val EXTRA_TAB = "tab" // "listen", "library" or "settings"
+        const val EXTRA_ACCOMPANIMENT = "accompaniment" // true: open today's accompaniment
     }
 }

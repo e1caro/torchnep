@@ -164,6 +164,35 @@ class OnDeviceTest {
             Thread.sleep(2500)
             shot("3-listen.png")
         }
+        // today's accompaniment, then "use it on my last song": a new song with the same right hand
+        val i3 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ACCOMPANIMENT, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        ActivityScenario.launch<MainActivity>(i3).use { scenario ->
+            Thread.sleep(3000)
+            shot("8-accompaniment.png")
+            var info = ""
+            scenario.onActivity {
+                val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]
+                val a = vm.accompany.value!!
+                info = "today: ${a.pick.pattern.name}, ${a.pick.harmony}, last song ${a.lastTitle} (${a.lastMeter})"
+                vm.accompanyPattern(io.github.e1caro.scorebook.core.accompany.Patterns.byId("alberti"))
+                vm.accompanySong(a.lastTakeId!!, io.github.e1caro.scorebook.core.accompany.Patterns.byId("alberti"))
+            }
+            var made: io.github.e1caro.scorebook.ui.TakeUi? = null
+            for (k in 0 until 60) {
+                scenario.onActivity { made = ViewModelProvider(it)[ScorebookViewModel::class.java].take.value }
+                if (made != null) break
+                Thread.sleep(500)
+            }
+            val m = made
+            assertTrue("the accompanied song opens", m != null && m.takeId != id)
+            val left = m!!.transcription.notes.count { it.hand == io.github.e1caro.scorebook.core.correct.Hand.LEFT && it.decision == Decision.MIDI }
+            File(out, "accompaniment.txt").writeText("$info\naccompanied: ${m.title}, ${m.score.measures.size} bars, $left left-hand notes, ${m.transcription.bpm} BPM\n")
+            assertTrue("title ${m.title}", m.title.endsWith("+ Alberti bass"))
+            assertTrue("left-hand notes $left", left >= 70)
+            assertTrue("bars ${m.score.measures.size}", m.score.measures.size in 11..15)
+            Thread.sleep(2000)
+            shot("9-accompanied.png")
+        }
         for ((tab, file) in listOf("library" to "4-library.png", "settings" to "5-settings.png")) {
             val i2 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, tab).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             ActivityScenario.launch<MainActivity>(i2).use { Thread.sleep(3000); shot(file) }

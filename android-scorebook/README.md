@@ -46,6 +46,14 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 - **Library.** Every take is kept with its audio, auto-titled ("Idea in D minor, 14 Nov") with date, duration,
   key and tempo; search and favourites. Swipe a score left to delete it (with Undo), or select several or all and
   delete them at once; deleted scores stay in the Trash for 30 days (restore, delete for good, empty trash).
+- **Accompaniment of the day.** Every day the Listen screen proposes one left-hand pattern to try (Alberti bass,
+  pop ballad arpeggio, stride, bossa nova, boogie-woogie, waltz, barcarolle… 15 in all, easy to hard, in 4/4, 3/4
+  and 6/8), written out on the staff in one of the keys you play most, over a chord progression that suits it,
+  with what it is, a tip, playback, and tempo and key controls. All patterns can be browsed any day.
+- **Accompany my song.** Take any song you recorded: your right hand stays exactly as you played it and the left
+  hand is replaced by the pattern you choose, following the chord of each bar on your own beats (so it follows
+  your rubato). The result is saved as a new song with its score, playback and exports. From the accompaniment
+  screen ("Use it on my last song") or from a song's menu ("Add an accompaniment…").
 - **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 
@@ -120,7 +128,8 @@ cd tools && python make_command_fixtures.py --of-model ../app/src/main/assets/on
 ```
 core/   plain Kotlin: transcribe/ (model stream, decoder), analysis/ (rhythm, key, chords), correct/ (fusion,
         learning, hands, pipeline), score/, engrave/ (layout, live staff, SVG), export/ (MusicXML, MIDI),
-        live/ (auto start/stop, MIDI input, live session), library/
+        live/ (auto start/stop, MIDI input, live session), library/, accompany/ (patterns, the daily pick,
+        accompany my song), commands/, play/ (piano sound)
 app/    Android: audio capture, LiteRT model, MIDI devices, storage, PDF, Compose UI
 tools/  fixture generator
 ```

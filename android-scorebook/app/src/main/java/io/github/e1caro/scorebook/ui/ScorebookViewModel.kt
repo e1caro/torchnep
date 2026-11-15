@@ -8,6 +8,11 @@ import io.github.e1caro.scorebook.audio.AudioEngine
 import io.github.e1caro.scorebook.audio.MidiInput
 import io.github.e1caro.scorebook.audio.TfliteModel
 import io.github.e1caro.scorebook.audio.WavWriter
+import io.github.e1caro.scorebook.core.accompany.Accompaniment
+import io.github.e1caro.scorebook.core.accompany.Daily
+import io.github.e1caro.scorebook.core.accompany.DailyPick
+import io.github.e1caro.scorebook.core.accompany.Pattern
+import io.github.e1caro.scorebook.core.accompany.Progressions
 import io.github.e1caro.scorebook.core.commands.Command
 import io.github.e1caro.scorebook.core.commands.CommandConfig
 import io.github.e1caro.scorebook.core.commands.CommandSpotter
@@ -102,6 +107,23 @@ data class TakeUi(
     val message: String? = null,
 )
 
+/**
+ * The accompaniment screen: a left-hand pattern written out in a key over a chord progression.
+ * [target]: the song "Use it on…" would accompany (the newest one), when its meter fits the pattern.
+ */
+data class AccompanyUi(
+    val pick: DailyPick,
+    val today: Boolean,
+    val transcription: Transcription,
+    val score: Score,
+    val lastTakeId: String? = null,
+    val lastTitle: String? = null,
+    val lastMeter: String? = null,
+    val message: String? = null,
+) {
+    val fitsLastSong: Boolean get() = lastMeter == pick.pattern.meter.label
+}
+
 class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private val sb = app as ScorebookApp
     private val repo = sb.repository
@@ -164,6 +186,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private var lastIdleMidiHit = Double.NEGATIVE_INFINITY
     private var lastTakeHit = Double.NEGATIVE_INFINITY
     @Volatile private var muteUntil = 0L
+    private var playbackHeardUntil = 0L
     private var undo: (() -> String)? = null
 
     private val midi = MidiInput(app,
@@ -294,6 +317,12 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onAudio(block: FloatArray) {
         lastBlockNanos = System.nanoTime()
+        // the app's own playback (a score, a recording, an accompaniment) is not the player playing: between takes
+        // it neither starts a hands-free take nor counts as a command
+        if (recorder.state != AutoRecorder.State.RECORDING) {
+            if (player.isPlaying) playbackHeardUntil = lastBlockNanos + 700_000_000L
+            if (lastBlockNanos < playbackHeardUntil) { phrases?.reset(); return }
+        }
         when (val e = recorder.process(block, block.size)) {
             is AutoRecorder.Event.Started -> { startTake(e.preRoll); return }
             AutoRecorder.Event.Stopped -> { finishTake(); return }
@@ -594,7 +623,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     // ------------------------------------------------------------------ take review
     private var analysisJob: Job? = null
 
-    fun openTake(takeId: String) {
+    fun openTake(takeId: String, message: String? = null) {
         val lib = repo.library()
         val meta = lib.takes.firstOrNull { it.id == takeId } ?: return
         val song = lib.song(meta.songId) ?: return
@@ -603,7 +632,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
             try {
                 val data = withContext(Dispatchers.IO) { repo.take(takeId) } ?: return@launch
                 val (t, score) = withContext(Dispatchers.Default) { analyze(data, song.title) }
-                _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id))
+                _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id), message = message)
             } finally {
                 _opening.value = false
             }
@@ -816,6 +845,124 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         reanalyze(c.data.copy(edits = emptyList()), message = "Back to the full recording")
     }
 
+    // ------------------------------------------------------------------ accompaniments
+    private val _accompany = MutableStateFlow<AccompanyUi?>(null)
+    /** The accompaniment screen, when it is open. */
+    val accompany: StateFlow<AccompanyUi?> = _accompany
+
+    /** The keys the player uses most (from the library), most used first. */
+    private fun favoriteKeys(): List<Key> = _library.value.takes.filter { it.trashedAt == null }.groupingBy { it.key }.eachCount()
+        .entries.sortedByDescending { it.value }.mapNotNull { e -> try { Key.parse(e.key) } catch (_: Exception) { null } }
+
+    /** Today's accompaniment: the same all day, in one of the player's own keys most days. */
+    fun dailyPick(): DailyPick = Daily.pick(java.time.LocalDate.now().toEpochDay(), favoriteKeys())
+
+    private fun accompanyUi(pick: DailyPick): AccompanyUi {
+        val t = Accompaniment.transcription(pick)
+        val score = ScoreBuilder().build(t, pick.pattern.name, pick.harmony)
+        val lib = _library.value
+        val last = lib.takes.filter { it.trashedAt == null }.maxByOrNull { it.created }
+        return AccompanyUi(pick, pick == dailyPick(), t, score, last?.id, last?.let { lib.song(it.songId)?.title }, last?.meter)
+    }
+
+    /** Opens the accompaniment screen on today's pick, or on [pattern] (in today's key). */
+    fun openAccompaniment(pattern: Pattern? = null) {
+        stopPlayback()
+        val today = dailyPick()
+        _accompany.value = accompanyUi(if (pattern == null || pattern.id == today.pattern.id) today else Daily.withPattern(pattern, today.key))
+    }
+
+    fun closeAccompaniment() { stopPlayback(); _accompany.value = null }
+
+    private fun changePick(change: (DailyPick) -> DailyPick) {
+        val a = _accompany.value ?: return
+        stopPlayback()
+        _accompany.value = accompanyUi(change(a.pick))
+    }
+
+    /** Another pattern, in the key on screen. */
+    fun accompanyPattern(pattern: Pattern) = changePick { cur ->
+        val today = dailyPick()
+        if (pattern.id == today.pattern.id && cur.key == today.key) today else Daily.withPattern(pattern, cur.key)
+    }
+    fun accompanyTranspose(semitones: Int) = changePick { Daily.transpose(it, semitones) }
+    fun accompanyTempo(delta: Int) = changePick { Daily.tempo(it, delta) }
+
+    /** The next chord progression that suits the pattern. */
+    fun accompanyNextChords() = changePick { p ->
+        val ids = p.pattern.progressions
+        p.copy(progression = Progressions.byId(ids[(ids.indexOf(p.progression.id) + 1) % ids.size]))
+    }
+
+    /** How many times the progression is played through. */
+    fun accompanyRepeats(pick: DailyPick): Int = if (pick.chords.size > 8) 1 else 2
+
+    fun toggleAccompanyPlay() {
+        if (_playback.value.playing || _playback.value.preparing) { stopPlayback(); return }
+        val a = _accompany.value ?: return
+        playJob?.cancel()
+        player.stop()
+        _playback.update { it.copy(preparing = true, playing = false) }
+        playJob = viewModelScope.launch {
+            val pcm = withContext(Dispatchers.Default) {
+                val synth = io.github.e1caro.scorebook.core.play.PianoSynth
+                synth.render(synth.voices(Accompaniment.transcription(a.pick, accompanyRepeats(a.pick))), 22050)
+            }
+            val ok = player.play(pcm, 22050, 0.0, 1f)
+            _playback.update { it.copy(preparing = false, playing = ok, length = pcm.size / 22050.0) }
+            while (ok && player.isPlaying) delay(100)
+            if (ok) _playback.update { it.copy(playing = false) }
+        }
+    }
+
+    /**
+     * "Accompany my song": saves a new song with the take's right hand as it was played and [pattern] in the left
+     * hand, following the chords of each bar on the take's own beats, and opens it.
+     */
+    fun accompanySong(takeId: String, pattern: Pattern) {
+        val lib = _library.value
+        val meta = lib.takes.firstOrNull { it.id == takeId } ?: return
+        val song = lib.song(meta.songId) ?: return
+        stopPlayback()
+        _opening.value = true
+        viewModelScope.launch {
+            val title = "${song.title} + ${pattern.name}"
+            val newId = try {
+                withContext(Dispatchers.Default) {
+                    val data = repo.take(takeId) ?: return@withContext null
+                    val personal = repo.personal()
+                    val source = data.editedEvents()
+                    // in the key it was played in: transposition is applied again when the new song is shown
+                    val t = Transcriber(personal).analyze(source, data.settings.copy(transpose = 0), data.overrides)
+                    val events = Accompaniment.apply(pattern, t, source) ?: return@withContext null
+                    val id = "t" + System.currentTimeMillis().toString(36) + UUID.randomUUID().toString().take(4)
+                    val kept = events.map { it.id }.toSet()
+                    val newData = TakeData(id, events, data.overrides.filterKeys { it in kept }, Accompaniment.settingsFor(t, data.settings), hasAudio = false)
+                    repo.save(newData)
+                    val t2 = Transcriber(personal).analyze(events, newData.settings, newData.overrides)
+                    val created = System.currentTimeMillis()
+                    val newMeta = TakeMeta(id, "s$id", created, events.maxOfOrNull { it.offset } ?: 0.0, t2.mainKey.displayName, t2.bpm,
+                        "${t2.grid.numerator}/${t2.grid.denominator}", meta.source, t2.notes.size)
+                    val now = repo.library()
+                    val newLib = now.copy(songs = now.songs + Song("s$id", Library.INBOX, title, false, created), takes = now.takes + newMeta)
+                    repo.save(newLib)
+                    _library.value = newLib
+                    id
+                }
+            } finally {
+                _opening.value = false
+            }
+            if (newId != null) {
+                _accompany.value = null
+                openTake(newId, "Saved as “$title”: your right hand, with a new left hand")
+            } else {
+                val msg = "A ${pattern.meter.label} pattern does not fit this song (${meta.meter})"
+                _accompany.update { it?.copy(message = msg) }
+                _take.update { it?.copy(message = msg) }
+            }
+        }
+    }
+
     fun setStrictness(v: Float) { val c = _take.value ?: return; prefs.strictness = v; reanalyze(c.data.copy(settings = c.data.settings.copy(strictness = v.toDouble())), 150) }
     fun transpose(semitones: Int) {
         val c = _take.value ?: return
@@ -919,7 +1066,11 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     fun resetLearning() { repo.save(io.github.e1caro.scorebook.core.correct.PersonalModel()) }
     fun corrections(): Int = repo.personal().corrections
 
-    fun clearMessage() { _listen.update { it.copy(message = null) }; _take.update { it?.copy(message = null) } }
+    fun clearMessage() {
+        _listen.update { it.copy(message = null) }
+        _take.update { it?.copy(message = null) }
+        _accompany.update { it?.copy(message = null) }
+    }
 
     fun aiDecidedCount(t: Transcription): Int = t.notes.count { it.decision == Decision.CONTEXT || it.decision == Decision.UNSURE }
 

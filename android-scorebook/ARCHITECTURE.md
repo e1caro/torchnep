@@ -286,3 +286,28 @@ Short note patterns (3–5 notes) played on their own control the app (`core/com
   are often missed, so patterns there get a warning when you teach them.
 * **Confirmation**: a distinct two- or three-tone sound per command and a full-screen flash. The microphone
   ignores input for 0.9 s after the sound, and a start command begins recording once the sound is over.
+
+## 11. Accompaniments
+
+`core/accompany` holds everything; the app only shows it.
+
+* **Patterns.** A pattern is one bar of steps: when (ticks, 48 per quarter), how long, and which chord tones
+  ("R", "5", "10", "TRIAD", "LOW" …), so the same pattern works over any chord: `Accompaniment.notes(pattern,
+  chords)` writes it out with roots between A1 and G♯2. Fifteen patterns in 4/4, 3/4 and 6/8, each with a style,
+  a level, a tempo, two lines about it, a tip, and the progressions it suits (I–V–vi–IV, I–vi–IV–V, I–IV–V–I,
+  ii–V–I, Andalusian cadence, canon, 12-bar blues; each with a major and a minor form).
+* **The daily pick.** `Daily.pick(epochDay, favoriteKeys)` is a pure function of the date: the pattern walks a
+  fixed order that alternates levels and meters (every pattern comes up once every 15 days), the progression
+  rotates among those the pattern suits, and the key is one of the three the player's library uses most on two
+  days out of three, a common key otherwise.
+* **On screen** the pick becomes an ordinary `Transcription` (steady beats, left hand only), so the score
+  builder, the engraver and the piano sound are the ones used for takes.
+* **Accompany my song.** `Accompaniment.apply(pattern, transcription, events)` keeps the events of the right-hand
+  notes untouched (audio probabilities included, so they can still be corrected), drops the left hand, and
+  writes the pattern as exact (MIDI-like) events on the take's own beat grid. The chord of each bar is chosen
+  from that bar's notes alone (`ChordTracker.best`, low notes counting until the next low note): the chord
+  labels of §4.4 prefer few changes and may merge two bars (C then Am read as Am7), which is fine above a staff
+  but wrong for a bass line. The new song is analysed with the original's meter and bar line
+  (`AnalysisSettings.barLineAt`), because a steady pattern alone could be read as 2/4 or shifted by half a bar.
+* **Next in the same spirit:** play-along check with a streak, lead-sheet export, warm-up of the day,
+  reharmonization, harmonizing the melody in thirds or sixths, a weekly recap (`prompts/scorebook-daily-accompaniments.md`).
