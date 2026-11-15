@@ -43,6 +43,17 @@ jobs:
           cp -r data-analyst-path site/analyst
           rm -rf site/analyst/tests site/analyst/tools
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Add the BizSim app (served at /bizsim/)
+        run: |
+          cd bizsim
+          npm ci
+          npm run build
+          cp -r dist ../site/bizsim
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
