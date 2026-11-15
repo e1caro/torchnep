@@ -17,7 +17,7 @@ function lastSets(id, before = Infinity) {
 // what to try today: every set at the top of the rep target last time → a little more weight; otherwise one more rep
 function suggest(x, e) {
   const prev = lastSets(x.id); if (!prev?.length) return null;
-  const w = Math.max(...prev.map(s => +s.w || 0)), top = repTop(x.reps) || 10, low = repLow(x.reps) || top;
+  const w = bwOnly(x) ? 0 : Math.max(...prev.map(s => +s.w || 0)), top = repTop(x.reps) || 10, low = repLow(x.reps) || top;
   const atW = prev.filter(s => (+s.w || 0) >= w), best = Math.max(...atW.map(s => +s.r || 0));
   if (!w) return { w: 0, r: best + 1 };
   if (atW.every(s => (+s.r || 0) >= top)) return { w: r05(w + wStep(e)), r: low, up: true };
@@ -44,7 +44,7 @@ workoutView = function () {
     if (cur >= 0) {
       const s = x.sets[cur], wst = wStep(e);
       tbl?.insertAdjacentHTML('beforebegin', `<div class="evstep"><span class="mut">${T('Set {0}', cur + 1)}</span>
-        ${+s.w || e.e !== 'body only' ? `<div class="stp"><button aria-label="−${wst} kg" onclick="evStep(${cur},'w',-${wst})">−</button><b id="evw">${s.w === '' ? '–' : fmtKg(+s.w)}</b><small>kg</small><button aria-label="+${wst} kg" onclick="evStep(${cur},'w',${wst})">+</button></div>` : ''}
+        ${!bwOnly(x) ? `<div class="stp"><button aria-label="−${wst} kg" onclick="evStep(${cur},'w',-${wst})">−</button><b id="evw">${s.w === '' ? '–' : fmtKg(+s.w)}</b><small>${isBody(e) ? '+kg' : 'kg'}</small><button aria-label="+${wst} kg" onclick="evStep(${cur},'w',${wst})">+</button></div>` : ''}
         <div class="stp"><button aria-label="−1" onclick="evStep(${cur},'r',-1)">−</button><b id="evr">${s.r === '' ? (repLow(x.reps) || '–') : s.r}</b><small>${tr('reps')}</small><button aria-label="+1" onclick="evStep(${cur},'r',1)">+</button></div></div>`);
     }
   }
@@ -63,7 +63,7 @@ window.evStep = (i, k, d) => {
   const base = s[k] === '' ? (k === 'r' ? repLow(x.reps) : 0) : +s[k];
   s[k] = String(Math.max(0, k === 'w' ? r05(base + d) : base + d));
   saveSess();
-  const row = view.querySelectorAll('table.sets tr')[i + 1], inp = row?.querySelectorAll('input')[k === 'w' ? 0 : 1];
+  const row = view.querySelectorAll('table.sets tr')[i + 1], inp = row?.querySelector(`input[data-k="${k}"]`);
   if (inp) inp.value = s[k];
   const out = $(k === 'w' ? '#evw' : '#evr'); if (out) out.textContent = k === 'w' ? fmtKg(+s.w) : s.r;
   if (navigator.vibrate) navigator.vibrate(8);
@@ -80,6 +80,21 @@ window.evNote = id => {
   modal(`<h2>${tr('Note')}</h2><div class="mut">${esc(BY[id]?.n || '')}</div><textarea id="evnt" rows="4" maxlength="300" placeholder="${esc(tr('e.g. seat on 4, grip just outside the shoulders'))}">${esc(NOTES[id] || '')}</textarea>
     <button class="btn" id="evns">${tr('Save')}</button><button class="btn ghost" data-close>${tr('Cancel')}</button>`);
   $('#evns').onclick = () => { const v = $('#evnt').value.trim(); if (v) NOTES[id] = v; else delete NOTES[id]; save('exnotes', NOTES); $('#modal').hidden = true; toast(tr('Note saved')); route(); };
+};
+
+// ---------- extra weight on bodyweight exercises: off until asked for, with how to add it ----------
+window.xwInfo = id => {
+  if (XW[id]) { delete XW[id]; save('xw', XW); toast(tr('Extra weight removed')); workoutView(); return; }
+  modal(`<h2>${tr('Extra weight')}</h2><div class="mut">${esc(tr(BY[id]?.n || ''))}</div>
+    <p>${tr('When the reps get easy, add a little weight instead of doing endless reps:')}</p>
+    <ul class="xwl"><li>🦺 <b>${tr('Weighted vest')}</b> — ${tr('the most comfortable: push-ups, pull-ups, squats, lunges, dips.')}</li>
+    <li>🎒 <b>${tr('Backpack')}</b> — ${tr('with books, water bottles or plates; cheap and works for push-ups and squats.')}</li>
+    <li>⛓️ <b>${tr('Dip belt')}</b> — ${tr('a plate or kettlebell hanging from the belt for pull-ups and dips.')}</li>
+    <li>🏋️ <b>${tr('Dumbbell or kettlebell')}</b> — ${tr('held at the chest for squats, between the feet for pull-ups, on the hips for glute bridges.')}</li>
+    <li>🧍 <b>${tr('A plate on your back')}</b> — ${tr('for push-ups, with someone to put it on and take it off.')}</li></ul>
+    <p class="mut">${tr('Log only the extra weight, not your body weight. Start with 5 kg or less.')}</p>
+    <button class="btn" id="xwy">${tr('Use extra weight')}</button><button class="btn ghost" data-close>${tr('Cancel')}</button>`);
+  $('#xwy').onclick = () => { XW[id] = 1; save('xw', XW); $('#modal').hidden = true; workoutView(); };
 };
 
 // ---------- the rest timer: a bar, not a wall ----------
@@ -262,6 +277,14 @@ exerciseView = function (id) {
 Object.assign(routes, { exercise: exerciseView, records: recordsView, log: logView });
 
 if (typeof i18nAdd === 'function') i18nAdd({
+  '+ Extra weight': '+ Peso extra', 'Remove extra weight': 'Quitar peso extra', 'Extra weight': 'Peso extra', 'Extra weight removed': 'Peso extra quitado', 'Use extra weight': 'Usar peso extra',
+  'When the reps get easy, add a little weight instead of doing endless reps:': 'Cuando las repeticiones se vuelvan fáciles, añade un poco de peso en vez de hacer repeticiones sin fin:',
+  'Weighted vest': 'Chaleco lastrado', 'the most comfortable: push-ups, pull-ups, squats, lunges, dips.': 'lo más cómodo: flexiones, dominadas, sentadillas, zancadas, fondos.',
+  Backpack: 'Mochila', 'with books, water bottles or plates; cheap and works for push-ups and squats.': 'con libros, botellas de agua o discos; barato y sirve para flexiones y sentadillas.',
+  'Dip belt': 'Cinturón de lastre', 'a plate or kettlebell hanging from the belt for pull-ups and dips.': 'un disco o una kettlebell colgando del cinturón para dominadas y fondos.',
+  'Dumbbell or kettlebell': 'Mancuerna o kettlebell', 'held at the chest for squats, between the feet for pull-ups, on the hips for glute bridges.': 'al pecho para sentadillas, entre los pies para dominadas, sobre la cadera para puentes de glúteo.',
+  'A plate on your back': 'Un disco en la espalda', 'for push-ups, with someone to put it on and take it off.': 'para flexiones, con alguien que te lo ponga y te lo quite.',
+  'Log only the extra weight, not your body weight. Start with 5 kg or less.': 'Apunta solo el peso extra, no tu peso corporal. Empieza con 5 kg o menos.',
   'Target {0} × {1}': 'Objetivo {0} × {1}', 'Last time:': 'La última vez:', Today: 'Hoy', 'more weight': 'más peso', '{0} reps': '{0} repeticiones', 'Set {0}': 'Serie {0}', reps: 'reps',
   'Add a note (seat, grip, cues…)': 'Añadir una nota (asiento, agarre, trucos…)', Note: 'Nota', 'e.g. seat on 4, grip just outside the shoulders': 'p. ej. asiento en el 4, agarre algo más ancho que los hombros',
   Save: 'Guardar', Cancel: 'Cancelar', 'Note saved': 'Nota guardada', Rest: 'Descanso', Skip: 'Saltar', 'Rest over: next set!': 'Fin del descanso: ¡siguiente serie!',

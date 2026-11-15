@@ -601,31 +601,36 @@ window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items
 
 const MEDAL_NAME = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
 const medal = t => t ? `<span class="medal m${t}">${MEDAL_NAME[t]}</span>` : '';
+const XW = load('xw', {});
+const isBody = e => !e?.e || e.e === 'body only' || e.e === 'none';
+const bwOnly = x => isBody(BY[x.id]) && !XW[x.id];
 function workoutView() {
   if (!session) { location.hash = '#/home'; return; }
   const x = session.ex[session.cur], e = BY[x.id], n = session.ex.length, ts = timedSecs(x.reps), timed = ts !== null || isNaN(parseInt(x.reps));
+  const bw = !timed && bwOnly(x);
+  if (bw && x.sets.some(s => !s.done && s.w !== '')) { x.sets.forEach(s => { if (!s.done) s.w = ''; }); saveSess(); }
   const xpNow = session.ex.reduce((a, q) => a + exXp(q).xp, 0), tier = exXp(x).tier, run = session.timer && session.timer.ex === session.cur ? session.timer : null;
   view.innerHTML = `<div class="row between"><button class="icon" aria-label="Leave the workout for now" onclick="location.hash='#/home'">${ic('back', 20)}</button>
   <div class="mut">${esc(session.name)}</div><div class="xpchip">+${xpNow} XP</div></div>
   <div class="row between"><span>${medal(tier)}</span><span class="mut">Exercise ${session.cur + 1} of ${n}</span></div>
   <div class="prog"><i style="width:${(session.cur + 1) / n * 100}%"></i></div>
   <div class="row between exhead"><h1>${esc(e.n)}</h1>${similar(x).length ? `<button class="icon" aria-label="Swap for a similar exercise" onclick="swapPick()">${ic('swap', 20)}</button>` : ''}</div>${demo(e)}
-  <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last && !timed ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
-  ${typeof wgAll === 'function' && !timed ? wgAll(x.id).map(g => `<div class="wgchip${g.daily ? ' day' : ''}">🎯 ${g.daily ? 'Daily challenge:' : 'Weight goal:'} <b>${wgLoad(g)}</b></div>`).join('') : ''}
+  <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last && !timed && !bw ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
+  ${typeof wgAll === 'function' && !timed && !bw ? wgAll(x.id).map(g => `<div class="wgchip${g.daily ? ' day' : ''}">🎯 ${g.daily ? 'Daily challenge:' : 'Weight goal:'} <b>${wgLoad(g)}</b></div>`).join('') : ''}
   ${run ? `<div class="card wtimer"><div class="mut">Set ${run.set + 1}</div><div class="t" id="wt">--:--</div><button class="btn ghost sm" onclick="stopTimer()">Stop</button></div>` : ''}
-  <table class="sets"><tr class="mut"><th>Set</th>${timed ? '<th></th>' : '<th>kg</th><th>Reps</th>'}<th></th></tr>
+  <table class="sets"><tr class="mut"><th>Set</th>${timed ? '<th></th>' : bw ? '<th>Reps</th>' : `<th>${isBody(e) ? '+kg' : 'kg'}</th><th>Reps</th>`}<th></th></tr>
   ${x.sets.map((s, i) => `<tr class="${s.done ? 'done' : ''}"><td>${i + 1}</td>
-  ${timed ? `<td>${ts && !s.done && !run ? `<button class="btn sm" onclick="startTimer(${i})">${ic('play', 14)} ${fmtSecs(ts)}</button>` : ''}</td>` : `<td><input type="number" inputmode="decimal" value="${s.w}" aria-label="Weight set ${i + 1}" onchange="setVal(${i},'w',this.value)"></td>
-  <td><input type="number" inputmode="numeric" value="${s.r}" placeholder="${esc(x.reps)}" aria-label="Reps set ${i + 1}" onchange="setVal(${i},'r',this.value)"></td>`}
+  ${timed ? `<td>${ts && !s.done && !run ? `<button class="btn sm" onclick="startTimer(${i})">${ic('play', 14)} ${fmtSecs(ts)}</button>` : ''}</td>` : `${bw ? '' : `<td><input type="number" inputmode="decimal" data-k="w" value="${s.w}" aria-label="Weight set ${i + 1}" onchange="setVal(${i},'w',this.value)"></td>`}
+  <td><input type="number" inputmode="numeric" data-k="r" value="${s.r}" placeholder="${esc(x.reps)}" aria-label="Reps set ${i + 1}" onchange="setVal(${i},'r',this.value)"></td>`}
   <td><button class="ck ${s.done ? 'on' : ''}" aria-label="Complete set ${i + 1}" onclick="doneSet(${i})">${s.done ? ic('check', 20) : ''}</button></td></tr>`).join('')}</table>
-  ${timed ? '' : `<button class="btn sm ghost" onclick="addSet()">${ic('plus', 16)} Add set</button>`}
+  ${timed ? '' : `<div class="row xwrow"><button class="btn sm ghost" onclick="addSet()">${ic('plus', 16)} Add set</button>${isBody(e) ? `<button class="btn sm ghost xwb" onclick="xwInfo('${x.id}')">${XW[x.id] ? 'Remove extra weight' : '+ Extra weight'}</button>` : ''}</div>`}
   <div class="row" style="margin-top:16px"><button class="btn ghost" ${session.cur ? '' : 'disabled'} onclick="nav(-1)">Previous</button>
   ${session.cur < n - 1 ? '<button class="btn" onclick="nav(1)">Next</button>' : '<button class="btn gold" onclick="finish()">Finish</button>'}</div>
   <details class="card"><summary>Instructions</summary><ol class="how">${e.i.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>
   <button class="btn ghost sm" onclick="quitWorkout()">Discard workout</button>`;
   startLoops();
   if (run) tickTimer();
-  if (typeof wgArrive === 'function' && !timed) wgArrive(x);
+  if (typeof wgArrive === 'function' && !timed && !bw) wgArrive(x);
 }
 const fmtSecs = t => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 // Timed exercises (cardio, holds, stretches): a countdown per set that ticks the set off by itself when it ends.
@@ -780,7 +785,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE && !APP_PLAY && !APP_DEV ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 206</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
+  <div class="mut setfoot"><span>FitQuest version 207</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();

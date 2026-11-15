@@ -42,6 +42,9 @@ function hfFill(x) {
   saveSess();
 }
 
+const hfSmall = (x, s) => (+s.w ? `${fmtKg(+s.w)} kg × ${s.r || repLow(x.reps)}` : T('{0} reps', s.r || repLow(x.reps)));
+const hfRelabel = () => { const x = session?.ex[session.cur], i = x ? hfOpen(x) : -1, el = $('#hfgo small'); if (el && i >= 0) el.textContent = hfSmall(x, x.sets[i]); };
+for (const k of ['evStep', 'setVal']) { const f = window[k]; window[k] = (...a) => { f(...a); hfRelabel(); }; }
 const _hfWo = workoutView;
 workoutView = function () {
   if (session) { const x = session.ex[session.cur]; if (x) hfFill(x); }
@@ -51,7 +54,7 @@ workoutView = function () {
   view.querySelector('.xpchip')?.insertAdjacentHTML('beforebegin', `<div class="hfopts"><button class="hft ${HF.voice ? 'on' : ''}" aria-label="${esc(tr('Voice coach'))}" onclick="hfToggle('voice')">${HF.voice ? '🔊' : '🔇'}</button><button class="hft ${HF.awake ? 'on' : ''}" aria-label="${esc(tr('Keep the screen on'))}" onclick="hfToggle('awake')">${HF.awake ? '☀️' : '🌙'}</button></div>`);
   let btn = '';
   if (i >= 0 && evTimed(x)) btn = ts && !run ? `<button class="btn hfgo" onclick="startTimer(${i})">${ic('play', 20)} ${T('Start set {0}', i + 1)} · ${fmtSecs(ts)}</button>` : '';
-  else if (i >= 0) { const s = x.sets[i]; btn = `<button class="btn hfgo" onclick="hfDone()">${ic('check', 22)} <span>${T('Set {0} done', i + 1)}<small>${+s.w ? `${fmtKg(+s.w)} kg × ${s.r || repLow(x.reps)}` : T('{0} reps', s.r || repLow(x.reps))}</small></span></button>`; }
+  else if (i >= 0) { const s = x.sets[i]; btn = `<button class="btn hfgo" onclick="hfDone()">${ic('check', 22)} <span>${T('Set {0} done', i + 1)}<small>${hfSmall(x, s)}</small></span></button>`; }
   else if (session.cur < n - 1) btn = `<button class="btn hfgo" onclick="nav(1)">${T('Next: {0}', esc(tr(BY[session.ex[session.cur + 1].id]?.n || '')))} →</button>`;
   else btn = `<button class="btn gold hfgo" onclick="finish()">🏁 ${tr('Finish')}</button>`;
   document.getElementById('hfgo')?.remove();

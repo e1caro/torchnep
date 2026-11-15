@@ -1372,3 +1372,5 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 body.focus.hf{padding-bottom:calc(100px + env(safe-area-inset-bottom))}body.hf #evrest{bottom:calc(90px + env(safe-area-inset-bottom))}
 .hfopts{display:flex;gap:6px;margin-left:auto;margin-right:8px}.hft{width:36px;height:36px;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--card2);font-size:17px;cursor:pointer;opacity:.55}.hft.on{opacity:1;border-color:var(--acc)}
 body.hf .xpchip{white-space:nowrap}
+.xwrow{gap:8px;align-items:center;flex-wrap:wrap}.xwrow .xwb{margin-left:auto;opacity:.75}
+.xwl{margin:8px 0;padding-left:0;list-style:none;display:grid;gap:8px;text-align:left}.xwl li{line-height:1.35}
