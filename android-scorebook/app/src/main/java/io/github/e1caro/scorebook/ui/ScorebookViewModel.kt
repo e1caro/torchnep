@@ -92,6 +92,9 @@ data class TakeUi(
     val takes: List<TakeMeta>,
     val selected: Int? = null,
     val busy: Boolean = false,
+    /** Edit mode: tapping selects bars to cut. */
+    val editing: Boolean = false,
+    val selection: IntRange? = null,
     val message: String? = null,
 )
 
@@ -565,12 +568,13 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         _playback.update { it.copy(preparing = true, playing = false) }
         playJob = viewModelScope.launch {
             val audio = withContext(Dispatchers.Default) {
-                val key = "${c.takeId}|${pb.source}|${c.data.settings}|${c.data.overrides}"
+                val key = "${c.takeId}|${pb.source}|${c.data.settings}|${c.data.overrides}|${c.data.edits}"
                 pcmCache?.takeIf { it.first == key }?.second ?: run {
                     val made = when (pb.source) {
                         PlaySource.SCORE -> io.github.e1caro.scorebook.core.play.PianoSynth.render(
                             io.github.e1caro.scorebook.core.play.PianoSynth.voices(c.transcription), 22050) to 22050
                         PlaySource.RECORDING -> io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(c.takeId))
+                            ?.let { (pcm, sr) -> io.github.e1caro.scorebook.core.library.Edits.apply(pcm, sr, c.data.edits) to sr }
                     }
                     if (made != null) pcmCache = key to made
                     made
@@ -595,7 +599,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private fun analyze(data: TakeData, title: String): Pair<Transcription, Score> {
-        val t = Transcriber(repo.personal()).analyze(data.events, data.settings, data.overrides)
+        val t = Transcriber(repo.personal()).analyze(data.editedEvents(), data.settings, data.overrides)
         return t to ScoreBuilder().build(t, title, subtitle(t))
     }
 
@@ -612,12 +616,137 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         analysisJob = viewModelScope.launch {
             if (debounce > 0) delay(debounce)
             val (t, score) = withContext(Dispatchers.Default) { analyze(data, cur.title) }
-            withContext(Dispatchers.IO) { repo.save(data) }
+            withContext(Dispatchers.IO) {
+                repo.save(data)
+                // the library shows the take as it is now (length, key, tempo after edits)
+                val lib = repo.library()
+                val newLib = lib.copy(takes = lib.takes.map { m ->
+                    if (m.id != data.id) m else m.copy(
+                        seconds = t.notes.maxOfOrNull { it.offset } ?: m.seconds, key = t.mainKey.displayName, bpm = t.bpm,
+                        meter = "${t.grid.numerator}/${t.grid.denominator}", notes = t.notes.size,
+                    )
+                })
+                repo.save(newLib)
+                _library.value = newLib
+            }
             _take.update { it?.copy(transcription = t, score = score, busy = false, message = message ?: it.message) }
         }
     }
 
     fun setMusical(v: Float) { val c = _take.value ?: return; prefs.musical = v; reanalyze(c.data.copy(settings = c.data.settings.copy(musical = v.toDouble())), 150) }
+    // ---- fixing what the analysis got wrong
+
+    fun setTempoScale(x: Double) { val c = _take.value ?: return; reanalyze(c.data.copy(settings = c.data.settings.copy(tempoScale = x))) }
+
+    /** [beatsPerBar] null: detect the time signature. */
+    fun setMeter(beatsPerBar: Int?, compound: Boolean) {
+        val c = _take.value ?: return
+        reanalyze(c.data.copy(settings = c.data.settings.copy(beatsPerBar = beatsPerBar, compound = if (beatsPerBar == null) null else compound)))
+    }
+
+    /** [key] null: detect the key (and key changes). */
+    fun setKey(key: io.github.e1caro.scorebook.core.music.Key?) { val c = _take.value ?: return; reanalyze(c.data.copy(settings = c.data.settings.copy(key = key))) }
+
+    fun moveToHand(eventId: Int, hand: io.github.e1caro.scorebook.core.correct.Hand) {
+        val c = _take.value ?: return
+        val ov = c.data.overrides.toMutableMap()
+        ov[eventId] = (ov[eventId] ?: NoteOverride()).copy(hand = hand)
+        reanalyze(c.data.copy(overrides = ov))
+        _take.update { it?.copy(selected = null) }
+    }
+
+    // ---- cutting bars
+
+    fun setEditing(on: Boolean) { _take.update { it?.copy(editing = on, selection = null, selected = null) } }
+
+    /** Tap a bar to select it; tap a second one to select everything in between. */
+    fun tapBar(n: Int) {
+        _take.update { u ->
+            val sel = u?.selection
+            u?.copy(selection = if (sel != null && sel.first == sel.last && n != sel.first) minOf(n, sel.first)..maxOf(n, sel.first) else n..n)
+        }
+    }
+
+    fun selectAllBars() { _take.update { u -> u?.let { it.copy(selection = 1..it.score.measures.size) } } }
+
+    /** Seconds where bar [n] (1-based) starts, a little before the bar line (notes played slightly early belong to it). */
+    private fun barStart(t: Transcription, n: Int): Double {
+        val g = t.grid
+        return g.time(g.firstBarBeat() + (n - 1.0) * g.beatsPerBar) - 0.15 * g.medianPeriod()
+    }
+
+    private fun selectionTimes(c: TakeUi): Pair<Double, Double>? {
+        val sel = c.selection ?: return null
+        val last = c.score.measures.size
+        val from = if (sel.first <= 1) 0.0 else barStart(c.transcription, sel.first)
+        val to = if (sel.last >= last) (c.data.editedEvents().maxOfOrNull { it.offset } ?: 0.0) + 5.0 else barStart(c.transcription, sel.last + 1)
+        return from.coerceAtLeast(0.0) to to
+    }
+
+    fun keepSelection() {
+        val c = _take.value ?: return
+        val (from, to) = selectionTimes(c) ?: return
+        val sel = c.selection!!
+        reanalyze(c.data.copy(edits = c.data.edits + io.github.e1caro.scorebook.core.library.Edit.Keep(from, to)), message = "Kept bars ${sel.first}–${sel.last}")
+        _take.update { it?.copy(selection = null) }
+    }
+
+    fun deleteSelection() {
+        val c = _take.value ?: return
+        val (from, to) = selectionTimes(c) ?: return
+        val sel = c.selection!!
+        if (sel.first <= 1 && sel.last >= c.score.measures.size) { _take.update { it?.copy(message = "That is the whole score: use Move to trash instead") }; return }
+        reanalyze(c.data.copy(edits = c.data.edits + io.github.e1caro.scorebook.core.library.Edit.Cut(from, to)), message = "Cut bars ${sel.first}–${sel.last}")
+        _take.update { it?.copy(selection = null) }
+    }
+
+    /** Saves the selected bars as a new song (with their part of the recording); this score stays as it is. */
+    fun copySelectionToNewSong() {
+        val c = _take.value ?: return
+        val (from, to) = selectionTimes(c) ?: return
+        val sel = c.selection!!
+        viewModelScope.launch {
+            val title = "${c.title} (bars ${sel.first}–${sel.last})"
+            val newId = withContext(Dispatchers.IO) {
+                val keep = io.github.e1caro.scorebook.core.library.Edit.Keep(from, to)
+                val events = io.github.e1caro.scorebook.core.library.Edits.apply(c.data.editedEvents(), listOf(keep))
+                val id = "t" + System.currentTimeMillis().toString(36) + UUID.randomUUID().toString().take(4)
+                var hasAudio = false
+                if (c.data.hasAudio) io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(c.takeId))?.let { (pcm, sr) ->
+                    val part = io.github.e1caro.scorebook.core.library.Edits.apply(pcm, sr, c.data.edits + keep)
+                    val w = WavWriter(repo.audioFile(id), sr)
+                    w.write(FloatArray(part.size) { part[it] / 32768f })
+                    w.close()
+                    hasAudio = true
+                }
+                val data = TakeData(id, events, c.data.overrides.filterKeys { k -> events.any { it.id == k } }, c.data.settings, hasAudio)
+                repo.save(data)
+                val t = Transcriber(repo.personal()).analyze(events, data.settings, data.overrides)
+                val created = System.currentTimeMillis()
+                val meta = TakeMeta(id, "s$id", created, events.maxOfOrNull { it.offset } ?: 0.0, t.mainKey.displayName, t.bpm,
+                    "${t.grid.numerator}/${t.grid.denominator}", c.takes.firstOrNull { it.id == c.takeId }?.source ?: "mic", t.notes.size)
+                val lib = repo.library()
+                val newLib = lib.copy(songs = lib.songs + Song("s$id", Library.INBOX, title, false, created), takes = lib.takes + meta)
+                repo.save(newLib)
+                _library.value = newLib
+                id
+            }
+            _take.update { it?.copy(selection = null, message = "Copied to “$title” in the library") }
+            newId
+        }
+    }
+
+    fun undoEdit() {
+        val c = _take.value ?: return
+        if (c.data.edits.isEmpty()) return
+        reanalyze(c.data.copy(edits = c.data.edits.dropLast(1)), message = "Last cut undone")
+    }
+
+    fun restoreOriginal() {
+        val c = _take.value ?: return
+        reanalyze(c.data.copy(edits = emptyList()), message = "Back to the full recording")
+    }
+
     fun setStrictness(v: Float) { val c = _take.value ?: return; prefs.strictness = v; reanalyze(c.data.copy(settings = c.data.settings.copy(strictness = v.toDouble())), 150) }
     fun transpose(semitones: Int) {
         val c = _take.value ?: return
@@ -630,10 +759,11 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     /** The player switches a note: remember the choice, and learn from it. */
     fun choose(eventId: Int, pitch: Int?) {
         val c = _take.value ?: return
-        val learned = Transcriber(repo.personal()).learn(c.data.events, c.transcription, eventId, pitch ?: -1, c.data.settings)
+        val learned = Transcriber(repo.personal()).learn(c.data.editedEvents(), c.transcription, eventId, pitch ?: -1, c.data.settings)
         repo.save(learned)
         val ov = c.data.overrides.toMutableMap()
-        ov[eventId] = if (pitch == null) NoteOverride(deleted = true) else NoteOverride(pitch = pitch)
+        val old = ov[eventId] ?: NoteOverride()
+        ov[eventId] = if (pitch == null) old.copy(deleted = true, pitch = null) else old.copy(pitch = pitch, deleted = false)
         reanalyze(c.data.copy(overrides = ov), message = "Noted — Scorebook learns from your corrections")
         _take.update { it?.copy(selected = null) }
     }

@@ -27,6 +27,10 @@ data class AnalysisSettings(
     val compound: Boolean? = null,
     /** Semitones to transpose the written score by. */
     val transpose: Int = 0,
+    /** Fix a tempo read at double (0.5) or half (2.0) speed. */
+    val tempoScale: Double = 1.0,
+    /** The key the player says the piece is in (null: detect it, with key changes). */
+    val key: Key? = null,
 )
 
 /** A final note of the score. */
@@ -99,11 +103,12 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
         // 1. provisional: audio alone
         var provisional = events.associate { e ->
             val ov = overrides[e.id]
-            e.id to Provisional(ov?.pitch ?: e.pitch, if (ov != null) !ov.deleted else e.presence >= 0.5, confidence(e, e.pitch))
+            val decided = ov != null && (ov.pitch != null || ov.deleted)
+            e.id to Provisional(ov?.pitch ?: e.pitch, if (decided) !ov!!.deleted else e.presence >= 0.5, confidence(e, e.pitch))
         }
         val present = events.filter { provisional[it.id]!!.present }
         val meterHint = settings.beatsPerBar?.let { it to (settings.compound ?: false) }
-        val grid = rhythm.analyze(present.map { TimedNote(provisional[it.id]!!.pitch, it.onset, it.offset, it.velocity) }, meterHint)
+        val grid = rhythm.analyze(present.map { TimedNote(provisional[it.id]!!.pitch, it.onset, it.offset, it.velocity) }, meterHint, settings.tempoScale)
 
         // 2..3. context from clear notes, two correction passes
         var decisions: Map<Int, NoteDecision> = emptyMap()
@@ -116,7 +121,7 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
             }
             val bounds = stepBounds(grid, events)
             val chroma = keyTracker.chroma(voters, bounds)
-            keys = keyTracker.track(chroma)
+            keys = settings.key?.let { fixedKey(it, chroma.size) } ?: keyTracker.track(chroma)
             chordSteps = chordsPerStep(chroma, voters, bounds, keys!!, grid)
             val hands = hands(events, provisional)
             val melody = melodyNeighbours(events, provisional, hands)
@@ -140,7 +145,8 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
         val finals = events.filter { decisions[it.id]!!.present }.sortedBy { it.onset }
         val timed = finals.map { TimedNote(decisions[it.id]!!.pitch, it.onset, it.offset, it.velocity) }
         val q = rhythm.quantize(timed, grid)
-        val handMap = HandSplitter.split(finals.map { HandSplitter.In(it.id, decisions[it.id]!!.pitch, it.onset) })
+        val handMap = HandSplitter.split(finals.map { HandSplitter.In(it.id, decisions[it.id]!!.pitch, it.onset) }).toMutableMap()
+        for ((id, ov) in overrides) ov.hand?.let { handMap[id] = it }
         val notes = finals.mapIndexed { i, e ->
             val d = decisions[e.id]!!
             TNote(e.id, d.pitch + settings.transpose, e.onset, e.offset, e.velocity, handMap[e.id] ?: Hand.RIGHT, q[i].tick, q[i].duration, d.decision)
@@ -171,6 +177,13 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
     }
 
     private data class Provisional(val pitch: Int, val present: Boolean, val confidence: Double)
+
+    /** The player chose the key: the same key everywhere, with certainty. */
+    private fun fixedKey(key: Key, steps: Int): KeyTracker.Result {
+        val n = maxOf(1, steps)
+        val post = Array(n) { DoubleArray(24).also { p -> p[key.index] = 1.0 } }
+        return KeyTracker.Result(post, listOf(io.github.e1caro.scorebook.core.analysis.KeyRegion(key, 0, n)))
+    }
 
     /** How much a note may vote in key and chord estimation: its audio support, so unclear notes barely count. */
     private fun confidence(e: NoteEvent, pitch: Int): Double = if (e.fromMidi) 1.0 else (e.presence * e.audioP(pitch)).coerceIn(0.0, 1.0)

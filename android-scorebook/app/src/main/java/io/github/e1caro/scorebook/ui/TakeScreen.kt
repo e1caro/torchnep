@@ -139,7 +139,19 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
                 }
             }
         }
-        if (ai > 0) {
+        if (ui.editing) {
+            val sel = ui.selection
+            Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp).clip(RoundedCornerShape(14.dp)).background(StageHigh).padding(12.dp)) {
+                Text(
+                    when { sel == null -> "Tap a bar to select it"; sel.first == sel.last -> "Bar ${sel.first} selected"; else -> "Bars ${sel.first}–${sel.last} selected" },
+                    color = Gold, fontSize = 15.sp, fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    if (sel != null && sel.first == sel.last) "Tap another bar to select everything in between." else "Then keep only those bars, delete them, or copy them to a new song.",
+                    color = InkDim, fontSize = 13.sp,
+                )
+            }
+        } else if (ai > 0) {
             Row(Modifier.padding(horizontal = 18.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(AiBlue))
                 Spacer(Modifier.width(8.dp))
@@ -166,10 +178,13 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
             }
             Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
                 Canvas(
-                    Modifier.fillMaxWidth().height(h).clipToBounds().pointerInput(page) {
-                        detectTapGestures { o -> vm.select(page.hitAt(o.x.toDouble(), o.y.toDouble(), 10.0)) }
+                    Modifier.fillMaxWidth().height(h).clipToBounds().pointerInput(page, ui.editing) {
+                        detectTapGestures { o ->
+                            if (ui.editing) page.barAt(o.x.toDouble(), o.y.toDouble())?.let { vm.tapBar(it) }
+                            else vm.select(page.hitAt(o.x.toDouble(), o.y.toDouble(), 10.0))
+                        }
                     },
-                ) { drawIntoCanvas { renderer.draw(it.nativeCanvas, page, ui.selected, sounding) } }
+                ) { drawIntoCanvas { renderer.draw(it.nativeCanvas, page, ui.selected, sounding, ui.selection) } }
             }
             if (ui.busy) LinearProgressIndicator(Modifier.fillMaxWidth().height(2.dp).align(Alignment.TopCenter), color = Gold)
         }
@@ -200,7 +215,65 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
             }
         }
 
-        // actions
+        if (ui.editing) {
+            EditBar(vm, ui)
+        } else ActionBar(vm, ui, pb, onAdjust = { adjusting = true })
+    }
+
+    if (ui.selected != null) NoteSheet(vm, ui, ui.selected)
+    if (adjusting) AdjustSheet(vm, ui, onDismiss = { adjusting = false })
+    if (renaming) {
+        var text by remember { mutableStateOf(ui.title) }
+        AlertDialog(
+            onDismissRequest = { renaming = false },
+            title = { Text("Song title") },
+            text = { OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true) },
+            confirmButton = { TextButton(onClick = { vm.rename(text.trim().ifEmpty { ui.title }); renaming = false }) { Text("Save") } },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } },
+        )
+    }
+}
+
+/** Cutting: what to do with the selected bars, and undo. */
+@Composable
+private fun EditBar(vm: ScorebookViewModel, ui: TakeUi) {
+    val has = ui.selection != null
+    Column(Modifier.fillMaxWidth().background(StageRaised).padding(horizontal = 8.dp, vertical = 6.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            TextButton(onClick = { vm.selectAllBars() }) { Text("Select all", color = Ink) }
+            if (ui.data.edits.isNotEmpty()) {
+                TextButton(onClick = { vm.undoEdit() }) { Text("Undo cut", color = Gold) }
+                TextButton(onClick = { vm.restoreOriginal() }) { Text("Restore original", color = Gold) }
+            }
+            Spacer(Modifier.weight(1f))
+            Box(Modifier.clip(RoundedCornerShape(50)).background(Gold).clickable { vm.setEditing(false) }.padding(horizontal = 18.dp, vertical = 8.dp)) {
+                Text("Done", color = Stage, fontWeight = FontWeight.Bold)
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+            EditAction("Keep only these", enabled = has, onClick = { vm.keepSelection() })
+            EditAction("Delete these bars", enabled = has, danger = true, onClick = { vm.deleteSelection() })
+            EditAction("Copy to new song", enabled = has, onClick = { vm.copySelectionToNewSong() })
+        }
+    }
+}
+
+@Composable
+private fun EditAction(label: String, enabled: Boolean, danger: Boolean = false, onClick: () -> Unit) {
+    Text(
+        label, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+        color = if (!enabled) InkDim else if (danger) RecordRed else Ink,
+        modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (enabled) StageHigh else Color.Transparent)
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp, vertical = 10.dp),
+    )
+}
+
+/** Play, adjust, cut, transpose, export. */
+@Composable
+private fun ActionBar(vm: ScorebookViewModel, ui: TakeUi, pb: PlaybackUi, onAdjust: () -> Unit) {
+    val t = ui.transcription
+    var share by remember { mutableStateOf(false) }
+    run {
         Row(
             Modifier.fillMaxWidth().background(StageRaised).padding(horizontal = 8.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
@@ -213,7 +286,8 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
                 if (active) Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Stage))
                 else Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = Stage, modifier = Modifier.size(30.dp))
             }
-            BarAction("Adjust", onClick = { adjusting = true }) { Icon(painterResource(R.drawable.ic_tune), contentDescription = null, tint = Ink) }
+            BarAction("Adjust", onClick = onAdjust) { Icon(painterResource(R.drawable.ic_tune), contentDescription = null, tint = Ink) }
+            BarAction("Cut", onClick = { vm.stopPlayback(); vm.setEditing(true) }) { Icon(painterResource(R.drawable.ic_cut), contentDescription = null, tint = Ink) }
             Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 IconButton(onClick = { vm.transpose(-1) }) { Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "Transpose down", tint = Ink) }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -235,19 +309,6 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
                 }
             }
         }
-    }
-
-    if (ui.selected != null) NoteSheet(vm, ui, ui.selected)
-    if (adjusting) AdjustSheet(vm, ui, onDismiss = { adjusting = false })
-    if (renaming) {
-        var text by remember { mutableStateOf(ui.title) }
-        AlertDialog(
-            onDismissRequest = { renaming = false },
-            title = { Text("Song title") },
-            text = { OutlinedTextField(value = text, onValueChange = { text = it }, singleLine = true) },
-            confirmButton = { TextButton(onClick = { vm.rename(text.trim().ifEmpty { ui.title }); renaming = false }) { Text("Save") } },
-            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } },
-        )
     }
 }
 
@@ -290,7 +351,7 @@ fun LabeledSlider(left: String, right: String, value: Float, onChange: (Float) -
 @Composable
 private fun AdjustSheet(vm: ScorebookViewModel, ui: TakeUi, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = StageRaised) {
-        Column(Modifier.padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 22.dp).padding(bottom = 30.dp)) {
             Text("Adjust the transcription", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(18.dp))
             Text("Unclear notes", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
@@ -305,6 +366,38 @@ private fun AdjustSheet(vm: ScorebookViewModel, ui: TakeUi, onDismiss: () -> Uni
             LabeledSlider("Loose", "Strict", ui.data.settings.strictness.toFloat()) { vm.setStrictness(it) }
             Spacer(Modifier.height(10.dp))
             Text("${vm.aiDecidedCount(ui.transcription)} of ${ui.transcription.notes.size} notes are AI-decided at this setting.", color = AiBlue, fontSize = 14.sp)
+
+            // fixing what the analysis got wrong
+            val st = ui.data.settings
+            Spacer(Modifier.height(20.dp))
+            Text("Tempo  ♩ = ${ui.transcription.bpm}", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("If the beat was read twice too fast or too slow, fix it here.", color = InkDim, fontSize = 14.sp, lineHeight = 20.sp)
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                PlayChip("Half speed", st.tempoScale < 0.75) { vm.setTempoScale(if (st.tempoScale < 0.75) 1.0 else 0.5) }
+                PlayChip("As detected", st.tempoScale in 0.75..1.5) { vm.setTempoScale(1.0) }
+                PlayChip("Double speed", st.tempoScale > 1.5) { vm.setTempoScale(if (st.tempoScale > 1.5) 1.0 else 2.0) }
+            }
+            Spacer(Modifier.height(16.dp))
+            Text("Time signature", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                PlayChip("Auto (${ui.transcription.grid.numerator}/${ui.transcription.grid.denominator})", st.beatsPerBar == null) { vm.setMeter(null, false) }
+                for ((label, bpb, compound) in listOf(Triple("2/4", 2, false), Triple("3/4", 3, false), Triple("4/4", 4, false), Triple("6/8", 2, true))) {
+                    PlayChip(label, st.beatsPerBar == bpb && (st.compound ?: false) == compound) { vm.setMeter(bpb, compound) }
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Text("Key", color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+            Text("Pick the key if you know it: spelling, key signature and chord names follow it, and unclear notes lean to it.", color = InkDim, fontSize = 14.sp, lineHeight = 20.sp)
+            var keyMenu by remember { mutableStateOf(false) }
+            Box {
+                PlayChip(st.key?.displayName ?: "Auto (${ui.transcription.keyChanges().joinToString(" → ") { it.key.displayName }})", true) { keyMenu = true }
+                DropdownMenu(expanded = keyMenu, onDismissRequest = { keyMenu = false }) {
+                    DropdownMenuItem(text = { Text("Auto: detect it") }, onClick = { keyMenu = false; vm.setKey(null) })
+                    for (k in io.github.e1caro.scorebook.core.music.Key.ALL.sortedWith(compareBy({ it.mode }, { it.fifths }))) {
+                        DropdownMenuItem(text = { Text(k.displayName) }, onClick = { keyMenu = false; vm.setKey(k) })
+                    }
+                }
+            }
         }
     }
 }
@@ -373,6 +466,12 @@ fun NoteSheet(vm: ScorebookViewModel, ui: TakeUi, eventId: Int) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = { vm.choose(eventId, null) }) { Text("Remove this note", color = RecordRed) }
                 if (eventId in ui.data.overrides) TextButton(onClick = { vm.resetNote(eventId) }) { Text("Let Scorebook decide", color = Gold) }
+            }
+            if (note != null) {
+                val other = if (note.hand == io.github.e1caro.scorebook.core.correct.Hand.RIGHT) io.github.e1caro.scorebook.core.correct.Hand.LEFT else io.github.e1caro.scorebook.core.correct.Hand.RIGHT
+                TextButton(onClick = { vm.moveToHand(eventId, other) }) {
+                    Text(if (other == io.github.e1caro.scorebook.core.correct.Hand.LEFT) "Move to the left hand (bass staff)" else "Move to the right hand (treble staff)", color = Ink)
+                }
             }
         }
     }

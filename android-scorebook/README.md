@@ -28,6 +28,10 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
   their probabilities and the reasons; one tap switches it; Scorebook learns from every switch.
 - **Rhythm.** Tempo and beat tracking (follows rubato), meter (2/4, 3/4, 4/4, 6/8), quantization with a
   *Loose ↔ Strict* slider, ties across beats and bars, triplets.
+- **Editing.** *Cut*: tap a bar, then another, to select bars, then keep only those, delete them (the gap closes)
+  or copy them to a new song; every cut can be undone, or the original restored, and the recording is cut the
+  same way. *Adjust*: fix a tempo read at double or half speed, choose the time signature or the key, besides the
+  Literal ↔ Musical and rhythm sliders. Tap a note to switch its pitch, remove it or move it to the other hand.
 - **Score.** Engraved with the Bravura music font: hands split automatically, key signatures (with key changes),
   chord symbols, accidentals, beams. One-tap transpose.
 - **Exports.** A PDF is saved to *Downloads/Scorebook* after every take (can be turned off); PDF, MIDI and

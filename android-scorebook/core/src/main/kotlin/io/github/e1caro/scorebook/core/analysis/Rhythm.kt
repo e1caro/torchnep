@@ -78,7 +78,7 @@ object Ticks {
  */
 class RhythmAnalyzer(val strictness: Double = 0.5) {
 
-    fun analyze(notes: List<TimedNote>, meterHint: Pair<Int, Boolean>? = null): BeatGrid {
+    fun analyze(notes: List<TimedNote>, meterHint: Pair<Int, Boolean>? = null, tempoScale: Double = 1.0): BeatGrid {
         val sorted = notes.sortedBy { it.onset }
         if (sorted.size < 4) {
             val start = sorted.firstOrNull()?.onset ?: 0.0
@@ -88,6 +88,7 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
         val env = envelope(sorted)
         val period = tempoPeriod(env)
         var beats = trackBeats(env, period, sorted)
+        if (tempoScale < 0.75) beats = halve(beats, sorted) else if (tempoScale > 1.5) beats = double(beats)
         val (bpb, phase) = meterHint?.let { it.first to bestPhase(beats, sorted, it.first) } ?: meter(beats, sorted)
         val compound = meterHint?.second ?: isCompound(beats, sorted)
         beats = extendToCover(beats, sorted)
@@ -177,6 +178,24 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
         val first = notes.first().onset
         while (beats.size >= 2 && beats[0] - first > 0.15 * (beats[1] - beats[0])) beats.add(0, beats[0] - (beats[1] - beats[0]))
         return beats
+    }
+
+    /** Every other beat: the phase that carries more notes (fixes a tempo read at double speed). */
+    private fun halve(beats: List<Double>, notes: List<TimedNote>): List<Double> {
+        if (beats.size < 4) return beats
+        val a = beats.filterIndexed { i, _ -> i % 2 == 0 }
+        val b = beats.filterIndexed { i, _ -> i % 2 == 1 }
+        fun support(bs: List<Double>) = notes.count { n -> bs.any { kotlin.math.abs(it - n.onset) < 0.06 } }
+        return if (support(a) >= support(b)) a else b
+    }
+
+    /** A beat in the middle of every beat (fixes a tempo read at half speed). */
+    private fun double(beats: List<Double>): List<Double> {
+        if (beats.size < 2) return beats
+        val out = ArrayList<Double>()
+        for (i in 0 until beats.size - 1) { out.add(beats[i]); out.add((beats[i] + beats[i + 1]) / 2) }
+        out.add(beats.last())
+        return out
     }
 
     private fun extendToCover(beats: List<Double>, notes: List<TimedNote>): List<Double> {

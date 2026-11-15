@@ -89,7 +89,12 @@ data class TakeData(
     val overrides: Map<Int, NoteOverride> = emptyMap(),
     val settings: AnalysisSettings = AnalysisSettings(),
     val hasAudio: Boolean = false,
-)
+    /** Cuts, applied in order on top of [events] (and the recording). */
+    val edits: List<Edit> = emptyList(),
+) {
+    /** The notes as they are after the edits. */
+    fun editedEvents(): List<NoteEvent> = Edits.apply(events, edits)
+}
 
 object Codec {
     val json = Json { ignoreUnknownKeys = true; encodeDefaults = true }
