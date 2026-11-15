@@ -57,8 +57,8 @@ class RealPianoEvalTest {
     fun evaluate() {
         val dir = System.getenv("SCOREBOOK_EVAL_DIR")?.let { File(it) } ?: return
         val cases = load(dir)
-        for (kind in cases.map { it.name.substringAfter('_') }.distinct()) {
-            val rows = cases.filter { it.name.endsWith("_$kind") }.map { c ->
+        for ((kind, group) in cases.groupBy { "${it.spec.name} ${it.name.substringAfter('_')}" }) {
+            val rows = group.map { c ->
                 val events = Decoder.forModel(c.spec).decode(c.grid)
                 val t = Transcriber().analyze(events, AnalysisSettings(musical = System.getenv("SCOREBOOK_EVAL_MUSICAL")?.toDouble() ?: 0.6))
                 rate(t.notes.map { it.pitch to it.onset }, c.truth)
