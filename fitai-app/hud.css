@@ -1339,3 +1339,30 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .pbadge .gi{
   background:linear-gradient(135deg,var(--acc),var(--acc2));
 }
+/* everyday training: smarter logging, rest bar, notes, history, records, finish summary */
+.evlast{font-size:13.5px;color:var(--mut);margin:-4px 0 6px}.evlast b{color:var(--fg);font-weight:700}
+.evsug{display:block;width:100%;margin:2px 0 10px;padding:10px 12px;border-radius:12px;border:1px dashed var(--acc);background:color-mix(in srgb,var(--acc) 10%,var(--card));color:var(--fg);font:inherit;text-align:left;cursor:pointer}
+.evsug i{font-style:normal;font-size:12px;color:#3ecf8e;margin-left:4px}
+.evstep{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 8px}.evstep>.mut{font-size:12px;flex-basis:100%}
+.stp{flex:1;min-width:0;display:flex;align-items:center;justify-content:space-between;gap:2px;padding:4px;border-radius:14px;background:var(--card2);border:1px solid var(--line)}
+.stp button{flex:none;width:42px;height:42px;border-radius:10px;border:0;background:var(--card);color:var(--fg);font:800 22px var(--body);cursor:pointer}
+.stp button:active{background:var(--acc);color:var(--on,#021016)}.stp b{flex:1;min-width:0;text-align:center;font:800 19px var(--disp)}.stp small{font-size:11px;color:var(--mut);margin-right:2px}
+.evnote{display:block;width:100%;margin:10px 0 4px;padding:9px 12px;border-radius:12px;border:1px dashed var(--line2,var(--line));background:transparent;color:var(--mut);font:inherit;font-size:13.5px;text-align:left;cursor:pointer}
+.evnote.has{border-style:solid;color:var(--fg);background:color-mix(in srgb,#ffd34d 8%,var(--card))}
+.evadd{display:flex;align-items:center;gap:6px;justify-content:center;margin:10px 0 6px}
+#evrest{position:fixed;left:12px;right:12px;bottom:calc(78px + env(safe-area-inset-bottom));z-index:44;display:flex;align-items:center;gap:8px;padding:10px 12px;border-radius:16px;
+  background:color-mix(in srgb,var(--card) 94%,var(--acc));border:1px solid var(--acc);box-shadow:0 8px 28px #000a;overflow:hidden}
+#evrest.up{bottom:calc(140px + env(safe-area-inset-bottom))}
+#evrest .evrl{font-size:12px;color:var(--mut)}#evrest .evrt{flex:1;font:800 26px var(--disp);font-variant-numeric:tabular-nums}
+#evrest button{padding:8px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--fg);font:700 14px var(--body);cursor:pointer}#evrest button.sk{background:var(--acc);color:var(--on,#021016);border-color:var(--acc)}
+#evrest .evrb{position:absolute;left:0;bottom:0;height:3px;background:var(--acc);transition:width .25s linear}
+.evquick{gap:8px;margin-top:8px}.evquick .btn{flex:1;margin:0;display:flex;align-items:center;justify-content:center;gap:6px}
+.evlist{max-height:52vh;overflow:auto;display:grid;gap:6px;margin:8px 0}.evlist .card{width:100%;margin:0;font:inherit;color:inherit;text-align:left}
+.evsum{margin:10px 0}.evnums{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px;text-align:center}.evnums b{display:block;font:800 26px var(--disp)}.evnums span{font-size:12px;color:var(--mut)}
+.evcmp{text-align:center;margin:8px 0 2px;font-weight:700}.evcmp.up{color:#3ecf8e}.evcmp.down{color:#f06a5d}
+.evprs{display:grid;gap:4px;margin:10px 0}.evprs div{display:flex;gap:8px;align-items:baseline}.evprs span{flex:1}.evprs i{font-style:normal;color:#3ecf8e;font-size:12px}
+.evmg{justify-content:center;margin:8px 0}.evfeel{gap:8px}.evfeel button{flex:1;display:grid;gap:2px;justify-items:center;padding:10px 4px;border-radius:12px;border:1px solid var(--line);background:var(--card2);color:var(--fg);font:inherit;cursor:pointer}
+.evfeel button i{font-style:normal;font-size:24px}.evfeel button.on{border-color:var(--acc);box-shadow:0 0 0 1px var(--acc) inset;background:color-mix(in srgb,var(--acc) 14%,var(--card))}
+.evwk{margin-top:14px}.evh{gap:12px;align-items:center;color:inherit;text-decoration:none}.evday{display:grid;justify-items:center;min-width:40px}.evday b{font:800 20px var(--disp)}.evday span{font-size:11px;color:var(--mut);text-transform:capitalize}
+.evfe{font-size:20px}.evrec{color:inherit;text-decoration:none;align-items:center;gap:10px}.evrm{display:grid;justify-items:end}.evrm b{font:800 20px var(--disp)}.evrm span{font-size:11px;color:var(--mut)}
+.evall{width:100%;margin-top:4px}.evsets{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px}.evsets div{display:flex;gap:6px;align-items:baseline}
