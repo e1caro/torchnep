@@ -15,7 +15,13 @@ import io.github.e1caro.scorebook.core.commands.Command
 import io.github.e1caro.scorebook.core.commands.CommandConfig
 import io.github.e1caro.scorebook.core.commands.CommandSpotter
 import io.github.e1caro.scorebook.core.commands.PhraseListener
+import io.github.e1caro.scorebook.core.accompany.Daily
+import io.github.e1caro.scorebook.core.accompany.Motifs
+import io.github.e1caro.scorebook.core.accompany.Patterns
+import io.github.e1caro.scorebook.core.accompany.Study
 import io.github.e1caro.scorebook.core.analysis.TuningEstimator
+import io.github.e1caro.scorebook.core.play.PianoSynth
+import io.github.e1caro.scorebook.core.practice.PlayAlong
 import io.github.e1caro.scorebook.core.live.Resampler
 import io.github.e1caro.scorebook.core.transcribe.Decoder
 import io.github.e1caro.scorebook.core.transcribe.FrameStream
@@ -173,7 +179,7 @@ class OnDeviceTest {
             scenario.onActivity {
                 val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]
                 val a = vm.accompany.value!!
-                info = "today: ${a.pick.pattern.name}, ${a.pick.harmony}, last song ${a.lastTitle} (${a.lastMeter})"
+                info = "today: ${a.study.name}, ${a.study.harmony}, last song ${a.lastTitle} (${a.lastMeter})"
                 vm.accompanyPattern(io.github.e1caro.scorebook.core.accompany.Patterns.byId("alberti"))
                 vm.accompanySong(a.lastTakeId!!, io.github.e1caro.scorebook.core.accompany.Patterns.byId("alberti"))
             }
@@ -192,6 +198,35 @@ class OnDeviceTest {
             assertTrue("bars ${m.score.measures.size}", m.score.measures.size in 11..15)
             Thread.sleep(2000)
             shot("9-accompanied.png")
+        }
+        // a motif, "another one", and the result of a play-along check with one bar left out
+        val i4 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ACCOMPANIMENT, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        ActivityScenario.launch<MainActivity>(i4).use { scenario ->
+            Thread.sleep(2500)
+            var before = ""
+            var after = ""
+            scenario.onActivity {
+                val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]
+                before = vm.accompany.value!!.study.id
+                vm.anotherRecommendation(motif = false)
+                after = vm.accompany.value!!.study.id
+                vm.openMotif(io.github.e1caro.scorebook.core.accompany.Motifs.byId("montuno"))
+            }
+            assertTrue("another one: $before then $after", before != after && after.startsWith("pattern:"))
+            Thread.sleep(2000)
+            shot("10-motif.png")
+            scenario.onActivity {
+                val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]
+                val study = vm.accompany.value!!.study
+                val tr = study.transcription()
+                val played = tr.notes.filter { n -> n.tick / tr.grid.barTicks != 1 }.map { n -> PlayAlong.Played(n.pitch, 1.5 + n.onset / 0.8) }
+                vm.showCheckResult(study, played)
+            }
+            Thread.sleep(2000)
+            shot("11-check.png")
+            var stars = -1
+            scenario.onActivity { stars = ViewModelProvider(it)[ScorebookViewModel::class.java].accompany.value!!.check!!.result!!.stars }
+            assertTrue("stars for a bar left out: $stars", stars in 1..2)
         }
         for ((tab, file) in listOf("library" to "4-library.png", "settings" to "5-settings.png")) {
             val i2 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, tab).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -222,6 +257,45 @@ class OnDeviceTest {
         File(out, "motif.txt").writeText("heard $heard\n")
         println("start motif heard as $heard")
         assertEquals(Command.START, CommandSpotter.match(heard ?: emptyList(), CommandConfig.DEFAULTS))
+    }
+
+    /**
+     * The play-along check end to end: a pattern and a motif played by the piano sound go through the real model,
+     * and what it hears is compared with what is written.
+     */
+    @Test
+    fun thePlayAlongCheckHearsWhatIsPlayed() {
+        val model = TfliteModel.load(ctx)
+        val studies: List<Study> = listOf(
+            Daily.withPattern(Patterns.byId("alberti"), Key.parse("C major")),
+            Daily.withPattern(Patterns.byId("waltz"), Key.parse("A minor")),
+            Daily.withMotif(Motifs.byId("lament")),
+            Daily.withMotif(Motifs.byId("walking-turnaround")),
+        )
+        val lines = StringBuilder()
+        for (study in studies) {
+            val t = study.transcription()
+            val pcm = PianoSynth.render(PianoSynth.voices(t), 22050)
+            val toModel = Resampler(22050, model.spec.sampleRate)
+            val st = FrameStream(model)
+            val block = FloatArray(2048)
+            var i = 0
+            while (i < pcm.size) {
+                val n = minOf(block.size, pcm.size - i)
+                for (j in 0 until n) block[j] = pcm[i + j] / 32768f
+                st.push(toModel.process(block, n))
+                i += n
+            }
+            st.flush()
+            val played = Decoder.forModel(model.spec).decode(st.grid).filter { it.presence >= 0.5 }.map { PlayAlong.Played(it.pitch, it.onset) }
+            val r = PlayAlong.check(PlayAlong.targets(t), played)
+            val line = "play-along ${study.id}: ${r.hit}/${r.expected} notes, ${r.extra} extra, rhythm ${"%.2f".format(r.rhythm)}, ♩ = ${r.bpm} (written ${study.bpm}), ${r.stars} stars"
+            println(line)
+            lines.append(line).append('\n')
+            File(out, "playalong.txt").writeText(lines.toString())
+            assertTrue(line, r.stars >= 2)
+            assertTrue(line, r.bpm != null && kotlin.math.abs(r.bpm!! - study.bpm) <= 3)
+        }
     }
 
     private fun shot(name: String) {

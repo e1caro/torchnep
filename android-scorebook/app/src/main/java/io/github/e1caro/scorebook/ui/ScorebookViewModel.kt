@@ -12,7 +12,13 @@ import io.github.e1caro.scorebook.core.accompany.Accompaniment
 import io.github.e1caro.scorebook.core.accompany.Daily
 import io.github.e1caro.scorebook.core.accompany.DailyPick
 import io.github.e1caro.scorebook.core.accompany.Pattern
+import io.github.e1caro.scorebook.core.accompany.Motif
+import io.github.e1caro.scorebook.core.accompany.MotifPick
 import io.github.e1caro.scorebook.core.accompany.Progressions
+import io.github.e1caro.scorebook.core.accompany.Studies
+import io.github.e1caro.scorebook.core.accompany.Study
+import io.github.e1caro.scorebook.core.practice.PlayAlong
+import io.github.e1caro.scorebook.core.practice.PracticeLog
 import io.github.e1caro.scorebook.core.commands.Command
 import io.github.e1caro.scorebook.core.commands.CommandConfig
 import io.github.e1caro.scorebook.core.commands.CommandSpotter
@@ -107,12 +113,24 @@ data class TakeUi(
     val message: String? = null,
 )
 
+enum class CheckState { LISTENING, ANALYZING, DONE }
+
+/** The play-along check: listening to the player, then the result. */
+data class CheckUi(
+    val state: CheckState,
+    val seconds: Double = 0.0,
+    val levelDb: Double = -90.0,
+    /** Something was heard since the check started. */
+    val heard: Boolean = false,
+    val result: PlayAlong.Result? = null,
+)
+
 /**
- * The accompaniment screen: a left-hand pattern written out in a key over a chord progression.
- * [target]: the song "Use it on…" would accompany (the newest one), when its meter fits the pattern.
+ * The accompaniment screen: a study (a left-hand pattern over chords, or a motif) written out in a key.
+ * [lastTakeId]…: the newest song, which "Use it on my last song" would accompany when its meter fits a pattern.
  */
 data class AccompanyUi(
-    val pick: DailyPick,
+    val study: Study,
     val today: Boolean,
     val transcription: Transcription,
     val score: Score,
@@ -120,8 +138,14 @@ data class AccompanyUi(
     val lastTitle: String? = null,
     val lastMeter: String? = null,
     val message: String? = null,
+    val check: CheckUi? = null,
+    /** Days in a row with a passed check, and the best stars so far on this study. */
+    val streak: Int = 0,
+    val bestStars: Int = 0,
 ) {
-    val fitsLastSong: Boolean get() = lastMeter == pick.pattern.meter.label
+    /** The pattern, when the study is one (motifs cannot be laid under a song). */
+    val pick: DailyPick? get() = study as? DailyPick
+    val fitsLastSong: Boolean get() = pick != null && lastMeter == study.meter.label
 }
 
 class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
@@ -236,6 +260,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun stopListening() {
+        stopCheck()
         active = false
         if (_listen.value.status == ListenStatus.RECORDING) worker.execute { recorder.forceStop()?.let { finishTake() } }
         audio.stop()
@@ -302,6 +327,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private fun midiNow(): Double = (System.nanoTime() - takeStartNanos) / 1e9
 
     private fun midiNote(pitch: Int, velocity: Int) {
+        checkRun?.let { it.midi.add(PlayAlong.Played(pitch, it.seconds())); return }
         if (recorder.state != AutoRecorder.State.RECORDING) {
             if (_commands.value.enabled || _teach.value != null) {
                 val now = System.nanoTime() / 1e9
@@ -317,6 +343,8 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
 
     private fun onAudio(block: FloatArray) {
         lastBlockNanos = System.nanoTime()
+        // a play-along check owns the microphone: nothing is recorded and no command is heard meanwhile
+        checkRun?.let { feedCheck(it, block); return }
         // the app's own playback (a score, a recording, an accompaniment) is not the player playing: between takes
         // it neither starts a hands-free take nor counts as a command
         if (recorder.state != AutoRecorder.State.RECORDING) {
@@ -845,74 +873,222 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         reanalyze(c.data.copy(edits = emptyList()), message = "Back to the full recording")
     }
 
-    // ------------------------------------------------------------------ accompaniments
+    // ------------------------------------------------------------------ accompaniments and motifs
     private val _accompany = MutableStateFlow<AccompanyUi?>(null)
     /** The accompaniment screen, when it is open. */
     val accompany: StateFlow<AccompanyUi?> = _accompany
+    private val _practice = MutableStateFlow(prefs.practice)
+    /** Days practised with the play-along check, and the best result of each study. */
+    val practice: StateFlow<PracticeLog> = _practice
+
+    private fun today(): Long = java.time.LocalDate.now().toEpochDay()
+
+    /** Days in a row with a passed play-along check. */
+    fun streak(): Int = _practice.value.streak(today())
 
     /** The keys the player uses most (from the library), most used first. */
     private fun favoriteKeys(): List<Key> = _library.value.takes.filter { it.trashedAt == null }.groupingBy { it.key }.eachCount()
         .entries.sortedByDescending { it.value }.mapNotNull { e -> try { Key.parse(e.key) } catch (_: Exception) { null } }
 
-    /** Today's accompaniment: the same all day, in one of the player's own keys most days. */
-    fun dailyPick(): DailyPick = Daily.pick(java.time.LocalDate.now().toEpochDay(), favoriteKeys())
+    // "Another one": how many times today's pattern and today's motif were turned down (back to zero the next day)
+    private val _skips = MutableStateFlow(prefs.skips.let { if (it.first == today()) it.second to it.third else 0 to 0 })
+    /** Changes when the player asks for another recommendation. */
+    val skips: StateFlow<Pair<Int, Int>> = _skips
 
-    private fun accompanyUi(pick: DailyPick): AccompanyUi {
-        val t = Accompaniment.transcription(pick)
-        val score = ScoreBuilder().build(t, pick.pattern.name, pick.harmony)
+    /** Today's accompaniment: the same all day (until another one is asked for), in one of the player's keys most days. */
+    fun dailyPick(): DailyPick = Daily.pick(today() + 4L * _skips.value.first, favoriteKeys())
+
+    /** Today's motif: a figure musicians reuse (a bass line, a riff, a sequence, an ending). */
+    fun dailyMotif(): MotifPick = Daily.motif(today() + 5L * _skips.value.second, favoriteKeys())
+
+    /**
+     * "Another one": today's recommended pattern (or motif, with [motif]) is replaced by a different one. Every
+     * pattern comes round before one repeats. If the accompaniment screen is open, it shows the new one.
+     */
+    fun anotherRecommendation(motif: Boolean) {
+        val cur = _skips.value
+        val next = if (motif) cur.first to cur.second + 1 else cur.first + 1 to cur.second
+        _skips.value = next
+        prefs.skips = Triple(today(), next.first, next.second)
+        if (_accompany.value != null) { if (motif) openMotif() else openAccompaniment() }
+    }
+
+    private fun accompanyUi(study: Study): AccompanyUi {
+        val t = study.transcription()
+        val score = ScoreBuilder().build(t, study.name, study.harmony, exactLengths = true)
         val lib = _library.value
         val last = lib.takes.filter { it.trashedAt == null }.maxByOrNull { it.created }
-        return AccompanyUi(pick, pick == dailyPick(), t, score, last?.id, last?.let { lib.song(it.songId)?.title }, last?.meter)
+        val log = _practice.value
+        return AccompanyUi(study, study == dailyPick() || study == dailyMotif(), t, score, last?.id, last?.let { lib.song(it.songId)?.title }, last?.meter,
+            streak = log.streak(today()), bestStars = log.stars(study.id))
     }
 
     /** Opens the accompaniment screen on today's pick, or on [pattern] (in today's key). */
     fun openAccompaniment(pattern: Pattern? = null) {
         stopPlayback()
+        stopCheck()
         val today = dailyPick()
         _accompany.value = accompanyUi(if (pattern == null || pattern.id == today.pattern.id) today else Daily.withPattern(pattern, today.key))
     }
 
-    fun closeAccompaniment() { stopPlayback(); _accompany.value = null }
+    /** Opens the same screen on today's motif, or on [motif] (in a key the player uses). */
+    fun openMotif(motif: Motif? = null) {
+        stopPlayback()
+        stopCheck()
+        val today = dailyMotif()
+        _accompany.value = accompanyUi(if (motif == null || motif.id == today.motif.id) today else Daily.withMotif(motif, favoriteKeys(), today()))
+    }
 
-    private fun changePick(change: (DailyPick) -> DailyPick) {
+    fun closeAccompaniment() { stopPlayback(); stopCheck(); _accompany.value = null }
+
+    private fun changeStudy(change: (Study) -> Study) {
         val a = _accompany.value ?: return
         stopPlayback()
-        _accompany.value = accompanyUi(change(a.pick))
+        stopCheck()
+        _accompany.value = accompanyUi(change(a.study))
     }
 
     /** Another pattern, in the key on screen. */
-    fun accompanyPattern(pattern: Pattern) = changePick { cur ->
+    fun accompanyPattern(pattern: Pattern) = changeStudy { cur ->
         val today = dailyPick()
         if (pattern.id == today.pattern.id && cur.key == today.key) today else Daily.withPattern(pattern, cur.key)
     }
-    fun accompanyTranspose(semitones: Int) = changePick { Daily.transpose(it, semitones) }
-    fun accompanyTempo(delta: Int) = changePick { Daily.tempo(it, delta) }
+
+    /** Another motif: in the key on screen when its mode fits, otherwise in one the player uses. */
+    fun accompanyMotif(motif: Motif) = changeStudy { cur ->
+        val today = dailyMotif()
+        when {
+            motif.id == today.motif.id -> today
+            cur.key.mode == motif.mode -> MotifPick(motif, cur.key, motif.bpm)
+            else -> Daily.withMotif(motif, favoriteKeys(), today())
+        }
+    }
+
+    fun accompanyTranspose(semitones: Int) = changeStudy { it.transposed(semitones) }
+    fun accompanyTempo(delta: Int) = changeStudy { it.withTempo(delta) }
 
     /** The next chord progression that suits the pattern. */
-    fun accompanyNextChords() = changePick { p ->
+    fun accompanyNextChords() = changeStudy { st ->
+        val p = st as? DailyPick ?: return@changeStudy st
         val ids = p.pattern.progressions
         p.copy(progression = Progressions.byId(ids[(ids.indexOf(p.progression.id) + 1) % ids.size]))
     }
 
-    /** How many times the progression is played through. */
-    fun accompanyRepeats(pick: DailyPick): Int = if (pick.chords.size > 8) 1 else 2
-
     fun toggleAccompanyPlay() {
         if (_playback.value.playing || _playback.value.preparing) { stopPlayback(); return }
         val a = _accompany.value ?: return
+        stopCheck()
         playJob?.cancel()
         player.stop()
         _playback.update { it.copy(preparing = true, playing = false) }
         playJob = viewModelScope.launch {
             val pcm = withContext(Dispatchers.Default) {
                 val synth = io.github.e1caro.scorebook.core.play.PianoSynth
-                synth.render(synth.voices(Accompaniment.transcription(a.pick, accompanyRepeats(a.pick))), 22050)
+                synth.render(synth.voices(a.study.transcription(Studies.repeats(a.study))), 22050)
             }
             val ok = player.play(pcm, 22050, 0.0, 1f)
             _playback.update { it.copy(preparing = false, playing = ok, length = pcm.size / 22050.0) }
             while (ok && player.isPlaying) delay(100)
             if (ok) _playback.update { it.copy(playing = false) }
         }
+    }
+
+    // ---- the play-along check: the player plays what is on the page, the app says how it went
+
+    /** One run of the check (worker thread): the audio so far through the model, or the MIDI notes. */
+    private class CheckRun(val study: Study, val stream: FrameStream?, val resampler: Resampler?, val timeScale: Double, val maxSeconds: Double) {
+        val startNanos = System.nanoTime()
+        var samples = 0L
+        var firstLoud = -1L
+        var lastLoud = 0L
+        val midi = ArrayList<PlayAlong.Played>()
+        fun seconds() = (System.nanoTime() - startNanos) / 1e9
+    }
+
+    @Volatile private var checkRun: CheckRun? = null
+
+    /**
+     * Starts listening for the study on screen: play it once, at any tempo. It ends by itself 2.5 s after the
+     * playing stops (or with [finishCheck]). Needs the microphone, or a connected MIDI keyboard.
+     */
+    fun startCheck(micAllowed: Boolean) {
+        val a = _accompany.value ?: return
+        stopPlayback()
+        this.micAllowed = micAllowed || this.micAllowed
+        _accompany.update { it?.copy(check = CheckUi(CheckState.LISTENING), message = null) }
+        worker.execute {
+            if (recorder.state == AutoRecorder.State.RECORDING) { _accompany.update { it?.copy(check = null) }; return@execute }
+            // long enough to play it at half speed, with time to get the hands ready
+            val written = a.transcription.notes.maxOfOrNull { it.offset } ?: 10.0
+            val maxSeconds = (written * 2 + 15).coerceAtMost(180.0)
+            if (midiName != null) {
+                checkRun = CheckRun(a.study, null, null, 1.0, maxSeconds)
+                return@execute
+            }
+            val m = ensureModel()
+            if (m == null || !this.micAllowed || (!audio.isRunning && !audio.start())) {
+                _accompany.update { it?.copy(check = null, message = "The microphone is not available") }
+                return@execute
+            }
+            val comp = TuningCompensation(audio.sampleRate, appliedTuning())
+            checkRun = CheckRun(a.study, FrameStream(m), Resampler(comp.effectiveRate, m.spec.sampleRate), comp.timeScale, maxSeconds)
+        }
+    }
+
+    /** Audio (or the clock tick, with a MIDI keyboard) while a check is listening (worker thread). */
+    private fun feedCheck(run: CheckRun, block: FloatArray) {
+        val seconds = run.seconds()
+        var level = -90.0
+        if (run.stream != null) {
+            var sum = 0.0
+            for (x in block) sum += x * x
+            level = 10 * kotlin.math.log10(maxOf(sum / maxOf(1, block.size), 1e-12))
+            run.samples += block.size
+            if (level > maxOf(recorder.noiseFloorDb + 10, -55.0)) {
+                if (run.firstLoud < 0) run.firstLoud = run.samples
+                run.lastLoud = run.samples
+            }
+            run.stream.push(run.resampler!!.process(block))
+        }
+        val heard = if (run.stream != null) run.firstLoud >= 0 else run.midi.isNotEmpty()
+        val quiet = if (run.stream != null) (run.samples - run.lastLoud).toDouble() / audio.sampleRate else seconds - (run.midi.lastOrNull()?.time ?: seconds)
+        _accompany.update { u -> u?.copy(check = u.check?.takeIf { it.state == CheckState.LISTENING }?.copy(seconds = seconds, levelDb = level, heard = heard) ?: u.check) }
+        if ((heard && quiet >= 2.5) || seconds >= run.maxSeconds || (!heard && seconds >= 25)) finishCheckNow()
+    }
+
+    /** The "I'm done" button. */
+    fun finishCheck() = worker.execute { finishCheckNow() }
+
+    private fun finishCheckNow() {
+        val run = checkRun ?: return
+        checkRun = null
+        _accompany.update { it?.copy(check = CheckUi(CheckState.ANALYZING)) }
+        val played = if (run.stream != null) {
+            run.stream.flush()
+            val m = model
+            if (m == null) emptyList() else Decoder.forModel(m.spec, repo.personal().calibration).decode(run.stream.grid)
+                .filter { it.presence >= 0.5 }.map { PlayAlong.Played(it.pitch, it.onset * run.timeScale) }
+        } else run.midi.toList()
+        updateIdleMic()
+        showCheckResult(run.study, played)
+    }
+
+    /** Compares [played] with [study], shows the result and keeps it in the practice log (also used by the on-device test). */
+    fun showCheckResult(study: Study, played: List<PlayAlong.Played>) {
+        val result = PlayAlong.check(PlayAlong.targets(study.transcription()), played)
+        val log = _practice.value.record(today(), study.id, result.stars)
+        if (log != _practice.value) { prefs.practice = log; _practice.value = log }
+        _accompany.update { u ->
+            if (u == null || u.study != study) u
+            else u.copy(check = CheckUi(CheckState.DONE, result = result), streak = log.streak(today()), bestStars = log.stars(study.id))
+        }
+    }
+
+    /** Stops listening without a result, or closes the result. */
+    fun stopCheck() {
+        if (_accompany.value?.check == null && checkRun == null) return
+        _accompany.update { it?.copy(check = null) }
+        worker.execute { if (checkRun != null) { checkRun = null; updateIdleMic() } }
     }
 
     /**

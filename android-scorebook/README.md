@@ -49,7 +49,17 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 - **Accompaniment of the day.** Every day the Listen screen proposes one left-hand pattern to try (Alberti bass,
   pop ballad arpeggio, stride, bossa nova, boogie-woogie, waltz, barcarolle… 15 in all, easy to hard, in 4/4, 3/4
   and 6/8), written out on the staff in one of the keys you play most, over a chord progression that suits it,
-  with what it is, a tip, playback, and tempo and key controls. All patterns can be browsed any day.
+  with what it is, a tip, playback, and tempo and key controls. Not in the mood for it? *Another one* gives a
+  different recommendation, and all patterns can be browsed any day.
+- **Motif of the day.** Not only chords: every day also brings a figure that musicians reuse, written out for
+  both hands. Lament bass, line cliché, walking-bass turnaround, blues turnaround and lick, montuno with its
+  tumbao bass, La Folia, pedal point, alternating bass with walk-ups, falling-fifths sequence, minimal ostinato,
+  shuffle riff, tango marcato and síncopa. Each with where it comes from and how to practise it.
+- **Play-along check.** *Check my playing* listens while you play the pattern or motif once, at your own tempo
+  (microphone or MIDI keyboard; nothing is recorded), and tells you how it went: one to three stars, how many
+  notes were there (the missing ones light up on the score), how steady the rhythm was and the tempo you played
+  at. Swung eighths and playing in another octave are fine. A passed check counts for the day: the Listen screen
+  shows how many days in a row you have practised, and each pattern keeps its best stars.
 - **Accompany my song.** Take any song you recorded: your right hand stays exactly as you played it and the left
   hand is replaced by the pattern you choose, following the chord of each bar on your own beats (so it follows
   your rubato). The result is saved as a new song with its score, playback and exports. From the accompaniment
@@ -128,8 +138,8 @@ cd tools && python make_command_fixtures.py --of-model ../app/src/main/assets/on
 ```
 core/   plain Kotlin: transcribe/ (model stream, decoder), analysis/ (rhythm, key, chords), correct/ (fusion,
         learning, hands, pipeline), score/, engrave/ (layout, live staff, SVG), export/ (MusicXML, MIDI),
-        live/ (auto start/stop, MIDI input, live session), library/, accompany/ (patterns, the daily pick,
-        accompany my song), commands/, play/ (piano sound)
+        live/ (auto start/stop, MIDI input, live session), library/, accompany/ (patterns, motifs, the
+        daily picks, accompany my song), practice/ (play-along check, streak), commands/, play/ (piano sound)
 app/    Android: audio capture, LiteRT model, MIDI devices, storage, PDF, Compose UI
 tools/  fixture generator
 ```

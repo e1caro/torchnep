@@ -287,7 +287,7 @@ Short note patterns (3–5 notes) played on their own control the app (`core/com
 * **Confirmation**: a distinct two- or three-tone sound per command and a full-screen flash. The microphone
   ignores input for 0.9 s after the sound, and a start command begins recording once the sound is over.
 
-## 11. Accompaniments
+## 11. Accompaniments, motifs and the play-along check
 
 `core/accompany` holds everything; the app only shows it.
 
@@ -309,5 +309,23 @@ Short note patterns (3–5 notes) played on their own control the app (`core/com
   labels of §4.4 prefer few changes and may merge two bars (C then Am read as Am7), which is fine above a staff
   but wrong for a bass line. The new song is analysed with the original's meter and bar line
   (`AnalysisSettings.barLineAt`), because a steady pattern alone could be read as 2/4 or shifted by half a bar.
-* **Next in the same spirit:** play-along check with a streak, lead-sheet export, warm-up of the day,
-  reharmonization, harmonizing the melody in thirds or sixths, a weekly recap (`prompts/scorebook-daily-accompaniments.md`).
+* **Motifs.** A pattern is one bar repeated over any chord; a `Motif` is a phrase of several bars with its own
+  notes and harmony: a bass line, a riff, a sequence, an ending. Each hand is written in a one-line notation
+  (`q0 e7 er h0,4,7 | …`: length, then semitones above the tonic, `r` for a rest), in one mode, and transposes
+  to any tonic. Thirteen motifs; `Daily.motif` picks one per day in the player's keys of that mode (or their
+  relatives). Patterns and motifs share the `Study` interface, so the screen, the piano sound and the check below
+  do not care which one they are showing. The score builder writes studies with exact lengths and rests
+  (`exactLengths`), not with the legato reading used for what the microphone heard.
+* **"Another one."** The daily picks are pure functions of the day number, so a recommendation the player turns
+  down is simply the pick of another day: the app steps 4 days for patterns and 5 for motifs (both coprime with
+  the number of items, so everything comes round before anything repeats) and forgets the steps the next day.
+* **Play-along check (`core/practice`).** The app listens with the same model and decoder as a take, but keeps
+  nothing. `PlayAlong.check` lines up what was played with what is written by the longest common subsequence
+  of pitches (chords from the bottom up; the whole thing an octave away is tried too), which gives the notes
+  hit, missed and extra. Rhythm: one straight line is fitted through the matched notes, time played against
+  beat written. Its slope is the player's tempo, and each note's distance from it, in beats, is the unevenness;
+  a twelfth of a beat is free, so swung eighths cost nothing. Score = notes × (0.65 + 0.35 × rhythm), minus a
+  little for many extra notes; 88 / 70 / 45 give three, two and one star. `PracticeLog` keeps the days with at
+  least one star (the streak) and the best stars per study.
+* **Next in the same spirit:** lead-sheet export, warm-up of the day, reharmonization, harmonizing the melody in
+  thirds or sixths, a weekly recap (`prompts/scorebook-daily-accompaniments.md`).
