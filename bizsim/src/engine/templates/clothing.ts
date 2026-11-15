@@ -55,7 +55,7 @@ export const clothing: Template = {
     { name: ['Accessories', 'Complementos'], share: 1, pop: 0.9, price: [7, 60], costRatio: 0.36, vat: 0.21, events: { christmas_season: 1.5 } },
     { name: ['Swim & nightwear', 'Baño y pijamas'], share: 1, pop: 0.6, price: [19, 50], costRatio: 0.4, vat: 0.21, season: summer, heat: 0.4 },
   ],
-  baseTraffic: 400, size: [40, 600, 150], conv: 0.12, basket: 1.9, multiQty: 0.04, elasticity: 1.8,
+  baseTraffic: 320, size: [40, 600, 150], conv: 0.12, basket: 1.9, multiQty: 0.04, elasticity: 1.8,
   dow: [0.8, 0.82, 0.88, 0.95, 1.25, 1.75, 0.55],
   month: [1.25, 0.9, 0.85, 0.95, 1, 0.95, 1.2, 0.85, 0.95, 1, 1.15, 1.5],
   events: { black_friday: 2.2, winter_sales: 1.15, summer_sales: 1.1, christmas_season: 1.25, back_to_school: 1.1 },

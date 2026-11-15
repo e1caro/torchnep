@@ -18,7 +18,7 @@ export const cafe: Template = {
       bases: [['Iced latte', 'Latte con hielo'], ['Orange juice', 'Zumo de naranja'], ['Cold brew', 'Cold brew'], ['Lemonade', 'Limonada'], ['Still water', 'Agua'], ['Iced tea', 'Té helado'], ['Smoothie', 'Batido de frutas'], ['Frappé', 'Frappé'], ['Sparkling water', 'Agua con gas'], ['Horchata', 'Horchata']], variants: SIZES3,
     },
     {
-      name: ['Pastries', 'Bollería'], share: 0.2, pop: 1.5, price: [1.4, 3.6], costRatio: 0.32, vat: 0.1, spoil: 0.3,
+      name: ['Pastries', 'Bollería'], share: 0.2, pop: 1.5, price: [1.4, 3.6], costRatio: 0.32, vat: 0.1, spoil: 0.2,
       bases: [['Croissant', 'Cruasán'], ['Napolitana', 'Napolitana de chocolate'], ['Muffin', 'Magdalena'], ['Ensaimada', 'Ensaimada'], ['Cinnamon roll', 'Rollo de canela'], ['Butter cookie', 'Galleta de mantequilla'], ['Palmier', 'Palmera'], ['Almond croissant', 'Cruasán de almendra'], ['Scone', 'Scone'], ['Churros', 'Churros'], ['Donut', 'Rosquilla glaseada'], ['Banana bread', 'Bizcocho de plátano']],
     },
     {

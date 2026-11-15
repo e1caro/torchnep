@@ -39,7 +39,12 @@ const handlers: { [K in keyof Ops]: (a: Ops[K]['args']) => Ops[K]['result'] | Pr
   dash: ({ id, filters, pending }) => {
     const sim = need(id); sim.setChanges(sortChanges(pending.changes));
     const next = sim.pendingSmall(), same = JSON.stringify(next) === JSON.stringify(sim.small);
-    return { ...dashboard(sim, filters), projection: { base: sim.project(sim.small, 30), alt: same ? null : sim.project(next, 30) }, catNames: sim.T.categories.col('name') as string[], day: sim.day };
+    // the model's expectation is scaled by how the last four weeks actually compared with it (stockouts, queues…)
+    const back = Math.min(28, sim.day), rev = sim.T.daily_summary.ints('revenue_net'); let actual = 0;
+    for (let d = sim.day - back; d < sim.day; d++) actual += rev[d] / 100;
+    const expected = sim.project(sim.small, back, sim.day - back).reduce((a, b) => a + b, 0), k = expected > 0 ? Math.min(1.3, Math.max(0.4, actual / expected)) : 1;
+    const scale = (a: number[]) => a.map(v => Math.round(v * k));
+    return { ...dashboard(sim, filters), projection: { base: scale(sim.project(sim.small, 30)), alt: same ? null : scale(sim.project(next, 30)) }, catNames: sim.T.categories.col('name') as string[], day: sim.day };
   },
   tables: ({ id, dirty, lang }) => {
     const sim = need(id);

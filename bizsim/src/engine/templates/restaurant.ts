@@ -6,15 +6,15 @@ export const restaurant: Template = {
   type: 'restaurant',
   cats: [
     {
-      name: ['Starters', 'Entrantes'], share: 0.22, pop: 0.9, price: [5.5, 15], costRatio: 0.3, vat: 0.1, spoil: 0.07,
+      name: ['Starters', 'Entrantes'], share: 0.22, pop: 0.9, price: [5.5, 15], costRatio: 0.3, vat: 0.1, spoil: 0.04,
       bases: [['Patatas bravas', 'Patatas bravas'], ['Ham croquettes', 'Croquetas de jamón'], ['Russian salad', 'Ensaladilla rusa'], ['Garlic prawns', 'Gambas al ajillo'], ['Tomato salad', 'Ensalada de tomate'], ['Padrón peppers', 'Pimientos de Padrón'], ['Grilled octopus', 'Pulpo a la brasa'], ['Iberian ham board', 'Tabla de jamón ibérico'], ['Cheese board', 'Tabla de quesos'], ['Gazpacho', 'Gazpacho'], ['Fried calamari', 'Calamares fritos'], ['Burrata salad', 'Ensalada de burrata'], ['Steamed mussels', 'Mejillones al vapor'], ['Hummus with crudités', 'Hummus con crudités'], ['Tuna tartare', 'Tartar de atún'], ['Leek soup', 'Crema de puerros']],
     },
     {
-      name: ['Mains', 'Principales'], share: 0.3, pop: 1.25, price: [11, 26], costRatio: 0.34, vat: 0.1, spoil: 0.08,
+      name: ['Mains', 'Principales'], share: 0.3, pop: 1.25, price: [11, 26], costRatio: 0.34, vat: 0.1, spoil: 0.045,
       bases: [['Chicken paella', 'Paella de pollo'], ['Seafood paella', 'Paella de marisco'], ['Grilled hake', 'Merluza a la plancha'], ['Beef burger', 'Hamburguesa de ternera'], ['Vegetable lasagne', 'Lasaña de verduras'], ['Roast chicken', 'Pollo asado'], ['Mushroom risotto', 'Risotto de setas'], ['Pork cheeks', 'Carrilleras de cerdo'], ['Grilled sea bass', 'Lubina a la brasa'], ['Sirloin steak', 'Solomillo'], ['Black rice', 'Arroz negro'], ['Cod pil-pil', 'Bacalao al pil-pil'], ['Lamb shoulder', 'Paletilla de cordero'], ['Vegetable curry', 'Curry de verduras'], ['Entrecôte', 'Entrecot'], ['Tuna steak', 'Lomo de atún'], ['Oxtail stew', 'Rabo de toro'], ['Duck confit', 'Confit de pato'], ['Spinach cannelloni', 'Canelones de espinacas'], ['T-bone steak', 'Chuletón'], ['Grilled salmon', 'Salmón a la plancha'], ['Fideuà', 'Fideuà']],
     },
     {
-      name: ['Desserts', 'Postres'], share: 0.14, pop: 0.55, price: [4.5, 8.5], costRatio: 0.24, vat: 0.1, spoil: 0.06,
+      name: ['Desserts', 'Postres'], share: 0.14, pop: 0.55, price: [4.5, 8.5], costRatio: 0.24, vat: 0.1, spoil: 0.035,
       bases: [['Crème caramel', 'Flan casero'], ['Cheesecake', 'Tarta de queso'], ['Chocolate coulant', 'Coulant de chocolate'], ['Fruit salad', 'Macedonia de fruta'], ['Catalan cream', 'Crema catalana'], ['Ice cream scoop', 'Bola de helado'], ['Tiramisu', 'Tiramisú'], ['Rice pudding', 'Arroz con leche'], ['Lemon sorbet', 'Sorbete de limón'], ['Brownie with ice cream', 'Brownie con helado'], ['Torrija', 'Torrija']],
     },
     {

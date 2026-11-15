@@ -121,7 +121,7 @@ export class Sim {
       for (let i = 0; i < k; i++) {
         const type = ar.int(5), start = y * 365 + 30 + ar.int(335);
         const len = [1 + ar.int(3), 10 + ar.int(11), 1, 14 + ar.int(15), 2 + ar.int(3)][type];
-        const mag = [1.8 + 0.8 * ar.next(), 6 + ar.int(5), 0.45, 0.62 + 0.1 * ar.next(), 0.45 + 0.15 * ar.next()][type];
+        const mag = [1.8 + 0.8 * ar.next(), 2 + ar.int(3), 0.45, 0.62 + 0.1 * ar.next(), 0.45 + 0.15 * ar.next()][type];
         this.anomalies.push({ start, end: start + len - 1, type, mag, logged: false });
       }
     }
@@ -256,11 +256,11 @@ export class Sim {
    * Expected net revenue (without VAT) for each of the next `days` days with the sliders in `alt`, without
    * simulating or changing anything. Used for the what-if projection.
    */
-  project(alt: SmallParams, days: number): number[] {
+  project(alt: SmallParams, days: number, startDay = this.day): number[] {
     const keep = this.small, keepN = this.activeN, out: number[] = [];
     this.small = alt; this.activeN = Math.max(1, Math.min(this.specs.length, Math.round(alt.items))); this.computePricesQuiet();
     for (let i = 0; i < days; i++) {
-      const info = this.cal.get(this.day + i), w = this.weights(info, true), closed = this.isClosed(info);
+      const info = this.cal.get(startDay + i), w = this.weights(info, true), closed = this.isClosed(info);
       const units = this.tpl.basket * (1 + 0.5 * (alt.promoDepth / 100) * (alt.promoShare / 100));
       const store = closed ? 0 : Math.min(this.visitorsMean(info) * this.conversion(w.priceIdx, w.outShare), this.capacity(info.day));
       out.push(Math.round((store + this.onlineMean(info) * Math.pow(w.priceIdx, -0.5 * this.tpl.elasticity)) * units * w.unitNet));
@@ -451,7 +451,7 @@ export class Sim {
     }
 
     // stock: sales, spoilage, reorders
-    const IM = T.inventory_movements, delay = this.anomalyAt(d, 1)?.mag ?? 0;
+    const IM = T.inventory_movements, late = this.anomalyAt(d, 1), lateSup = late ? late.start % tpl.suppliers.length : -1;
     let waste = 0, outs = 0, invValue = 0;
     for (let p = 0; p < this.everN; p++) {
       if (this.sold[p]) IM.add(IM.n + 1, d, p + 1, 1, -this.sold[p], this.stock[p]);
@@ -462,7 +462,7 @@ export class Sim {
       }
       if (!closed) this.ewma[p] = 0.85 * this.ewma[p] + 0.15 * (this.sold[p] + this.lostU[p]);
       this.sold[p] = 0; this.lostU[p] = 0;
-      if (p < this.activeN) { if (this.stock[p] <= 0) outs++; this.order(p, d, delay); }
+      if (p < this.activeN) { if (this.stock[p] <= 0) outs++; this.order(p, d, this.supOf[p] === lateSup ? late!.mag : 0); }
       invValue += this.stock[p] * this.cost[p];
     }
 

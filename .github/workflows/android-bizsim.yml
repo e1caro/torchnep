@@ -1,0 +1,121 @@
+name: android-bizsim
+
+# Tests and builds BizSim (bizsim/): the web app and its Android app (the same web app wrapped with Capacitor).
+# - On pull requests that touch the app: runs the tests and builds the APK as a check (downloadable from the run's artifacts).
+# - On master, or run by hand (Actions > android-bizsim > Run workflow): also publishes a release "BizSim 1.N"
+#   (tag bizsim-N) with the APK, which can be downloaded and installed straight from a phone.
+# Tags are bizsim-N, never v* (that would start the PyPI publish workflow), app-N (FitQuest's updater looks for
+# those) or analyst-N; releases are not marked "latest".
+#
+# Signing: every release must use the same key, so each APK installs over the previous one and keeps the data.
+# It reuses the repository's sideload key (secrets FITQUEST_KEYSTORE and FITQUEST_KEY_PASS, as android.yml does).
+# Without them a one-off key is generated: the APK installs, but a later one will not update it.
+
+on:
+  push:
+    branches: [master]
+    paths: ["bizsim/**", ".github/workflows/android-bizsim.yml"]
+  pull_request:
+    branches: [master]
+    paths: ["bizsim/**", ".github/workflows/android-bizsim.yml"]
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "What's new in this version"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-bizsim-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bizsim
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: bizsim/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npm test
+
+      - name: Build the web app
+        run: npm run build
+
+      - name: Two-device sync test in a browser
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          npm run e2e
+
+      - name: Copy the web app into the Android project
+        run: npx cap sync android
+
+      - name: Build the APK
+        run: |
+          cd android
+          ./gradlew assembleRelease -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon --console=plain
+
+      - name: Sign, name and check the APK
+        env:
+          KEYSTORE: ${{ secrets.FITQUEST_KEYSTORE }}
+          KEY_PASS: ${{ secrets.FITQUEST_KEY_PASS || 'fitquest' }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > bizsim.jks
+          else
+            echo "::warning::No FITQUEST_KEYSTORE secret: signing with a one-off key, so a later APK will not be able to update this one."
+            keytool -genkeypair -keystore bizsim.jks -alias fitquest -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "$KEY_PASS" -keypass "$KEY_PASS" -dname "CN=BizSim"
+          fi
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          APK=BizSim-1.${{ github.run_number }}.apk
+          "$BT/zipalign" -f -p 4 android/app/build/outputs/apk/release/app-release-unsigned.apk aligned.apk
+          "$BT/apksigner" sign --ks bizsim.jks --ks-key-alias fitquest --ks-pass "pass:$KEY_PASS" --key-pass "pass:$KEY_PASS" --out "$APK" aligned.apk
+          "$BT/apksigner" verify --print-certs "$APK" | head -3
+          # the web app and the SQLite engine must really be inside
+          unzip -l "$APK" | grep -E "assets/public/index.html"
+          unzip -l "$APK" | grep -E "assets/public/assets/sql-wasm.*\.wasm"
+          "$BT/aapt2" dump badging "$APK" | grep -E "^package|^sdkVersion|^targetSdkVersion|^application-label:"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BizSim-1.${{ github.run_number }}
+          path: bizsim/BizSim-1.${{ github.run_number }}.apk
+
+      - name: Publish the release
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: bizsim-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: BizSim 1.${{ github.run_number }}
+          body: |
+            ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notes) || 'BizSim for Android: simulated businesses with realistic data to practise data analysis.' }}
+
+            **Install on Android:** download `BizSim-1.${{ github.run_number }}.apk` on your phone, open it and allow "Install unknown apps" for your browser when asked.
+            **Instalar en Android:** descarga `BizSim-1.${{ github.run_number }}.apk` en el móvil, ábrelo y permite "Instalar apps desconocidas" para tu navegador cuando te lo pida.
+
+            Sign in under Settings with the same account as on the web version and your businesses appear on both.
+          files: bizsim/BizSim-1.${{ github.run_number }}.apk
+          make_latest: false

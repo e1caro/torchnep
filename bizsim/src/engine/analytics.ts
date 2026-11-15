@@ -157,7 +157,7 @@ export function dashboard(sim: Sim, filters: Filters): Dash {
   // weekday profile and heatmap, per open day of that weekday
   const dowDays = new Array(7).fill(0), weekday = Array.from({ length: 7 }, () => ({ rev: 0, tx: 0, walkouts: 0 }));
   const isOpen = ds('is_open'), wo = ds('walkouts');
-  for (let d = from; d <= to; d++) { const w = sim.cal.get(d).dow; if (isOpen[d]) dowDays[w]++; weekday[w].rev += rev[d - from]; weekday[w].tx += perDay.tx[d - from]; weekday[w].walkouts += wo[d]; }
+  for (let d = from; d <= to; d++) { const w = sim.cal.get(d).dow; dowDays[w]++; weekday[w].rev += rev[d - from]; weekday[w].tx += perDay.tx[d - from]; weekday[w].walkouts += wo[d]; }
   weekday.forEach((w, i) => { const n = Math.max(1, dowDays[i]); w.rev = Math.round((w.rev / n) * 100) / 100; w.tx = Math.round((w.tx / n) * 10) / 10; w.walkouts = Math.round((w.walkouts / n) * 10) / 10; });
   const heat = heatN.map((row, i) => row.map(v => Math.round((v / Math.max(1, dowDays[i])) * 10) / 10));
 
