@@ -139,6 +139,18 @@ class OnDeviceTest {
             shot("2-note-sheet.png")
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].select(null) }
             Thread.sleep(1500)
+            // cut mode with bars 2 to 4 selected
+            scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; vm.setEditing(true); vm.tapBar(2); vm.tapBar(4) }
+            Thread.sleep(1500)
+            shot("7-cut.png")
+            scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; vm.deleteSelection() }
+            Thread.sleep(4000)
+            var bars = 0
+            scenario.onActivity { bars = ViewModelProvider(it)[ScorebookViewModel::class.java].take.value!!.score.measures.size }
+            File(out, "cut.txt").writeText("bars after cutting 2-4: $bars\n")
+            assertTrue("bars after cut: $bars", bars in 11..14)
+            scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; vm.setEditing(false) }
+            Thread.sleep(1000)
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].closeTake() }
             Thread.sleep(2500)
             shot("3-listen.png")
