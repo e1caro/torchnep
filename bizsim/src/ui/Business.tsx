@@ -46,9 +46,9 @@ export function Business({ id, tab }: { id: string; tab: string }) {
         <button className="btn ghost !px-2.5" aria-label={t('back')} onClick={() => go('')}><ArrowLeft size={18} /></button>
         <span className="w-10 h-10 rounded-2xl grid place-items-center text-white shrink-0" style={{ background: ctx.accent }}><Icon size={20} /></span>
         <div className="min-w-0 flex-1"><h1 className="text-xl font-bold truncate">{r.big.name}</h1><p className="text-xs text-muted truncate">{t(`t_${r.big.type}`)} · {r.big.sizeM2} m² · {t(`loc${r.big.locationTier}` as Key)} · {t(`pos${r.big.pricePos}` as Key)}</p></div>
-        <div className="card flex items-center gap-2 p-1.5 pl-3 flex-wrap">
-          <div className="mr-1"><div className="text-sm font-semibold num leading-tight">{dateLong(r.big.startDate, r.day - 1, lang)}</div><div className="text-[11px] text-muted leading-tight">{t('dayN', { n: r.day })}</div></div>
-          <button className="btn primary !px-3" disabled={!ready} aria-label={playing ? t('pause') : t('play')} onClick={() => setPlaying(id, !playing)}>{playing ? <Pause size={16} /> : <Play size={16} />}<span className="hidden sm:inline">{playing ? t('pause') : t('play')}</span></button>
+        <div className="card flex items-center gap-2 p-1.5 pl-3 flex-wrap w-full sm:w-auto">
+          <div className="mr-1 w-[6.6rem] shrink-0"><div className="text-sm font-semibold num leading-tight whitespace-nowrap">{dateLong(r.big.startDate, r.day - 1, lang)}</div><div className="text-[11px] text-muted leading-tight">{t('dayN', { n: r.day })}</div></div>
+          <button className="btn primary !px-3 sm:min-w-[8.5rem]" disabled={!ready} aria-label={playing ? t('pause') : t('play')} onClick={() => setPlaying(id, !playing)}>{playing ? <Pause size={16} /> : <Play size={16} />}<span className="hidden sm:inline">{playing ? t('pause') : t('play')}</span></button>
           <Seg label={t('speed')} value={speed} options={[[1, '1×'], [7, '7×'], [30, '30×']]} onChange={setSpeed} />
           {[30, 90].map(n => <button key={n} className="btn !px-2.5" disabled={!ready || playing} title={`${t('skip')} +${n}`} onClick={() => advance(id, n)}><FastForward size={14} />+{n}</button>)}
         </div>
@@ -58,7 +58,7 @@ export function Business({ id, tab }: { id: string; tab: string }) {
         {TABS.map(k => <button key={k} onClick={() => go(`b/${id}/${k}`)} aria-current={tab === k ? 'page' : undefined} className={`px-3.5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap ${tab === k ? 'bg-accent text-white' : 'text-ink2 hover:bg-surface'}`}>{t(TAB_KEY[k])}</button>)}
       </nav>
 
-      {rt?.error ? <Card><p className="text-bad text-sm">{rt.error}</p></Card> : !ready && !dash ? <Progress value={rt?.progress ?? 0} label={t('generating', { n: int(r.day, lang) })} /> : tab === 'data' ? <DataView recipe={r} /> : tab === 'export' ? <ExportView recipe={r} /> : (
+      {rt?.error ? <Card><p className="text-bad text-sm">{rt.error}</p></Card> : !ready && !dash ? <Progress value={rt?.progress ?? 0} label={t('generating', { n: int(r.day, lang) })} /> : tab === 'data' ? <DataView recipe={r} playing={playing} /> : tab === 'export' ? <ExportView recipe={r} /> : (
         <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_340px] xl:gap-5 items-start">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2 mb-4">
@@ -109,7 +109,7 @@ function Tabs({ tab, d, c, r, filtered }: { tab: string; d: DashResult; c: ch.Ct
       {note}
       <Card title={t('c_revenue')} sub={d.to === d.day - 1 ? t('c_projNote') : undefined} className="mb-4"><Chart option={o.a} height={320} label={t('c_revenue')} /></Card>
       <div className={two}>
-        <Card title={t('c_byCategory')}><Chart option={o.b} height={Math.max(180, d.categories.length * 30)} label={t('c_byCategory')} /></Card>
+        <Card title={t('c_byCategory')}><Chart option={o.b} height={ch.hbarH(d.categories.length, c)} label={t('c_byCategory')} /></Card>
         <Card title={t('c_heat')} sub={t('c_heatSub')}><Chart option={o.c} height={270} label={t('c_heat')} /></Card>
       </div>
       <Card title={t('c_pnl')}><Chart option={o.d} height={300} label={t('c_pnl')} /></Card>
@@ -118,7 +118,7 @@ function Tabs({ tab, d, c, r, filtered }: { tab: string; d: DashResult; c: ch.Ct
   if (tab === 'sales') return (
     <div className="fade-in">
       <div className={two}>
-        <Card title={t('c_top')}><Chart option={o.a} height={380} label={t('c_top')} /></Card>
+        <Card title={t('c_top')}><Chart option={o.a} height={ch.hbarH(12, c)} label={t('c_top')} /></Card>
         <Card title={t('c_pareto')} sub={`${t('c_paretoSub')}. ${t('c_paretoA', { a: o.pa!.a80, n: o.pa!.n })}.`}><Chart option={o.b} height={340} label={t('c_pareto')} /></Card>
       </div>
       <div className={two}>
@@ -126,8 +126,8 @@ function Tabs({ tab, d, c, r, filtered }: { tab: string; d: DashResult; c: ch.Ct
         <Card title={t('c_weekday')}><Chart option={o.d} height={320} label={t('c_weekday')} /></Card>
       </div>
       <div className={two}>
-        {r.big.online && <Card title={t('c_channels')}><Chart option={o.e} height={110} label={t('c_channels')} /></Card>}
-        <Card title={t('c_payments')}><Chart option={o.f} height={40 + d.payments.length * 32} label={t('c_payments')} /></Card>
+        {r.big.online && <Card title={t('c_channels')}><Chart option={o.e} height={ch.hbarH(2, c)} label={t('c_channels')} /></Card>}
+        <Card title={t('c_payments')}><Chart option={o.f} height={ch.hbarH(4, c)} label={t('c_payments')} /></Card>
       </div>
       <Card title={t('c_monthly')}><MiniTable head={[t('month'), t('revenue'), t('margin'), t('profit')]} rows={d.monthly.map(m => [m.month, money(m.rev, lang), money(m.margin, lang), money(m.profit, lang)])} /></Card>
     </div>
@@ -142,8 +142,8 @@ function Tabs({ tab, d, c, r, filtered }: { tab: string; d: DashResult; c: ch.Ct
       <Card title={t('c_newRet')} className="mb-4"><Chart option={o.a} height={280} label={t('c_newRet')} /></Card>
       <Card title={t('c_cohort')} sub={t('c_cohortSub')} className="mb-4"><Chart option={o.b} height={Math.max(200, 60 + d.cohorts.length * 30)} label={t('c_cohort')} /></Card>
       <div className={two}>
-        <Card title={t('c_rfm')} sub={t('c_rfmSub')}><Chart option={o.c} height={230} label={t('c_rfm')} /></Card>
-        <Card title={t('c_rfm')}><MiniTable head={['', t('customers'), t('recency'), t('frequency'), t('monetary')]} rows={d.rfm.map(x => [t(`seg_${x.segment}` as Key), int(x.customers, lang), String(x.recency), num(x.frequency, lang), money(x.monetary, lang, 2)])} /></Card>
+        <Card title={t('c_rfm')} sub={t('c_rfmSub')}><Chart option={o.c} height={ch.hbarH(6, c)} label={t('c_rfm')} /></Card>
+        <Card title={t('c_rfmTable')}><MiniTable head={['', t('customers'), t('recency'), t('frequency'), t('monetary')]} rows={d.rfm.map(x => [t(`seg_${x.segment}` as Key), int(x.customers, lang), String(x.recency), num(x.frequency, lang), money(x.monetary, lang, 2)])} /></Card>
       </div>
     </div>
   );
@@ -192,9 +192,9 @@ function Tabs({ tab, d, c, r, filtered }: { tab: string; d: DashResult; c: ch.Ct
 
 function MiniTable({ head, rows }: { head: string[]; rows: string[][] }) {
   return (
-    <div className="overflow-auto max-h-80"><table className="w-full text-sm num">
-      <thead><tr>{head.map((h, i) => <th key={i} className={`label py-2 px-2 sticky top-0 bg-surface ${i ? 'text-right' : 'text-left'}`}>{h}</th>)}</tr></thead>
-      <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-line">{r.map((v, j) => <td key={j} className={`py-1.5 px-2 ${j ? 'text-right' : 'text-left'}`}>{v}</td>)}</tr>)}</tbody>
+    <div className="overflow-auto max-h-80"><table className="w-full text-[13px] sm:text-sm num whitespace-nowrap">
+      <thead><tr>{head.map((h, i) => <th key={i} className={`label py-2 px-1.5 sm:px-2 sticky top-0 bg-surface ${i ? 'text-right' : 'text-left'}`} style={{ whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+      <tbody>{rows.map((r, i) => <tr key={i} className="border-t border-line">{r.map((v, j) => <td key={j} className={`py-1.5 px-1.5 sm:px-2 ${j ? 'text-right' : 'text-left'}`}>{v}</td>)}</tr>)}</tbody>
     </table></div>
   );
 }
@@ -208,15 +208,15 @@ function Controls({ r }: { r: Recipe }) {
   return (
     <div>
       <h2 className="font-semibold">{t('ctlTitle')}</h2>
-      <p className="text-xs text-muted mt-1 leading-snug">{t('ctlHint', { date: dateLong(r.big.startDate, r.day, lang) })}</p>
-      {pend.length > 0 && <div className="flex items-center justify-between gap-2 mt-3 p-2 pl-3 rounded-xl bg-surface2 text-sm"><span className="font-semibold">{pend.length === 1 ? t('pending') : t('pendingN', { n: pend.length })}</span><button className="btn ghost !min-h-8" onClick={() => undoPending(r.id)}><Undo2 size={14} />{t('undo')}</button></div>}
+      <p className="text-xs text-muted mt-1 leading-snug min-h-[2.6em]">{t('ctlHint', { date: dateLong(r.big.startDate, r.day, lang) })}</p>
+      <div className="flex items-center justify-between gap-2 mt-3 p-2 pl-3 rounded-xl bg-surface2 text-sm min-h-12" aria-live="polite"><span className={pend.length ? 'font-semibold' : 'text-muted'}>{pend.length === 0 ? t('noPending') : pend.length === 1 ? t('pending') : t('pendingN', { n: pend.length })}</span><button className="btn ghost !min-h-8" disabled={!pend.length} onClick={() => undoPending(r.id)}><Undo2 size={14} />{t('undo')}</button></div>
       <div className="mt-2 divide-y divide-line">
         {defs.map(d => <Slider key={d.key} label={t(`p_${d.key}` as Key)} hint={t(`ph_${d.key}` as Key)} value={Math.min(d.max, Math.max(d.min, now[d.key]))} min={d.min} max={d.max} step={d.step} format={fmt(d)} mark={now[d.key] !== applied[d.key]} onChange={v => logChange(r.id, d.key, v, applied[d.key])} />)}
       </div>
       <button className="btn w-full mt-3" onClick={() => setPrices(true)}><Tag size={16} />{t('prices')}</button>
       <h3 className="label mt-5 mb-2">{t('changeLog')}</h3>
       {log.length === 0 ? <p className="text-xs text-muted">{t('noChanges')}</p> : (
-        <ul className="text-xs space-y-1.5">{log.map(c => (
+        <ul className="text-xs space-y-1.5 max-h-48 overflow-auto">{log.map(c => (
           <li key={c.id} className="flex justify-between gap-2"><span className="text-ink2 truncate">{dateLong(r.big.startDate, c.day, lang)} · {c.param.startsWith('price:') ? `${t('price')} #${c.param.slice(6)}` : t(`p_${c.param}` as Key)}</span><span className="num font-semibold whitespace-nowrap">{c.old} → {c.value}{c.day >= r.day && <span className="ml-1 text-accent">●</span>}</span></li>
         ))}</ul>
       )}

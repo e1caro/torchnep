@@ -5,5 +5,7 @@ const config: CapacitorConfig = {
   appName: 'BizSim',
   webDir: 'dist',
   android: { backgroundColor: '#0d0d0d' },
+  // keeps the header clear of the status bar and the tab bar clear of the gesture bar on edge-to-edge Android
+  plugins: { SystemBars: { insetsHandling: 'css' } },
 };
 export default config;

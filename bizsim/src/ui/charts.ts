@@ -46,15 +46,17 @@ const paramName = (p: string, c: Ctx) => (p.startsWith('price:') ? c.t('price') 
 const dedupe = (a: { name: string; xAxis: string }[]) => { const seen = new Map<string, { name: string; xAxis: string }>(); for (const x of a) { const e = seen.get(x.xAxis); if (e) e.name = e.name.includes(x.name) ? e.name : `${e.name}, ${x.name}`; else seen.set(x.xAxis, { ...x }); } return [...seen.values()]; };
 
 export function hbars(names: string[], values: number[], c: Ctx, fmt: (v: number) => string, color = c.accent) {
-  const k = INK[c.theme], maxLen = c.narrow ? 16 : 26;
+  const k = INK[c.theme], maxLen = c.narrow ? 40 : 26, cut = (v: string) => (v.length > maxLen ? v.slice(0, maxLen - 1) + '…' : v);
   return {
-    ...base(c), grid: { left: 8, right: 56, top: 4, bottom: 4, containLabel: true },
-    xAxis: valAxis(c, () => '', { splitLine: { show: false } }),
-    yAxis: catAxis(c, names, { inverse: true, axisLine: { show: false }, axisLabel: { color: k.ink2, fontSize: 12, formatter: (v: string) => (v.length > maxLen ? v.slice(0, maxLen - 1) + '…' : v) } }),
-    series: [bar(values, color, true, { label: { show: true, position: 'right', color: k.ink2, fontSize: 11, formatter: (p: { value: number }) => fmt(p.value) } })],
+    ...base(c), grid: c.narrow ? { left: 4, right: 64, top: 16, bottom: 0 } : { left: 8, right: 56, top: 4, bottom: 4, containLabel: true },
+    xAxis: valAxis(c, () => '', { splitLine: { show: false }, axisLabel: { show: false } }),
+    yAxis: catAxis(c, names, { inverse: true, axisLine: { show: false }, z: 3, axisLabel: c.narrow ? { inside: true, margin: 0, verticalAlign: 'bottom', padding: [0, 0, 8, 0], color: k.ink2, fontSize: 12, formatter: cut } : { color: k.ink2, fontSize: 12, formatter: cut } }),
+    series: [bar(values, color, true, { ...(c.narrow ? { barWidth: 10 } : {}), label: { show: true, position: 'right', color: k.ink2, fontSize: 11, formatter: (p: { value: number }) => fmt(p.value) } })],
     tooltip: { ...base(c).tooltip, trigger: 'item', formatter: (p: { name: string; value: number }) => `${p.name}<br><b>${fmt(p.value)}</b>` },
   };
 }
+/** Height for a horizontal bar chart of n rows. */
+export const hbarH = (n: number, c: Ctx) => 16 + n * (c.narrow ? 40 : 30);
 export function vbars(names: string[], values: number[], c: Ctx, fmt: (v: number) => string, color = c.accent) {
   return { ...base(c), xAxis: catAxis(c, names), yAxis: valAxis(c, fmt), series: [bar(values, color)], tooltip: { ...base(c).tooltip, axisPointer: { type: 'shadow' }, valueFormatter: fmt } };
 }
