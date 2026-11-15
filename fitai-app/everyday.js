@@ -92,7 +92,7 @@ function evRest() {
     let bar = $('#evrest');
     if (!end || left <= 0) {
       bar?.remove(); clearInterval(EVR);
-      if (end && session) { session.restEnd = null; saveSess(); sfx('claim'); if (navigator.vibrate) navigator.vibrate([250, 120, 250]); toast(tr('Rest over: next set!')); }
+      if (end && session) { session.restEnd = null; saveSess(); if (Date.now() - end < 4000) { sfx('claim'); if (navigator.vibrate) navigator.vibrate([250, 120, 250]); toast(tr('Rest over: next set!')); } }
       return;
     }
     if (!bar) {

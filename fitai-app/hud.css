@@ -1366,3 +1366,9 @@ html[data-skin] .btn.hwgo .gi{background:#1a0d03}
 .evwk{margin-top:14px}.evh{gap:12px;align-items:center;color:inherit;text-decoration:none}.evday{display:grid;justify-items:center;min-width:40px}.evday b{font:800 20px var(--disp)}.evday span{font-size:11px;color:var(--mut);text-transform:capitalize}
 .evfe{font-size:20px}.evrec{color:inherit;text-decoration:none;align-items:center;gap:10px}.evrm{display:grid;justify-items:end}.evrm b{font:800 20px var(--disp)}.evrm span{font-size:11px;color:var(--mut)}
 .evall{width:100%;margin-top:4px}.evsets{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-top:8px}.evsets div{display:flex;gap:6px;align-items:baseline}
+#hfgo{position:fixed;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:8}
+#hfgo .hfgo{width:100%;min-height:66px;margin:0;display:flex;align-items:center;justify-content:center;gap:12px;border-radius:18px;font-size:19px;box-shadow:0 8px 28px #0009}
+#hfgo .hfgo span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15;text-align:left}#hfgo .hfgo small{font-size:14px;font-weight:600;opacity:.8}
+body.focus.hf{padding-bottom:calc(100px + env(safe-area-inset-bottom))}body.hf #evrest{bottom:calc(90px + env(safe-area-inset-bottom))}
+.hfopts{display:flex;gap:6px;margin-left:auto;margin-right:8px}.hft{width:36px;height:36px;padding:0;border-radius:10px;border:1px solid var(--line);background:var(--card2);font-size:17px;cursor:pointer;opacity:.55}.hft.on{opacity:1;border-color:var(--acc)}
+body.hf .xpchip{white-space:nowrap}

@@ -25,11 +25,10 @@ function routineView(id) {
   if (needProfile()) return;
   const r = rtGet(id); if (!r) { location.hash = '#/plan'; return; }
   const sets = r.items.reduce((a, it) => a + (+it.sets || 0), 0);
-  const hasAbs = r.items.some(it => BY[it.id]?.m?.includes('abdominals'));
   view.innerHTML = `<button class="btn sm ghost back" onclick="location.hash='#/plan'">${ic('back', 18)} Back</button><h1>Edit routine</h1>
   <div class="lbl">Name</div><input id="rt-name" value="${esc(r.name)}" maxlength="40">
   <div class="mut" style="margin-top:8px">${r.items.length} exercises · ${sets} sets · ~${Math.max(5, Math.round((WARMUP + r.items.reduce((t, it) => t + exSecs(it), 0)) / 60))} min</div>
-  <div class="row" style="margin-top:10px">${r.items.length ? `<button class="btn grow" onclick="startRoutine('${r.id}')">Start routine</button>` : ''}<button class="btn ghost sm" onclick="rtComplete('${r.id}')">${ic('plus', 16)} ${hasAbs ? 'Complete routine' : 'Add Abs & complete'}</button></div>
+  <div class="row" style="margin-top:10px">${r.items.length ? `<button class="btn grow" onclick="startRoutine('${r.id}')">Start routine</button>` : ''}<button class="btn ghost sm" onclick="rtComplete('${r.id}')">${ic('plus', 16)} Complete routine</button></div>
   ${r.items.length ? '' : '<div class="card mut" style="margin-top:10px">No exercises yet. Add some below.</div>'}
   ${r.items.map((it, i) => { const e = BY[it.id]; if (!e) return ''; return `<section class="card rt-item"><div class="row"><a class="row grow" href="#/exercise/${e.id}">${thumb(e)}<div><b>${esc(e.n)}</b><div class="mut">${e.m[0]} · ${e.e}</div></div></a></div>
     <div class="rt-grid"><label><span class="mut">Sets</span><input type="number" inputmode="numeric" min="1" max="10" value="${it.sets}" onchange="rtSet(${i},'sets',this.value)"></label>
@@ -77,12 +76,9 @@ window.rtComplete = id => {
   const strItems = r.items.filter(it => BY[it.id]?.c !== 'stretching' && BY[it.id]?.c !== 'cardio');
   const stItems = r.items.filter(it => BY[it.id]?.c === 'stretching');
   const worked = new Set(strItems.flatMap(it => BY[it.id]?.m || []));
-  const targets = ['abdominals', 'chest', 'lats', 'quadriceps', 'shoulders', 'hamstrings', 'glutes'];
+  const targets = ['chest', 'lats', 'quadriceps', 'shoulders', 'hamstrings', 'glutes', 'abdominals'];
   const missing = targets.filter(m => !worked.has(m));
-  const needStr = Math.max(0, 5 - strItems.length);
-  const want = !worked.has('abdominals')
-    ? ['abdominals', ...missing.filter(m => m !== 'abdominals').slice(0, Math.max(0, needStr - 1))]
-    : missing.slice(0, needStr);
+  const want = missing.slice(0, Math.max(0, 4 - strItems.length));
   const pool = EX.filter(e => e.c === 'strength' && haveEq(e) && !r.items.some(it => it.id === e.id));
   let added = 0;
   want.forEach(m => {

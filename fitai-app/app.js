@@ -32,11 +32,11 @@ const KIND_MUSCLES = {
   PULL: ['lats', 'middle back', 'traps', 'biceps', 'forearms', 'lower back', 'abdominals'],
 };
 const DAYS = {
-  FULL: ['quadriceps', 'chest', 'lats', 'abdominals', 'shoulders', 'hamstrings', 'glutes', 'biceps', 'triceps', 'calves'],
-  UPPER: ['chest', 'lats', 'shoulders', 'abdominals', 'middle back', 'biceps', 'triceps', 'traps'],
-  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'abdominals', 'calves', 'lower back', 'quadriceps', 'hamstrings'],
-  PUSH: ['chest', 'shoulders', 'triceps', 'abdominals', 'chest', 'shoulders', 'triceps'],
-  PULL: ['lats', 'middle back', 'biceps', 'abdominals', 'traps', 'lower back', 'forearms'],
+  FULL: ['quadriceps', 'chest', 'lats', 'shoulders', 'hamstrings', 'glutes', 'biceps', 'triceps', 'abdominals', 'calves'],
+  UPPER: ['chest', 'lats', 'shoulders', 'middle back', 'biceps', 'triceps', 'abdominals', 'traps'],
+  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'lower back', 'abdominals', 'quadriceps', 'hamstrings'],
+  PUSH: ['chest', 'shoulders', 'triceps', 'chest', 'shoulders', 'abdominals', 'triceps'],
+  PULL: ['lats', 'middle back', 'biceps', 'traps', 'lower back', 'abdominals', 'forearms'],
 };
 const KIND_NAME = { FULL: 'Full body', UPPER: 'Upper body', LOWER: 'Lower body', PUSH: 'Push', PULL: 'Pull' };
 const SPLITS = {
@@ -258,15 +258,6 @@ function generatePlan(p) {
       if (items.length >= minStr && exSecs(it) > left) break;
       items.push(it); left -= exSecs(it);
     }
-    // Guarantee every workout day includes a dedicated core/abdominals exercise without exceeding maxStr
-    if (!items.some(it => BY[it.id]?.m[0] === 'abdominals')) {
-      const ab = pick('abdominals', items);
-      if (ab) {
-        const abIt = { id: ab.id, sets: focusMuscles.includes('abdominals') ? sets + 1 : sets, reps: p.goal === 'strength' ? '12-15' : reps, rest: Math.min(rest, 60) };
-        if (items.length >= maxStr || exSecs(abIt) > left + 120) items[items.length - 1] = abIt;
-        else items.push(abIt);
-      }
-    }
     if (cIt && pos === 'start') { items.unshift(cIt); tail.shift(); }
     // stretches for the muscles worked today, most worked first, one per muscle before repeating
     const worked = Object.entries(items.reduce((a, it) => { const m = BY[it.id]?.m[0]; if (m && BY[it.id].c !== 'cardio') a[m] = (a[m] || 0) + it.sets; return a; }, {}))
@@ -289,7 +280,7 @@ function generatePlan(p) {
     while (!+p.stretchMin && over() > 90 && items.filter(it => BY[it.id]?.c === 'stretching').length > 3) items.splice(items.findLastIndex(it => BY[it.id]?.c === 'stretching'), 1);
     return { name: `Day ${di + 1} · ${KIND_NAME[kind]}`, kind, items };
   });
-  return { created: Date.now(), days, timed: 1, ver: 3 };
+  return { created: Date.now(), days, timed: 2, abs: 1, ver: 3 };
 }
 
 // ---------- today's time ----------
@@ -328,8 +319,8 @@ function fitDay(di, minutes) {
   const used = () => fixed + str.reduce((a, it) => a + exSecs(it), 0), budget = minutes * 60;
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
   const slots = [...DAYS[base.kind], ...DAYS[base.kind], ...DAYS[base.kind]];
-  const minStr = minutes <= 30 ? 3 : minutes <= 45 ? 4 : minutes <= 60 ? 5 : 6;
-  const maxStr = minutes <= 30 ? 4 : minutes <= 45 ? 5 : minutes <= 60 ? 5 : minutes <= 75 ? 6 : 7;
+  const minStr = minutes <= 45 ? 2 : minutes <= 75 ? 3 : 4;
+  const maxStr = minutes <= 30 ? 3 : minutes <= 45 ? 4 : minutes <= 75 ? 5 : minutes <= 90 ? 6 : 7;
   for (let k = 0; k < slots.length; k++) {
     if (str.length >= maxStr) break;
     const m = slots[(k + str.length) % slots.length];
@@ -340,18 +331,7 @@ function fitDay(di, minutes) {
     if (str.length >= minStr && used() + exSecs(it) > budget + 60) break;
     str.push(it);
   }
-  while ((used() > budget + 60 && str.length > minStr) || str.length > maxStr) {
-    const idx = str.findLastIndex(it => BY[it.id]?.m[0] !== 'abdominals');
-    if (idx >= 0) str.splice(idx, 1); else break;
-  }
-  if (!str.some(it => BY[it.id]?.m[0] === 'abdominals')) {
-    const ab = shuffle(pool.filter(e => e.m[0] === 'abdominals' && !str.some(x => x.id === e.id)), r)[0];
-    if (ab) {
-      const abIt = { id: ab.id, sets, reps: p.goal === 'strength' ? '12-15' : reps, rest: Math.min(rest, 60) };
-      if (str.length >= maxStr) str[str.length - 1] = abIt;
-      else str.push(abIt);
-    }
-  }
+  while ((used() > budget + 60 && str.length > minStr) || str.length > maxStr) str.pop();
   for (let k = str.length - 1; k >= 0 && used() > budget + 60; k--) if (str[k].sets > 2) { str[k].sets--; k++; }
   // short on time: shorter cardio, fewer stretches (only what is on "auto")
   if (cardio.length && !+p.cardioMin) while (used() > budget + 60 && parseInt(cardio[0].reps) > 5) cardio[0].reps = `${parseInt(cardio[0].reps) - 1} min`;
@@ -800,7 +780,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE && !APP_PLAY && !APP_DEV ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 205</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
+  <div class="mut setfoot"><span>FitQuest version 206</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -945,6 +925,20 @@ try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // th
     await langReady();
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }
   EX.forEach(e => { BY[e.id] = e; });
+  if (S.profile && S.plan && S.plan.abs !== 1) {
+    const have = equipSet(S.profile), keep = S.profile.focus?.includes('abs');
+    const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, S.profile, have));
+    if (!keep) S.plan.days.forEach(d => {
+      if (d.routine) return;
+      const i = d.items.findIndex(it => BY[it.id]?.m[0] === 'abdominals' && !/min|s$/.test(String(it.reps)));
+      if (i < 0) return;
+      const has = new Set(d.items.map(it => BY[it.id]?.m[0])), m = (DAYS[d.kind] || DAYS.FULL).find(x => x !== 'abdominals' && !has.has(x));
+      const c = m && shuffle(pool.filter(e => e.m[0] === m && !d.items.some(it => it.id === e.id)), Math.random)[0];
+      const like = d.items.find(it => it !== d.items[i] && BY[it.id]?.m[0] !== 'abdominals' && !/min|s$/.test(String(it.reps)) && BY[it.id]?.c !== 'cardio');
+      if (c && like) d.items[i] = { id: c.id, sets: like.sets, reps: like.reps, rest: like.rest };
+    });
+    S.plan.abs = 1; save('plan', S.plan);
+  }
   // Upgrade existing plans to v3 (balanced 4-5 strength exercises including abs + 3-5 stretches)
   if (S.profile && S.plan && S.plan.ver !== 3) {
     if (typeof RT !== 'undefined' && Array.isArray(RT)) {
