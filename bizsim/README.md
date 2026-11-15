@@ -30,6 +30,14 @@ Everything is synthetic: every person, product, supplier and company is invented
   **dirty-data** switch adds missing values, duplicates, outliers, mixed date formats and messy text, with an answer key.
 - **English and Spanish**, dark and light themes.
 
+## Updates inside the Android app
+
+The installed app updates itself (`src/native/update.ts`). Each release `bizsim-N` carries `web.zip`, the whole web
+app. When the app opens it looks for a newer release, downloads it in the background and shows *Update now*; one tap
+restarts it on the new version. Businesses and the account are kept. Settings shows the version and a *Check for
+updates* button. Only a release that needs a newer native shell (`SHELL` in that file, published as `shell-S`) asks
+for a new APK. The web version needs none of this: it is always the latest.
+
 ## Linked with Analyst Path
 
 BizSim and Analyst Path (`../data-analyst-path`, the app for learning data analysis) share businesses.

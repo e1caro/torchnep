@@ -6,6 +6,8 @@ name: android-bizsim
 # - On pull requests that touch the app: runs the tests and builds the APK as a check (downloadable from the run's artifacts).
 # - On master, or run by hand (Actions > android-bizsim > Run workflow): also publishes a release "BizSim 1.N"
 #   (tag bizsim-N) with the APK, which can be downloaded and installed straight from a phone.
+# Each release also carries web.zip (the web app) and shell-S (the native version it needs): installed apps download
+# web.zip by themselves (bizsim/src/native/update.ts), so the APK is only reinstalled when the native part changes.
 # Tags are bizsim-N, never v* (that would start the PyPI publish workflow), app-N (FitQuest's updater looks for
 # those) or analyst-N; releases are not marked "latest".
 #
@@ -61,7 +63,16 @@ jobs:
         run: npm test
 
       - name: Build the web app
+        env:
+          BIZSIM_VERSION: ${{ github.run_number }} # installed apps compare this with newer releases
         run: npm run build
+
+      - name: Pack the web app for installed apps to update themselves
+        run: |
+          (cd dist && zip -qr ../web.zip .)
+          SHELL_V=$(grep -oE "^export const SHELL = [0-9]+" src/native/update.ts | grep -oE "[0-9]+$")
+          echo "$SHELL_V" > "shell-$SHELL_V" # not empty: GitHub refuses empty release files
+          ls -la web.zip shell-*
 
       - name: The engine bundled into Analyst Path is the one built from this source
         run: |
@@ -126,6 +137,10 @@ jobs:
             **Install on Android:** download `BizSim-1.${{ github.run_number }}.apk` on your phone, open it and allow "Install unknown apps" for your browser when asked.
             **Instalar en Android:** descarga `BizSim-1.${{ github.run_number }}.apk` en el móvil, ábrelo y permite "Instalar apps desconocidas" para tu navegador cuando te lo pida.
 
+            Already installed? The app updates itself: open it and accept the update.
             Sign in under Settings with the same account as on the web version and your businesses appear on both.
-          files: bizsim/BizSim-1.${{ github.run_number }}.apk
+          files: |
+            bizsim/BizSim-1.${{ github.run_number }}.apk
+            bizsim/web.zip
+            bizsim/shell-*
           make_latest: false

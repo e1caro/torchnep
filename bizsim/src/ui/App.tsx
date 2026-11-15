@@ -1,5 +1,5 @@
-import { BarChart3, GitCompareArrows, LayoutGrid, Settings as SettingsIcon } from 'lucide-react';
-import { useEffect } from 'react';
+import { BarChart3, Download, GitCompareArrows, LayoutGrid, Settings as SettingsIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { startLoops, useStore } from '../store';
 import { Business } from './Business';
 import { Compare } from './Compare';
@@ -10,7 +10,8 @@ import { Wizard } from './Wizard';
 
 let started = false;
 export function App() {
-  const route = useRoute(), t = useT(), { theme, lang } = useStore(s => s.settings);
+  const route = useRoute(), t = useT(), { theme, lang } = useStore(s => s.settings), update = useStore(s => s.update), applyUp = useStore(s => s.applyUpdate);
+  const [later, setLater] = useState(false);
   useEffect(() => { document.documentElement.dataset.theme = theme; document.documentElement.lang = lang; document.querySelector('meta[name=theme-color]')?.setAttribute('content', theme === 'dark' ? '#0d0d0d' : '#f4f4f1'); }, [theme, lang]);
   useEffect(() => { if (!started) { started = true; startLoops(); } }, []);
   const page = route[0] ?? '';
@@ -28,6 +29,13 @@ export function App() {
         ))}
       </aside>
       <main className="flex-1 min-w-0 pb-24 lg:pb-8 safe-t">
+        {update.status === 'ready' && !later && (
+          <div className="m-4 mb-0 card glow p-3 pl-4 flex flex-wrap items-center gap-3" role="status">
+            <div className="flex-1 min-w-48"><p className="text-sm font-semibold">{t('upReady', { n: update.version ?? 0 })}</p><p className="text-xs text-muted">{t('upReadyHint')}</p></div>
+            <button className="btn ghost" onClick={() => setLater(true)}>{t('upLater')}</button>
+            <button className="btn primary" onClick={() => applyUp()}><Download size={16} />{t('upApply')}</button>
+          </div>
+        )}
         {page === 'new' ? <Wizard /> : page === 'b' && route[1] ? <Business id={route[1]} tab={route[2] ?? 'overview'} /> : page === 'compare' ? <Compare /> : page === 'settings' ? <Settings /> : <Portfolio />}
       </main>
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-surface border-t border-line flex safe-b">

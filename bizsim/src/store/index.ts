@@ -6,6 +6,7 @@ import { AnalystLink, type AnalystState } from '../cloud/analyst';
 import { Cloud, type CloudError } from '../cloud/supabase';
 import type { BigParams, Lang, Recipe, SmallParams } from '../engine/types';
 import { isNative } from '../native/save';
+import { applyUpdate, checkForUpdate, type UpdateState } from '../native/update';
 import { sim } from '../worker/client';
 
 const KEY = 'bizsim.state';
@@ -26,6 +27,9 @@ interface State extends Saved {
   version: Record<string, number>;
   cloud: { user: string; syncAt: number; error: string; busy: boolean };
   analyst: AnalystState | null;
+  update: UpdateState;
+  checkUpdate: (force?: boolean) => Promise<void>;
+  applyUpdate: () => Promise<void>;
   linkAnalyst: (user: string, pass: string) => Promise<void>;
   unlinkAnalyst: () => void;
   refreshAnalyst: () => Promise<void>;
@@ -59,7 +63,9 @@ export const useStore = create<State>((set, get) => {
   const rt = (id: string, r: Partial<Runtime> | null) => set(s => { const next = { ...s.runtime }; if (r) next[id] = { ...(next[id] ?? { day: 0, progress: null }), ...r }; else delete next[id]; return { runtime: next }; });
 
   return {
-    ...loadSaved(), runtime: {}, playing: {}, speed: 1, version: {}, cloud: cloudView(), analyst: analyst.state,
+    ...loadSaved(), runtime: {}, playing: {}, speed: 1, version: {}, cloud: cloudView(), analyst: analyst.state, update: { status: 'idle' },
+    checkUpdate: force => checkForUpdate(u => set({ update: u }), force),
+    applyUpdate: () => applyUpdate(),
     async linkAnalyst(user, pass) { set({ analyst: await analyst.signIn(user, pass) }); },
     unlinkAnalyst() { analyst.signOut(); set({ analyst: null }); },
     async refreshAnalyst() { if (!analyst.state) return; try { set({ analyst: await analyst.refresh() }); } catch { set({ analyst: analyst.state }); } },
@@ -156,7 +162,8 @@ export function startLoops() {
     for (const r of s.list()) if (s.playing[r.id] && s.runtime[r.id] && s.runtime[r.id].progress === null) void s.advance(r.id, s.speed);
   }, 1000);
   const sync = () => { if (document.visibilityState === 'visible') void useStore.getState().syncNow(); };
-  sync(); void useStore.getState().refreshAnalyst(); setInterval(sync, 120000); document.addEventListener('visibilitychange', sync);
+  sync(); void useStore.getState().refreshAnalyst(); void useStore.getState().checkUpdate();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') void useStore.getState().checkUpdate(); }); setInterval(sync, 120000); document.addEventListener('visibilitychange', sync);
 }
 
 export const pendingChanges = (r: Recipe) => r.changes.filter(c => c.day >= r.day);

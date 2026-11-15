@@ -1,5 +1,7 @@
-import { CloudOff, GraduationCap, LogOut, RefreshCw } from 'lucide-react';
+import { CloudOff, Download, GraduationCap, LogOut, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { isNative } from '../native/save';
+import { WEB_VERSION } from '../native/update';
 import { BUSINESS_CHALLENGES, analystUrl } from '../cloud/analyst';
 import type { CloudError } from '../cloud/supabase';
 import { hasKey, type Key } from '../i18n';
@@ -60,6 +62,19 @@ export function Settings() {
             {apErr && <p className="text-sm text-bad" role="alert">{apErr}</p>}
             <div className="flex flex-wrap gap-2"><button className="btn primary" type="submit" disabled={apBusy}><GraduationCap size={16} />{t('apLink')}</button><a className="btn" href={`${analystUrl()}#/biz`} target="_blank" rel="noopener">{t('apOpen')}</a></div>
           </form>
+        )}
+      </Card>
+      <Card title={t('version')}>
+        <p className="text-sm font-semibold num">{WEB_VERSION ? t('versionN', { n: WEB_VERSION }) : t('versionDev')}</p>
+        {!isNative() ? <p className="text-xs text-muted mt-1">{t('upWeb')}</p> : (
+          <div className="grid gap-2 mt-2" aria-live="polite">
+            <p className="text-sm text-ink2">{s.update.status === 'checking' ? t('upChecking') : s.update.status === 'downloading' ? t('upDownloading', { n: s.update.version ?? 0 }) : s.update.status === 'ready' ? t('upReady', { n: s.update.version ?? 0 }) : s.update.status === 'needsApk' ? t('upNeedsApk', { n: s.update.version ?? 0 }) : s.update.status === 'error' ? t('upError') : s.update.status === 'current' ? t('upCurrent') : ''}</p>
+            <div className="flex flex-wrap gap-2">
+              {s.update.status === 'ready' ? <button className="btn primary" onClick={() => s.applyUpdate()}><Download size={16} />{t('upApply')}</button>
+                : s.update.status === 'needsApk' && s.update.page ? <a className="btn primary" href={s.update.page} target="_blank" rel="noopener"><Download size={16} />{t('upOpenPage')}</a>
+                  : <button className="btn" disabled={s.update.status === 'checking' || s.update.status === 'downloading'} onClick={() => s.checkUpdate(true)}><RefreshCw size={16} />{t('upCheck')}</button>}
+            </div>
+          </div>
         )}
       </Card>
       <Card title={t('about')}><p className="text-sm text-ink2 leading-relaxed">{t('aboutText')}</p></Card>
