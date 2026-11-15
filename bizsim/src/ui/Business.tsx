@@ -1,5 +1,6 @@
-import { ArrowLeft, FastForward, Pause, Play, SlidersHorizontal, Tag, Undo2 } from 'lucide-react';
+import { ArrowLeft, FastForward, GraduationCap, Pause, Play, SlidersHorizontal, Tag, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { practiceLink } from '../cloud/analyst';
 import { effectiveSmall } from '../cloud/merge';
 import { sliderDefs, type SliderDef } from '../engine/params';
 import { isoDate } from '../engine/table';
@@ -56,6 +57,7 @@ export function Business({ id, tab }: { id: string; tab: string }) {
 
       <nav className="flex gap-1 overflow-x-auto pb-2 mb-3 -mx-4 px-4 sm:mx-0 sm:px-0" aria-label={r.big.name}>
         {TABS.map(k => <button key={k} onClick={() => go(`b/${id}/${k}`)} aria-current={tab === k ? 'page' : undefined} className={`px-3.5 py-2 rounded-xl text-sm font-semibold whitespace-nowrap ${tab === k ? 'bg-accent text-white' : 'text-ink2 hover:bg-surface'}`}>{t(TAB_KEY[k])}</button>)}
+        <a className="btn ml-auto shrink-0" href={practiceLink(r)} target="_blank" rel="noopener" title={t('practiseHint')}><GraduationCap size={16} />{t('practise')}</a>
       </nav>
 
       {rt?.error ? <Card><p className="text-bad text-sm">{rt.error}</p></Card> : !ready && !dash ? <Progress value={rt?.progress ?? 0} label={t('generating', { n: int(r.day, lang) })} /> : tab === 'data' ? <DataView recipe={r} playing={playing} /> : tab === 'export' ? <ExportView recipe={r} /> : (

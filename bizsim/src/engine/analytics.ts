@@ -30,12 +30,12 @@ export interface Dash {
   channels: { name: string; rev: number; tx: number }[];
 }
 
-function txRange(sim: Sim, from: number, to: number): [number, number] {
+export function txRange(sim: Sim, from: number, to: number): [number, number] {
   const date = sim.T.transactions.ints('date'), n = sim.T.transactions.n;
   const lower = (d: number) => { let lo = 0, hi = n; while (lo < hi) { const m = (lo + hi) >> 1; if (date[m] < d) lo = m + 1; else hi = m; } return lo; };
   return [lower(from), lower(to + 1)];
 }
-function itemStart(sim: Sim, txRow: number): number {
+export function itemStart(sim: Sim, txRow: number): number {
   const tx = sim.T.transaction_items.ints('transaction_id'), n = sim.T.transaction_items.n;
   let lo = 0, hi = n; while (lo < hi) { const m = (lo + hi) >> 1; if (tx[m] < txRow + 1) lo = m + 1; else hi = m; } return lo;
 }

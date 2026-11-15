@@ -74,3 +74,33 @@ describe('sync', () => {
     expect(sb.saves.size).toBe(0); expect(d.cloud.signedIn).toBe(false);
   });
 });
+
+import { AnalystLink, analystUrl, practiceLink } from '../src/cloud/analyst';
+
+describe('Analyst Path link', () => {
+  it('the practise link carries the whole recipe and points at the sibling app', () => {
+    const r = { ...recipe('café-ñ', 5), snap: { rev30: 1, margin30: 0, profit30: 0, tx30: 0, spark: [1, 2], day: 3 } };
+    expect(analystUrl({ protocol: 'https:', origin: 'https://x.github.io', pathname: '/torchnep/bizsim/' })).toBe('https://x.github.io/torchnep/analyst/');
+    expect(analystUrl({ protocol: 'capacitor:', origin: 'capacitor://localhost', pathname: '/' })).toBe('https://e1caro.github.io/torchnep/analyst/');
+    const link = practiceLink(r, 'https://x/analyst/'), payload = link.split('#/biz/import/')[1];
+    expect(link.startsWith('https://x/analyst/#/biz/import/')).toBe(true); expect(/^[\w-]+=*$/.test(payload)).toBe(true);
+    const back = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(payload.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))));
+    expect(back.id).toBe('café-ñ'); expect(back.big).toEqual(r.big); expect(back.snap).toBeUndefined();
+  });
+
+  it('linking signs in to the Analyst Path account and counts the business challenges solved there', async () => {
+    const sb = fakeSupabase(), mem = new Map<string, string>();
+    const io = { fetch: sb.fetch, storage: { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v) }, now: () => 1e12 };
+    sb.users.set('analyst.ana_01@users.fitquest.app', { id: 'ap1', pass: 'secret1' });
+    sb.saves.set('ap1', { app: 'data-analyst-path', v: 2, state: { labs: { biz: { bz01: 3, bzp1: 2, bzb1: 0 }, sql: { c1: 3 } } } });
+    const link = new AnalystLink(io);
+    expect(link.state).toBeNull();
+    await expect(link.signIn('ana_01', 'nope')).rejects.toMatchObject({ code: 'wrong' });
+    expect(await link.signIn('Ana_01', 'secret1')).toMatchObject({ user: 'ana_01', solved: 2 });
+    expect(mem.get('bizsim.analyst')).not.toContain('secret1');
+    (sb.saves.get('ap1') as any).state.labs.biz.bzs1 = 1;
+    expect((await new AnalystLink(io).refresh()).solved).toBe(3);
+    expect(sb.saves.size).toBe(1);
+    link.signOut(); expect(new AnalystLink(io).state).toBeNull();
+  });
+});

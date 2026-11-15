@@ -7,7 +7,7 @@
   /* ---------------------------------------------------------------- shell, navigation, home (app.js) */
   I.add({
     'Data Analyst Path': 'Data Analyst Path',
-    'Home': 'Inicio', 'Journey': 'Viaje', 'Practice': 'Práctica', 'Discover': 'Descubre', 'You': 'Tú', 'Arcade': 'Arcade', 'Settings': 'Ajustes',
+    'Home': 'Inicio', 'Businesses': 'Negocios', 'Business base': 'Base de negocios', 'Journey': 'Viaje', 'Practice': 'Práctica', 'Discover': 'Descubre', 'You': 'Tú', 'Arcade': 'Arcade', 'Settings': 'Ajustes',
     'Menu': 'Menú', 'Open the menu': 'Abrir el menú', 'Close the menu': 'Cerrar el menú', 'Main': 'Principal', 'Skip to content': 'Ir al contenido',
     'Prompt library': 'Biblioteca de prompts', 'AI toolbox and rules': 'Herramientas y reglas de IA', 'Profile': 'Perfil', 'Your profile': 'Tu perfil',
     'week': 'semana', '{#0} week': '{0} semana', '{#0} weeks': '{0} semanas', '{#0} weeks (about {1} months)': '{0} semanas (unos {1} meses)',

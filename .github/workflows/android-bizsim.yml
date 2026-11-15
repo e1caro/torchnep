@@ -1,6 +1,8 @@
 name: android-bizsim
 
 # Tests and builds BizSim (bizsim/): the web app and its Android app (the same web app wrapped with Capacitor).
+# It also runs when Analyst Path changes, because Analyst Path carries a build of BizSim's engine
+# (data-analyst-path/vendor/bizsim/engine.js) and the two apps are tested together in a browser.
 # - On pull requests that touch the app: runs the tests and builds the APK as a check (downloadable from the run's artifacts).
 # - On master, or run by hand (Actions > android-bizsim > Run workflow): also publishes a release "BizSim 1.N"
 #   (tag bizsim-N) with the APK, which can be downloaded and installed straight from a phone.
@@ -14,10 +16,10 @@ name: android-bizsim
 on:
   push:
     branches: [master]
-    paths: ["bizsim/**", ".github/workflows/android-bizsim.yml"]
+    paths: ["bizsim/**", "data-analyst-path/**", ".github/workflows/android-bizsim.yml"]
   pull_request:
     branches: [master]
-    paths: ["bizsim/**", ".github/workflows/android-bizsim.yml"]
+    paths: ["bizsim/**", "data-analyst-path/**", ".github/workflows/android-bizsim.yml"]
   workflow_dispatch:
     inputs:
       notes:
@@ -61,7 +63,15 @@ jobs:
       - name: Build the web app
         run: npm run build
 
-      - name: Two-device sync test in a browser
+      - name: The engine bundled into Analyst Path is the one built from this source
+        run: |
+          npm run build:engine
+          git diff --exit-code -- ../data-analyst-path/vendor/bizsim/engine.js || { echo "::error::Run 'npm run build:engine' in bizsim/ and 'python3 tools/update-sw.py' in data-analyst-path/, then commit."; exit 1; }
+
+      - name: Analyst Path business-base tests
+        run: node ../data-analyst-path/tests/unit-biz.js
+
+      - name: Browser tests (two devices on one account; BizSim and Analyst Path together)
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium

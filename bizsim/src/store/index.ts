@@ -2,6 +2,7 @@
 
 import { create } from 'zustand';
 import { effectiveSmall } from '../cloud/merge';
+import { AnalystLink, type AnalystState } from '../cloud/analyst';
 import { Cloud, type CloudError } from '../cloud/supabase';
 import type { BigParams, Lang, Recipe, SmallParams } from '../engine/types';
 import { isNative } from '../native/save';
@@ -24,6 +25,10 @@ interface State extends Saved {
   speed: number;
   version: Record<string, number>;
   cloud: { user: string; syncAt: number; error: string; busy: boolean };
+  analyst: AnalystState | null;
+  linkAnalyst: (user: string, pass: string) => Promise<void>;
+  unlinkAnalyst: () => void;
+  refreshAnalyst: () => Promise<void>;
   list: () => Recipe[];
   get: (id: string) => Recipe | undefined;
   createBusiness: (big: BigParams, small: SmallParams, dirty: boolean) => string;
@@ -44,6 +49,7 @@ interface State extends Saved {
 }
 
 export const cloud = new Cloud();
+export const analyst = new AnalystLink();
 const busy = new Set<string>();
 const cloudView = (b = false) => ({ user: cloud.signedIn ? cloud.user : '', syncAt: cloud.syncAt, error: cloud.error, busy: b });
 
@@ -53,7 +59,10 @@ export const useStore = create<State>((set, get) => {
   const rt = (id: string, r: Partial<Runtime> | null) => set(s => { const next = { ...s.runtime }; if (r) next[id] = { ...(next[id] ?? { day: 0, progress: null }), ...r }; else delete next[id]; return { runtime: next }; });
 
   return {
-    ...loadSaved(), runtime: {}, playing: {}, speed: 1, version: {}, cloud: cloudView(),
+    ...loadSaved(), runtime: {}, playing: {}, speed: 1, version: {}, cloud: cloudView(), analyst: analyst.state,
+    async linkAnalyst(user, pass) { set({ analyst: await analyst.signIn(user, pass) }); },
+    unlinkAnalyst() { analyst.signOut(); set({ analyst: null }); },
+    async refreshAnalyst() { if (!analyst.state) return; try { set({ analyst: await analyst.refresh() }); } catch { set({ analyst: analyst.state }); } },
     list: () => get().recipes.filter(r => !r.deleted),
     get: id => get().recipes.find(r => r.id === id && !r.deleted),
 
@@ -147,7 +156,7 @@ export function startLoops() {
     for (const r of s.list()) if (s.playing[r.id] && s.runtime[r.id] && s.runtime[r.id].progress === null) void s.advance(r.id, s.speed);
   }, 1000);
   const sync = () => { if (document.visibilityState === 'visible') void useStore.getState().syncNow(); };
-  sync(); setInterval(sync, 120000); document.addEventListener('visibilitychange', sync);
+  sync(); void useStore.getState().refreshAnalyst(); setInterval(sync, 120000); document.addEventListener('visibilitychange', sync);
 }
 
 export const pendingChanges = (r: Recipe) => r.changes.filter(c => c.day >= r.day);

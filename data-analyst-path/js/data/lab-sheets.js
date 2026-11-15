@@ -6,6 +6,7 @@
 
   S.ROWS_LOADED = 500;
   S.datasetCsv = function (ds) {
+    if (ds === 'biz') return DA.biz.csv('days');
     if (ds === 'messy') return DA.gen.messyCsv();
     if (ds === 'funnel') return DA.gen.csv['funnel_sample.csv']();
     if (ds === 'members') return DA.gen.csv['members.csv']();
@@ -33,6 +34,9 @@
     return v;
   }
   S.refValue = refValue;
+  var dropHooks = [];
+  S.onDropDataset = function (fn) { dropHooks.push(fn); };
+  S.dropDataset = function (ds) { delete refBooks[ds]; dropHooks.forEach(function (fn) { fn(ds); }); };
 
   function same(a, b) {
     if (Array.isArray(a) || Array.isArray(b)) {
@@ -93,6 +97,8 @@
       },
     };
   }
+
+  S.makeRef = R; // also used by the business base (js/data/lab-biz.js)
 
   var OLD = {
     s_l1_1_1: [['H2', '=TRIM(C2)']], s_l1_1_2: [['H2', '=PROPER(G2)']], s_l1_1_3: [['H2', '=VALUE(SUBSTITUTE(F2, "$", ""))']],
