@@ -10,7 +10,7 @@ import java.nio.ByteOrder
 
 /** Plays 16-bit mono PCM (the synthesized score or a take's recording) and reports where it is, for the score to follow. */
 class Player {
-    private var track: AudioTrack? = null
+    @Volatile private var track: AudioTrack? = null
     private var thread: Thread? = null
     @Volatile private var running = false
     private var rate = 22050
@@ -18,13 +18,14 @@ class Player {
     private var frames = 0
 
     /** Seconds into the audio (source time, whatever the speed). */
-    fun position(): Double {
-        val t = track ?: return 0.0
-        return (startFrame + t.playbackHeadPosition.coerceAtMost(frames)).toDouble() / rate
-    }
+    fun position(): Double = (startFrame + head().coerceAtMost(frames)).toDouble() / rate
 
-    val isPlaying: Boolean get() = running && (track?.playbackHeadPosition ?: frames) < frames
+    val isPlaying: Boolean get() = running && track != null && head() < frames
 
+    /** Frames played so far; safe to ask at any moment, from any thread. */
+    private fun head(): Int = try { track?.playbackHeadPosition ?: 0 } catch (_: Exception) { 0 }
+
+    @Synchronized
     fun play(pcm: ShortArray, sampleRate: Int, fromSeconds: Double, speed: Float): Boolean {
         stop()
         val start = (fromSeconds * sampleRate).toInt().coerceIn(0, maxOf(0, pcm.size - 1))
@@ -51,23 +52,39 @@ class Player {
         running = true
         try { t.play() } catch (e: Exception) { running = false; track = null; t.release(); return false }
         thread = Thread({
-            var i = start
-            while (running && i < pcm.size) {
-                val n = minOf(4096, pcm.size - i)
-                val w = t.write(pcm, i, n)
-                if (w <= 0) break
-                i += w
+            try {
+                var i = start
+                while (running && i < pcm.size) {
+                    val n = minOf(4096, pcm.size - i)
+                    val w = t.write(pcm, i, n)
+                    if (w <= 0) break
+                    i += w
+                }
+            } catch (_: Exception) {
+                // the track was stopped under us: nothing more to play
             }
         }, "scorebook-player").apply { start() }
         return true
     }
 
+    /**
+     * Stops. The order matters: pausing makes the writer thread's blocked write return, the thread is waited for,
+     * and only then is the track released. Releasing it while the thread was still writing crashed the app.
+     */
+    @Synchronized
     fun stop() {
         running = false
-        track?.let { t -> try { t.pause(); t.flush(); t.stop() } catch (_: Exception) {}; t.release() }
-        thread?.join(500)
-        thread = null
+        val t = track
+        val th = thread
         track = null
+        thread = null
+        if (t != null) try { t.pause(); t.flush() } catch (_: Exception) {}
+        try { th?.join(1500) } catch (_: InterruptedException) {}
+        if (t != null) {
+            try { t.stop() } catch (_: Exception) {}
+            // if the writer is somehow still busy, leave the track to the garbage collector rather than pull it away
+            if (th == null || !th.isAlive) try { t.release() } catch (_: Exception) {}
+        }
     }
 
     companion object {

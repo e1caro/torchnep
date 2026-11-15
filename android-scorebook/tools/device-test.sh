@@ -10,9 +10,10 @@ adb shell am instrument -w -e class io.github.e1caro.scorebook.OnDeviceTest \
   io.github.e1caro.scorebook.test/androidx.test.runner.AndroidJUnitRunner | tee instrument.txt
 mkdir -p device-out
 adb pull /sdcard/Android/data/io.github.e1caro.scorebook/files/. device-out/ || true
-adb logcat -d -t 400 > device-out/logcat.txt || true
+adb logcat -d -t 4000 > device-out/logcat.txt || true
 # if the app or the test crashed, say why in the log
 adb logcat -d -b crash -t 60 | cut -c1-300 || true
+grep -E "FATAL EXCEPTION|AndroidRuntime|Fatal signal|F DEBUG|F libc|backtrace|Process: io.github" device-out/logcat.txt | tail -40 | cut -c1-300 || true
 ls -la device-out
 cat device-out/report.txt device-out/motif.txt device-out/cut.txt device-out/accompaniment.txt device-out/playalong.txt device-out/play.txt || true
 # screenshots inline in the log as well (base64), for reviewers who cannot download artifacts
