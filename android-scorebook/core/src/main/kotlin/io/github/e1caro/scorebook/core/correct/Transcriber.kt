@@ -31,6 +31,8 @@ data class AnalysisSettings(
     val tempoScale: Double = 1.0,
     /** The key the player says the piece is in (null: detect it, with key changes). */
     val key: Key? = null,
+    /** A moment (seconds) where a bar is known to start; with a forced meter, bar lines are placed from it. */
+    val barLineAt: Double? = null,
 )
 
 /** A final note of the score. */
@@ -108,17 +110,17 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
         }
         val present = events.filter { provisional[it.id]!!.present }
         val meterHint = settings.beatsPerBar?.let { it to (settings.compound ?: false) }
-        val grid = rhythm.analyze(present.map { TimedNote(provisional[it.id]!!.pitch, it.onset, it.offset, it.velocity) }, meterHint, settings.tempoScale)
+        val grid = rhythm.analyze(present.map { TimedNote(provisional[it.id]!!.pitch, it.onset, it.offset, it.velocity) }, meterHint, settings.tempoScale, settings.barLineAt)
 
         // 2..3. context from clear notes, two correction passes
         var decisions: Map<Int, NoteDecision> = emptyMap()
         var keys: KeyTracker.Result? = null
         var chordSteps: List<Chord?> = emptyList()
         repeat(2) {
-            val voters = events.mapNotNull { e ->
+            val voters = sustained(events.mapNotNull { e ->
                 val p = provisional[e.id]!!
                 if (!p.present) null else VotingNote(p.pitch, e.onset, e.offset, p.confidence * p.confidence)
-            }
+            })
             val bounds = stepBounds(grid, events)
             val chroma = keyTracker.chroma(voters, bounds)
             keys = settings.key?.let { fixedKey(it, chroma.size) } ?: keyTracker.track(chroma)
@@ -177,6 +179,20 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
     }
 
     private data class Provisional(val pitch: Int, val present: Boolean, val confidence: Double)
+
+    /**
+     * For harmony, a low note counts until the next low note is struck (up to 2.5 s), however short the model
+     * heard it: held chords fade quickly in the model's output, but they are still the harmony of the bar.
+     */
+    private fun sustained(voters: List<VotingNote>): List<VotingNote> {
+        val lowOnsets = voters.filter { it.pitch < 60 }.map { it.onset }.sorted()
+        return voters.map { v ->
+            if (v.pitch >= 60) v else {
+                val next = lowOnsets.firstOrNull { it > v.onset + 0.1 } ?: (v.onset + 2.5)
+                v.copy(offset = maxOf(v.offset, minOf(next, v.onset + 2.5)))
+            }
+        }
+    }
 
     /** The player chose the key: the same key everywhere, with certainty. */
     private fun fixedKey(key: Key, steps: Int): KeyTracker.Result {

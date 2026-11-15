@@ -97,12 +97,14 @@ fun Chip(text: String, color: Color = Ink, background: Color = StageHigh) {
 private enum class Tab(val label: String) { LISTEN("Listen"), LIBRARY("Library"), SETTINGS("Settings") }
 
 @Composable
-fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null, startTab: String? = null) {
+fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null, startTab: String? = null, openAccompaniment: Boolean = false) {
     var tab by rememberSaveable { mutableStateOf(Tab.entries.firstOrNull { it.name.equals(startTab, true) } ?: Tab.LISTEN) }
     val take by vm.take.collectAsState()
     val context = LocalContext.current
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(openTake) { if (openTake != null) vm.openTake(openTake) }
+    LaunchedEffect(openAccompaniment) { if (openAccompaniment) vm.openAccompaniment() }
+    val accompany by vm.accompany.collectAsState()
 
     // listen while the app is on screen; stop when it goes to the background
     DisposableEffect(lifecycle) {
@@ -121,7 +123,11 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
     val opening by vm.opening.collectAsState()
     Box(Modifier.fillMaxSize()) {
         val current = take
-        if (current != null) {
+        val acc = accompany
+        if (acc != null) {
+            BackHandler { vm.closeAccompaniment() }
+            AccompanimentScreen(vm, acc, onBack = { vm.closeAccompaniment() })
+        } else if (current != null) {
             BackHandler { vm.closeTake() }
             TakeScreen(vm, current, onBack = { vm.closeTake() })
         } else {

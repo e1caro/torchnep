@@ -1,6 +1,7 @@
 {
  "name": "motif_start",
- "frames": 666,
+ "frames": 242,
+ "fps": 31.25,
  "expect": "START",
  "notes": [
   {

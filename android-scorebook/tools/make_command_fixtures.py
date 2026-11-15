@@ -3,7 +3,7 @@
 core's CommandsTest decodes these with the app's decoder and checks that each motif is recognized as its
 command, and that the same notes inside music are not. Same requirements as make_fixtures.py.
 
-  python tools/make_command_fixtures.py --model app/src/main/assets/basic_pitch.tflite --out core/src/test/resources/commands
+  cd tools && python make_command_fixtures.py --of-model ../app/src/main/assets/onsets_frames.tflite --out ../core/src/test/resources/commands
 """
 import argparse
 import gzip
@@ -14,7 +14,7 @@ import tempfile
 
 import numpy as np
 
-from make_fixtures import SR, render, run_model, write_midi
+from make_fixtures import OF_HOP, OF_SR, SR, render, run_onsets_frames, save_planes, write_midi
 
 # The defaults (core: CommandConfig.DEFAULTS). Chosen from what the model hears reliably: the top C7-E7 and
 # the low A1-G2. The very bottom (A0-C1) comes out an octave or a twelfth too high and G7 / C8 are often
@@ -46,7 +46,7 @@ def notes_for(pitches, start, gap=0.33, vel=96):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", required=True)
+    ap.add_argument("--of-model", required=True, help="Onsets and Frames TFLite model (tools/fetch_model.sh)")
     ap.add_argument("--out", required=True)
     ap.add_argument("--sf2", default="/usr/share/sounds/sf2/FluidR3_GM.sf2")
     ap.add_argument("--candidates", action="store_true", help="render the alternative motifs instead")
@@ -68,16 +68,14 @@ def main():
             write_midi(notes, mid)
             audio = render(mid, wav, args.sf2)
         audio = np.concatenate([audio, np.zeros(int(1.5 * SR), np.float32)])
-        onset, note = run_model(args.model, audio)
+        onset, note, vel = run_onsets_frames(args.of_model, audio)
         if args.wav_out and name == "motif_start":
             import soundfile as sf
             os.makedirs(args.wav_out, exist_ok=True)
             sf.write(os.path.join(args.wav_out, name + ".wav"), audio, SR, subtype="PCM_16")
-        with gzip.open(os.path.join(args.out, name + ".probs.gz"), "wb") as f:
-            f.write(np.round(onset * 255).astype(np.uint8).tobytes())
-            f.write(np.round(note * 255).astype(np.uint8).tobytes())
+        save_planes(os.path.join(args.out, name + ".probs.gz"), onset, note, vel)
         with open(os.path.join(args.out, name + ".json"), "w") as f:
-            json.dump(dict(name=name, frames=int(onset.shape[0]), expect=expect, notes=notes), f, indent=1)
+            json.dump(dict(name=name, frames=int(onset.shape[0]), fps=OF_SR / OF_HOP, expect=expect, notes=notes), f, indent=1)
         ks = [n["pitch"] - 21 for n in notes]
         peaks = {n["pitch"]: round(float(onset[:, n["pitch"] - 21].max()), 2) for n in notes}
         print(name, expect, "max onset per motif note:", peaks)

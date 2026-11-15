@@ -18,8 +18,9 @@ import io.github.e1caro.scorebook.core.music.Key
 import io.github.e1caro.scorebook.core.music.Mode
 import io.github.e1caro.scorebook.core.music.Spelling
 import io.github.e1caro.scorebook.core.score.ScoreBuilder
-import io.github.e1caro.scorebook.core.transcribe.BasicPitchStream
 import io.github.e1caro.scorebook.core.transcribe.FrameModel
+import io.github.e1caro.scorebook.core.transcribe.FrameStream
+import io.github.e1caro.scorebook.core.transcribe.ModelSpec
 import io.github.e1caro.scorebook.core.transcribe.NoteEvent
 import io.github.e1caro.scorebook.core.transcribe.PitchOption
 import org.junit.Test
@@ -48,26 +49,35 @@ class UnitTest {
     @Test
     fun streamFramesLineUpWithTime() {
         // a fake model that marks, in each output frame, the window's sample offset of the frame centre
-        var calls = 0
-        val model = object : FrameModel {
-            override fun run(window: FloatArray, onsetOut: FloatArray, noteOut: FloatArray) {
-                calls++
-                for (f in 0 until BasicPitchStream.WINDOW_FRAMES) {
-                    val s = (f * BasicPitchStream.HOP).coerceAtMost(window.size - 1)
-                    onsetOut[f * 88] = window[s]
+        for (sp in listOf(ModelSpec.ONSETS_FRAMES, ModelSpec.BASIC_PITCH)) {
+            var calls = 0
+            val model = object : FrameModel {
+                override val spec = sp
+                override fun run(window: FloatArray, onsetOut: FloatArray, noteOut: FloatArray, velocityOut: FloatArray): Boolean {
+                    calls++
+                    for (f in 0 until sp.windowFrames) {
+                        val s = (f * sp.hop).coerceAtMost(window.size - 1)
+                        onsetOut[f * 88] = window[s]
+                        velocityOut[f * 88] = 0.5f
+                    }
+                    return true
                 }
             }
+            val stream = FrameStream(model)
+            val n = sp.sampleRate * 5
+            val audio = FloatArray(n) { (it / sp.hop).toFloat() } // value = frame index of the sample
+            var i = 0
+            while (i < n) { stream.push(audio, i, minOf(1000, n - i)); i += 1000 }
+            stream.flush()
+            val g = stream.grid
+            assertEquals((n + sp.hop - 1) / sp.hop, g.frames)
+            assertEquals(sp.fps, g.fps)
+            for (f in listOf(0, 1, sp.strideFrames - 1, sp.strideFrames, sp.strideFrames + 1, 2 * sp.strideFrames + 3, g.frames - 2)) {
+                assertEquals(f.toFloat(), g.onset(f, 0), "${sp.name} frame $f")
+            }
+            assertEquals(0.5f, g.velocity(3, 0))
+            assertTrue(calls >= g.frames / sp.strideFrames)
         }
-        val stream = BasicPitchStream(model)
-        val n = BasicPitchStream.SAMPLE_RATE * 5
-        val audio = FloatArray(n) { (it / BasicPitchStream.HOP).toFloat() } // value = frame index of the sample
-        var i = 0
-        while (i < n) { stream.push(audio, i, minOf(1000, n - i)); i += 1000 }
-        stream.flush()
-        val g = stream.grid
-        assertEquals((n + 255) / 256, g.frames)
-        for (f in listOf(0, 1, 100, 141, 142, 143, 300, g.frames - 2)) assertEquals(f.toFloat(), g.onset(f, 0), "frame $f")
-        assertTrue(calls >= g.frames / BasicPitchStream.STRIDE_FRAMES)
     }
 
     private fun event(id: Int, t: Double, vararg opts: Pair<Int, Double>, presence: Double = 0.95) =

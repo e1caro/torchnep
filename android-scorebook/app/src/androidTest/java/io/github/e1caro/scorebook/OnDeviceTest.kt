@@ -15,8 +15,11 @@ import io.github.e1caro.scorebook.core.commands.Command
 import io.github.e1caro.scorebook.core.commands.CommandConfig
 import io.github.e1caro.scorebook.core.commands.CommandSpotter
 import io.github.e1caro.scorebook.core.commands.PhraseListener
-import io.github.e1caro.scorebook.core.transcribe.BasicPitchStream
-import io.github.e1caro.scorebook.core.transcribe.NoteDecoder
+import io.github.e1caro.scorebook.core.analysis.TuningEstimator
+import io.github.e1caro.scorebook.core.live.Resampler
+import io.github.e1caro.scorebook.core.transcribe.Decoder
+import io.github.e1caro.scorebook.core.transcribe.FrameStream
+import io.github.e1caro.scorebook.core.transcribe.ModelSpec
 import io.github.e1caro.scorebook.core.correct.AnalysisSettings
 import io.github.e1caro.scorebook.core.correct.AutoTitle
 import io.github.e1caro.scorebook.core.correct.Decision
@@ -52,29 +55,35 @@ class OnDeviceTest {
 
     @Test
     fun transcribeSaveExportAndShow() {
-        val pcm = readWav(instrumentation.context.assets.open("modulation_clean.wav"))
-        val model = TfliteModel(ctx)
+        val pcm = readWav(instrumentation.context.assets.open("modulation_clean.wav")) // 22.05 kHz
+        val model = TfliteModel.load(ctx)
+        // the APK must carry the piano model (tools/fetch_model.sh), not just the small fallback
+        assertEquals(ModelSpec.ONSETS_FRAMES.name, model.spec.name)
         val session = LiveSession(model)
+        val toModel = Resampler(22050, model.spec.sampleRate)
         val started = System.nanoTime()
         var i = 0
         val block = FloatArray(2048)
         while (i < pcm.size) {
             val n = minOf(block.size, pcm.size - i)
             System.arraycopy(pcm, i, block, 0, n)
-            session.pushAudio(block, n)
+            session.pushAudio(toModel.process(block, n))
             i += n
         }
         val events = session.finish(session.seconds)
         val ms = (System.nanoTime() - started) / 1_000_000
         val t = Transcriber().analyze(events, AnalysisSettings(musical = 0.6))
-        val report = "audio ${"%.1f".format(pcm.size / 22050.0)} s transcribed in $ms ms; ${events.size} events, ${t.notes.size} notes, " +
+        val tuning = TuningEstimator.estimate(pcm, 22050)
+        val report = "model ${model.spec.name}; tuning ${tuning?.cents?.let { "%.1f".format(it) }} cents; " +
+            "audio ${"%.1f".format(pcm.size / 22050.0)} s transcribed in $ms ms; ${events.size} events, ${t.notes.size} notes, " +
             "${t.bpm} BPM, ${t.grid.numerator}/${t.grid.denominator}, keys ${t.keyChanges().map { it.key.displayName }}"
         File(out, "report.txt").writeText(report + "\n")
         println(report)
         assertEquals(listOf(Key.parse("C major"), Key.parse("G major")), t.keyChanges().map { it.key })
         assertEquals(4, t.grid.numerator)
         assertTrue("tempo ${t.bpm}", t.bpm in 92..100)
-        assertTrue("notes ${t.notes.size}", t.notes.size in 90..130)
+        assertTrue("notes ${t.notes.size}", t.notes.size in 104..124) // 110 were played
+        assertTrue("tuning $tuning", tuning != null && kotlin.math.abs(tuning.cents) < 6)
         // the C#5 passing note in bar 7 is kept
         assertTrue(t.notes.any { it.pitch == 73 })
 
@@ -148,12 +157,41 @@ class OnDeviceTest {
             var bars = 0
             scenario.onActivity { bars = ViewModelProvider(it)[ScorebookViewModel::class.java].take.value!!.score.measures.size }
             File(out, "cut.txt").writeText("bars after cutting 2-4: $bars\n")
-            assertTrue("bars after cut: $bars", bars in 11..14)
+            assertTrue("bars after cut: $bars", bars in 12..14)
             scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; vm.setEditing(false) }
             Thread.sleep(1000)
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].closeTake() }
             Thread.sleep(2500)
             shot("3-listen.png")
+        }
+        // today's accompaniment, then "use it on my last song": a new song with the same right hand
+        val i3 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_ACCOMPANIMENT, true).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        ActivityScenario.launch<MainActivity>(i3).use { scenario ->
+            Thread.sleep(3000)
+            shot("8-accompaniment.png")
+            var info = ""
+            scenario.onActivity {
+                val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]
+                val a = vm.accompany.value!!
+                info = "today: ${a.pick.pattern.name}, ${a.pick.harmony}, last song ${a.lastTitle} (${a.lastMeter})"
+                vm.accompanyPattern(io.github.e1caro.scorebook.core.accompany.Patterns.byId("alberti"))
+                vm.accompanySong(a.lastTakeId!!, io.github.e1caro.scorebook.core.accompany.Patterns.byId("alberti"))
+            }
+            var made: io.github.e1caro.scorebook.ui.TakeUi? = null
+            for (k in 0 until 60) {
+                scenario.onActivity { made = ViewModelProvider(it)[ScorebookViewModel::class.java].take.value }
+                if (made != null) break
+                Thread.sleep(500)
+            }
+            val m = made
+            assertTrue("the accompanied song opens", m != null && m.takeId != id)
+            val left = m!!.transcription.notes.count { it.hand == io.github.e1caro.scorebook.core.correct.Hand.LEFT && it.decision == Decision.MIDI }
+            File(out, "accompaniment.txt").writeText("$info\naccompanied: ${m.title}, ${m.score.measures.size} bars, $left left-hand notes, ${m.transcription.bpm} BPM\n")
+            assertTrue("title ${m.title}", m.title.endsWith("+ Alberti bass"))
+            assertTrue("left-hand notes $left", left >= 70)
+            assertTrue("bars ${m.score.measures.size}", m.score.measures.size in 11..15)
+            Thread.sleep(2000)
+            shot("9-accompanied.png")
         }
         for ((tab, file) in listOf("library" to "4-library.png", "settings" to "5-settings.png")) {
             val i2 = Intent(ctx, MainActivity::class.java).putExtra(MainActivity.EXTRA_TAB, tab).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -165,19 +203,20 @@ class OnDeviceTest {
     @Test
     fun aPlayedStartMotifStartsRecording() {
         val pcm = readWav(instrumentation.context.assets.open("motif_start.wav"))
-        val model = TfliteModel(ctx)
+        val model = TfliteModel.load(ctx)
         val listener = PhraseListener({ audio ->
-            val st = BasicPitchStream(model)
+            val st = FrameStream(model)
             st.push(audio)
             st.flush()
-            NoteDecoder().decode(st.grid)
-        })
+            Decoder.forModel(model.spec).decode(st.grid)
+        }, model.spec.sampleRate)
+        val toModel = Resampler(22050, model.spec.sampleRate)
         var heard: List<Int>? = null
         var i = 0
         val block = FloatArray(441)
         while (i + block.size <= pcm.size) {
             System.arraycopy(pcm, i, block, 0, block.size)
-            listener.push(block)?.let { heard = it.map { n -> n.pitch } }
+            listener.push(toModel.process(block))?.let { heard = it.map { n -> n.pitch } }
             i += block.size
         }
         File(out, "motif.txt").writeText("heard $heard\n")

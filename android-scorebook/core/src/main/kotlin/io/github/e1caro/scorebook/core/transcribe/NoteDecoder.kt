@@ -65,14 +65,34 @@ data class DecoderParams(
     val bothClear: Double = 0.6,
 )
 
+/** Turns a model's probability grid into note events that keep their uncertainty. One per kind of model. */
+interface Decoder {
+    /** Frames after an onset that its features look at; live decoding stays this far behind the newest frame. */
+    val lookahead: Int
+
+    /** Frames before the last decoded one that are decoded again, so notes near the boundary are complete. */
+    val backtrack: Int
+
+    /** Decodes onsets in frames [from, to). */
+    fun decode(grid: ProbabilityGrid, from: Int = 0, to: Int = grid.frames, firstId: Int = 0): List<NoteEvent>
+
+    companion object {
+        fun forModel(spec: ModelSpec, calibration: AudioCalibration = AudioCalibration()): Decoder =
+            if (spec.name == ModelSpec.ONSETS_FRAMES.name) OnsetsFramesDecoder(calibration.registerBias) else NoteDecoder(calibration)
+    }
+}
+
 /**
- * Turns the probability grid into [NoteEvent]s that keep their uncertainty: presence, and a probability for the
- * heard pitch, its semitone neighbours (F vs F#) and its octaves.
+ * The decoder for Basic Pitch: turns the probability grid into [NoteEvent]s that keep their uncertainty:
+ * presence, and a probability for the heard pitch, its semitone neighbours (F vs F#) and its octaves.
  */
 class NoteDecoder(
     val calibration: AudioCalibration = AudioCalibration(),
     val params: DecoderParams = DecoderParams(),
-) {
+) : Decoder {
+    override val lookahead: Int get() = 32
+    override val backtrack: Int get() = 40
+
     private class Cand(val t: Int, val k: Int, var end: Int, val f: CandidateFeatures, val q: Double) {
         val merged = HashMap<Int, Double>() // neighbour key -> its q, when merged into this event
         var presence = q
@@ -83,7 +103,7 @@ class NoteDecoder(
      * Decodes onsets in frames [from, to). Features look up to 30 frames further, so for live use [to] should
      * stay that far behind the end of the grid (see [LiveDecoder]).
      */
-    fun decode(grid: ProbabilityGrid, from: Int = 0, to: Int = grid.frames, firstId: Int = 0): List<NoteEvent> {
+    override fun decode(grid: ProbabilityGrid, from: Int, to: Int, firstId: Int): List<NoteEvent> {
         val F = grid.frames
         val hi = min(to, F - 1)
         // 1. onset peaks on every key, with provisional ends (cut at the next peak on the same key)
@@ -231,7 +251,7 @@ class NoteDecoder(
  * Incremental decoding while recording: re-decodes the recent part of the grid and reports events once they are
  * far enough from the end that their features are complete. Final transcription re-decodes the whole take.
  */
-class LiveDecoder(private val decoder: NoteDecoder = NoteDecoder()) {
+class LiveDecoder(private val decoder: Decoder = NoteDecoder()) {
     private val emitted = ArrayList<NoteEvent>()
     private var nextId = 0
     private var doneUntil = 0 // onset frames below this are final
@@ -244,9 +264,9 @@ class LiveDecoder(private val decoder: NoteDecoder = NoteDecoder()) {
 
     /** Returns the new events. [final] = the take ended: decode up to the last frame. */
     fun update(grid: ProbabilityGrid, final: Boolean = false): List<NoteEvent> {
-        val safeTo = if (final) grid.frames else grid.frames - LOOKAHEAD
+        val safeTo = if (final) grid.frames else grid.frames - decoder.lookahead
         if (safeTo <= doneUntil) return emptyList()
-        val from = max(0, doneUntil - BACKTRACK)
+        val from = max(0, doneUntil - decoder.backtrack)
         val all = decoder.decode(grid, from, safeTo, nextId)
         nextId += all.size // ids stay unique; events before doneUntil were reported by an earlier update
         val out = all.filter { it.onset >= grid.time(doneUntil) - 1e-9 }
@@ -254,10 +274,5 @@ class LiveDecoder(private val decoder: NoteDecoder = NoteDecoder()) {
         doneUntil = safeTo
         decodedSeconds = grid.time(safeTo)
         return out
-    }
-
-    companion object {
-        const val LOOKAHEAD = 32
-        const val BACKTRACK = 40
     }
 }

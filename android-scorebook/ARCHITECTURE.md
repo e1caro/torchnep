@@ -9,11 +9,11 @@ combined with a musical-context prior. The last section says what version 1 incl
 ```
  ┌──────────── app (Android, Kotlin + Jetpack Compose) ─────────────┐   ┌──────────── core (plain Kotlin, JVM) ────────────┐
  │                                                                  │   │                                                  │
- │  Mic ─ AudioRecord 44.1 kHz ─ resample 22.05 kHz ─┐              │   │  BasicPitchStream   windows → probability grid   │
+ │  Mic ─ AudioRecord 48 kHz ─ resample 16 kHz ──────┐              │   │  FrameStream        windows → probability grid   │
  │                                                   ├─ AudioEngine ┼──►│  NoteDecoder        grid → note events, each     │
  │  Level / auto start-stop (AutoRecorder) ──────────┘              │   │                     with a probability for every │
  │                                                                  │   │                     candidate pitch              │
- │  LiteRT interpreter: basic_pitch.tflite (204 KB) ◄── windows ────┼───┤                                                  │
+ │  LiteRT interpreter: onsets_frames.tflite (piano) ◄── windows ───┼───┤                                                  │
  │                                                                  │   │  Rhythm             tempo, beats, meter,         │
  │  USB / BLE MIDI (android.media.midi) ── note on/off ─────────────┼──►│                     quantization                 │
  │                                                                  │   │  KeyTracker         24-key HMM, key changes      │
@@ -39,63 +39,62 @@ into SVG (tests). Screen, PDF and tests therefore show the same layout.
 
 ## 2. Transcription model
 
-### Choice for version 1: Basic Pitch (Spotify, Apache-2.0)
+### Onsets and Frames (Magenta, Apache-2.0)
 
-| | Basic Pitch | Onsets & Frames (Magenta) | High-resolution piano (Kong et al.) | hFT-Transformer (Sony) |
+| | Onsets and Frames (shipped) | Basic Pitch (first version, now the fallback) | High-resolution piano (Kong et al.) | Onsets and Velocities |
 |---|---|---|---|---|
-| Size | 204 KB TFLite, ~17 k parameters | ~100 MB (wav-input TFLite ~ 50 MB) | ~170 MB | ~ 30 M parameters |
-| Speed | 42 ms per 2 s window on a server CPU core pair (one window every 1.65 s, so a few % of real time; a phone is a few times slower) | near real time on new phones | not real time | not real time |
-| Piano accuracy (MAESTRO note F1) | lower (instrument-agnostic) | ~0.95 | ~0.97 | ~0.97 |
-| Outputs | per-frame **onset** and **note** probabilities for all 88 keys, plus a 3-bins-per-semitone pitch contour | onset, frame, offset, velocity | onset, offset, frame, velocity, pedal | onset, offset, frame, velocity |
-| License / availability | Apache-2.0, ships in the `basic-pitch` package | Apache-2.0 | MIT, checkpoint on Zenodo | MIT |
+| Trained on | piano (MAESTRO) | many instruments | piano | piano |
+| Size | 109 MB TFLite | 204 KB | ~170 MB, PyTorch | ~12 MB, PyTorch |
+| Speed | 113 ms per 1.12 s window on one server core; real time on a Raspberry Pi 4 | 42 ms per 2 s window | not real time on a phone | real time |
+| Outputs | onset, frame, offset probabilities and velocity for all 88 keys, 31.25 frames/s | onset and note probabilities, 86 frames/s | onsets, offsets, frames, velocity, pedal | onsets and velocities only |
+| Ready for a phone | yes: Magenta publishes TFLite builds | yes | needs conversion and distillation | needs conversion; no note lengths |
 
-Version 1 ships **Basic Pitch**. It is tiny, runs comfortably in real time on any phone, needs no download, and
-already gives what the correction layer needs: a sigmoid probability for every key at every frame (86 frames per
-second), separately for "a note starts here" (onset) and "a note sounds here" (note). Its weakness on piano
-(octave and harmonic ghosts, softer recall on detuned or reverberant pianos) is exactly what the decoder's
-calibration and the context prior are designed around (§3, §4).
+The first version shipped Basic Pitch because it is tiny. Measured on real piano recordings it was the wrong
+trade: it finds only 55 % of the notes that are struck together with others, Onsets and Frames 94 %
+(README, "How well it works"; `tools/eval_real_piano.py`). The app now runs Magenta's full TFLite model
+(`onsets_frames_wavinput.tflite`; the two lighter variants lose 2 points of chord recall). It is too large for
+git: `tools/fetch_model.sh` downloads it at build time and checks its SHA-256. If it is missing, the app falls
+back to Basic Pitch.
 
-The model sits behind one interface (`core`'s `BasicPitchStream` + the app's `ModelRunner`): audio windows in,
-onset and note probability frames out. The planned upgrade is a **piano-specific model distilled to phone size**:
-a Kong-style CRNN (or hFT-Transformer) trained on MAESTRO v3 and MAPS, distilled to ~2–5 M parameters, int8
-quantized, with the same two outputs plus velocity and sustain pedal. Swapping it changes no other code.
+Models sit behind one interface (`core`: `ModelSpec`, `FrameModel`, `FrameStream`; the app's `TfliteModel`):
+audio windows in, onset and note probability frames (and velocities) out. Each model has its own `Decoder`.
 
 ### Streaming
 
-Audio is captured at 44.1 kHz (the one rate every Android device supports), low-pass filtered and decimated to
-22.05 kHz. The model takes 43 844-sample windows (≈ 2 s, 172 frames). Windows advance by 142 frames
-(36 352 samples), and the 15 frames at each edge of a window are discarded, so every kept frame comes from the
-middle of some window and global frame *j* is exactly at *j* × 256 / 22050 s. The stream starts with 15 frames of
-silence so frame 0 is time 0. Live latency is about two seconds; the MIDI path has none.
+Audio is captured at 48 kHz (44.1 kHz where needed) and resampled to the model's 16 kHz by a polyphase
+windowed-sinc filter (`Resampler`). The model takes 17 920-sample windows (1.12 s, 32 frames). Windows advance by
+24 frames; the 4 frames at each edge of a window are discarded (stitching without overlap costs 3 points of F1),
+and the stream starts with 4 frames of silence so frame *j* always starts at *j* × 32 ms. Live latency is a
+little over a second; the MIDI path has none.
+
+### Tuning compensation
+
+A piano that is flat or sharp as a whole puts every note between two of the model's keys: F1 falls from 0.98 to
+0.91 at −30 cents and 0.47 at −50. `TuningEstimator` measures the tuning from a take's recording (the most
+common deviation of the strongest spectral peaks from the equal-tempered scale, within about 1.5 cents);
+`PersonalModel` remembers it; and `TuningCompensation` makes the resampler play the audio to the model slightly
+faster (flat) or slower (sharp), which shifts the pitch back to concert pitch (F1 0.97–0.98 at every tuning
+tested). Times reported by the model are scaled back. If a take reveals a tuning that differs from the one it was
+transcribed with (the first take on a piano), it is transcribed again from its recording.
 
 ## 3. From probabilities to note events
 
-`NoteDecoder` turns the probability grid into **note events**. Each event keeps its evidence instead of a single
-answer.
+`OnsetsFramesDecoder` turns the probability grid into **note events**. Each event keeps its evidence instead of
+a single answer. (`NoteDecoder` does the same for the fallback model, with a calibration of its own.)
 
-1. **Candidates.** Every local maximum of the onset probability above a low threshold (0.25) is a candidate.
-   Its end is where the note probability stays below 0.25 for 8 frames, or where the next accepted onset of the
-   same key starts (a re-struck note).
-2. **Calibrated audio probability.** The raw sigmoid outputs are not probabilities of "the pianist played this key".
-   A logistic calibration maps features of the candidate to that probability:
-
-   ```
-   q = σ( 1.87·logit(onset peak) + 1.50·logit(mean note prob, first 170 ms) + 0.59·logit(max note prob)
-          − 0.06·ln(1 + frames) − 6.48·(note prob just before the onset)
-          − 3.35·(note prob an octave / twelfth / two octaves below) + 1.80·(onset prob there)
-          + 3.35·(best onset prob one key up or down) + 1.41·(their note prob) − 0.45 + register bias )
-   ```
-
-   The coefficients were fitted by logistic regression on the fixture recordings, in tune and out of tune;
-   leave-one-piece-out precision is 0.86–0.92 at recall 0.87–0.99 on the in-tune pieces, before any musical
-   context. The "just before" term separates real re-strikes from flickers inside a held note; the harmonic terms
-   separate overtones from real octaves; the neighbour terms recover out-of-tune notes whose energy is split
-   between two keys. The register bias is learned per user (§6).
-3. **Alternatives.** For every event the decoder also scores its neighbours: one semitone down and up
-   (F vs F#), and an octave down and up (the classic harmonic error, weighted down), with the same calibration
-   evaluated on those keys around the same instant. When two neighbouring keys both fire at the same instant and are
-   not both clearly present, they are merged into one event with two strong alternatives; a neighbour that is clearly
-   a note of its own is not offered as an alternative. The result for each event:
+1. **Candidates.** Every local maximum of the onset probability above 0.08 is a candidate; two peaks of one key
+   within 64 ms are one strike. The note lasts while its frame probability stays above 0.4, or until the key is
+   struck again.
+2. **Calibrated presence.** `P(struck) = σ(0.70·logit(onset peak) + 0.21·logit(frame probability after) + 0.02 + register bias)`,
+   fitted on the real recordings (leave-one-piece-out). It is well calibrated: candidates rated 0.5–0.65 are real
+   56 % of the time, above 0.8, 99 %. The register bias is learned per user (§6).
+3. **Onset time.** A frame is 32 ms; the time inside it comes from the onset probabilities of the neighbouring
+   frames (mean error 5 ms instead of 9).
+4. **Alternatives.** For every event the decoder also scores its semitone neighbours (F vs F#) and octaves, with
+   the same calibration at the same instant. Two neighbouring keys firing together are one event with two
+   alternatives only when neither was clearly struck (energy split between two keys is the sign of an
+   out-of-tune string). A neighbour that is struck just before or after (a trill, a run, a grace note) is not an
+   alternative. The result for each event:
 
    ```
    NoteEvent(onset, offset, velocity,
@@ -135,8 +134,9 @@ P(c)     = softmax over the candidates of score(c)
   The context term is also capped (±3 nats per event) so no prior can overwhelm moderate audio evidence.
 
 **Presence** (is there a note at all?) uses the same idea: `logit P = logit(presence) + λ · g_p · C`, with
-`g_p = max(0, 1 − |logit(presence)| / logit(0.85))` and `C` a bounded bonus (±1) when the best pitch fits key and
-chord. A candidate that sits an octave, a twelfth or two octaves above a louder note struck at the same time gets
+`g_p = max(0, 1 − |logit(presence)| / logit(0.85))` and `C` a bounded bonus (±0.6) when the best pitch fits key
+and chord (kept small: with the piano model, a doubtful candidate that fits the key is a real note only about one
+time in three). A candidate that sits an octave, a twelfth or two octaves above a louder note struck at the same time gets
 no bonus: it is most likely that note's harmonic, and context must not rescue it.
 
 A note is marked **AI-decided** and drawn lighter when the context had a real say (λ·g ≥ 0.15 for the pitch or
@@ -222,7 +222,7 @@ The same principle is used for time: the observed timing is the evidence, the me
 
 ```
 Library ─ Album* ─ Song* ─ Take*                       library.json
-Take: id, date, duration, source (mic | midi), audio (take-<id>.wav, 22.05 kHz mono 16-bit),
+Take: id, date, duration, source (mic | midi), audio (take-<id>.wav, half the capture rate, mono 16-bit),
       events (with all alternatives), user overrides, slider values,
       analysis cache: key regions, tempo, meter, chords, title
 ```
@@ -249,7 +249,7 @@ analysis from the stored evidence instantly, and a better model later can re-tra
 
 * Live listening through the microphone with automatic start and stop after 5 s of silence (1.5 s pre-roll so
   the first note is kept); MIDI input from USB devices and already-connected Bluetooth MIDI devices.
-* On-device transcription (Basic Pitch via LiteRT), probability-preserving decoding.
+* On-device transcription (LiteRT; Onsets and Frames since the model change of §2), probability-preserving decoding.
 * Key and mode detection with key changes; tempo, meter, quantization with adjustable strictness; chord labels;
   hand split.
 * Intelligent note correction exactly as in §4, with AI-decided notes drawn lighter, tap for alternatives with
@@ -266,8 +266,8 @@ analysis from the stored evidence instantly, and a better model later can re-tra
    the same album. (Start, stop and save, start over, discard, favourite and undo are in; see §10.)
 3. *Extras:* idea-catcher mode (foreground service, always listening, short sketches), practice statistics
    (minutes, keys, streaks), side-by-side take comparison (aligned by beats).
-4. *Model:* the distilled piano-specific model (§2), tuning estimation from the pitch contour output (detuned
-   pianos), sustain-pedal detection for better durations, two voices per staff.
+4. *Model:* a smaller build of the piano model (quantized; the current one is 109 MB), fine-tuning on phone
+   recordings of upright pianos, sustain-pedal detection for better durations, two voices per staff.
 
 ## 10. Piano commands
 
@@ -286,3 +286,28 @@ Short note patterns (3–5 notes) played on their own control the app (`core/com
   are often missed, so patterns there get a warning when you teach them.
 * **Confirmation**: a distinct two- or three-tone sound per command and a full-screen flash. The microphone
   ignores input for 0.9 s after the sound, and a start command begins recording once the sound is over.
+
+## 11. Accompaniments
+
+`core/accompany` holds everything; the app only shows it.
+
+* **Patterns.** A pattern is one bar of steps: when (ticks, 48 per quarter), how long, and which chord tones
+  ("R", "5", "10", "TRIAD", "LOW" …), so the same pattern works over any chord: `Accompaniment.notes(pattern,
+  chords)` writes it out with roots between A1 and G♯2. Fifteen patterns in 4/4, 3/4 and 6/8, each with a style,
+  a level, a tempo, two lines about it, a tip, and the progressions it suits (I–V–vi–IV, I–vi–IV–V, I–IV–V–I,
+  ii–V–I, Andalusian cadence, canon, 12-bar blues; each with a major and a minor form).
+* **The daily pick.** `Daily.pick(epochDay, favoriteKeys)` is a pure function of the date: the pattern walks a
+  fixed order that alternates levels and meters (every pattern comes up once every 15 days), the progression
+  rotates among those the pattern suits, and the key is one of the three the player's library uses most on two
+  days out of three, a common key otherwise.
+* **On screen** the pick becomes an ordinary `Transcription` (steady beats, left hand only), so the score
+  builder, the engraver and the piano sound are the ones used for takes.
+* **Accompany my song.** `Accompaniment.apply(pattern, transcription, events)` keeps the events of the right-hand
+  notes untouched (audio probabilities included, so they can still be corrected), drops the left hand, and
+  writes the pattern as exact (MIDI-like) events on the take's own beat grid. The chord of each bar is chosen
+  from that bar's notes alone (`ChordTracker.best`, low notes counting until the next low note): the chord
+  labels of §4.4 prefer few changes and may merge two bars (C then Am read as Am7), which is fine above a staff
+  but wrong for a bass line. The new song is analysed with the original's meter and bar line
+  (`AnalysisSettings.barLineAt`), because a steady pattern alone could be read as 2/4 or shifted by half a bar.
+* **Next in the same spirit:** play-along check with a streak, lead-sheet export, warm-up of the day,
+  reharmonization, harmonizing the melody in thirds or sixths, a weekly recap (`prompts/scorebook-daily-accompaniments.md`).

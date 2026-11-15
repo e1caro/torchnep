@@ -32,12 +32,13 @@ object PianoSynth {
         }
     }
 
-    fun render(voices: List<Voice>, sampleRate: Int = 22050): ShortArray {
+    /** [tuningCents]: the whole piano flat (negative) or sharp, for testing the tuning estimator. */
+    fun render(voices: List<Voice>, sampleRate: Int = 22050, tuningCents: Double = 0.0): ShortArray {
         if (voices.isEmpty()) return ShortArray(0)
         val release = 0.15
         val end = voices.maxOf { it.start + it.duration } + release + 0.3
         val out = FloatArray((end * sampleRate).toInt() + 1)
-        for (v in voices) addVoice(out, v, sampleRate, release)
+        for (v in voices) addVoice(out, v, sampleRate, release, tuningCents)
         // gentle limiter so big chords do not clip
         var peak = 0f
         for (x in out) peak = max(peak, kotlin.math.abs(x))
@@ -45,8 +46,8 @@ object PianoSynth {
         return ShortArray(out.size) { (tanh((out[it] * gain).toDouble() * 1.1) / tanh(1.1) * 32000).toInt().toShort() }
     }
 
-    private fun addVoice(out: FloatArray, v: Voice, sr: Int, release: Double) {
-        val f0 = 440.0 * 2.0.pow((v.pitch - 69) / 12.0)
+    private fun addVoice(out: FloatArray, v: Voice, sr: Int, release: Double, tuningCents: Double) {
+        val f0 = 440.0 * 2.0.pow((v.pitch - 69) / 12.0 + tuningCents / 1200.0)
         val vel = (v.velocity.coerceIn(1, 127) / 127.0)
         val amp = 0.16 * vel.pow(1.4)
         val tau = 4.5 * 2.0.pow(-(v.pitch - 21) / 26.0) // seconds: ~4.5 s low A, ~0.45 s top C

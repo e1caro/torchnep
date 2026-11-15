@@ -6,3 +6,7 @@ local.properties
 .kotlin/
 device-out/
 instrument.txt
+# the piano model (109 MB) is downloaded by tools/fetch_model.sh
+app/src/main/assets/onsets_frames.tflite
+app/src/main/assets/onsets_frames.tflite.part
+__pycache__/
