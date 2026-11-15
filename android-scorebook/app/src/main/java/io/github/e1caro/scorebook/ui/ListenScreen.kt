@@ -117,6 +117,9 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             StatusPill(ui.status)
         }
 
+        // a newer version of the app: one tap updates it (not shown in the middle of a take)
+        if (!recording && ui.status != ListenStatus.SAVING) UpdateBanner(vm)
+
         // what is happening
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))

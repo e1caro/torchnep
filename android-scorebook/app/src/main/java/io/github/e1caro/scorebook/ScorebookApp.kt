@@ -15,6 +15,8 @@ class ScorebookApp : Application() {
         private set
     lateinit var exporter: Exporter
         private set
+    lateinit var updater: io.github.e1caro.scorebook.data.Updater
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -22,6 +24,7 @@ class ScorebookApp : Application() {
         prefs = Prefs(this)
         music = Typeface.createFromAsset(assets, "Bravura.otf")
         exporter = Exporter(this, music)
+        updater = io.github.e1caro.scorebook.data.Updater(this)
         Thread { repository.purgeTrash(System.currentTimeMillis()) }.start()
     }
 }

@@ -19,6 +19,7 @@ import io.github.e1caro.scorebook.core.accompany.Studies
 import io.github.e1caro.scorebook.core.accompany.Study
 import io.github.e1caro.scorebook.core.practice.PlayAlong
 import io.github.e1caro.scorebook.core.practice.PracticeLog
+import io.github.e1caro.scorebook.core.update.Update
 import io.github.e1caro.scorebook.core.commands.Command
 import io.github.e1caro.scorebook.core.commands.CommandConfig
 import io.github.e1caro.scorebook.core.commands.CommandSpotter
@@ -112,6 +113,11 @@ data class TakeUi(
     val selection: IntRange? = null,
     val message: String? = null,
 )
+
+enum class UpdateState { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, DOWNLOADING, INSTALLING, FAILED }
+
+/** Updating the app from inside the app. [update]: the newer version, once one was found. */
+data class UpdateUi(val state: UpdateState = UpdateState.IDLE, val update: Update? = null, val progress: Float = 0f, val message: String? = null)
 
 enum class CheckState { LISTENING, ANALYZING, DONE }
 
@@ -235,6 +241,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         }
         active = true
         midi.start()
+        autoCheckForUpdate()
         val handsFree = prefs.handsFree
         _listen.update { it.copy(status = idleStatus(), handsFree = handsFree, commands = _commands.value.enabled) }
         worker.execute { updateIdleMic(); ensureModel() }
@@ -713,10 +720,13 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
             }
             val ok = player.play(audio.first, audio.second, from, pb.speed)
             _playback.update { it.copy(preparing = false, playing = ok, length = audio.first.size.toDouble() / audio.second) }
+            if (!ok) _take.update { it?.copy(message = PLAY_PROBLEM) }
             while (ok && player.isPlaying) delay(100)
             if (ok) _playback.update { it.copy(playing = false) }
         }
     }
+
+    private val PLAY_PROBLEM = "The phone would not play sound just now. Close other apps that are playing audio and try again."
 
     fun stopPlayback() {
         playJob?.cancel()
@@ -873,6 +883,81 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         reanalyze(c.data.copy(edits = emptyList()), message = "Back to the full recording")
     }
 
+    // ------------------------------------------------------------------ updates
+    private val updater = sb.updater
+    private val _update = MutableStateFlow(UpdateUi())
+    /** Looking for, downloading and installing a newer version of the app. */
+    val update: StateFlow<UpdateUi> = _update
+    private var updateJob: Job? = null
+
+    /** "Scorebook 1.40". */
+    val versionText: String get() = "Scorebook ${updater.currentName}"
+    var autoUpdate: Boolean
+        get() = prefs.autoUpdate
+        set(v) { prefs.autoUpdate = v }
+
+    /** When the app opens: look for a newer version, at most every six hours, quietly. */
+    private fun autoCheckForUpdate() {
+        if (!prefs.autoUpdate || System.currentTimeMillis() - prefs.lastUpdateCheck < 6 * 3600_000L) return
+        checkForUpdate(manual = false)
+    }
+
+    /** [manual]: asked for in Settings, so "you have the newest" and connection problems are said. */
+    fun checkForUpdate(manual: Boolean) {
+        val now = _update.value.state
+        if (now == UpdateState.CHECKING || now == UpdateState.DOWNLOADING || now == UpdateState.INSTALLING) return
+        if (manual) _update.update { it.copy(state = UpdateState.CHECKING, message = null) }
+        updateJob = viewModelScope.launch {
+            try {
+                val found = withContext(Dispatchers.IO) { updater.check() }
+                prefs.lastUpdateCheck = System.currentTimeMillis()
+                _update.value = if (found != null) UpdateUi(UpdateState.AVAILABLE, found)
+                else UpdateUi(if (manual) UpdateState.UP_TO_DATE else UpdateState.IDLE)
+            } catch (e: Exception) {
+                // no connection, or GitHub busy: when it was not asked for, nothing is said
+                _update.update { if (manual) UpdateUi(UpdateState.FAILED, it.update, message = "Could not look for updates. Is the phone online?") else it }
+            }
+        }
+    }
+
+    /** Downloads the newer version and hands it to Android's installer (which replaces the app, keeping its data). */
+    fun installUpdate() {
+        val u = _update.value.update ?: return
+        val now = _update.value.state
+        if (now == UpdateState.DOWNLOADING || now == UpdateState.INSTALLING) return
+        if (_listen.value.status == ListenStatus.RECORDING || _listen.value.status == ListenStatus.SAVING) {
+            _update.update { it.copy(state = UpdateState.FAILED, message = "Finish the take first: updating restarts the app") }
+            return
+        }
+        stopPlayback()
+        io.github.e1caro.scorebook.data.Updater.installProblem.value = null
+        _update.value = UpdateUi(UpdateState.DOWNLOADING, u)
+        updateJob = viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val apk = updater.download(u) { p -> _update.update { it.copy(progress = p) } }
+                    _update.value = UpdateUi(UpdateState.INSTALLING, u, 1f)
+                    updater.install(apk)
+                }
+            } catch (e: Exception) {
+                _update.value = UpdateUi(UpdateState.FAILED, u, message = "The update could not be downloaded. Check the connection and free space, then try again.")
+            }
+        }
+    }
+
+    init {
+        // the installer's own verdict (cancelled, no space, …) arrives separately
+        viewModelScope.launch {
+            io.github.e1caro.scorebook.data.Updater.installProblem.collect { problem ->
+                if (problem != null) {
+                    // only while an install is under way: an old verdict says nothing about now
+                    _update.update { if (it.state == UpdateState.INSTALLING) UpdateUi(UpdateState.FAILED, it.update, message = problem) else it }
+                    io.github.e1caro.scorebook.data.Updater.installProblem.value = null
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------------ accompaniments and motifs
     private val _accompany = MutableStateFlow<AccompanyUi?>(null)
     /** The accompaniment screen, when it is open. */
@@ -988,6 +1073,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
             }
             val ok = player.play(pcm, 22050, 0.0, 1f)
             _playback.update { it.copy(preparing = false, playing = ok, length = pcm.size / 22050.0) }
+            if (!ok) _accompany.update { it?.copy(message = PLAY_PROBLEM) }
             while (ok && player.isPlaying) delay(100)
             if (ok) _playback.update { it.copy(playing = false) }
         }

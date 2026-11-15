@@ -53,7 +53,12 @@ class PlayAlongTest {
                     assertEquals(mo.bars, score.measures.size, "${mo.id} on $tonic")
                     assertEquals(mo.meter.label, "${score.numerator}/${score.denominator}")
                     assertTrue(Engraver().continuous(score, 400.0).hits.isNotEmpty())
-                    assertTrue(PianoSynth.render(PianoSynth.voices(pick.transcription(Studies.repeats(pick)))).size > 22050)
+                    val pcm = PianoSynth.render(PianoSynth.voices(pick.transcription(Studies.repeats(pick))))
+                    assertTrue(pcm.size > 22050)
+                    // loud enough for a phone speaker: full level, and a healthy average
+                    val peak = pcm.maxOf { kotlin.math.abs(it.toInt()) } / 32768.0
+                    val rms = kotlin.math.sqrt(pcm.sumOf { (it / 32768.0) * (it / 32768.0) } / pcm.size)
+                    assertTrue(peak > 0.8 && rms > 0.1, "${mo.id}: peak $peak, rms $rms")
                 }
             }
             // most of what is written belongs to the chord of its bar (passing and approach notes aside)

@@ -39,11 +39,12 @@ object PianoSynth {
         val end = voices.maxOf { it.start + it.duration } + release + 0.3
         val out = FloatArray((end * sampleRate).toInt() + 1)
         for (v in voices) addVoice(out, v, sampleRate, release, tuningCents)
-        // gentle limiter so big chords do not clip
+        // Always use the full level, with the peaks rounded off: a phone speaker is small, and music played softly
+        // (or low on the keyboard) would otherwise be close to inaudible.
         var peak = 0f
         for (x in out) peak = max(peak, kotlin.math.abs(x))
-        val gain = if (peak > 0.9f) 0.9f / peak else 1f
-        return ShortArray(out.size) { (tanh((out[it] * gain).toDouble() * 1.1) / tanh(1.1) * 32000).toInt().toShort() }
+        val gain = if (peak > 1e-4f) 1f / peak else 1f
+        return ShortArray(out.size) { (tanh((out[it] * gain).toDouble() * DRIVE) / tanh(DRIVE) * 30000).toInt().toShort() }
     }
 
     private fun addVoice(out: FloatArray, v: Voice, sr: Int, release: Double, tuningCents: Double) {
@@ -56,13 +57,16 @@ object PianoSynth {
         val offI = startI + (v.duration * sr).toInt()
         val lastI = min(out.size, offI + (release * 6 * sr).toInt())
         val attack = (0.004 * sr).toInt().coerceAtLeast(1)
-        val nPartials = min(12, (sr * 0.45 / f0).toInt()).coerceAtLeast(1)
+        // Low strings: the fundamental is weak and the sound is in the upper partials (as on a real piano). That is
+        // also all that a phone speaker, which reproduces little below 300 Hz, lets through of a bass note.
+        val low = ((60 - v.pitch) / 30.0).coerceIn(0.0, 1.0)
+        val nPartials = min(if (v.pitch < 55) 22 else 12, (sr * 0.45 / f0).toInt()).coerceAtLeast(1)
         val releaseK = exp(-1.0 / (release * sr))
         for (n in 1..nPartials) {
             val fn = n * f0 * sqrt(1 + b * n * n)
             if (fn >= sr * 0.48) break
             // brighter when played louder; upper partials decay faster
-            val an = amp * (1.0 / n.toDouble().pow(1.15 + 0.6 * (1 - vel)))
+            val an = amp * (1.0 / n.toDouble().pow(1.15 - 0.5 * low + 0.6 * (1 - vel))) * (if (n == 1) 1 - 0.5 * low else 1.0)
             val tn = tau / (1 + 0.45 * (n - 1))
             val decay = exp(-1.0 / (tn * sr))
             val w = 2 * PI * fn / sr
@@ -83,6 +87,9 @@ object PianoSynth {
             }
         }
     }
+
+    /** How hard the mix is pushed into the soft limiter: louder on average, peaks rounded off. */
+    private const val DRIVE = 1.5
 
     /** Seconds of audio the voices need (for progress bars). */
     fun length(voices: List<Voice>): Double = (voices.maxOfOrNull { it.start + it.duration } ?: 0.0) + 0.5

@@ -329,3 +329,18 @@ Short note patterns (3–5 notes) played on their own control the app (`core/com
   least one star (the streak) and the best stars per study.
 * **Next in the same spirit:** lead-sheet export, warm-up of the day, reharmonization, harmonizing the melody in
   thirds or sixths, a weekly recap (`prompts/scorebook-daily-accompaniments.md`).
+
+## 12. Updates
+
+The app is installed from an APK, not from a store, so it updates itself:
+
+* `core/update` reads GitHub's public list of releases of this repository (which holds other apps too) and
+  keeps the published `scorebook-N` releases whose APK comes from the project's own release downloads; N is also
+  the APK's version code, so "newer" is a comparison of two numbers.
+* The app (`data/Updater`) asks for that list when it opens (at most every six hours; can be turned off),
+  downloads the APK to its cache and hands it to Android's `PackageInstaller`, which replaces the app and keeps
+  its data. Android only accepts an APK signed with the same key as the installed one, so a tampered download
+  cannot be installed. Android asks the user to confirm; from Android 12 on, an app updating itself may be
+  allowed to skip that after the first time.
+* It is the only network access in the app, and it only reads: nothing about the player or the music leaves the
+  phone.

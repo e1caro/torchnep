@@ -2,7 +2,8 @@
 
 Play the piano, get sheet music. Scorebook listens through the phone's microphone (or a USB / Bluetooth MIDI
 keyboard), transcribes both hands, finds the key, tempo, meter and chords, fixes unclear notes using the musical
-context, and writes an engraved score you can save as PDF, MIDI or MusicXML. Everything runs on the phone, offline.
+context, and writes an engraved score you can save as PDF, MIDI or MusicXML. Everything runs on the phone, offline
+(the internet is only used to look for a newer version of the app).
 
 The design — architecture, transcription model, and how note probabilities are combined with the musical
 context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
@@ -64,6 +65,11 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
   hand is replaced by the pattern you choose, following the chord of each bar on your own beats (so it follows
   your rubato). The result is saved as a new song with its score, playback and exports. From the accompaniment
   screen ("Use it on my last song") or from a song's menu ("Add an accompaniment…").
+- **Updates from inside the app.** When the app opens it looks at this project's list of releases on GitHub; if
+  there is a newer version, a banner offers it and one tap downloads and installs it over the current one (your
+  scores and settings stay). Android asks you to confirm, and the first time to allow Scorebook to install apps.
+  Also in Settings → Updates, where the automatic check can be turned off. This is the only thing Scorebook uses
+  the internet for, and nothing is sent: listening, transcription and everything else run on the phone.
 - **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 
@@ -138,7 +144,7 @@ cd tools && python make_command_fixtures.py --of-model ../app/src/main/assets/on
 ```
 core/   plain Kotlin: transcribe/ (model stream, decoder), analysis/ (rhythm, key, chords), correct/ (fusion,
         learning, hands, pipeline), score/, engrave/ (layout, live staff, SVG), export/ (MusicXML, MIDI),
-        live/ (auto start/stop, MIDI input, live session), library/, accompany/ (patterns, motifs, the
+        live/ (auto start/stop, MIDI input, live session), library/, update/ (finding a newer release), accompany/ (patterns, motifs, the
         daily picks, accompany my song), practice/ (play-along check, streak), commands/, play/ (piano sound)
 app/    Android: audio capture, LiteRT model, MIDI devices, storage, PDF, Compose UI
 tools/  fixture generator

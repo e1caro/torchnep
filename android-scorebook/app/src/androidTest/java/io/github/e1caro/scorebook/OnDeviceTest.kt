@@ -148,6 +148,21 @@ class OnDeviceTest {
             assertTrue("the take opens", loaded)
             Thread.sleep(1500)
             shot("1-take.png")
+            // the play button: the score really plays (the position moves) and can be stopped
+            scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].togglePlay() }
+            var playing = false
+            for (k in 0 until 40) {
+                scenario.onActivity { playing = ViewModelProvider(it)[ScorebookViewModel::class.java].playback.value.playing }
+                if (playing) break
+                Thread.sleep(500)
+            }
+            Thread.sleep(2000)
+            var pos = -1.0
+            scenario.onActivity { val vm = ViewModelProvider(it)[ScorebookViewModel::class.java]; pos = vm.playbackPosition(); vm.stopPlayback() }
+            File(out, "play.txt").writeText("play button: playing=$playing, position after 2 s = ${"%.2f".format(pos)} s\n")
+            assertTrue("playback started", playing)
+            assertTrue("playback moves: $pos", pos > 1.0)
+            Thread.sleep(500)
             val ai = t.notes.firstOrNull { it.decision == Decision.CONTEXT }?.eventId ?: t.notes[t.notes.size / 2].eventId
             scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].select(ai) }
             Thread.sleep(2500)

@@ -41,13 +41,15 @@ class Player {
             return false
         }
         if (t.state != AudioTrack.STATE_INITIALIZED) { t.release(); return false }
-        try { t.playbackParams = PlaybackParams().setSpeed(speed).setPitch(1f) } catch (_: Exception) {}
+        // normal speed plays straight; only the practice speeds go through the phone's time-stretcher
+        if (speed != 1f) try { t.playbackParams = PlaybackParams().setSpeed(speed).setPitch(1f) } catch (_: Exception) {}
+        try { t.setVolume(1f) } catch (_: Exception) {}
         rate = sampleRate
         startFrame = start
         frames = pcm.size - start
         track = t
         running = true
-        t.play()
+        try { t.play() } catch (e: Exception) { running = false; track = null; t.release(); return false }
         thread = Thread({
             var i = start
             while (running && i < pcm.size) {
