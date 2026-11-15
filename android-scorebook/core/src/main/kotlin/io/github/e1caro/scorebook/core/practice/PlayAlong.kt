@@ -82,7 +82,13 @@ object PlayAlong {
         }
         val hit = best.size
         val missed = want.indices.filter { i -> best.none { it.first == i } }.map { want[it].id }.toSet()
-        val extra = got.size - hit
+        // A note heard an octave, a twelfth or two octaves above a note that was really played, at the same moment,
+        // is that note's overtone (strong on bright or close-miked pianos), not something the player did.
+        val matched = best.map { it.second }.toSet()
+        val struck = matched.map { got[it] }
+        val extra = got.indices.count { j ->
+            j !in matched && struck.none { q -> kotlin.math.abs(q.time - got[j].time) < 0.08 && (got[j].pitch - q.pitch) in OVERTONES }
+        }
         var rhythm = 0.0
         var bpm: Int? = null
         if (hit >= 4) {
@@ -106,6 +112,9 @@ object PlayAlong {
         val stars = when { score >= 88 -> 3; score >= 70 -> 2; score >= 45 -> 1; else -> 0 }
         return Result(want.size, hit, extra, rhythm, bpm, score, stars, missed, shift)
     }
+
+    /** Semitones above a struck note where its overtones lie: octave, twelfth, two octaves, and the next two. */
+    private val OVERTONES = setOf(12, 19, 24, 28, 31)
 
     /** Played notes in order, with the notes of a chord (struck within 70 ms of each other) from the bottom up. */
     private fun chordsFromBottom(played: List<Played>): List<Played> {

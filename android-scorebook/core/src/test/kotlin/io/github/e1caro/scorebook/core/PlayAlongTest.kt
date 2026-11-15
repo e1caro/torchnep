@@ -170,6 +170,15 @@ class PlayAlongTest {
         val stray = good + List(3) { PlayAlong.Played(84 + it, 3.0 + it) }
         assertEquals(3, PlayAlong.check(targets, stray).stars)
 
+        // overtones the model hears above the notes that were played (an octave, a twelfth) are not mistakes
+        val ringing = good + good.filterIndexed { i, _ -> i % 2 == 0 }.map { PlayAlong.Played(it.pitch + if (it.pitch % 2 == 0) 12 else 19, it.time + 0.02) }
+        val r5 = PlayAlong.check(targets, ringing)
+        assertEquals(3, r5.stars, "$r5")
+        assertEquals(0, r5.extra)
+        // but as many wrong notes that are no overtone of anything do cost
+        val clumsy = good + good.filterIndexed { i, _ -> i % 2 == 0 }.map { PlayAlong.Played(it.pitch + 6, it.time + 0.02) }
+        assertTrue(PlayAlong.check(targets, clumsy).stars < 3)
+
         // a chord struck not quite together still matches from the bottom up
         val chordal = Daily.withPattern(Patterns.byId("pulse"), Key.parse("C major"))
         val rolled = play(chordal, jitter = 0.012, seed = 7)
