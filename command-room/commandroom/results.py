@@ -88,10 +88,20 @@ def _text(path, limit=400000):
         return ""
 
 
+def roots(folders):
+    """The folders to search: a name with * stands for every folder that matches it."""
+    out = []
+    for folder in folders or []:
+        for path in (sorted(glob.glob(folder)) if "*" in folder else [folder]):
+            if path not in out:
+                out.append(path)
+    return out
+
+
 def kappa_runs(folders):
     """Every folder (one level below the given ones) that holds a KappaTensorVsT file."""
     runs = []
-    for root in folders or []:
+    for root in roots(folders):
         for folder in sorted(glob.glob(os.path.join(root, "*", ""))):
             conv = parse_kappa(_text(os.path.join(folder, "BTE.KappaTensorVsT_CONV")))
             rta = parse_kappa(_text(os.path.join(folder, "BTE.KappaTensorVsT_RTA")))
@@ -100,7 +110,7 @@ def kappa_runs(folders):
             name = os.path.basename(os.path.normpath(folder))
             source, method = split_name(name)
             runs.append({"id": f"{os.path.basename(os.path.normpath(root))}/{name}", "group": os.path.basename(os.path.normpath(os.path.dirname(os.path.normpath(root)))) or root,
-                         "name": name, "source": source, "method": method, "conv": conv, "rta": rta,
+                         "name": name, "source": source, "method": method, "conv": conv, "rta": rta, "folder": os.path.normpath(folder).replace(os.sep, "/"),
                          "control": parse_control(_text(os.path.join(folder, "CONTROL")))})
             runs[-1]["material"] = runs[-1]["control"].pop("material")
             runs[-1]["about"] = describe_kappa(runs[-1])
@@ -187,7 +197,7 @@ def element_of(data, name, rules=None):
 
 def stamp(cfg):
     """Changes whenever a result file appears or is rewritten: [number of files, newest change]."""
-    files = [p for root in cfg.get("kappa") or [] for p in glob.glob(os.path.join(root, "*", "BTE.KappaTensorVsT_*"))]
+    files = [p for root in roots(cfg.get("kappa")) for p in glob.glob(os.path.join(root, "*", "BTE.KappaTensorVsT_*"))]
     files += [p for root in cfg.get("runs") or [] for p in glob.glob(os.path.join(root, "*.json"))]
     newest = 0.0
     for path in files:

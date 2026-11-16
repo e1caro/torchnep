@@ -169,7 +169,7 @@ window.CRResults = (function () {
     const base = ref && ref !== r ? Object.fromEntries((ref[which] || []).map((p) => [p.T, p.k])) : null;
     const ends = pts.length > 1 ? [pts[0], pts[pts.length - 1]] : pts;
     return `<h4>${esc(r.name)}</h4><p class="brief">forces from ${esc(r.source)}${r.method ? ", " + esc(FIT[r.method]) : ""}</p>` +
-      facts(ends.map((p) => [`κ at ${fmt(p.T, 0)} K`, `${fmt(p.k)} W/(m K)` + (base && base[p.T] ? ` (${pct(100 * (p.k - base[p.T]) / base[p.T])} % from ${refSource})` : "")])) + aboutHTML(r.about) + `<p>${clear("kappa")}</p>`;
+      facts(ends.map((p) => [`κ at ${fmt(p.T, 0)} K`, `${fmt(p.k)} W/(m K)` + (base && base[p.T] ? ` (${pct(100 * (p.k - base[p.T]) / base[p.T])} % from ${refSource})` : "")])) + aboutHTML(r.about) + `<p><button class="link" data-act="open" data-what="kappa" data-id="${esc(r.id)}">Open its folder</button> ${clear("kappa")}</p>`;
   }
 
   /* Horizontal bars with the value written at the end of each bar. items = [{label, value, color}] */
@@ -271,7 +271,7 @@ window.CRResults = (function () {
     return `<h4>${esc(r.name)}</h4>${r.brief ? `<p class="brief">${esc(r.brief)}</p>` : ""}` +
       facts([["Held-out error", r.test == null ? "none held out" : fmt(r.test) + " %"], ["Training error", r.train == null ? "" : fmt(r.train) + " %"],
         ["Training time", r.seconds == null ? "" : Math.round(r.seconds) + " s"], ["Place", place < 0 ? "" : `${place + 1} of ${held.length}`]]) +
-      aboutHTML(r.about) + `<p><button class="plain" data-prun="${esc(r.name)}">See the graphs of this run</button> ${clear("model")}</p>`;
+      aboutHTML(r.about) + `<p><button class="plain" data-prun="${esc(r.name)}">See the graphs of this run</button> <button class="link" data-act="open" data-what="potential" data-id="${esc(r.name)}">Open its folder</button> ${clear("model")}</p>`;
   }
   function structSide() {
     const r = RUN && RUN.rows.find((x) => `${x.set} ${x.structure}` === sel.struct);

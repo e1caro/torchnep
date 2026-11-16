@@ -4,12 +4,13 @@ send it only with a confirmation that belongs to that very command.
 The three board stages use hipipe. Any other process uses the command the user wrote for it. Nothing in this
 module decides to send work by itself: `prepare` gives a plan and a one-time token, `submit` needs that token.
 """
+import os
 import re
 import secrets
 import shlex
 import time
 
-from . import remote
+from . import launchers, local, remote
 
 ACTIONS = {
     "vasp": [
@@ -108,6 +109,57 @@ def prepare(settings, cluster_id, folder, stage, action_id, fields, polar=False,
     return plan
 
 
+def prepare_local(settings, launcher, values, step_id=None):
+    """A plan for one of the user's own launchers. It runs on this computer, or is only shown to be copied."""
+    try:
+        real = launchers.render(launcher, values)
+        dry = launchers.render(launcher, values, dry=True) if launcher["dry"] else None
+    except launchers.LauncherError as err:
+        raise LaunchError(str(err))
+    notes, manual, where = [], bool(launcher["copy"]), "this computer"
+    cluster = settings.cluster(launcher["contacts"]) if launcher["contacts"] else None
+    if launcher["contacts"] and not cluster:
+        notes.append("The cluster this launcher names is not in the local settings.")
+    if cluster and cluster.get("mode") == "manual":
+        manual = True
+        notes.append(f"{cluster['label']} is run by you: copy the command and run it in your own terminal. Command Room never logs in there.")
+    elif cluster and manual:
+        where = cluster["label"]
+        notes.append(f"This command runs on {cluster['label']}: copy it and run it there, in the folder of the calculation.")
+    elif cluster and not cluster.get("enabled"):
+        raise LaunchError(f"{cluster['label']} is switched off: switch it on in Jobs before starting something that connects to it")
+    elif cluster:
+        notes.append(f"This script connects to {cluster['label']} by itself.")
+    if launcher["sends"] and not dry:
+        notes.append("This launcher sends work and has no dry run: read the command before you start it.")
+    if launcher["cwd"] and not manual and not os.path.isdir(launcher["cwd"]):
+        raise LaunchError(f"the folder this launcher runs in does not exist: {launcher['cwd']}")
+    here = f"cd {local.quote(launcher['cwd'])} && " if launcher["cwd"] and where == "this computer" else ""
+    token = secrets.token_urlsafe(16)
+    now = time.time()
+    for key in [k for k, p in _plans.items() if now - p["made"] > PLAN_LIFE_S]:
+        del _plans[key]
+    plan = {"token": token, "made": now, "kind": "local", "launcher": launcher["id"], "label": launcher["label"], "process": launcher["process"],
+            "cluster": launcher["contacts"], "where": where, "folder": launcher["cwd"], "shell": launcher["shell"], "stage": None, "action": launcher["id"],
+            "mode": "submit" if launcher["sends"] else "run", "sends": bool(launcher["sends"]), "dry": dry, "real": real, "notes": notes, "step": step_id,
+            "dry_output": None, "dry_ok": None, "manual": manual, "copy_dry": here + dry if dry else None, "copy_real": here + real}
+    _plans[token] = plan
+    return plan
+
+
+def take_local(token, confirm):
+    """Hand over a confirmed plan of this computer so that the server can start it; the plan is used up."""
+    plan = _plans.get(token)
+    if not plan or confirm != token or plan.get("kind") != "local":
+        raise LaunchError("this plan has expired or was not confirmed: prepare it again")
+    if plan["manual"]:
+        raise LaunchError("this command is run by you: copy it")
+    if plan["sends"] and plan["dry"] and plan["dry_ok"] is not True:
+        raise LaunchError("run the dry run first and read what it would do")
+    del _plans[token]
+    return plan
+
+
 BAD_OUTPUT = re.compile(r"(?im)^\s*(error|traceback)\b|command not found|no such file or directory|permission denied")
 
 
@@ -130,7 +182,7 @@ def sent(token):
         raise LaunchError("this plan has expired: prepare it again")
     if not plan["manual"]:
         raise LaunchError("this cluster is sent from Command Room: use the send button")
-    if plan["dry"] and plan["dry_ok"] is not True:
+    if plan["dry"] and plan["dry_ok"] is not True and plan.get("sends", True):
         raise LaunchError("paste the output of the dry run first")
     del _plans[token]
     return plan
@@ -145,6 +197,13 @@ def dry_run(settings, token):
     cmd = plan["dry"] or (plan["real"] if plan["mode"] == "read" else None)
     if not cmd:
         raise LaunchError("this process has no dry run")
+    if plan.get("kind") == "local":
+        try:
+            code, out = local.run_wait(settings, plan["shell"], cmd, plan["folder"])
+        except local.LocalError as err:
+            raise LaunchError(str(err))
+        plan["dry_output"], plan["dry_ok"] = out[-20000:], code == 0 and not BAD_OUTPUT.search(out)
+        return plan
     code, out = remote.run_tool(settings, plan["cluster"], plan["folder"], cmd)
     plan["dry_output"], plan["dry_ok"] = out.strip(), code == 0
     return plan

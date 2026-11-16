@@ -57,9 +57,19 @@ PAGES = [
      "text": ["A cluster can be set so that Command Room never logs in to it. The program then writes each command with a Copy button, you run it in your own terminal, and you paste back what it printed.",
               "This is for a cluster that asks for a password: the password is typed by you, in your terminal, and never passes through the program.",
               "Jobs reads the queue from what you paste. Launch reads the dry run you paste and only then shows the real command. The sender commands (see what it would do, send, how it is going, bring the results back) are written for a folder you name."]},
+    {"id": "launchers", "title": "Launchers and what runs on this computer", "tags": ["launcher", "process", "run", "stop", "this computer"], "source": "the rules of this program",
+     "text": ["A launcher is one of your own scripts with the fields it takes. Launch groups them by the kind of work: send jobs, follow them, collect results, fit, ShengBTE, train, compare, report.",
+              "Starting one always goes through a plan that shows the exact command and where it runs. A launcher that sends work and has a dry run cannot start before the dry run passed.",
+              "What Command Room starts on this computer is listed in Jobs with everything it printed, and Stop ends the script and whatever it started.",
+              "A script that asks for a password is never started by the program: its command is shown for you to copy."]},
+    {"id": "fetch", "title": "The automatic fetch of finished results", "tags": ["fetch", "results", "collect", "automatic"], "source": "the rules of this program",
+     "text": ["For a cluster whose automatic fetch you switched on, Command Room looks for finished result folders when a job leaves the queue and every half hour, and copies their result files to this computer.",
+              "On the cluster it only reads. A run that is already on this computer with the same file is not copied again; a new run goes next to the other runs of its material.",
+              "A cluster you run yourself is never fetched from: Launch writes the collect command for you."]},
     {"id": "sending", "title": "What Command Room may send", "tags": ["submit", "dry run", "permission"], "source": "the rules of this program",
      "text": ["Reading a queue or a folder needs the cluster to be switched on by you. Sending work needs your click on a plan that shows the exact command, where it runs and the output of its dry run.",
-              "Command Room never deletes or overwrites anything on a cluster, and nothing is sent by a rule or by the assistant on its own."]},
+              "Command Room never deletes or overwrites anything on a cluster, and nothing is sent by a rule or by the assistant on its own.",
+              "The one thing it does by itself is the automatic fetch of finished results, which only reads on the cluster and only where you switched it on."]},
 ]
 
 SYMBOLS = ("H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe "

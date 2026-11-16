@@ -33,8 +33,10 @@ def _argv(cluster, settings):
     return argv + [f"{cluster['user']}@{cluster['host']}", "bash", "-s"]
 
 
-def run(settings, cluster_id, script, timeout=60):
-    """Run a script on the cluster and return (exit code, output). Raises RemoteError when it may not or cannot."""
+def run(settings, cluster_id, script, timeout=60, binary=False):
+    """Run a script on the cluster and return (exit code, output). Raises RemoteError when it may not or cannot.
+
+    With binary=True the output is returned as the bytes the script wrote, for files that are copied back."""
     cluster = settings.cluster(cluster_id)
     if not cluster:
         raise RemoteError("that cluster is not in the local settings")
@@ -54,8 +56,12 @@ def run(settings, cluster_id, script, timeout=60):
         raise RemoteError(f"{cluster['label']} did not answer in {timeout} s")
     except OSError as err:
         raise RemoteError(f"ssh could not be started: {err}")
+    if binary:
+        if res.returncode == 255:
+            raise RemoteError(f"could not log in to {cluster['label']}")
+        return res.returncode, res.stdout
     stdout = res.stdout.decode("utf-8", errors="replace").replace("\r\n", "\n")
-    stderr = res.stderr.decode("utf-8", errors="replace").replace("\r\n", "\n")
+    stderr =res.stderr.decode("utf-8", errors="replace").replace("\r\n", "\n")
     out = stdout + (("\n" + stderr) if stderr and res.returncode else "")
     if res.returncode == 255:
         raise RemoteError(f"could not log in to {cluster['label']}: {stderr.strip().splitlines()[-1] if stderr.strip() else 'no answer'}")

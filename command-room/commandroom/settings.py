@@ -17,11 +17,16 @@ DEFAULTS = {
     "python": "",
     "board": {"data": "", "tool": ""},
     "hub": {"jobs": ""},
-    "results": {"kappa": [], "runs": [], "elements": {}},
+    "results": {"kappa": [], "runs": [], "elements": {}, "fetch_to": ""},
     "pipeline": "",
+    "launchers": "",
+    "guide": "",
+    "local_runs": "",
+    "shells": {},
     "clusters": [
         {"id": "torque", "label": "Torque cluster", "scheduler": "torque", "mode": "ssh", "enabled": False, "host": "", "user": "",
-         "key": "", "known_hosts": "", "path_prefix": "", "data": "", "tools": "", "activate": "", "sender": ""},
+         "key": "", "known_hosts": "", "path_prefix": "", "data": "", "tools": "", "activate": "", "sender": "",
+         "results": "", "auto_fetch": False, "fetch_files": []},
         {"id": "slurm", "label": "Slurm cluster", "scheduler": "slurm", "enabled": False, "host": "", "user": "",
          "key": "", "known_hosts": "", "path_prefix": "", "data": "", "tools": "", "activate": ""},
     ],
@@ -47,9 +52,25 @@ class Settings:
     def __init__(self, path=None):
         self.path = os.path.abspath(path or DEFAULT_PATH)
         self.data = copy.deepcopy(DEFAULTS)
+        self.seen = None
         self.load()
 
+    def _stamp(self):
+        try:
+            return os.path.getmtime(self.path)
+        except OSError:
+            return None
+
+    def reload_if_changed(self):
+        """Read the file again when it was edited outside the program; True when it was."""
+        if self._stamp() == self.seen:
+            return False
+        self.data = copy.deepcopy(DEFAULTS)
+        self.load()
+        return True
+
     def load(self):
+        self.seen = self._stamp()
         stored = read_json(self.path)
         if isinstance(stored, dict):
             for key, value in stored.items():
@@ -70,6 +91,18 @@ class Settings:
 
     def save(self):
         write_json(self.path, self.data)
+        self.seen = self._stamp()
+
+    def beside(self, name):
+        return os.path.join(os.path.dirname(self.path), name)
+
+    @property
+    def launchers_path(self):
+        return self.data.get("launchers") or self.beside("launchers.local.json")
+
+    @property
+    def runs_dir(self):
+        return self.data.get("local_runs") or self.beside("runs")
 
     @property
     def python(self):
@@ -92,5 +125,6 @@ class Settings:
             "hub": {"configured": bool(self.data["hub"]["jobs"])},
             "results": {"kappa": bool(self.data["results"]["kappa"]), "runs": bool(self.data["results"]["runs"])},
             "clusters": [{"id": c["id"], "label": c["label"], "scheduler": c["scheduler"], "enabled": bool(c["enabled"]),
-                          "mode": c.get("mode", "ssh"), "configured": bool(c["host"] and c["user"])} for c in self.data["clusters"]],
+                          "mode": c.get("mode", "ssh"), "configured": bool(c["host"] and c["user"]),
+                          "auto_fetch": bool(c.get("auto_fetch")), "can_fetch": bool(c.get("results"))} for c in self.data["clusters"]],
         }

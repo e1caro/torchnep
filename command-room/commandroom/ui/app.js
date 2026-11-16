@@ -52,7 +52,8 @@
   const badge = (state, text) => `<span class="badge ${state}"><i></i>${esc(text || WORD[state] || state)}</span>`;
   const typing = () => { const a = document.activeElement; return a && $("main").contains(a) && /INPUT|SELECT|TEXTAREA/.test(a.tagName); };
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("drawer").hidden) $("drawer").hidden = true; });
-  const running = () => (S.local ? S.local.live.filter((j) => j.state === "running") : []);
+  const running = () => (S.local ? S.local.live.filter((j) => j.state === "running") : []).concat((S.started || []).filter((r) => r.state === "running"));
+  const fresh = () => { const m = $("main"); m.classList.add("fresh"); setTimeout(() => m.classList.remove("fresh"), 320); };
 
   /* ---------- top bar ---------- */
   const root = document.documentElement;
@@ -66,9 +67,9 @@
       const man = x.mode === "manual", cls = man ? (x.jobs ? (n ? "busy" : "on") : "") : !x.enabled ? "" : x.error ? "bad" : n ? "busy" : "on";
       return `<a class="chip ${cls}" href="#jobs" data-place="${esc(x.id)}" title="${esc(clusterLine(x))}"><i></i>${esc(x.label)}${man ? (x.jobs ? " " + n : " by hand") : x.enabled && x.jobs ? " " + n : !x.enabled ? " off" : ""}</a>`; }).join("");
     const r = running().length;
-    $("chips").innerHTML = c + `<a class="chip ${r ? "busy" : S.local ? "on" : ""}" href="#jobs" data-place="local" title="Jobs on this computer"><i></i>this PC ${S.local ? r : "?"}</a>`;
+    $("chips").innerHTML = c + `<a class="chip ${r ? "busy" : S.local ? "on" : ""}" href="#jobs" data-place="local" title="Jobs on this computer"><i></i>this PC ${S.local || r ? r : "?"}</a>`;
   }
-  function go(to) { area = AREAS.some((a) => a[0] === to) ? to : "overview"; if (location.hash.slice(1) !== area) location.hash = area; tabs(); $("main").scrollTo(0, 0); render(true); }
+  function go(to) { area = AREAS.some((a) => a[0] === to) ? to : "overview"; if (location.hash.slice(1) !== area) location.hash = area; tabs(); $("main").scrollTo(0, 0); fresh(); render(true); }
   document.addEventListener("click", (e) => { const c = e.target.closest("a.chip[data-place]"); if (c) { place = c.dataset.place; if (area === "jobs") jobsArea(); } });
   window.addEventListener("hashchange", () => { const h = location.hash.slice(1).split("/")[0]; if (h !== area) go(h); });
   document.addEventListener("keydown", (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); $("cmd").focus(); $("cmd").select(); } });
@@ -226,11 +227,32 @@
     ${!plan.copy_dry || plan.dry_ok === true ? `<p class="fine">${plan.copy_dry ? "2. " : ""}The real command, for you to run</p>${copyBox(plan.copy_real)}<div class="row-actions"><button class="danger" data-act="marksent">I ran it</button></div>` : ""}`;
   const queueTable = (jobs) => `<table class="grid"><thead><tr><th>Job</th><th>Name</th><th>State</th><th>Elapsed</th><th>Limit</th><th>Nodes</th><th>Row</th></tr></thead><tbody>${jobs.map((j) => `<tr><td class="num">${esc(j.id)}</td><td class="num">${esc(j.name)}</td><td>${badge(j.state, j.state)}</td><td class="num">${esc(j.elapsed || "")}</td><td class="num">${esc(j.limit || "")}</td><td class="num">${esc(j.nodes || "")}</td><td>${esc(j.row || "")}</td></tr>`).join("")}</tbody></table>`;
   const active = (c) => (c.jobs ? c.jobs.filter((j) => j.state === "running" || j.state === "queued").length : 0);
+  let RUNOUT = null, RUNTEXT = "";
+  async function readRun() { if (!RUNOUT) return; const id = RUNOUT; try { const r = await get("/api/runs/log?id=" + encodeURIComponent(id)); if (RUNOUT === id) { RUNTEXT = r.text || ""; const el = $("runout"); if (el) { el.textContent = RUNTEXT || "(nothing printed yet)"; el.scrollTop = el.scrollHeight; } } } catch (e) { /* the next reading tries again */ } }
+  const runState = { running: "sent", done: "done", failed: "failed", stopped: "todo", unknown: "todo" };
+  const runWord = { running: "running", done: "finished", failed: "failed", stopped: "stopped", unknown: "ended while the program was closed" };
+  function startedBox() {
+    const runs = S.started || [];
+    if (!runs.length) return "";
+    return `<h3>Started from Command Room</h3><table class="grid"><thead><tr><th>What</th><th>State</th><th>Started</th><th>Last line</th><th></th></tr></thead><tbody>${runs.map((r) => `<tr><td class="name">${esc(r.label)}${r.origin === "automatic" ? ` <span class="fine">automatic</span>` : ""}</td><td>${badge(runState[r.state] || "todo", runWord[r.state] || r.state)}</td><td class="num">${when(r.started)}</td><td class="mono last">${esc(r.last || "")}</td>
+        <td class="act"><button class="plain" data-act="runout" data-id="${esc(r.id)}">${RUNOUT === r.id ? "Hide output" : "Output"}</button> ${r.state === "running" ? `<button class="plain" data-act="runstop" data-id="${esc(r.id)}">Stop</button>` : ""} <button class="link" data-act="open" data-what="log" data-id="${esc(r.id)}">Open the log</button></td></tr>
+        ${RUNOUT === r.id ? `<tr><td colspan="5"><p class="mono cmdline">${esc(r.command)}</p><pre class="out" id="runout">${esc(RUNTEXT || "Reading")}</pre></td></tr>` : ""}`).join("")}</tbody></table>`;
+  }
+  function fetchBox(c) {
+    const f = c.fetch || {};
+    if (!f.can) return `<h3>Finished results</h3><p class="empty">The result folders of ${esc(c.label)} are not in the local settings, so nothing can be fetched.</p>`;
+    const r = f.result, got = r ? r.new.concat(r.updated) : [];
+    return `<h3>Finished results</h3><div class="row-actions" style="margin-top:0"><button class="plain" data-act="fetch" data-id="${esc(c.id)}" ${f.busy || !c.enabled ? "disabled" : ""}>${f.busy ? "Fetching" : "Fetch now"}</button>
+        <button class="${f.auto ? "plain" : "solid"}" data-act="autofetch" data-id="${esc(c.id)}" data-on="${f.auto ? "" : "1"}">${f.auto ? "Stop fetching automatically" : "Fetch automatically"}</button>
+        <span class="fine" style="margin:0">${f.auto ? "On: finished results are copied to this computer when a job leaves the queue, and every half hour." : "Off: results are copied only when you press Fetch now."}</span></div>
+      ${f.error ? `<p class="callout bad">${esc(f.error)}</p>` : ""}
+      ${r ? `<p class="fine">Last look ${when(f.at)}: ${r.checked} finished result folder${r.checked === 1 ? "" : "s"} on ${esc(c.label)}, ${got.length ? got.length + " copied" : "nothing new"}.</p>${got.length ? `<ul class="got">${got.map((g) => `<li><b>${esc(g.material || "material not known")}</b> ${esc(g.run)}</li>`).join("")}</ul>` : ""}${r.errors.map((e) => `<p class="callout bad">${esc(e)}</p>`).join("")}` : `<p class="fine">${f.busy ? "Looking for finished results" : "Not looked yet in this session."}</p>`}`;
+  }
   function sshPlace(c) {
     return `<div class="head"><h3 class="big">${esc(c.label)}</h3><span class="row-actions" style="margin:0 0 0 auto">${c.enabled ? `<button class="plain" data-act="queue" data-id="${esc(c.id)}">Read now</button>` : ""}
       <button class="${c.enabled ? "plain" : "solid"}" data-act="cluster" data-id="${esc(c.id)}" data-on="${c.enabled ? "" : "1"}" ${c.configured ? "" : "disabled"}>${c.enabled ? "Switch off" : "Allow reading"}</button></span></div>
       <p class="lead">${c.enabled ? "Command Room logs in with your key and reads the queue about once a minute while this window is open. Nothing is sent from this page." : "Switching it on is your permission for Command Room to log in with your key and read the queue."}</p>
-      ${c.enabled && c.jobs && c.jobs.length ? queueTable(c.jobs) : `<p class="empty">${esc(clusterLine(c))}</p>`}`;
+      ${c.enabled && c.jobs && c.jobs.length ? queueTable(c.jobs) : `<p class="empty">${esc(clusterLine(c))}</p>`}${fetchBox(c)}`;
   }
   function manualPlace(c) {
     const cmds = SENDER[c.id];
@@ -240,14 +262,15 @@
         <textarea id="paste-${esc(c.id)}" placeholder="Paste here what it printed (leave it empty if it printed nothing)"></textarea>
         <div class="row-actions"><button class="solid" data-act="paste" data-id="${esc(c.id)}">Read what I pasted</button><span class="fine" style="margin:0">${c.jobs ? esc(clusterLine(c)) : ""}</span></div>
         ${c.jobs && c.jobs.length ? queueTable(c.jobs) : ""}</div>
-      <div>${c.sender ? `<h3>Send a folder of calculations</h3><form data-sender="${esc(c.id)}"><label class="field">Folder, as you give it to your sender script<input type="text" name="folder" placeholder="Rattle30Si" spellcheck="false" required></label>
+      <div>${c.sender ? `<h3>Send a folder of calculations</h3><form data-sender="${esc(c.id)}"><label class="field">Folder, as you give it to your sender script<input type="text" name="folder" placeholder="MyJobs" spellcheck="false" required></label>
         <label class="field">Only these materials (optional, separated by commas)<input type="text" name="only" spellcheck="false"></label><button class="plain">Prepare the commands</button></form>
         ${cmds ? `<ol class="stepsdone"><li><span>See what it would do</span>${copyBox(cmds.dry)}</li><li><span>Send</span>${copyBox(cmds.send)}</li><li><span>How it is going</span>${copyBox(cmds.status)}</li><li><span>Bring the results back</span>${copyBox(cmds.collect)}</li></ol>` : ""}` : "<h3>Send a folder of calculations</h3><p class='empty'>The sender script is not set in the local settings.</p>"}</div></div>`;
   }
   function localPlace(loc) {
-    if (loc === null) return `<div class="head"><h3 class="big">This computer</h3></div><p class="empty">The folder with the job files is not set in the local settings.</p>`;
+    if (loc === null) return `<div class="head"><h3 class="big">This computer</h3></div><p class="empty">The folder with the job files is not set in the local settings.</p>${startedBox()}`;
     return `<div class="head"><h3 class="big">This computer</h3></div><p class="lead">Jobs that report their progress through the job tracker. A finished job stays here for 5 minutes, then moves to the list below.</p>
-      ${loc.live.length ? loc.live.map((j) => `${jobLine(j)}<p>${badge(j.state === "running" ? "running" : j.state, j.state)} <span class="fine">updated ${when(j.updated)}</span></p>`).join("") : `<p class="empty">Nothing is running.</p>`}
+      ${loc.live.length ? loc.live.map((j) => `${jobLine(j)}<p>${badge(j.state === "running" ? "running" : j.state, j.state)} <span class="fine">updated ${when(j.updated)}</span></p>`).join("") : `<p class="empty">No job is reporting progress.</p>`}
+      ${startedBox()}
       ${loc.history.length ? `<h3>Finished</h3><table class="grid"><thead><tr><th>Name</th><th>Project</th><th>State</th><th>Last step</th><th>Result</th><th>Ended</th></tr></thead><tbody>${loc.history.map((j) => `<tr><td class="num">${esc(j.name)}</td><td>${esc(j.project || "")}</td><td>${badge(j.state, j.state)}</td><td class="num">${j.step || 0}/${j.total || "?"}</td><td class="num">${esc(j.metric || "")}</td><td class="num">${when(j.updated)}</td></tr>`).join("")}</tbody></table>` : ""}`;
   }
   function jobsArea() {
@@ -260,16 +283,25 @@
     const c = S.clusters.find((x) => x.id === place);
     $("main").innerHTML = `<div class="area"><h1>Jobs</h1><p class="lead">Three places where work runs. Choose one to see its queue.</p>
       <div class="places">${tiles}</div><section class="panel">${place === "local" ? localPlace(loc) : c.mode === "manual" ? manualPlace(c) : sshPlace(c)}</section></div>`;
+    if (RUNOUT) readRun();
   }
 
-  /* ---------- launch: one step, one plan, a dry run, then your click ---------- */
-  async function pickStep(id) { L = { step: id, options: null, plan: null, result: null, busy: "" }; try { L.options = await get("/api/launch/options?step=" + encodeURIComponent(id)); if (L.options.error) { toast(L.options.error, true); L.options = null; } } catch (e) { toast("The step could not be read.", true); } launchArea(); }
-  function launchArea() {
-    const p = P(), open = p.next.map(stepById).filter(Boolean).concat(p.steps.filter((s) => s.state === "failed")), o = L.options, plan = L.plan;
-    let right = `<div class="panel"><p class="lead" style="margin:0">Choose a step. It is prepared as a plan: the exact command, where it runs, and a dry run before anything is sent.</p></div>`;
-    if (o) {
-      const on = o.clusters.filter((c) => c.enabled);
-      right = `<div class="panel"><h2>Step</h2><h3 style="margin-top:0">${esc(o.stage.label)} of ${esc(o.step.name)}</h3><p class="lead">${esc(o.step.rule || "")}</p>
+  /* ---------- launch: choose the process, then the launcher; a plan, a dry run, then your click ---------- */
+  let CAT = null, catStamp = null, LP = { process: null, launcher: null, q: "", plan: null, result: null, busy: "", values: {} };
+  const STAGE_OF = { send: "vasp", fit: "training", bte: "shengbte" }, SHELL = { bash: "Git Bash", wsl: "WSL", powershell: "PowerShell" };
+  const openSteps = () => { const p = P(); return p.next.map(stepById).filter(Boolean).concat(p.steps.filter((s) => s.state === "failed")); };
+  const stepsOf = (id) => openSteps().filter((s) => STAGE_OF[id] ? s.stage === STAGE_OF[id] : id === "other" && !Object.values(STAGE_OF).includes(s.stage));
+  const launcherById = (id) => CAT && CAT.launchers.concat(CAT.guide).find((x) => x.id === id);
+  const byHand = (x) => x.copy || (S.clusters.find((c) => c.id === x.contacts) || {}).mode === "manual";
+  async function pickStep(id) {
+    L = { step: id, options: null, plan: null, result: null, busy: "" }; LP.launcher = null; LP.plan = null; LP.result = null;
+    const st = stepById(id); if (st) LP.process = Object.keys(STAGE_OF).find((k) => STAGE_OF[k] === st.stage) || "other";
+    try { L.options = await get("/api/launch/options?step=" + encodeURIComponent(id)); if (L.options.error) { toast(L.options.error, true); L.options = null; } } catch (e) { toast("The step could not be read.", true); }
+    launchArea();
+  }
+  function stepPanel() {
+    const o = L.options, plan = L.plan, on = o.clusters.filter((c) => c.enabled);
+    return `<div class="panel"><h2>Step of the pipeline</h2><h3 style="margin-top:0">${esc(o.stage.label)} of ${esc(o.step.name)}</h3><p class="lead">${esc(o.step.rule || "")}</p>
         ${!o.actions.length ? `<p class="callout">This process has no command yet. Write the command it runs:</p><form id="cmdForm"><textarea name="command" placeholder="python my_script.py"></textarea><div class="row-actions"><button class="solid">Save the command</button></div></form>` : `
         <form id="planForm">
           <label class="field">Action<select name="action">${o.actions.map((a) => `<option value="${esc(a.id)}">${esc(a.label)}</option>`).join("")}</select></label>
@@ -288,11 +320,57 @@
             ${L.busy ? `<span class="fine">${esc(L.busy)}</span>` : ""}</div>
           ${plan.dry_output !== null ? `<p class="callout ${plan.dry_ok ? "good" : "bad"}">${plan.dry_ok ? "The dry run finished without an error. Read what it would do:" : "The dry run reported a problem. Nothing can be sent until it passes:"}</p><pre class="out">${esc(plan.dry_output || "(no output)")}</pre>` : ""}</div>` : ""}
         ${L.result ? `<div class="panel" style="margin-top:14px"><p class="callout ${L.result.ok ? "good" : "bad"}">${L.result.ok ? "Done. " + esc(L.result.board || "") : "The command reported an error."}</p><pre class="out">${esc(L.result.output || "(no output)")}</pre></div>` : ""}`;
-    }
-    $("main").innerHTML = `<div class="area"><h1>Launch</h1><p class="lead">Open steps, in the order they can go.</p><div class="split"><ul class="list">${open.map((s) => `<li><button data-act="pick" data-id="${esc(s.id)}" aria-current="${s.id === L.step}">${esc(stageLabel(s.stage))} of ${esc(s.name)}<span>${WORD[s.view]}</span></button></li>`).join("") || "<li><button disabled>No open step</button></li>"}</ul><div>${right}</div></div></div>`;
-    const pf = $("planForm");
+  }
+  function launcherPanel(x) {
+    const plan = LP.plan, hand = byHand(x), contact = S.clusters.find((c) => c.id === x.contacts);
+    const field = (f) => { const v = LP.values[f.name] != null ? LP.values[f.name] : f.default;
+      if (f.switch) return `<label class="check"><input type="checkbox" name="${f.name}" ${v === "1" ? "checked" : ""}> ${esc(f.label)}</label>`;
+      if (f.choices.length) return `<label class="field">${esc(f.label)}<select name="${f.name}">${f.required ? "" : `<option value=""></option>`}${f.choices.map((c) => `<option ${c === v ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></label>`;
+      return `<label class="field">${esc(f.label)}<input type="text" name="${f.name}" value="${esc(v || "")}" spellcheck="false" ${f.required ? "required" : ""}></label>`; };
+    const link = x.sends && openSteps().length ? `<label class="field">Mark this step as sent when it starts<select name="__step"><option value="">no step</option>${openSteps().map((s) => `<option value="${esc(s.id)}" ${LP.values.__step === s.id ? "selected" : ""}>${esc(stageLabel(s.stage))} of ${esc(s.name)}</option>`).join("")}</select></label>` : "";
+    return `<div class="panel"><h2>${x.source === "guide" ? "Command of your guide" : "Launcher"}</h2><h3 style="margin-top:0">${esc(x.label)}</h3><p class="lead">${esc(x.what)}</p>
+        <dl><dt>Runs</dt><dd>${hand ? "you run it" + (contact ? ", it needs " + esc(contact.label) : "") : esc(SHELL[x.shell]) + " on this computer" + (contact ? ", and connects to " + esc(contact.label) : "")}</dd>
+          ${x.cwd ? `<dt>In</dt><dd><span class="mono">${esc(x.cwd)}</span> <button class="link" data-act="open" data-what="launcher" data-id="${esc(x.id)}">Open folder</button></dd>` : ""}
+          ${x.runs_on ? `<dt>Your guide says</dt><dd>${esc(x.runs_on)}</dd>` : ""}</dl>
+        ${x.usage ? `<p class="fine">How it is used</p><pre class="out">${esc(x.usage)}</pre>` : ""}${x.notes ? `<p class="fine">${esc(x.notes)}</p>` : ""}
+        ${contact && !hand && !contact.enabled ? `<p class="callout bad">${esc(contact.label)} is switched off. Allow reading it in Jobs before starting something that connects to it.</p>` : ""}
+        <form id="lform">${x.fields.map(field).join("")}${link}<div class="row-actions" style="margin-bottom:0"><button class="solid">Prepare the plan</button></div></form></div>
+      ${plan ? `<div class="panel" style="margin-top:14px"><h2>The plan</h2><dl><dt>Where</dt><dd>${esc(plan.where)}</dd>${plan.folder ? `<dt>Folder</dt><dd class="mono">${esc(plan.folder)}</dd>` : ""}</dl>
+          ${plan.dry ? `<p class="fine">Dry run</p><pre class="out">${esc(plan.dry)}</pre>` : ""}<p class="fine">Command that really runs</p><pre class="out">${esc(plan.real)}</pre>
+          ${plan.notes.map((n) => `<p class="callout">${esc(n)}</p>`).join("")}
+          ${plan.manual ? manualPlan(plan) : `<div class="row-actions">${plan.dry ? `<button class="solid" data-act="ldry" ${LP.busy ? "disabled" : ""}>Run the dry run</button>` : ""}
+            <button class="danger" data-act="lrun" ${LP.busy || (plan.sends && plan.dry && plan.dry_ok !== true) ? "disabled" : ""}>${plan.sends ? "Send it" : "Run it on this computer"}</button>${LP.busy ? `<span class="fine">${esc(LP.busy)}</span>` : ""}</div>`}
+          ${plan.dry_output !== null ? `<p class="callout ${plan.dry_ok ? "good" : "bad"}">${plan.dry_ok ? "The dry run finished without an error. Read what it would do:" : "The dry run reported a problem:"}</p><pre class="out">${esc(plan.dry_output || "(no output)")}</pre>` : ""}</div>` : ""}
+      ${LP.result ? `<div class="panel" style="margin-top:14px"><p class="callout good">${esc(LP.result.output || "Done.")} ${esc(LP.result.board || "")}</p>${LP.result.run ? `<div class="row-actions" style="margin-bottom:0"><button class="plain" data-act="tojobs">See it in Jobs</button></div>` : ""}</div>` : ""}`;
+  }
+  function launchArea() {
+    if (!CAT) { $("main").innerHTML = `<div class="area"><h1>Launch</h1><p class="lead">Reading your launchers</p></div>`;
+      get("/api/launchers").then((c) => { CAT = c; if (area === "launch") launchArea(); }).catch(() => toast("The launchers could not be read.", true)); return; }
+    const procs = CAT.processes.concat(CAT.guide.length ? [{ id: "guide", label: "Any command", what: "Every script of your guide, with one free command line." }] : []);
+    const count = (id) => id === "guide" ? CAT.guide.length : CAT.launchers.filter((x) => x.process === id).length + stepsOf(id).length;
+    if (!LP.process || !procs.some((x) => x.id === LP.process)) LP.process = (procs.find((x) => count(x.id)) || procs[0]).id;
+    const q = LP.q.toLowerCase(), steps = stepsOf(LP.process);
+    const mine = LP.process === "guide" ? CAT.guide.filter((x) => !q || (x.label + " " + x.what + " " + (x.section || "")).toLowerCase().includes(q)) : CAT.launchers.filter((x) => x.process === LP.process);
+    const x = LP.launcher ? launcherById(LP.launcher) : null;
+    const left = (LP.process === "guide" ? `<label class="field">Search your guide<input type="text" id="guideq" value="${esc(LP.q)}" placeholder="report, collect, kappa" spellcheck="false"></label>` : "") +
+      (steps.length ? `<h2>Steps waiting in the pipeline</h2><ul class="list">${steps.map((s) => `<li><button data-act="pick" data-id="${esc(s.id)}" aria-current="${!LP.launcher && s.id === L.step}">${esc(stageLabel(s.stage))} of ${esc(s.name)}<span>${WORD[s.view]}</span></button></li>`).join("")}</ul>` : "") +
+      (mine.length ? `<h2>${LP.process === "guide" ? `${mine.length} command${mine.length === 1 ? "" : "s"}` : "Your launchers"}</h2><ul class="list">${mine.slice(0, 80).map((m) => `<li><button data-act="launcher" data-id="${esc(m.id)}" aria-current="${m.id === LP.launcher}">${esc(m.label)}<span>${byHand(m) ? "you run it" : SHELL[m.shell]}</span></button></li>`).join("")}</ul>` : "") +
+      (!steps.length && !mine.length ? `<p class="empty">${LP.process === "guide" ? "No command matches." : "Nothing is described for this process yet."}</p>` : "");
+    const right = x ? launcherPanel(x) : L.step && L.options ? stepPanel() : `<div class="panel"><p class="lead" style="margin:0">Choose what to start. It is prepared as a plan: the exact command and where it runs, with a dry run first when the launcher has one. Nothing starts before your click.</p></div>`;
+    $("main").innerHTML = `<div class="area"><h1>Launch</h1><p class="lead">Choose the kind of work, then the way to do it.</p>
+      <div class="ptiles">${procs.map((p) => `<button class="ptile ${count(p.id) ? "" : "none"}" data-act="proc" data-id="${esc(p.id)}" aria-pressed="${p.id === LP.process}" title="${esc(p.what || "")}"><b>${esc(p.label)}</b><em>${count(p.id)}</em></button>`).join("")}</div>
+      <div class="split"><div>${left}</div><div>${right}</div></div>
+      <p class="fine">The launchers are your own scripts, described in a file of yours${CAT.file ? "" : " (not written yet)"}. <button class="link" data-act="open" data-what="launchers">Open the launcher file</button> Changes you save there appear here by themselves.</p></div>`;
+    const gq = $("guideq");
+    if (gq) gq.addEventListener("input", (e) => { LP.q = e.target.value; const pos = e.target.selectionStart; launchArea(); const i = $("guideq"); i.focus(); i.setSelectionRange(pos, pos); });
+    const lf = $("lform");
+    if (lf && x) lf.addEventListener("submit", async (e) => { e.preventDefault(); const values = {};
+      x.fields.forEach((f) => { const el = lf.elements[f.name]; values[f.name] = f.switch ? (el.checked ? "1" : "") : el.value; });
+      const step = lf.elements.__step ? lf.elements.__step.value : ""; LP.values = { ...values, __step: step };
+      try { LP.plan = (await post("/api/launch/local", { launcher: x.id, values, step })).plan; LP.result = null; } catch (err) { toast(err.message, true); } launchArea(); });
+    const pf = $("planForm"), o = L.options, plan = L.plan;
     if (pf) {
-      const fields = () => { const a = o.actions.find((x) => x.id === pf.action.value) || {}; const f = a.fields || [];
+      const fields = () => { const a = o.actions.find((y) => y.id === pf.action.value) || {}; const f = a.fields || [];
         $("fields").innerHTML = (f.includes("n") ? `<label class="field">Number of structures<input type="number" name="n" min="1" step="1" required></label>` : "") +
           (f.includes("c3") ? `<label class="field">Target distance of the 3rd order, in Å (empty = the value in hipipe.cfg)<input type="number" name="c3" min="0" step="0.01"></label><label class="field">Target distance of the 4th order, in Å<input type="number" name="c4" min="0" step="0.01"></label>` : ""); };
       fields(); pf.action.addEventListener("change", fields);
@@ -311,6 +389,12 @@
     try { L.result = await post("/api/launch/submit", { token: L.plan.token, confirm: L.plan.token }); L.plan = null; lastKey = ""; load(true); } catch (e) { toast(e.message, true); }
     L.busy = ""; launchArea();
   }
+  async function localDry() { LP.busy = "Running the dry run on this computer"; launchArea(); try { LP.plan = (await post("/api/launch/dry", { token: LP.plan.token })).plan; } catch (e) { toast(e.message, true); } LP.busy = ""; launchArea(); }
+  async function localRun() {
+    LP.busy = "Starting"; launchArea();
+    try { LP.result = await post("/api/launch/submit", { token: LP.plan.token, confirm: LP.plan.token }); LP.plan = null; lastKey = ""; load(true); } catch (e) { toast(e.message, true); }
+    LP.busy = ""; launchArea();
+  }
 
   /* ---------- reports and library ---------- */
   async function reportsArea(refresh) {
@@ -324,7 +408,7 @@
         <div class="card"><h3>A training run of a potential</h3>${REP.runs.length ? `<form id="repP"><label class="field">Run (best held-out error first)<select name="name">${[...new Set(REP.runs.map((r) => r.element || ""))].map((el) => `<optgroup label="${esc(el || "Element not known")}">${REP.runs.filter((r) => (r.element || "") === el).slice(0, 40).map((r) => `<option>${esc(r.name)}</option>`).join("")}</optgroup>`).join("")}</select></label>
           <button class="solid" ${repBusy ? "disabled" : ""}>Build the report</button></form>` : "<p>No training run was found on this computer.</p>"}</div></div>
       ${repBusy ? `<p class="fine">${esc(repBusy)}</p>` : ""}
-      <h3>Reports made here</h3>${REP.list.length ? `<table class="grid"><thead><tr><th>File</th><th>Made</th><th>Size</th><th></th></tr></thead><tbody>${REP.list.map((f) => `<tr><td><a class="link" href="/reports/${encodeURIComponent(f.name)}" target="_blank" rel="noopener">${esc(f.name)}</a></td><td class="num">${when(f.modified)}</td><td class="num">${Math.round(f.size / 1024)} kB</td>
+      <h3>Reports made here <button class="link" data-act="open" data-what="reports">Open the folder</button></h3>${REP.list.length ? `<table class="grid"><thead><tr><th>File</th><th>Made</th><th>Size</th><th></th></tr></thead><tbody>${REP.list.map((f) => `<tr><td><a class="link" href="/reports/${encodeURIComponent(f.name)}" target="_blank" rel="noopener">${esc(f.name)}</a></td><td class="num">${when(f.modified)}</td><td class="num">${Math.round(f.size / 1024)} kB</td>
         <td class="act">${repAsk === f.name ? ask(f.name, "Remove this file for good?", 1) : `<button class="plain" data-act="repask" data-id="${esc(f.name)}">Remove</button>`}</td></tr>`).join("")}</tbody></table>
         <p class="fine">${repAsk === "*" ? ask("*", `Remove all ${REP.list.length} files for good?`, REP.list.length) : REP.list.length > 1 ? `<button class="link" data-act="repask" data-id="*">Remove all ${REP.list.length} reports</button>` : ""} A removed report cannot be brought back, but it can be built again from the same results.</p>` : "<p class='lead'>None yet.</p>"}</div>`;
     const build = async (body) => { repBusy = "Drawing the pages"; reportsArea(); try { const r = await post("/api/reports/build", body); toast(r.message); } catch (e) { toast(e.message, true); } repBusy = ""; reportsArea(true); };
@@ -362,6 +446,16 @@
     else if (a === "row") { rowSel = id; $("rowbox").dataset.row = ""; details(); }
     else if (a === "editmode") { editing = !editing; applyEdit(); }
     else if (a === "place") { place = id; jobsArea(); }
+    else if (a === "proc") { LP = { ...LP, process: id, launcher: null, plan: null, result: null, values: {} }; L = { step: null, options: null, plan: null, result: null, busy: "" }; launchArea(); }
+    else if (a === "launcher") { LP = { ...LP, launcher: id, plan: null, result: null, values: {} }; L = { step: null, options: null, plan: null, result: null, busy: "" }; launchArea(); }
+    else if (a === "ldry") localDry();
+    else if (a === "lrun") localRun();
+    else if (a === "tojobs") { place = "local"; go("jobs"); }
+    else if (a === "open") post("/api/open", { what: b.dataset.what, id: id || "" }).then((r) => toast(r.message)).catch((err) => toast(err.message, true));
+    else if (a === "runout") { RUNOUT = RUNOUT === id ? null : id; RUNTEXT = ""; jobsArea(); if (RUNOUT) readRun(); }
+    else if (a === "runstop") act(() => post("/api/runs/stop", { id }));
+    else if (a === "fetch") act(() => post("/api/fetch", { id }));
+    else if (a === "autofetch") act(() => post("/api/autofetch", { id, on: !!b.dataset.on }));
     else if (a === "repask") { repAsk = id; reportsArea(); }
     else if (a === "repkeep") { repAsk = null; reportsArea(); }
     else if (a === "repremove") { repAsk = null; post("/api/reports/remove", id === "*" ? { names: REP.list.map((f) => f.name) } : { name: id }).then((r) => { toast(r.message); reportsArea(true); }).catch((err) => { toast(err.message, true); reportsArea(true); }); }
@@ -383,8 +477,8 @@
     else if (a === "submit") submitPlan();
     else if (a === "copy") navigator.clipboard.writeText(b.dataset.copy).then(() => toast("Copied."), () => toast("Could not copy: select the text and copy it by hand.", true));
     else if (a === "paste") { const t = $("paste-" + id); act(() => post("/api/paste", { id, text: t ? t.value : "" })); }
-    else if (a === "drypasted") post("/api/launch/pasted", { token: L.plan.token, text: $("drypaste").value }).then((r) => { L.plan = r.plan; launchArea(); }).catch((err) => toast(err.message, true));
-    else if (a === "marksent") post("/api/launch/sent", { token: L.plan.token }).then((r) => { L.result = r; L.plan = null; lastKey = ""; load(true); launchArea(); }).catch((err) => toast(err.message, true));
+    else if (a === "drypasted") { const cur = LP.launcher ? LP : L; post("/api/launch/pasted", { token: cur.plan.token, text: $("drypaste").value }).then((r) => { cur.plan = r.plan; launchArea(); }).catch((err) => toast(err.message, true)); }
+    else if (a === "marksent") { const cur = LP.launcher ? LP : L; post("/api/launch/sent", { token: cur.plan.token }).then((r) => { cur.result = r; cur.plan = null; lastKey = ""; load(true); launchArea(); }).catch((err) => toast(err.message, true)); }
     else if (a === "cluster") act(() => post("/api/cluster", { id, enabled: !!b.dataset.on }));
     else if (a === "queue") act(() => post("/api/queue", { id }));
     else if (a === "page") { libPage = id; libraryArea(); }
@@ -401,13 +495,17 @@
     try {
       const s = await get("/api/state"), live = $("live");
       live.className = "live"; void live.offsetWidth; live.className = "live beat"; live.lastElementChild.textContent = clock(s.generated);
-      const key = JSON.stringify([s.pipeline, s.local, s.clusters, s.board, s.settings, s.undo]);
+      const key = JSON.stringify([s.pipeline, s.local, s.clusters, s.board, s.settings, s.undo, s.started]);
+      const cs = JSON.stringify(s.launchers_stamp || null);
+      if (catStamp !== null && cs !== catStamp) { CAT = null; if (area === "launch" && !typing()) launchArea(); }
+      catStamp = cs;
+      if (RUNOUT && area === "jobs") readRun();
       const first = !S; S = s;
       const stamp = JSON.stringify(s.results_stamp || null);
       if (lastStamp === null) { lastStamp = stamp; window.CRResults.refresh(get).catch(() => {}); }
       else if (stamp !== lastStamp) { lastStamp = stamp; REP = null;
         window.CRResults.refresh(get).then((n) => { if (n.sections.length) toast("New section in Results: " + n.sections.join(", ")); else if (n.runs.length) toast(n.runs.length === 1 ? "New result: " + n.runs[0] : n.runs.length + " new results in Results"); }).catch(() => {}); }
-      if (first) { tabs(); render(true); lastKey = key; }
+      if (first) { tabs(); fresh(); render(true); lastKey = key; }
       else if (key !== lastKey || force) { lastKey = key; render(false); }
     } catch (e) { $("live").className = "live lost"; $("live").lastElementChild.textContent = "no contact with the local server"; }
   }
