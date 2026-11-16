@@ -31,7 +31,10 @@ import torch.nn.functional as F
 
 # ---- what the network sees and says: keep in step with RhythmNet.kt ----------------------------------------------
 EMBED = 24
-N_FEAT = 5
+LAG_BINS = 32  # distances to the neighbouring onsets, 0.1 s to 4 s on a log scale, before and after
+LAG_LO, LAG_HI = 0.1, 4.0
+CLOCKS = 16  # sines and cosines of the onset time, periods from 0.1 s to 6.4 s
+N_FEAT = 5 + 2 * LAG_BINS + 2 * CLOCKS
 PERIOD_BINS = 56
 PERIOD_LO, PERIOD_HI = math.log2(0.15), math.log2(3.2)
 BPB_CLASSES = [2, 3, 4, 5]  # beats in a bar (1 counts as 2, more than 5 as 4)
@@ -53,6 +56,26 @@ def features(on, dur, vel):
     f[:, 3] = vel / 127.0
     f[:, 4] = (prev < 0.03).astype(np.float32)
     f[0, 4] = 0
+    # Each note's distances to the onsets around it: on a steady pulse they pile up at the beat length and its
+    # multiples, which is what lets the network see the tempo instead of having to count time.
+    start = np.ones(n, dtype=bool)
+    start[1:] = prev[1:] >= 0.03  # notes struck together are one onset
+    group = np.cumsum(start) - 1
+    t = on[start]
+    d = t[None, :] - t[:, None]  # [onset, other]: positive = later
+    a = np.abs(d)
+    ok = (a >= LAG_LO) & (a < LAG_HI)
+    b = np.floor(np.log(np.where(ok, a, LAG_LO) / LAG_LO) / math.log(LAG_HI / LAG_LO) * LAG_BINS).astype(int).clip(0, LAG_BINS - 1)
+    col = np.where(d > 0, b + LAG_BINS, b)
+    g = len(t)
+    hist = np.bincount((np.arange(g)[:, None] * 2 * LAG_BINS + col)[ok], minlength=g * 2 * LAG_BINS).reshape(g, 2 * LAG_BINS)
+    f[:, 5:5 + 2 * LAG_BINS] = (np.log1p(hist) / 2.0)[group]
+    # a clock: where the onset falls in cycles of many lengths (time counted from the first note)
+    rel = on - on[0]
+    periods = 0.1 * 2.0 ** (np.arange(CLOCKS) * 6.0 / (CLOCKS - 1))
+    ph = 2 * math.pi * rel[:, None] / periods[None, :]
+    f[:, 5 + 2 * LAG_BINS:5 + 2 * LAG_BINS + CLOCKS] = np.sin(ph)
+    f[:, 5 + 2 * LAG_BINS + CLOCKS:] = np.cos(ph)
     return f
 
 
@@ -312,7 +335,7 @@ def main():
     ap.add_argument("--layers", type=int, default=2)
     ap.add_argument("--length", type=int, default=384)
     ap.add_argument("--batch", type=int, default=24)
-    ap.add_argument("--lr", type=float, default=2e-3)
+    ap.add_argument("--lr", type=float, default=1.5e-3)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--resume")
     args = ap.parse_args()
@@ -335,7 +358,7 @@ def main():
     pieces = list(by_piece.values())
     steps_per_epoch = sum(len(p.on) for p in train) // (args.length * args.batch) // 2
     total = args.epochs * steps_per_epoch
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=total, pct_start=0.08)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=total, pct_start=0.1)
     step = 0
     best = -1.0
     for epoch in range(args.epochs):

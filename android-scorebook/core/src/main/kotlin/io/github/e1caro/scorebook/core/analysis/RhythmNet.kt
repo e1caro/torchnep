@@ -3,11 +3,14 @@ package io.github.e1caro.scorebook.core.analysis
 import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.cos
 import kotlin.math.exp
+import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.ln1p
 import kotlin.math.min
 import kotlin.math.pow
+import kotlin.math.sin
 import kotlin.math.tanh
 
 /**
@@ -77,6 +80,8 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
             x[i][e + 3] = nt.velocity / 127f
             x[i][e + 4] = if (i > 0 && prev < 0.03) 1f else 0f
         }
+        neighbours(notes, x, e + 5)
+        clocks(notes, x, e + 5 + 2 * LAG_BINS)
         for (l in 0 until layers) {
             val input = x
             val fwd = Array(n) { FloatArray(0) }
@@ -117,6 +122,56 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
             len[i] = logSoftmax(linear("dur", x[i]))
         }
         return Out(beat, down, period, bpb, comp, key, left, pos, len)
+    }
+
+    /**
+     * Each note's distances to the onsets around it (0.1 s to 4 s on a log scale, before and after): on a steady
+     * pulse they pile up at the beat length and its multiples, so the network sees the tempo instead of counting.
+     */
+    private fun neighbours(notes: List<In>, x: Array<FloatArray>, at: Int) {
+        val n = notes.size
+        // notes struck together are one onset
+        val group = IntArray(n)
+        val times = ArrayList<Double>()
+        for (i in 0 until n) {
+            if (i == 0 || notes[i].onset - notes[i - 1].onset >= 0.03) times.add(notes[i].onset)
+            group[i] = times.size - 1
+        }
+        val g = times.size
+        val hist = Array(g) { IntArray(2 * LAG_BINS) }
+        val scale = LAG_BINS / ln(LAG_HI / LAG_LO)
+        var lo = 0
+        for (a in 0 until g) {
+            while (times[a] - times[lo] >= LAG_HI) lo++
+            var c = lo
+            while (c < g && times[c] - times[a] < LAG_HI) {
+                val d = times[c] - times[a]
+                val ad = kotlin.math.abs(d)
+                if (ad >= LAG_LO && ad < LAG_HI) {
+                    val b = floor(ln(ad / LAG_LO) * scale).toInt().coerceIn(0, LAG_BINS - 1)
+                    hist[a][if (d > 0) b + LAG_BINS else b]++
+                }
+                c++
+            }
+        }
+        for (i in 0 until n) {
+            val h = hist[group[i]]
+            for (k in 0 until 2 * LAG_BINS) x[i][at + k] = (ln1p(h[k].toDouble()) / 2.0).toFloat()
+        }
+    }
+
+    /** A clock: where each onset falls in cycles of many lengths (0.1 s to 6.4 s), counted from the first note. */
+    private fun clocks(notes: List<In>, x: Array<FloatArray>, at: Int) {
+        val t0 = notes.firstOrNull()?.onset ?: return
+        for (i in notes.indices) {
+            val rel = notes[i].onset - t0
+            for (k in 0 until CLOCKS) {
+                val period = 0.1 * 2.0.pow(k * 6.0 / (CLOCKS - 1))
+                val ph = 2 * Math.PI * rel / period
+                x[i][at + k] = sin(ph).toFloat()
+                x[i][at + CLOCKS + k] = cos(ph).toFloat()
+            }
+        }
     }
 
     /** One direction of one GRU layer (PyTorch's equations and gate order: reset, update, new). */
@@ -172,7 +227,11 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
     }
 
     companion object {
-        const val FEATURES = 5
+        const val LAG_BINS = 32
+        const val LAG_LO = 0.1
+        const val LAG_HI = 4.0
+        const val CLOCKS = 16
+        const val FEATURES = 5 + 2 * LAG_BINS + 2 * CLOCKS
         const val POSITIONS = 24
         val BEATS_PER_BAR = intArrayOf(2, 3, 4, 5)
         val DURATIONS = doubleArrayOf(1.0 / 8, 1.0 / 6, 1.0 / 4, 1.0 / 3, 3.0 / 8, 1.0 / 2, 2.0 / 3, 3.0 / 4, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0)
