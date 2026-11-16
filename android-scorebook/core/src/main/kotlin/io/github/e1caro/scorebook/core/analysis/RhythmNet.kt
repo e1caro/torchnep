@@ -11,13 +11,14 @@ import kotlin.math.ln1p
 import kotlin.math.min
 import kotlin.math.pow
 import kotlin.math.sin
-import kotlin.math.tanh
+import kotlin.math.sqrt
 
 /**
- * The rhythm network: a small bidirectional recurrent network (two GRU layers) that reads the notes of a
- * performance in order and says for each note what a musician reading the score would know: whether it is on a
- * beat and on a bar line, how long the beat is there, how many beats the bar has and whether they divide in
- * three, the key signature, the hand, the place inside the beat and the written length.
+ * The rhythm network: a small convolutional network over the sequence of notes. Every layer lets a note look at
+ * notes further away (about 300 on each side in all), and for each note it says what a musician reading the
+ * score would know: whether it is on a beat and on a bar line, how long the beat is there, how many beats the
+ * bar has and whether they divide in three, the key signature, the hand, the place inside the beat and the
+ * written length.
  *
  * It was trained (tools/train_rhythm_net.py) on real classical performances aligned with their scores, with the
  * inputs made as noisy as notes heard through a microphone. This class only runs it: plain arithmetic on the
@@ -47,8 +48,8 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
         val length: Array<FloatArray>,
     )
 
-    private val hidden = w.getValue("gru.weight_hh_l0").shape[1]
-    private val layers = generateSequence(0) { it + 1 }.takeWhile { w.containsKey("gru.weight_ih_l$it") }.count()
+    private val hidden = w.getValue("inp.weight").shape[0]
+    private val blocks = generateSequence(0) { it + 1 }.takeWhile { w.containsKey("blocks.$it.pw.weight") }.count()
     private var lastKey = 0L
     private var lastOut: Out? = null
 
@@ -82,17 +83,10 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
         }
         neighbours(notes, x, e + 5)
         clocks(notes, x, e + 5 + 2 * LAG_BINS)
-        for (l in 0 until layers) {
-            val input = x
-            val fwd = Array(n) { FloatArray(0) }
-            val bwd = Array(n) { FloatArray(0) }
-            // the two directions do not depend on each other: one thread each
-            val t = Thread { gru(input, "_l${l}_reverse", true, bwd) }
-            t.start()
-            gru(input, "_l$l", false, fwd)
-            t.join()
-            x = Array(n) { i -> FloatArray(2 * hidden).also { System.arraycopy(fwd[i], 0, it, 0, hidden); System.arraycopy(bwd[i], 0, it, hidden, hidden) } }
-        }
+        // into the network's width, then the layers; each adds what it found to what was there (a residual)
+        var h = Array(n) { linear("inp", x[it]) }
+        for (b in 0 until blocks) h = block(b, h)
+        x = Array(n) { layerNorm("norm", h[it]) }
         val beat = FloatArray(n)
         val down = FloatArray(n)
         val period = DoubleArray(n)
@@ -174,42 +168,59 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
         }
     }
 
-    /** One direction of one GRU layer (PyTorch's equations and gate order: reset, update, new). */
-    private fun gru(x: Array<FloatArray>, suffix: String, reverse: Boolean, out: Array<FloatArray>) {
-        val wih = w.getValue("gru.weight_ih$suffix")
-        val whh = w.getValue("gru.weight_hh$suffix").data
-        val bih = w.getValue("gru.bias_ih$suffix").data
-        val bhh = w.getValue("gru.bias_hh$suffix").data
-        val h = hidden
-        val inDim = wih.shape[1]
-        val wi = wih.data
-        var state = FloatArray(h)
-        val gi = FloatArray(3 * h)
-        val gh = FloatArray(3 * h)
+    /**
+     * One layer: normalise each note's vector, let every channel look at the notes [DILATIONS] apart (a dilated
+     * depthwise convolution over five positions; beyond the ends there is nothing), then mix the channels.
+     */
+    private fun block(index: Int, x: Array<FloatArray>): Array<FloatArray> {
         val n = x.size
-        for (step in 0 until n) {
-            val t = if (reverse) n - 1 - step else step
-            val xt = x[t]
-            for (g in 0 until 3 * h) {
-                var a = bih[g]
-                var o = g * inDim
-                for (k in 0 until inDim) a += wi[o++] * xt[k]
-                gi[g] = a
-                var b = bhh[g]
-                o = g * h
-                for (k in 0 until h) b += whh[o++] * state[k]
-                gh[g] = b
-            }
-            val next = FloatArray(h)
-            for (k in 0 until h) {
-                val r = sigmoid(gi[k] + gh[k])
-                val z = sigmoid(gi[h + k] + gh[h + k])
-                val c = tanh(gi[2 * h + k] + r * gh[2 * h + k])
-                next[k] = (1 - z) * c + z * state[k]
-            }
-            state = next
-            out[t] = next
+        val c = hidden
+        val dw = w.getValue("blocks.$index.dw.weight")
+        val kernel = dw.shape[2]
+        val dwW = dw.data
+        val dwB = w.getValue("blocks.$index.dw.bias").data
+        val dilation = DILATIONS[index % DILATIONS.size]
+        val normed = Array(n) { layerNorm("blocks.$index.norm", x[it]) }
+        val out = Array(n) { FloatArray(0) }
+        val half = kernel / 2
+        // the notes are independent of each other inside a layer: split them between the processor's cores
+        val threads = if (n < 256) 1 else minOf(4, Runtime.getRuntime().availableProcessors())
+        val work = (0 until threads).map { t ->
+            Thread {
+                val conv = FloatArray(c)
+                var i = t
+                while (i < n) {
+                    for (ch in 0 until c) {
+                        var a = dwB[ch]
+                        for (k in 0 until kernel) {
+                            val j = i + (k - half) * dilation
+                            if (j in 0 until n) a += dwW[ch * kernel + k] * normed[j][ch]
+                        }
+                        conv[ch] = if (a > 0f) a else 0f
+                    }
+                    val mixed = linear("blocks.$index.pw", conv)
+                    val xi = x[i]
+                    for (ch in 0 until c) mixed[ch] += xi[ch]
+                    out[i] = mixed
+                    i += threads
+                }
+            }.also { it.start() }
         }
+        work.forEach { it.join() }
+        return out
+    }
+
+    private fun layerNorm(name: String, x: FloatArray): FloatArray {
+        val weight = w.getValue("$name.weight").data
+        val bias = w.getValue("$name.bias").data
+        var mean = 0.0
+        for (v in x) mean += v
+        mean /= x.size
+        var variance = 0.0
+        for (v in x) variance += (v - mean) * (v - mean)
+        variance /= x.size
+        val inv = 1.0 / sqrt(variance + 1e-5)
+        return FloatArray(x.size) { (((x[it] - mean) * inv) * weight[it] + bias[it]).toFloat() }
     }
 
     private fun linear(name: String, x: FloatArray): FloatArray {
@@ -227,6 +238,8 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
     }
 
     companion object {
+        /** How far apart the notes each layer looks at are. */
+        val DILATIONS = intArrayOf(1, 2, 4, 8, 16, 32, 64, 1, 2, 4, 8, 16)
         const val LAG_BINS = 32
         const val LAG_LO = 0.1
         const val LAG_HI = 4.0

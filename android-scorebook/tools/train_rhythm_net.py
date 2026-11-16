@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Trains Scorebook's rhythm network: a small recurrent network that reads the notes of a piano performance in order
-and says, for every note, what a musician reading the score would know:
+Trains Scorebook's rhythm network: a small convolutional network that reads the notes of a piano performance in
+order and says, for every note, what a musician reading the score would know:
 
   - is it on a beat, is it on a bar line, and how long the beat is around it (the tempo and its level);
   - how many beats the bar has, and whether beats divide in three (6/8) or in two;
@@ -79,12 +79,39 @@ def features(on, dur, vel):
     return f
 
 
+class Block(nn.Module):
+    """One layer: look at notes a fixed distance apart (a dilated depthwise convolution), then mix the channels."""
+
+    def __init__(self, channels, kernel, dilation, dropout):
+        super().__init__()
+        self.norm = nn.LayerNorm(channels)
+        self.dw = nn.Conv1d(channels, channels, kernel, padding=dilation * (kernel - 1) // 2, dilation=dilation, groups=channels)
+        self.pw = nn.Linear(channels, channels)
+        self.drop = nn.Dropout(dropout)
+
+    def forward(self, x, mask):  # x: [batch, notes, channels]
+        h = (self.norm(x) * mask).transpose(1, 2)
+        h = F.relu(self.dw(h).transpose(1, 2))
+        return x + self.drop(self.pw(h)) * mask
+
+
+DILATIONS = [1, 2, 4, 8, 16, 32, 64, 1, 2, 4, 8, 16]
+KERNEL = 5
+
+
 class RhythmNet(nn.Module):
-    def __init__(self, hidden=128, layers=2, dropout=0.2):
+    """
+    A convolutional network over the sequence of notes: every layer lets a note look at notes further away (up to
+    about 300 notes on each side in all), so each note is judged in the context of the music around it.
+    """
+
+    def __init__(self, hidden=128, dropout=0.1):
         super().__init__()
         self.embed = nn.Embedding(88, EMBED)
-        self.gru = nn.GRU(EMBED + N_FEAT, hidden, layers, bidirectional=True, batch_first=True, dropout=dropout)
-        h = 2 * hidden
+        self.inp = nn.Linear(EMBED + N_FEAT, hidden)
+        self.blocks = nn.ModuleList([Block(hidden, KERNEL, d, dropout) for d in DILATIONS])
+        self.norm = nn.LayerNorm(hidden)
+        h = hidden
         self.beat = nn.Linear(h, 2)  # beat, bar line
         self.period = nn.Linear(h, PERIOD_BINS)
         self.meter = nn.Linear(h, len(BPB_CLASSES) + 1)  # beats per bar, then "divides in three"
@@ -93,9 +120,14 @@ class RhythmNet(nn.Module):
         self.pos = nn.Linear(h, POS_CLASSES)
         self.dur = nn.Linear(h, len(DUR_VALUES))
 
-    def forward(self, pitch, feat):
-        x = torch.cat([self.embed(pitch), feat], dim=-1)
-        y, _ = self.gru(x)
+    def forward(self, pitch, feat, mask=None):
+        if mask is None:
+            mask = torch.ones(pitch.shape, dtype=feat.dtype)
+        m = mask.unsqueeze(-1)
+        x = self.inp(torch.cat([self.embed(pitch), feat], dim=-1)) * m
+        for b in self.blocks:
+            x = b(x, m)
+        y = self.norm(x)
         return {k: getattr(self, k)(y) for k in ("beat", "period", "meter", "key", "hand", "pos", "dur")}
 
 
@@ -332,9 +364,11 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--epochs", type=int, default=24)
     ap.add_argument("--hidden", type=int, default=128)
-    ap.add_argument("--layers", type=int, default=2)
+    ap.add_argument("--workers", type=int, default=3)
+    ap.add_argument("--also-dev", action="store_true", help="learn from the development pieces too (for the weights that are shipped)")
+    ap.add_argument("--eval-every", type=int, default=2)
     ap.add_argument("--length", type=int, default=384)
-    ap.add_argument("--batch", type=int, default=24)
+    ap.add_argument("--batch", type=int, default=32)
     ap.add_argument("--lr", type=float, default=1.5e-3)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--resume")
@@ -343,10 +377,10 @@ def main():
     np.random.seed(args.seed)
     rng = random.Random(args.seed)
     t0 = time.time()
-    train = load(args.data, {"tune"})
+    train = load(args.data, {"tune", "dev"} if args.also_dev else {"tune"})
     dev = load(args.data, {"dev"})
     print(f"{len(train)} performances to learn from ({sum(len(p.on) for p in train)} notes), {len(dev)} to check on; loaded in {time.time() - t0:.0f} s", flush=True)
-    model = RhythmNet(args.hidden, args.layers)
+    model = RhythmNet(args.hidden)
     if args.resume:
         model.load_state_dict(torch.load(args.resume))
     print(sum(p.numel() for p in model.parameters()), "parameters", flush=True)
@@ -356,21 +390,35 @@ def main():
     for p in train:
         by_piece.setdefault(p.piece, []).append(p)
     pieces = list(by_piece.values())
-    steps_per_epoch = sum(len(p.on) for p in train) // (args.length * args.batch) // 2
+    steps_per_epoch = sum(len(p.on) for p in train) // (args.length * args.batch)
     total = args.epochs * steps_per_epoch
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=total, pct_start=0.1)
     step = 0
     best = -1.0
+    weights = [len(q.on) for q in train]
+
+    class Windows(torch.utils.data.IterableDataset):
+        """Endless batches of windows, each played a little differently (made in parallel worker processes)."""
+
+        def __iter__(self):
+            info = torch.utils.data.get_worker_info()
+            seed = args.seed * 1000 + (info.id if info else 0) + int(time.time()) % 100000
+            r = random.Random(seed)
+            np.random.seed(seed % (2 ** 31))
+            while True:
+                items = []
+                for _ in range(args.batch):
+                    # half of the windows by piece (variety), half by performance length (coverage)
+                    p = r.choice(r.choice(pieces)) if r.random() < 0.5 else r.choices(train, weights=weights)[0]
+                    items.append(sample(p, args.length, r, True))
+                yield batch(items)
+
+    loader = iter(torch.utils.data.DataLoader(Windows(), batch_size=None, num_workers=args.workers, prefetch_factor=4 if args.workers else None))
     for epoch in range(args.epochs):
         run = {}
         for _ in range(steps_per_epoch):
-            items = []
-            for _ in range(args.batch):
-                # half of the windows by piece (variety), half by performance length (coverage)
-                p = rng.choice(rng.choice(pieces)) if rng.random() < 0.5 else rng.choices(train, weights=[len(q.on) for q in train])[0]
-                items.append(sample(p, args.length, rng, True))
-            b = batch(items)
-            out = model(b["pitch"].long(), b["feat"])
+            b = next(loader)
+            out = model(b["pitch"].long(), b["feat"], b["mask"])
             loss, parts = losses(out, b)
             opt.zero_grad()
             loss.backward()
@@ -380,14 +428,16 @@ def main():
             step += 1
             for k, v in parts.items():
                 run[k] = run.get(k, 0.0) + v.item() / steps_per_epoch
-        res = evaluate(model, dev, rng)
-        score = res["beat_f"] + res["down_f"] + res["pos"] + res["hand"]
-        print(f"epoch {epoch + 1}/{args.epochs} {time.time() - t0:.0f}s loss " + " ".join(f"{k} {v:.3f}" for k, v in run.items())
-              + " | dev " + " ".join(f"{k} {100 * v:.1f}" for k, v in res.items()), flush=True)
-        if score > best:
-            best = score
-            export(model, args.out)
-            torch.save(model.state_dict(), args.out + ".pt")
+        line = f"epoch {epoch + 1}/{args.epochs} {time.time() - t0:.0f}s loss " + " ".join(f"{k} {v:.3f}" for k, v in run.items())
+        if (epoch + 1) % args.eval_every == 0 or epoch + 1 == args.epochs:
+            res = evaluate(model, dev, rng)
+            score = res["beat_f"] + res["down_f"] + res["pos"] + res["hand"]
+            line += " | dev " + " ".join(f"{k} {100 * v:.1f}" for k, v in res.items())
+            if score > best or args.also_dev:
+                best = score
+                export(model, args.out)
+                torch.save(model.state_dict(), args.out + ".pt")
+        print(line, flush=True)
     print("best dev score", best, flush=True)
 
 
