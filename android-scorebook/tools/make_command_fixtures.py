@@ -6,10 +6,8 @@ command, and that the same notes inside music are not. Same requirements as make
   cd tools && python make_command_fixtures.py --of-model ../app/src/main/assets/onsets_frames.tflite --out ../core/src/test/resources/commands
 """
 import argparse
-import gzip
 import json
 import os
-import random
 import tempfile
 
 import numpy as np
@@ -57,7 +55,6 @@ def main():
     if args.candidates:
         cases = {f"cand_{k}": (notes_for(v, 2.5), k) for k, v in CANDIDATES.items()}
     # the start motif's notes (E7 C7 E7) inside a run of music, no silence before them: must not trigger
-    rng = random.Random(3)
     run = [84, 86, 88, 91, 93, 96, 100, 96, 100, 98, 96, 93, 91, 88, 86, 84]  # E7 C7 E7 inside the run
     if not args.candidates:
         cases["music_with_motif_notes"] = (notes_for(run, 0.5, gap=0.25, vel=80) + notes_for([48, 55, 60], 0.5, gap=1.0, vel=60), None)
@@ -76,7 +73,6 @@ def main():
         save_planes(os.path.join(args.out, name + ".probs.gz"), onset, note, vel)
         with open(os.path.join(args.out, name + ".json"), "w") as f:
             json.dump(dict(name=name, frames=int(onset.shape[0]), fps=OF_SR / OF_HOP, expect=expect, notes=notes), f, indent=1)
-        ks = [n["pitch"] - 21 for n in notes]
         peaks = {n["pitch"]: round(float(onset[:, n["pitch"] - 21].max()), 2) for n in notes}
         print(name, expect, "max onset per motif note:", peaks)
 
