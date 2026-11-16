@@ -34,7 +34,8 @@ EMBED = 24
 LAG_BINS = 32  # distances to the neighbouring onsets, 0.1 s to 4 s on a log scale, before and after
 LAG_LO, LAG_HI = 0.1, 4.0
 CLOCKS = 16  # sines and cosines of the onset time, periods from 0.1 s to 6.4 s
-N_FEAT = 5 + 2 * LAG_BINS + 2 * CLOCKS
+PC_WINDOW = 8.0  # seconds on each side for the pitch classes sounding around a note
+N_FEAT = 5 + 2 * LAG_BINS + 2 * CLOCKS + 12 + 12
 PERIOD_BINS = 56
 PERIOD_LO, PERIOD_HI = math.log2(0.15), math.log2(3.2)
 BPB_CLASSES = [2, 3, 4, 5]  # beats in a bar (1 counts as 2, more than 5 as 4)
@@ -42,8 +43,8 @@ POS_CLASSES = 24  # 24ths of a beat
 DUR_VALUES = [1 / 8, 1 / 6, 1 / 4, 1 / 3, 3 / 8, 1 / 2, 2 / 3, 3 / 4, 1, 1.5, 2, 3, 4, 6, 8]  # beats
 
 
-def features(on, dur, vel):
-    """[n, 5] continuous inputs for notes sorted by onset."""
+def features(on, dur, vel, pitch):
+    """[n, N_FEAT] continuous inputs for notes sorted by onset ([pitch] as MIDI numbers)."""
     n = len(on)
     prev = np.zeros(n)
     prev[1:] = on[1:] - on[:-1]
@@ -75,7 +76,19 @@ def features(on, dur, vel):
     periods = 0.1 * 2.0 ** (np.arange(CLOCKS) * 6.0 / (CLOCKS - 1))
     ph = 2 * math.pi * rel[:, None] / periods[None, :]
     f[:, 5 + 2 * LAG_BINS:5 + 2 * LAG_BINS + CLOCKS] = np.sin(ph)
-    f[:, 5 + 2 * LAG_BINS + CLOCKS:] = np.cos(ph)
+    f[:, 5 + 2 * LAG_BINS + CLOCKS:5 + 2 * LAG_BINS + 2 * CLOCKS] = np.cos(ph)
+    # the note's pitch class, and how much of each pitch class sounds within a few seconds of it (the harmony and
+    # the key are in there)
+    at = 5 + 2 * LAG_BINS + 2 * CLOCKS
+    pc = pitch % 12
+    f[np.arange(n), at + pc] = 1.0
+    weight = np.zeros((n + 1, 12))
+    weight[np.arange(n) + 1, pc] = np.minimum(dur, 2.0) + 0.1
+    cs = np.cumsum(weight, axis=0)
+    lo = np.searchsorted(on, on - PC_WINDOW, side="left")
+    hi = np.searchsorted(on, on + PC_WINDOW, side="right")
+    h = cs[hi] - cs[lo]
+    f[:, at + 12:at + 24] = h / np.maximum(h.sum(axis=1, keepdims=True), 1e-9)
     return f
 
 
@@ -259,7 +272,7 @@ def sample(p, length, rng, augment):
     period = np.clip((np.log2(p.ibi[sel] * stretch) - PERIOD_LO) / (PERIOD_HI - PERIOD_LO) * PERIOD_BINS, 0, PERIOD_BINS - 1).astype(int)
     key = (p.fifths[sel] * 7 + shift) % 12
     return dict(
-        pitch=np.clip(pitch - 21, 0, 87), feat=features(on, dur, vel),
+        pitch=np.clip(pitch - 21, 0, 87), feat=features(on, dur, vel, pitch),
         beat=p.t_beat[sel], down=p.t_down[sel], m_beat=p.m_beat[sel], period=period, bpb=p.t_bpb[sel], comp=p.t_comp[sel],
         key=key, hand=p.t_hand[sel], m_hand=p.m_hand[sel], pos=p.t_pos[sel], dur=p.t_dur[sel], m_score=p.m_score[sel],
     )
@@ -367,9 +380,9 @@ def main():
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--also-dev", action="store_true", help="learn from the development pieces too (for the weights that are shipped)")
     ap.add_argument("--eval-every", type=int, default=2)
-    ap.add_argument("--length", type=int, default=384)
-    ap.add_argument("--batch", type=int, default=32)
-    ap.add_argument("--lr", type=float, default=1.5e-3)
+    ap.add_argument("--length", type=int, default=256)
+    ap.add_argument("--batch", type=int, default=8)  # small batches: many more updates per hour on a CPU
+    ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--resume")
     args = ap.parse_args()
@@ -392,7 +405,7 @@ def main():
     pieces = list(by_piece.values())
     steps_per_epoch = sum(len(p.on) for p in train) // (args.length * args.batch)
     total = args.epochs * steps_per_epoch
-    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=total, pct_start=0.1)
+    sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=total, pct_start=0.05)
     step = 0
     best = -1.0
     weights = [len(q.on) for q in train]

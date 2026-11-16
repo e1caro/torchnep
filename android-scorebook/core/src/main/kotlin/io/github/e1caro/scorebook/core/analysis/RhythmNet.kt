@@ -83,6 +83,7 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
         }
         neighbours(notes, x, e + 5)
         clocks(notes, x, e + 5 + 2 * LAG_BINS)
+        pitchClasses(notes, x, e + 5 + 2 * LAG_BINS + 2 * CLOCKS)
         // into the network's width, then the layers; each adds what it found to what was there (a residual)
         var h = Array(n) { linear("inp", x[it]) }
         for (b in 0 until blocks) h = block(b, h)
@@ -169,6 +170,30 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
     }
 
     /**
+     * The note's pitch class, and how much of each pitch class sounds within [PC_WINDOW] seconds of it: the
+     * harmony and the key are in there.
+     */
+    private fun pitchClasses(notes: List<In>, x: Array<FloatArray>, at: Int) {
+        val n = notes.size
+        val cs = Array(n + 1) { DoubleArray(12) }
+        for (i in 0 until n) {
+            System.arraycopy(cs[i], 0, cs[i + 1], 0, 12)
+            cs[i + 1][Math.floorMod(notes[i].pitch, 12)] += min(notes[i].duration, 2.0) + 0.1
+        }
+        var lo = 0
+        var hi = 0
+        for (i in 0 until n) {
+            val t = notes[i].onset
+            while (notes[lo].onset < t - PC_WINDOW) lo++
+            while (hi < n && notes[hi].onset <= t + PC_WINDOW) hi++
+            x[i][at + Math.floorMod(notes[i].pitch, 12)] = 1f
+            var sum = 0.0
+            for (k in 0 until 12) sum += cs[hi][k] - cs[lo][k]
+            for (k in 0 until 12) x[i][at + 12 + k] = ((cs[hi][k] - cs[lo][k]) / maxOf(sum, 1e-9)).toFloat()
+        }
+    }
+
+    /**
      * One layer: normalise each note's vector, let every channel look at the notes [DILATIONS] apart (a dilated
      * depthwise convolution over five positions; beyond the ends there is nothing), then mix the channels.
      */
@@ -244,7 +269,8 @@ class RhythmNet private constructor(private val w: Map<String, Tensor>) {
         const val LAG_LO = 0.1
         const val LAG_HI = 4.0
         const val CLOCKS = 16
-        const val FEATURES = 5 + 2 * LAG_BINS + 2 * CLOCKS
+        const val PC_WINDOW = 8.0
+        const val FEATURES = 5 + 2 * LAG_BINS + 2 * CLOCKS + 12 + 12
         const val POSITIONS = 24
         val BEATS_PER_BAR = intArrayOf(2, 3, 4, 5)
         val DURATIONS = doubleArrayOf(1.0 / 8, 1.0 / 6, 1.0 / 4, 1.0 / 3, 3.0 / 8, 1.0 / 2, 2.0 / 3, 3.0 / 4, 1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0)
