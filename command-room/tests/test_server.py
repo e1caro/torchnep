@@ -48,7 +48,7 @@ class ServerCase(unittest.TestCase):
         self.assertTrue(s["board"]["available"])
         self.assertEqual(s["pipeline"]["counts"]["ready"], 1)
         self.assertEqual(s["local"], {"live": [], "history": []})
-        self.assertEqual(s["results_stamp"], [0, 0.0])
+        self.assertEqual(s["results_stamp"], [0, 0.0, 0, 0.0])
         self.assertEqual([(c["label"], c["enabled"], c["jobs"]) for c in s["clusters"]], [("North", False, None)])
         self.assertNotIn("host", json.dumps(s["settings"]))
 

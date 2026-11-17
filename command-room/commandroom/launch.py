@@ -142,7 +142,8 @@ def prepare_local(settings, launcher, values, step_id=None):
     plan = {"token": token, "made": now, "kind": "local", "launcher": launcher["id"], "label": launcher["label"], "process": launcher["process"],
             "cluster": launcher["contacts"], "where": where, "folder": launcher["cwd"], "shell": launcher["shell"], "stage": None, "action": launcher["id"],
             "mode": "submit" if launcher["sends"] else "run", "sends": bool(launcher["sends"]), "dry": dry, "real": real, "notes": notes, "step": step_id,
-            "dry_output": None, "dry_ok": None, "manual": manual, "copy_dry": here + dry if dry else None, "copy_real": here + real}
+            "dry_output": None, "dry_ok": None, "manual": manual, "copy_dry": here + dry if dry else None, "copy_real": here + real,
+            "values": {str(k): str(v) for k, v in (values or {}).items()}}
     _plans[token] = plan
     return plan
 

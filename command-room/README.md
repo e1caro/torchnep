@@ -23,7 +23,7 @@ running, a second start only opens a window on it.
 | Overview | The pipeline: every material and variant as a line through the processes, read again every 3 seconds. Add, move and remove processes, rows and steps; set the state of a step; settings of each row. |
 | Launch | Choose the kind of work (send jobs, follow them, collect results, fit, ShengBTE, train, compare, report), then the launcher: one of your own scripts with its fields. Every start is a plan: the exact command, where it runs, a dry run when there is one, and only then your click. |
 | Jobs | The queues of the clusters (only while their switch is on), the automatic fetch of finished results, and this computer: jobs that report progress and everything started from Command Room, with its output and a Stop button. |
-| Results | Thermal conductivity of ShengBTE runs against temperature and against a reference; training runs of the potentials, one section per element, with their curve and the error of every structure. |
+| Results | Thermal conductivity of ShengBTE runs against temperature and against a reference; training runs of the potentials, one section per element, with their curve and the error of every structure; collected VASP calculations, one group per set, with energy, forces and time of each. Each potential is shown against the reference conductivity, and results that came from a launch say so. |
 | Reports | PDF reports of a conductivity comparison (one material) or of a training run. Old reports can be removed from the list. |
 | Library | The rules the program applies and the explanations behind them, each with its source. |
 
@@ -80,6 +80,30 @@ offered under "Any command" with one free command line.
 The file, the settings and the pipeline file are read again whenever you save them, so edits made outside the
 program show up by themselves.
 
+### Launches in the pipeline
+
+A launcher with a `"track"` puts what it starts into the pipeline: one row per piece of work, under its
+material, in a group named after the kind of work, with one step per process.
+
+```json
+"track": {"group": "Potentials to ShengBTE", "material": "Si", "rows": "models",
+          "steps": [{"stage": "vasp", "label": "Forces from the potential", "local": true, "until": "{row}: upload"},
+                    {"stage": "training", "label": "Fit", "jobs": "{row} fit (?P<id>\d+)"},
+                    {"stage": "shengbte", "label": "ShengBTE", "parts": [
+                        {"label": "least squares", "jobs": "{row} ls (?P<id>\d+)", "result": "kappa:POT_{row}_ls"}]}]}
+```
+
+`rows` names the field whose values each make a row (without it the launch is one row, named by `row`).
+`material`, `row`, `label` and `result` are templates: `{field}`, `{field|base}` (last part of a path),
+`{field|material}` (X from a path with `X_data` or `DATA/X`) and `{field|or=Si}`. A step or part is read, never
+set by hand: `local` follows the command on this computer; `jobs` is searched in what the command printed
+(group `id` is the queue job, an optional group `part` makes one part per job) and then followed in the queue;
+`result` is what must be on this computer when it is done (`kappa:NAME`, `potential:NAME`, `vasp:NAME`);
+`"awaits": true` marks a part that only waits for its result, such as a collect. A job that left the queue
+without its result, after the results were fetched again, is shown as failed. A launch you ran by hand is
+tracked too: it stays "sent by you" until its result is here. Results that came from a launch say so, and the
+step in the pipeline opens them.
+
 ## Local settings
 
 Everything private lives in `settings.local.json` in this folder. It is never committed, and neither is any
@@ -95,6 +119,7 @@ file named `*.local.*`. Without it the program starts and says what is missing.
   "shells": {"bash": "path of bash (optional)", "wsl_distro": "name of the WSL distribution (optional)"},
   "results": {"kappa": ["folders whose subfolders hold BTE.KappaTensorVsT files, * allowed"],
               "fetch_to": "where a fetched run of a new material goes, with {material}", "runs": ["folders with the run files of the trainings"],
+              "vasp": ["folders that hold one folder per collected VASP calculation, * allowed"],
               "elements": {"Si": {"splits": ["split names"], "names": ["run name patterns, * allowed"], "sets": ["data set names"]}}},
   "clusters": [
     {"id": "torque", "label": "name shown in the window", "scheduler": "torque", "enabled": false,

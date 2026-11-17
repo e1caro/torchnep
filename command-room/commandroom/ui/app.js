@@ -22,6 +22,14 @@
   let S = null, lastKey = "", area = "overview", selected = null, rowSel = null, seen = {}, dirty = false, editing = false, place = null;
   let L = { step: null, options: null, plan: null, result: null, busy: "" };
   let libQuery = "", libPage = null, LIB = null, REP = null, repBusy = "", repAsk = null, lastStamp = null;
+  /* Rows launched from Command Room come in groups under their material; a group can be closed, and that is remembered. */
+  let closedGroups = new Set();
+  try { closedGroups = new Set(JSON.parse(localStorage.getItem("cr-groups") || "[]")); } catch (e) { closedGroups = new Set(); }
+  const groupKey = (l) => `${l.parent}|${l.group}`;
+  const together = (st) => st.includes("failed") ? "failed" : st.length && st.every((x) => x === "done") ? "done" : st.some((x) => x === "sent" || x === "done") ? "sent" : "todo";
+  const lampNote = (it) => { const parts = it.parts || [], said = [...new Set(parts.map((x) => x.brief).filter(Boolean))];
+    if (said.length) return said.join(" \u00b7 ");
+    const ids = parts.map((x) => x.job).filter(Boolean); return ids.length === 1 ? "job " + ids[0] : ids.length ? ids.length + " jobs" : ""; };
 
   /* ---------- helpers ---------- */
   const clock = (t) => new Date(t * 1000).toLocaleTimeString("en-GB");
@@ -114,7 +122,7 @@
         if (lane && lane.potential) { const ox = b.x - 62; h += `<path class="seg lit" d="M${ox + 9} ${b.y}H${b.x - R}"/><path class="origin" d="M${ox} ${b.y - 7}l7 7-7 7-7-7z"/><text class="otext" x="${ox - 12}" y="${b.y + 4}" text-anchor="end">from a potential</text>`; }
         continue; }
       const p = stepById(s.prev), a = pos[s.prev]; if (!a || !p) continue;
-      const cls = p.state === "done" && s.state === "done" ? "lit" : p.state === "done" && (s.kind === "ready" || s.kind === "attention") ? "next" : "dim";
+      const cls = p.state === "done" && s.state === "done" ? "lit" : p.state === "done" && (s.kind === "ready" || s.kind === "attention" || (s.source === "launch" && s.state === "sent")) ? "next" : "dim";
       if (Math.abs(a.y - b.y) < 1) h += `<path class="seg ${cls}" d="M${a.x + R} ${a.y}H${b.x - R}"/>`;
       else { const x1 = a.x + R, x2 = b.x - R, mx = (x1 + x2) / 2; h += `<path class="seg ${cls}" d="M${x1} ${a.y}C${mx} ${a.y} ${mx} ${b.y} ${x2} ${b.y}"/>`; }
     }
@@ -149,7 +157,27 @@
       <button class="icon" data-act="move" data-dir="left" data-id="${esc(s.id)}" aria-label="Move ${esc(s.label)} left" ${i ? "" : "hidden"}>${ICON.left}</button>
       <button class="icon" data-act="move" data-dir="right" data-id="${esc(s.id)}" aria-label="Move ${esc(s.label)} right" ${i < n - 1 ? "" : "hidden"}>${ICON.right}</button>
       <button class="icon" data-act="dropstage" data-id="${esc(s.id)}" aria-label="Remove the process ${esc(s.label)}">${ICON.x}</button></span></div>`; });
+    let lastGroup = null;
     for (const l of p.lanes) {
+      const gk = l.group ? groupKey(l) : null;
+      if (gk && gk !== lastGroup) {
+        const rows = p.lanes.filter((x) => x.group && groupKey(x) === gk), shut = closedGroups.has(gk), last = Math.max(...rows.map((x) => (x.track || {}).started || 0));
+        const count = `${rows.length} row${rows.length === 1 ? "" : "s"}`;
+        h += `<div class="grouphead"><button class="grouptoggle" data-act="group" data-id="${esc(gk)}" aria-expanded="${!shut}"><i>${shut ? "\u25b8" : "\u25be"}</i><b>${esc(l.group)}</b></button><span>${count}, launched from Command Room, last ${when(last)}</span></div>`;
+        if (shut) { h += `<div class="lanehead variant launched"><button class="lanebtn" data-act="group" data-id="${esc(gk)}">${count}, closed</button></div>`;
+          for (const s of p.stages) { const its = rows.map((x) => at(x.name, s.id)).filter(Boolean), st = together(its.map((x) => x.state)), ok = its.filter((x) => x.state === "done").length;
+            h += `<div class="cell tracked">${its.length ? `<span class="lamp ${st}" title="${esc(s.label)}: ${ok} of ${its.length} done">${GLYPH[st]}</span><small class="lampnote">${ok}/${its.length} done</small>` : ""}</div>`; } }
+      }
+      lastGroup = gk;
+      if (gk && closedGroups.has(gk)) continue;
+      if (l.track) {
+        h += `<div class="lanehead variant launched"><button class="lanebtn" data-act="row" data-id="${esc(l.name)}" aria-pressed="false">${esc(l.name)}</button><span class="tools"><button class="icon" data-act="droplane" data-id="${esc(l.name)}" aria-label="Hide the row ${esc(l.name)}">${ICON.x}</button></span></div>`;
+        for (const s of p.stages) { const it = at(l.name, s.id);
+          if (!it) { h += `<div class="cell tracked"></div>`; continue; }
+          const changed = seen[it.id] && seen[it.id] !== it.view ? " changed" : "";
+          h += `<div class="cell tracked"><button class="lamp ${it.view}${changed}" data-act="select" data-id="${esc(it.id)}" aria-pressed="false" title="${esc(it.label || s.label)}: ${esc(it.rule)}" aria-label="${esc(it.label || s.label)} of ${esc(l.name)}: ${PLAIN[it.view] || it.view}">${GLYPH[it.view]}</button><small class="lampnote">${esc(lampNote(it))}</small></div>`; }
+        continue;
+      }
       h += `<div class="lanehead ${l.parent ? "variant" : ""}"><button class="lanebtn" data-act="row" data-id="${esc(l.name)}" aria-pressed="false">${esc(l.name)}</button>${!l.parent && l.polar ? "<small>polar</small>" : ""}<span class="tools"><button class="icon" data-act="droplane" data-id="${esc(l.name)}" aria-label="Remove the row ${esc(l.name)}">${ICON.x}</button></span></div>`;
       for (const s of p.stages) {
         const it = at(l.name, s.id);
@@ -186,7 +214,7 @@
     document.querySelectorAll("#wall .lamp").forEach((t) => t.setAttribute("aria-pressed", t.dataset.id === selected));
     document.querySelectorAll("#wall .lanebtn").forEach((t) => t.setAttribute("aria-pressed", t.dataset.id === rowSel));
     const states = sel && sel.source === "board" ? ["todo", "sent", "done"] : ["todo", "sent", "done", "failed"];
-    $("selected").innerHTML = !sel ? "<h2>Step</h2><p class='fine'>The pipeline is empty. Add a row and a step.</p>" : `<h2>Step</h2><h3>${esc(stageLabel(sel.stage))} of ${esc(sel.name)}</h3>
+    $("selected").innerHTML = !sel ? "<h2>Step</h2><p class='fine'>The pipeline is empty. Add a row and a step.</p>" : sel.source === "launch" ? launchStep(sel) : `<h2>Step</h2><h3>${esc(stageLabel(sel.stage))} of ${esc(sel.name)}</h3>
       <dl><dt>State</dt><dd>${badge(sel.view)}</dd><dt>Comes from</dt><dd>${sel.source === "board" ? "the work board" : "added in Command Room"}</dd>
       <dt>Last change</dt><dd>${when(sel.updated)}</dd>${sel.note ? `<dt>Note</dt><dd>${esc(sel.note)}</dd>` : ""}<dt>Rule</dt><dd>${esc(sel.rule || "Nothing to do here.")}</dd></dl>
       <div class="acts">${states.map((k) => `<button class="plain" data-act="state" data-id="${esc(sel.id)}" data-state="${k}" aria-pressed="${sel.state === k}">${PLAIN[k]}</button>`).join("")}</div>
@@ -196,6 +224,7 @@
     const l = laneOf(rowSel), box = $("rowbox");
     if (box.contains(document.activeElement) && box.dataset.row === rowSel) return;
     box.dataset.row = rowSel || "";
+    if (l && l.track) { box.innerHTML = launchRow(l); return; }
     box.innerHTML = !l ? "<h2>Row</h2><p class='fine'>No row yet.</p>" : `<h2>Row</h2><h3>${esc(l.name)}</h3><form id="laneForm">
       <label class="field">Variant of<select name="parent"><option value="">nothing, it is a material</option>${p.lanes.filter((x) => !x.parent && x.name !== l.name).map((x) => `<option ${x.name === l.parent ? "selected" : ""}>${esc(x.name)}</option>`).join("")}</select></label>
       <label class="check"><input type="checkbox" name="polar" ${l.polar && !l.parent ? "checked" : ""} ${l.parent ? "disabled" : ""}> Polar (needs Born charges and --lr)</label>
@@ -205,6 +234,24 @@
       <div id="folderList"></div></form>`;
     if (l) $("laneForm").addEventListener("submit", (e) => { e.preventDefault(); const f = e.target;
       change("lane_props", { name: l.name, parent: f.parent.value, polar: f.polar.checked, potential: f.potential.checked, folder: f.folder.value }); });
+  }
+  /* A step that came from a launch: it is read (the launch, the queue, the results), so it has no state buttons. */
+  function launchStep(sel) {
+    const l = laneOf(sel.name) || {}, t = l.track || {}, parts = sel.parts || [], first = parts.find((x) => x.result);
+    return `<h2>Step</h2><h3>${esc(sel.label || stageLabel(sel.stage))}</h3>
+      <dl><dt>Of</dt><dd>${esc(sel.name)} (${esc(l.parent || "")})</dd><dt>State</dt><dd>${badge(sel.view, PLAIN[sel.view])}</dd><dt>Comes from</dt><dd>your launch \u201c${esc(t.launcher || "")}\u201d, ${when(t.started)}</dd></dl>
+      <ul class="partlist">${parts.map((x) => `<li><b>${esc(x.label || (parts.length > 1 ? "part" : "all of it"))}</b>${x.job ? `<span class="num">job ${esc(x.job)}</span>` : ""}${badge(x.state, x.result ? "done" : x.word)}${x.elapsed ? `<span class="num">${esc(x.elapsed)}</span>` : ""}
+        ${x.result ? `<button class="link" data-act="toresult" data-kind="${esc(x.result.kind)}" data-id="${esc(x.result.key)}">${esc(x.result.text || "See the result")}</button>` : x.wants ? `<span class="fine" style="margin:0">its result (${esc(x.wants.split(":")[1] || "")}) is not on this computer yet</span>` : ""}</li>`).join("")}</ul>
+      <div class="acts">${first ? `<button class="solid" data-act="toresult" data-kind="${esc(first.result.kind)}" data-id="${esc(first.result.key)}">Open in Results</button>` : ""}<button class="plain" data-act="runlog" data-id="${esc(t.run || "")}">What the launch printed</button></div>
+      <p class="fine">This step is read, not set by hand: from the launch on this computer, the queue of the cluster, and the results that came back.</p>`;
+  }
+  function launchRow(l) {
+    const t = l.track, steps = P().steps.filter((s) => s.name === l.name);
+    return `<h2>Row</h2><h3>${esc(l.name)}</h3><dl><dt>Under</dt><dd>${esc(l.parent)}, ${esc(l.group)}</dd><dt>Launched</dt><dd>${when(t.started)} with \u201c${esc(t.launcher)}\u201d</dd>
+      <dt>The launch</dt><dd>${badge(runState[t.run_state] || "todo", runWord[t.run_state] || t.run_state)}</dd></dl><p class="mono cmdline">${esc(t.command)}</p>
+      <ul class="partlist">${steps.map((s) => `<li><button class="link" data-act="select" data-id="${esc(s.id)}"><b>${esc(s.label || stageLabel(s.stage))}</b></button>${badge(s.view, PLAIN[s.view])}<span class="fine" style="margin:0;flex-basis:100%">${esc(s.rule)}</span></li>`).join("")}</ul>
+      <div class="acts"><button class="plain" data-act="runlog" data-id="${esc(t.run)}">What the launch printed</button><button class="plain" data-act="droplane" data-id="${esc(l.name)}">Hide this row</button></div>
+      <p class="fine">Hiding takes the row out of the pipeline only; \u201cbring back\u201d under the pipeline returns it. Nothing is deleted on this computer or on the cluster.</p>`;
   }
   function clusterLine(c) {
     if (c.mode === "manual") { if (!c.jobs) return "You run the commands here. Command Room never logs in.";
@@ -219,7 +266,7 @@
   }
 
   /* ---------- jobs: everything that runs, in one place ---------- */
-  const jobLine = (j) => `<p class="mono">${esc(j.name)}  ${j.step || 0}/${j.total || "?"}  ${esc(j.phase || "")}  ${esc(j.metric || "")}</p><div class="prog"><i style="width:${j.total ? Math.round(100 * j.step / j.total) : 0}%"></i></div>`;
+  const jobLine = (j) => `<p class="mono">${esc(j.name)}  ${j.step || 0}/${j.total || "?"}  ${esc(j.phase || "")}  ${esc(j.metric || "")}${j.says ? `<span class="says">${esc(j.says)}</span>` : ""}</p><div class="prog"><i style="width:${j.total ? Math.round(100 * j.step / j.total) : 0}%"></i></div>`;
   let SENDER = {};
   const copyBox = (text) => `<div class="copy"><pre class="out">${esc(text)}</pre><button type="button" class="plain" data-act="copy" data-copy="${esc(text)}">Copy</button></div>`;
   const manualPlan = (plan) => `<p class="callout">${esc(plan.where)} is run by you. Copy the command, run it there, and paste what it printed. Command Room never logs in.</p>
@@ -229,14 +276,15 @@
   const active = (c) => (c.jobs ? c.jobs.filter((j) => j.state === "running" || j.state === "queued").length : 0);
   let RUNOUT = null, RUNTEXT = "";
   async function readRun() { if (!RUNOUT) return; const id = RUNOUT; try { const r = await get("/api/runs/log?id=" + encodeURIComponent(id)); if (RUNOUT === id) { RUNTEXT = r.text || ""; const el = $("runout"); if (el) { el.textContent = RUNTEXT || "(nothing printed yet)"; el.scrollTop = el.scrollHeight; } } } catch (e) { /* the next reading tries again */ } }
-  const runState = { running: "sent", done: "done", failed: "failed", stopped: "todo", unknown: "todo" };
-  const runWord = { running: "running", done: "finished", failed: "failed", stopped: "stopped", unknown: "ended while the program was closed" };
+  const runState = { running: "sent", done: "done", failed: "failed", stopped: "todo", unknown: "todo", byhand: "sent" };
+  const runWord = { running: "running", done: "finished", failed: "failed", stopped: "stopped", unknown: "ended while the program was closed", byhand: "run by you" };
   function startedBox() {
     const runs = S.started || [];
-    if (!runs.length) return "";
+    const earlier = RUNOUT && !runs.some((r) => r.id === RUNOUT) ? `<tr><td colspan="5"><p class="fine" style="margin-top:0">What an earlier launch printed (${esc(RUNOUT)}) <button class="link" data-act="runout" data-id="${esc(RUNOUT)}">Hide</button> <button class="link" data-act="open" data-what="log" data-id="${esc(RUNOUT)}">Open the log</button></p><pre class="out" id="runout">${esc(RUNTEXT || "Reading")}</pre></td></tr>` : "";
+    if (!runs.length && !earlier) return "";
     return `<h3>Started from Command Room</h3><table class="grid"><thead><tr><th>What</th><th>State</th><th>Started</th><th>Last line</th><th></th></tr></thead><tbody>${runs.map((r) => `<tr><td class="name">${esc(r.label)}${r.origin === "automatic" ? ` <span class="fine">automatic</span>` : ""}</td><td>${badge(runState[r.state] || "todo", runWord[r.state] || r.state)}</td><td class="num">${when(r.started)}</td><td class="mono last">${esc(r.last || "")}</td>
         <td class="act"><button class="plain" data-act="runout" data-id="${esc(r.id)}">${RUNOUT === r.id ? "Hide output" : "Output"}</button> ${r.state === "running" ? `<button class="plain" data-act="runstop" data-id="${esc(r.id)}">Stop</button>` : ""} <button class="link" data-act="open" data-what="log" data-id="${esc(r.id)}">Open the log</button></td></tr>
-        ${RUNOUT === r.id ? `<tr><td colspan="5"><p class="mono cmdline">${esc(r.command)}</p><pre class="out" id="runout">${esc(RUNTEXT || "Reading")}</pre></td></tr>` : ""}`).join("")}</tbody></table>`;
+        ${RUNOUT === r.id ? `<tr><td colspan="5"><p class="mono cmdline">${esc(r.command)}</p><pre class="out" id="runout">${esc(RUNTEXT || "Reading")}</pre></td></tr>` : ""}`).join("")}${earlier}</tbody></table>`;
   }
   function fetchBox(c) {
     const f = c.fetch || {};
@@ -271,7 +319,7 @@
     return `<div class="head"><h3 class="big">This computer</h3></div><p class="lead">Jobs that report their progress through the job tracker. A finished job stays here for 5 minutes, then moves to the list below.</p>
       ${loc.live.length ? loc.live.map((j) => `${jobLine(j)}<p>${badge(j.state === "running" ? "running" : j.state, j.state)} <span class="fine">updated ${when(j.updated)}</span></p>`).join("") : `<p class="empty">No job is reporting progress.</p>`}
       ${startedBox()}
-      ${loc.history.length ? `<h3>Finished</h3><table class="grid"><thead><tr><th>Name</th><th>Project</th><th>State</th><th>Last step</th><th>Result</th><th>Ended</th></tr></thead><tbody>${loc.history.map((j) => `<tr><td class="num">${esc(j.name)}</td><td>${esc(j.project || "")}</td><td>${badge(j.state, j.state)}</td><td class="num">${j.step || 0}/${j.total || "?"}</td><td class="num">${esc(j.metric || "")}</td><td class="num">${when(j.updated)}</td></tr>`).join("")}</tbody></table>` : ""}`;
+      ${loc.history.length ? `<h3>Finished</h3><table class="grid"><thead><tr><th>Name</th><th>Project</th><th>State</th><th>Last step</th><th>Result</th><th>Ended</th></tr></thead><tbody>${loc.history.map((j) => `<tr><td class="num">${esc(j.name)}${j.says ? `<span class="says">${esc(j.says)}</span>` : ""}</td><td>${esc(j.project || "")}</td><td>${badge(j.state, j.state)}</td><td class="num">${j.step || 0}/${j.total || "?"}</td><td class="num">${esc(j.metric || "")}</td><td class="num">${when(j.updated)}</td></tr>`).join("")}</tbody></table>` : ""}`;
   }
   function jobsArea() {
     const loc = S.local, ids = S.clusters.map((c) => c.id).concat(["local"]), run = running().length;
@@ -293,6 +341,15 @@
   const stepsOf = (id) => openSteps().filter((s) => STAGE_OF[id] ? s.stage === STAGE_OF[id] : id === "other" && !Object.values(STAGE_OF).includes(s.stage));
   const launcherById = (id) => CAT && CAT.launchers.concat(CAT.guide).find((x) => x.id === id);
   const byHand = (x) => x.copy || (S.clusters.find((c) => c.id === x.contacts) || {}).mode === "manual";
+  /* Results can open a launcher with its fields filled in (for example the models you selected); you still prepare the plan, run the dry run and click. */
+  window.CRLaunch = async (id, values) => {
+    try { if (!CAT) CAT = await get("/api/launchers"); } catch (e) { toast("The launchers could not be read.", true); return; }
+    const x = launcherById(id);
+    if (!x) { toast("That launcher is not in your launchers file any more.", true); return; }
+    LP = { ...LP, process: x.process, launcher: id, plan: null, result: null, values: values || {} };
+    L = { step: null, options: null, plan: null, result: null, busy: "" };
+    go("launch");
+  };
   async function pickStep(id) {
     L = { step: id, options: null, plan: null, result: null, busy: "" }; LP.launcher = null; LP.plan = null; LP.result = null;
     const st = stepById(id); if (st) LP.process = Object.keys(STAGE_OF).find((k) => STAGE_OF[k] === st.stage) || "other";
@@ -334,6 +391,7 @@
           ${x.runs_on ? `<dt>Your guide says</dt><dd>${esc(x.runs_on)}</dd>` : ""}</dl>
         ${x.usage ? `<p class="fine">How it is used</p><pre class="out">${esc(x.usage)}</pre>` : ""}${x.notes ? `<p class="fine">${esc(x.notes)}</p>` : ""}
         ${contact && !hand && !contact.enabled ? `<p class="callout bad">${esc(contact.label)} is switched off. Allow reading it in Jobs before starting something that connects to it.</p>` : ""}
+        ${x.tracked ? `<p class="callout">What you start here gets its own rows in the pipeline (Overview), under its material, and its results are linked from there.</p>` : ""}
         <form id="lform">${x.fields.map(field).join("")}${link}<div class="row-actions" style="margin-bottom:0"><button class="solid">Prepare the plan</button></div></form></div>
       ${plan ? `<div class="panel" style="margin-top:14px"><h2>The plan</h2><dl><dt>Where</dt><dd>${esc(plan.where)}</dd>${plan.folder ? `<dt>Folder</dt><dd class="mono">${esc(plan.folder)}</dd>` : ""}</dl>
           ${plan.dry ? `<p class="fine">Dry run</p><pre class="out">${esc(plan.dry)}</pre>` : ""}<p class="fine">Command that really runs</p><pre class="out">${esc(plan.real)}</pre>
@@ -341,7 +399,7 @@
           ${plan.manual ? manualPlan(plan) : `<div class="row-actions">${plan.dry ? `<button class="solid" data-act="ldry" ${LP.busy ? "disabled" : ""}>Run the dry run</button>` : ""}
             <button class="danger" data-act="lrun" ${LP.busy || (plan.sends && plan.dry && plan.dry_ok !== true) ? "disabled" : ""}>${plan.sends ? "Send it" : "Run it on this computer"}</button>${LP.busy ? `<span class="fine">${esc(LP.busy)}</span>` : ""}</div>`}
           ${plan.dry_output !== null ? `<p class="callout ${plan.dry_ok ? "good" : "bad"}">${plan.dry_ok ? "The dry run finished without an error. Read what it would do:" : "The dry run reported a problem:"}</p><pre class="out">${esc(plan.dry_output || "(no output)")}</pre>` : ""}</div>` : ""}
-      ${LP.result ? `<div class="panel" style="margin-top:14px"><p class="callout good">${esc(LP.result.output || "Done.")} ${esc(LP.result.board || "")}</p>${LP.result.run ? `<div class="row-actions" style="margin-bottom:0"><button class="plain" data-act="tojobs">See it in Jobs</button></div>` : ""}</div>` : ""}`;
+      ${LP.result ? `<div class="panel" style="margin-top:14px"><p class="callout good">${esc(LP.result.output || "Done.")} ${esc(LP.result.board || "")}</p>${LP.result.run ? `<div class="row-actions" style="margin-bottom:0"><button class="plain" data-act="tojobs">See it in Jobs</button>${LP.result.tracked ? `<button class="plain" data-act="tooverview">See it in the pipeline</button>` : ""}</div>` : ""}</div>` : ""}`;
   }
   function launchArea() {
     if (!CAT) { $("main").innerHTML = `<div class="area"><h1>Launch</h1><p class="lead">Reading your launchers</p></div>`;
@@ -451,6 +509,10 @@
     else if (a === "ldry") localDry();
     else if (a === "lrun") localRun();
     else if (a === "tojobs") { place = "local"; go("jobs"); }
+    else if (a === "tooverview") go("overview");
+    else if (a === "group") { if (closedGroups.has(id)) closedGroups.delete(id); else closedGroups.add(id); try { localStorage.setItem("cr-groups", JSON.stringify([...closedGroups])); } catch (err) { /* private mode */ } overview(false); }
+    else if (a === "toresult") { window.CRResults.focus(b.dataset.kind, id); go("results"); }
+    else if (a === "runlog") { place = "local"; RUNOUT = id; RUNTEXT = ""; go("jobs"); }
     else if (a === "open") post("/api/open", { what: b.dataset.what, id: id || "" }).then((r) => toast(r.message)).catch((err) => toast(err.message, true));
     else if (a === "runout") { RUNOUT = RUNOUT === id ? null : id; RUNTEXT = ""; jobsArea(); if (RUNOUT) readRun(); }
     else if (a === "runstop") act(() => post("/api/runs/stop", { id }));

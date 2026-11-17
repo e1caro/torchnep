@@ -118,6 +118,21 @@ h3 { margin: 22px 0 8px; font: 600 14.5px var(--cond); }
 .lanehead small { font: 400 11px var(--mono); color: var(--muted); }
 .lanehead .tools { margin-left: auto; }
 .cell { display: grid; place-items: center; }
+.grouphead { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 10px; padding: 9px 0 5px 16px; border-bottom: 1px solid var(--line); position: relative; z-index: 2; }
+.grouphead span { font-size: 12px; color: var(--muted); }
+.grouptoggle { background: none; border: 0; padding: 2px 6px 2px 2px; border-radius: 5px; display: inline-flex; align-items: baseline; gap: 6px; color: var(--ink-2); }
+.grouptoggle:hover { background: var(--panel-2); color: var(--ink); }
+.grouptoggle i { font-style: normal; font-size: 11px; width: 10px; }
+.grouptoggle b { font: 600 12px var(--cond); letter-spacing: .06em; text-transform: uppercase; }
+.lanehead.launched, .cell.tracked { height: 46px; }
+.lanehead.launched .lanebtn { margin-left: 30px; font: 500 12.5px var(--mono); color: var(--ink-2); }
+.cell.tracked { position: relative; align-content: start; padding-top: 7px; }
+.lampnote { position: absolute; left: 0; right: 0; bottom: 3px; text-align: center; font: 400 10.5px var(--mono); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; pointer-events: none; }
+.tname { font: 600 14px var(--cond); white-space: nowrap; }
+.partlist { list-style: none; margin: 12px 0 0; padding: 0; border-top: 1px solid var(--line); }
+.partlist li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.partlist b { font: 600 14px var(--cond); }
+.partlist .num { font: 400 12px var(--mono); color: var(--ink-2); }
 .lamp { width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; position: relative; z-index: 2; background: var(--panel); color: var(--on); transition: transform .12s; }
 button.lamp:hover { transform: scale(1.18); }
 .lamp svg { width: 12px; height: 12px; }
@@ -385,3 +400,19 @@ button.stat.zero { cursor: default; }
 
 /* narrow window: keep the top bar short */
 @media (max-width: 900px) { .cmd { display: none; } .live span { display: none; } .chips { margin-left: auto; } .top { padding: 0 12px; gap: 0 10px; } .tabs a { padding: 0 9px; } }
+
+/* What a run name says: a short line under the name, and the pieces in the side panel. */
+.says { display: block; margin-top: 2px; font-family: var(--sans); font-size: 11.5px; font-weight: 400; color: var(--muted); white-space: normal; }
+.check .says { display: inline; margin: 0 0 0 6px; }
+dl.pieces { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 6px 0 10px; font-size: 12.5px; }
+dl.pieces dt { font-family: var(--mono); color: var(--ink); }
+dl.pieces dd { margin: 0; color: var(--ink-2); }
+dl.pieces dd.unknown { color: var(--muted); font-style: italic; }
+dl.pieces dd.wrong { color: var(--failed); }
+
+/* Runs selected in Results to send on with a launcher. */
+.selbar { position: sticky; top: 0; z-index: 3; margin: 14px 0; border-color: var(--done); }
+.selbar h3 { margin: 0 0 8px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 8px; border: 1px solid var(--line-2); border-radius: 999px; font-size: 12px; background: var(--panel-2); }
+.chip .icon { width: 20px; height: 20px; min-width: 20px; padding: 0; font-size: 14px; line-height: 1; }

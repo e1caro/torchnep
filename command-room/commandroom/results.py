@@ -98,7 +98,7 @@ def roots(folders):
     return out
 
 
-def kappa_runs(folders):
+def kappa_runs(folders, names=None):
     """Every folder (one level below the given ones) that holds a KappaTensorVsT file."""
     runs = []
     for root in roots(folders):
@@ -114,6 +114,9 @@ def kappa_runs(folders):
                          "control": parse_control(_text(os.path.join(folder, "CONTROL")))})
             runs[-1]["material"] = runs[-1]["control"].pop("material")
             runs[-1]["about"] = describe_kappa(runs[-1])
+            runs[-1]["decoded"] = decode_name(name, names)
+            if runs[-1]["decoded"] and runs[-1]["decoded"]["says"]:
+                runs[-1]["about"].insert(0, {"label": "Name", "text": runs[-1]["decoded"]["says"] + "."})
     return runs
 
 
@@ -316,8 +319,91 @@ def describe_kappa(run):
     return out
 
 
-def potential_runs(folders, rules=None):
-    """One line per finished training run: held-out and training force error in % of the DFT force RMS."""
+def _same(a, b):
+    try:
+        return float(a) == float(b)
+    except (TypeError, ValueError):
+        return str(a).replace(" ", "") == str(b).replace(" ", "")
+
+
+def decode_name(name, rules, data=None):
+    """What a run name says, piece by piece, with the naming rules of the local settings (results, names).
+
+    A name is cut at "_"; inside each piece the rules are tried in their order, each a regular expression matched at the
+    current position ({"part", "means", "short", "check", "when"}). {1}, {2} in the texts are the groups of the match.
+    A rule with "when" (a regular expression) is used only for names that match it, so one piece can mean different
+    things in different families of names. "check"
+    maps a field of the run file (cfg, then args) to the value the name claims; a claim that differs is reported in
+    "warn". Pieces no rule explains are listed with means None. Returns None when there are no rules."""
+    if not rules or not name:
+        return None
+    parts, warn = [], []
+    cfg, args = ((data or {}).get("cfg") or {}), ((data or {}).get("args") or {})
+    for token in name.split("_"):
+        pos = 0
+        while pos < len(token):
+            for index, rule in enumerate(rules):
+                try:
+                    m = re.match(rule.get("part") or "(?!)", token[pos:]) if not rule.get("when") or re.search(rule["when"], name) else None
+                except re.error:
+                    m = None
+                if m and m.end() > 0:
+                    def fill(text, m=m):
+                        return re.sub(r"\{(\d)\}", lambda g: m.group(int(g[1])) or "", text or "")
+                    ok = None
+                    for key, claim in (rule.get("check") or {}).items():
+                        have = cfg.get(key, args.get(key))
+                        if isinstance(have, (list, tuple)):
+                            have = ",".join(str(x) for x in have)
+                        if have is None or not data:
+                            continue
+                        same = _same(fill(str(claim)), have)
+                        ok = same if ok is None else ok and same
+                        if not same:
+                            warn.append(f"the name says {m.group(0)} ({key} {fill(str(claim))}) but the run file has {key} {have}")
+                    parts.append({"piece": m.group(0), "means": fill(rule.get("means")), "short": fill(rule.get("short") or rule.get("means")), "ok": ok, "rule": index})
+                    pos += m.end()
+                    break
+            else:
+                parts.append({"piece": token[pos:], "means": None, "short": None, "ok": None, "rule": None})
+                pos = len(token)
+    known = [p for p in parts if p["means"]]
+    return {"parts": parts, "short": ", ".join(p["short"] for p in known), "says": "; ".join(f"{p['piece']} = {p['means']}" for p in known),
+            "unknown": [p["piece"] for p in parts if not p["means"]], "warn": warn}
+
+
+def name_legend(rules):
+    """One line per naming rule that has an example: the piece as it looks in that example, its meaning, the example."""
+    out = []
+    for index, rule in enumerate(rules or []):
+        d = decode_name(rule.get("example") or "", rules)
+        part = next((p for p in (d or {}).get("parts", []) if p["rule"] == index), None)
+        if part:
+            out.append({"piece": part["piece"], "means": part["means"], "example": rule.get("example")})
+    return out
+
+
+def held_out_without_hardest(data):
+    """(mean held-out force error without the worst held-out structure, {"structure", "pct"} of that structure), or (None, None).
+
+    Only for runs with at least 3 held-out structures in their table per structure: one violent structure can dominate
+    a small test set, and this second number shows how the run does on the others."""
+    table = [r for r in data.get("rows") or [] if isinstance(r, dict) and isinstance(r.get("rel_pct"), (int, float))]
+    rows = [r for r in table if r.get("held")] or [r for r in table if r.get("role") == "test" or (r.get("role") is None and r.get("test"))]
+    if len(rows) < 3:
+        return None, None
+    worst = max(rows, key=lambda r: r["rel_pct"])
+    rest = [r["rel_pct"] for r in rows if r is not worst]
+    label = " ".join(str(x) for x in (worst.get("src"), worst.get("job")) if x)
+    return sum(rest) / len(rest), {"structure": label, "pct": worst["rel_pct"]}
+
+
+def potential_runs(folders, rules=None, names=None):
+    """One line per finished training run: held-out and training force error in % of the DFT force RMS.
+
+    A run file with a "held" group (the same held-out structures for every model of its family, whatever each model
+    trained on) is scored on that group, so that models trained on different data are compared on the same structures.
+    "stress" is the stress error in GPa on those structures, when the run file has it."""
     runs = []
     for root in folders or []:
         for path in glob.glob(os.path.join(root, "*.json")):
@@ -325,11 +411,17 @@ def potential_runs(folders, rules=None):
             if not isinstance(data, dict) or "test" not in data:
                 continue
             name = os.path.basename(path)[:-5]
-            test = {k: v for k, v in (data.get("test") or {}).items() if isinstance(v, dict)}
+            test = {k: v for k, v in (data.get("held") or data.get("test") or {}).items() if isinstance(v, dict)}
+            wo, hardest = held_out_without_hardest(data)
             runs.append({"name": name, "element": element_of(data, name, rules), "group": os.path.basename(os.path.dirname(os.path.normpath(root))) or root,
-                         "test": _mean(test), "train": _mean(data.get("train")), "sets": {k: v.get("rel_pct") for k, v in test.items()},
+                         "test": _mean(test), "test_wo": wo, "hardest": hardest, "train": _mean(data.get("train")), "sets": {k: v.get("rel_pct") for k, v in test.items()}, "stress": (test.get("all") or {}).get("S_GPa"), "common_test": bool(data.get("held")),
                          "seconds": data.get("seconds"), "split": (data.get("args") or {}).get("split"), "cfg": data.get("cfg"),
                          "modified": os.path.getmtime(path), "about": describe_run(data), "brief": brief_run(data)})
+            decoded = decode_name(name, names, data)
+            runs[-1]["decoded"] = decoded
+            if decoded and decoded["says"]:
+                runs[-1]["about"].insert(0, {"label": "Name", "text": decoded["says"] + "." + (" Not explained: " + ", ".join(decoded["unknown"]) + "." if decoded["unknown"] else "")
+                                             + (" Warning: " + "; ".join(decoded["warn"]) + "." if decoded["warn"] else "")})
     runs.sort(key=lambda r: (r["test"] is None, r["test"] if r["test"] is not None else 0))
     return runs
 

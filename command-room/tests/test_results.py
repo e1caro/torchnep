@@ -99,6 +99,31 @@ class Potentials(unittest.TestCase):
         self.assertAlmostEqual(runs[0]["test"], 1.5)
         self.assertAlmostEqual(runs[0]["train"], 0.5)
 
+    def test_run_name_decoded_and_checked(self):
+        rules = [{"part": "AB$", "means": "set AB", "short": "ab"},
+                 {"part": "rc([0-9])([0-9])", "means": "cutoffs {1} and {2}", "short": "rc {1}/{2}", "check": {"rc_r": "{1}", "rc_a": "{2}"}},
+                 {"part": "s([0-9]+)", "means": "seed {1}", "short": "seed {1}", "check": {"seed": "{1}"}}]
+        d = results.decode_name("AB_rc75s2_zz", rules, {"cfg": {"rc_r": 7.0, "rc_a": 5.0}, "args": {"seed": 2}})
+        self.assertEqual(d["short"], "ab, rc 7/5, seed 2")
+        self.assertEqual(d["unknown"], ["zz"])
+        self.assertEqual(d["warn"], [])
+        self.assertEqual([p["ok"] for p in d["parts"]], [None, True, True, None])
+        bad = results.decode_name("AB_rc76", rules, {"cfg": {"rc_r": 7.0, "rc_a": 5.0}})
+        self.assertEqual(len(bad["warn"]), 1)
+        self.assertFalse(bad["parts"][1]["ok"])
+        self.assertIsNone(results.decode_name("AB_rc75", []))
+        run = results.potential_runs([self.root], None, rules)[0]
+        self.assertIn("decoded", run)
+
+    def test_held_out_without_the_hardest_structure(self):
+        rows = [{"src": "R", "job": f"job-0{k}", "rel_pct": p, "test": True} for k, p in ((1, 1.0), (2, 2.0), (3, 9.0))]
+        rows.append({"src": "R", "job": "job-04", "rel_pct": 50.0, "test": False})
+        wo, hardest = results.held_out_without_hardest({"rows": rows})
+        self.assertAlmostEqual(wo, 1.5)
+        self.assertEqual(hardest, {"structure": "R job-03", "pct": 9.0})
+        self.assertEqual(results.held_out_without_hardest({"rows": rows[:2]}), (None, None))
+        self.assertIsNone(results.potential_runs([self.root])[0]["test_wo"])
+
     def test_element_from_the_run_file(self):
         self.assertEqual(results.element_of({"element": "Ge"}, "x"), "Ge")
         self.assertEqual(results.element_of({"args": {"elements": ["Mg", "O"]}}, "x"), "MgO")
@@ -177,6 +202,31 @@ class Potentials(unittest.TestCase):
         self.assertEqual(run["rows"][0]["role"], "test")
         self.assertIsNone(results.potential_run([self.root], "missing"))
         self.assertIsNone(results.potential_run([self.root], "../good"))
+
+
+
+class HeldCase(unittest.TestCase):
+    def test_a_run_with_a_common_held_out_group_is_scored_on_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            run = {"material": "Ge", "test": {"A": {"rel_pct": 1.0}, "all": {"rel_pct": 1.0}},
+                   "held": {"A": {"rel_pct": 1.0, "S_GPa": 0.2}, "B": {"rel_pct": 5.0, "S_GPa": 0.6}, "all": {"rel_pct": 3.0, "S_GPa": 0.4}}, "train": {"all": {"rel_pct": 0.5}},
+                   "rows": [{"src": "A", "job": "1", "rel_pct": 1.0, "role": "test", "test": True, "held": True}, {"src": "B", "job": "2", "rel_pct": 4.0, "role": "unseen", "held": True},
+                            {"src": "B", "job": "3", "rel_pct": 6.0, "role": "unseen", "held": True}, {"src": "A", "job": "4", "rel_pct": 0.5, "role": "train", "held": False}]}
+            with open(os.path.join(tmp, "GeX.json"), "w") as f:
+                json.dump(run, f)
+            r = results.potential_runs([tmp])[0]
+            self.assertAlmostEqual(r["test"], 3.0)
+            self.assertEqual((r["stress"], r["common_test"], r["sets"]["B"]), (0.4, True, 5.0))
+            self.assertAlmostEqual(r["test_wo"], 2.5)
+            self.assertEqual(r["hardest"]["structure"], "B 3")
+
+
+class WhenCase(unittest.TestCase):
+    def test_a_rule_with_when_is_used_only_for_the_names_it_names(self):
+        rules = [{"part": "v1$", "means": "first step on 16 structures", "when": "^Mg"}, {"part": "v1$", "means": "first step on 5 structures"},
+                 {"part": "[A-Za-z0-9]+", "means": "something"}]
+        self.assertEqual(results.decode_name("MgX_v1", rules)["parts"][-1]["means"], "first step on 16 structures")
+        self.assertEqual(results.decode_name("CX_v1", rules)["parts"][-1]["means"], "first step on 5 structures")
 
 
 if __name__ == "__main__":

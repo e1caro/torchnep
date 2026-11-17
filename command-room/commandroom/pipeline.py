@@ -66,7 +66,36 @@ def _parent(name, names, store):
     return best
 
 
-def view(board, store):
+def _add_tracks(lanes, steps, tracks, store):
+    """Put the rows launched from Command Room under their material, group by group, with their steps."""
+    hidden, stage_ids = set(store["hidden"]["lanes"]), [s["id"] for s in store["stages"]]
+    taken = {lane["name"] for lane in lanes}
+    groups = {}
+    for row in tracks:
+        groups.setdefault((row["material"] or "Other", row["group"]), []).append(row)
+    for (material, group), rows in groups.items():
+        if material not in taken:
+            lanes.append({"name": material, "parent": None, "polar": material in store["polar"], "potential": False, "folder": store["folders"].get(material, ""), "launched": True})
+            taken.add(material)
+        at = max(i for i, lane in enumerate(lanes) if lane["name"] == material or lane["parent"] == material) + 1
+        for row in rows:
+            name = row["name"] if row["name"] not in taken else f"{row['name']} ({group})"
+            if name in hidden or name in taken:
+                continue
+            taken.add(name)
+            lanes.insert(at, {"name": name, "parent": material, "polar": False, "potential": False, "from_potential": row["potential"], "folder": "", "group": group,
+                              "track": {k: row[k] for k in ("id", "run", "run_state", "launcher", "launcher_id", "started", "command")}})
+            at += 1
+            prev = None
+            for step in sorted((s for s in row["steps"] if s["stage"] in stage_ids), key=lambda s: stage_ids.index(s["stage"])):
+                item = {"id": f"track::{row['id']}::{step['stage']}", "stage": step["stage"], "name": name, "state": step["state"], "view": step["state"],
+                        "kind": None, "rule": step["says"], "prev": prev, "via_parent": False, "source": "launch", "note": "", "label": step["label"],
+                        "parts": step["parts"], "updated": row["started"], "run": row["run"]}
+                steps.append(item)
+                prev = item["id"]
+
+
+def view(board, store, tracks=None):
     """Everything the interface draws: stages, rows, steps with their rule, and the list of open steps."""
     steps = _steps(board, store)
     hidden_lanes = set(store["hidden"]["lanes"])
@@ -118,6 +147,8 @@ def view(board, store):
             s["rule"] += " Polar: needs the Born-charge run and --lr in the fit."
         if polar(s["name"]) and s["stage"] == "shengbte":
             s["rule"] += " Polar: needs polar = yes and Born charges in CONTROL."
+    if tracks:
+        _add_tracks(lanes, steps, tracks, store)
     rank = {"ready": 0, "attention": 1, "waiting": 2}
     todo = sorted((s for s in steps if s["kind"]), key=lambda s: rank[s["kind"]])
     return {"stages": store["stages"], "lanes": lanes, "steps": steps, "next": [s["id"] for s in todo],

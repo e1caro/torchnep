@@ -7,18 +7,20 @@ results from a cluster whose automatic fetch the user switched on; on the cluste
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import threading
 import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
-from . import assistant, board, fetch, jobs, launch, launchers, library, local, pipeline, remote, reports, results
-from .settings import Settings
+from . import assistant, board, fetch, jobs, launch, launchers, library, local, pipeline, remote, reports, results, tracks, vasp
+from .settings import Settings, read_json
 
 UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ui")
 QUEUE_EVERY_S = 60
 FETCH_EVERY_S = 1800
+TRACKS_EVERY_S = 4
 
 
 def open_path(path):
@@ -41,6 +43,9 @@ class App:
         self.fetch_due = set()
         self.opener = open_path
         self.auto_started = {}
+        self.gone = {}
+        self.tracked = (0.0, [])
+        self.read_cache = {}
 
     @staticmethod
     def _mtime(path):
@@ -125,6 +130,8 @@ class App:
             path = os.path.dirname(path) if path else None
         elif what == "log":
             path = self.runs.log_path(key)
+        elif what == "vasp":
+            path = next((x["folder"] for x in vasp.sets(cfg.get("vasp"), self.settings.beside("vasp_cache.local.json")) if x["id"] == key), None)
         elif what == "launcher":
             found = self.launcher(key)
             path = found["cwd"] or None
@@ -142,6 +149,63 @@ class App:
     def store(self):
         return pipeline.load(self.settings.pipeline_path)
 
+    def result_of(self, ref):
+        """What a tracked step is waiting for, when it is on this computer: kappa:NAME, potential:NAME or vasp:NAME."""
+        kind, _, name = (ref or "").partition(":")
+        cfg = self.settings.data["results"]
+        if not re.fullmatch(r"[A-Za-z0-9_.+-]+", name or ""):
+            return None
+        if kind == "kappa":
+            for root in results.roots(cfg["kappa"]):
+                path = os.path.join(root, name, "BTE.KappaTensorVsT_CONV")
+                if os.path.isfile(path) and os.path.getsize(path):
+                    rows = results.parse_kappa(results._text(path))
+                    near = min(rows, key=lambda r: abs(r["T"] - 300)) if rows else None
+                    return {"kind": "kappa", "key": f"{os.path.basename(os.path.normpath(root))}/{name}", "name": name,
+                            "text": f"\u03ba at {near['T']:g} K = {near['k']:.0f} W/(m K)" if near else "", "short": f"{near['k']:.0f}" if near else ""}
+        elif kind == "potential":
+            for root in cfg["runs"]:
+                path = os.path.join(root, name + ".json")
+                stamp = self._mtime(path)
+                if stamp is None:
+                    continue
+                hit = self.read_cache.get(path)
+                if not hit or hit[0] != stamp:
+                    data = read_json(path)
+                    test = [v.get("rel_pct") for v in ((data or {}).get("test") or {}).values() if isinstance(v, dict) and v.get("rel_pct") is not None] if isinstance(data, dict) else []
+                    hit = self.read_cache[path] = (stamp, f"{sum(test) / len(test):.2f} % force error on held-out structures" if test else "trained",
+                                                   f"{sum(test) / len(test):.2f} %" if test else "")
+                return {"kind": "potential", "key": name, "name": name, "text": hit[1], "short": hit[2]}
+        elif kind == "vasp":
+            found = vasp.find(cfg.get("vasp"), name)
+            if found and found["count"]:
+                return {"kind": "vasp", "key": found["id"], "name": name, "text": f"{found['count']} calculations on this computer", "short": f"{found['count']} here"}
+        return None
+
+    def tracks(self):
+        """The rows of the pipeline that come from what was launched here; read again every few seconds."""
+        with self.lock:
+            if time.time() - self.tracked[0] < TRACKS_EVERY_S:
+                return self.tracked[1]
+            own = [x for x in launchers.load(self.settings.launchers_path)["launchers"] if x.get("track")]
+            rows = []
+            if own:
+                fetched = {cid: e["at"] for cid, e in self.fetches.items() if e.get("at") and not e.get("error")}
+                rows = tracks.build(self.runs.metas(), own, self.queues, self.runs.text, self.result_of, self.gone, fetched)
+            self.tracked = (time.time(), rows)
+            return rows
+
+    def launched(self):
+        """Which results came from a launch made here: {"kind:key": {row, group, launcher, started, run}}."""
+        out = {}
+        for row in self.tracks():
+            for step in row["steps"]:
+                for part in step["parts"]:
+                    if part["result"]:
+                        out[f"{part['result']['kind']}:{part['result']['key']}"] = {"row": row["name"], "group": row["group"], "launcher": row["launcher"],
+                                                                                 "started": row["started"], "run": row["run"]}
+        return out
+
     @property
     def reports_dir(self):
         return self.settings.data.get("reports") or os.path.join(os.path.dirname(self.settings.path), "reports")
@@ -150,13 +214,13 @@ class App:
         cfg = self.settings.data["results"]
         try:
             if a.get("kind") == "kappa":
-                runs = [r for r in results.kappa_runs(cfg["kappa"]) if (not a.get("runs") or r["id"] in a["runs"]) and (a.get("material") is None or r["material"] == a["material"])]
+                runs = [r for r in results.kappa_runs(cfg["kappa"], cfg.get("names")) if (not a.get("runs") or r["id"] in a["runs"]) and (a.get("material") is None or r["material"] == a["material"])]
                 path = reports.kappa_report(runs, a.get("reference") or "DFT", self.reports_dir, a.get("which") or "conv")
             elif a.get("kind") == "potential":
                 run = results.potential_run(cfg["runs"], a.get("name") or "")
                 if not run:
                     raise ValueError("that run was not found")
-                summary = next((r for r in results.potential_runs(cfg["runs"], cfg.get("elements")) if r["name"] == run["name"]), None)
+                summary = next((r for r in results.potential_runs(cfg["runs"], cfg.get("elements"), cfg.get("names")) if r["name"] == run["name"]), None)
                 path = reports.potential_report(run, summary, self.reports_dir)
             else:
                 raise ValueError("unknown kind of report")
@@ -170,7 +234,7 @@ class App:
         return board.read(self.settings.data["board"]["data"])
 
     def view(self):
-        return pipeline.view(self.board(), self.store())
+        return pipeline.view(self.board(), self.store(), self.tracks())
 
     def refresh_queue(self, cluster_id, wait=False):
         def work():
@@ -218,15 +282,21 @@ class App:
     def state(self):
         self.settings.reload_if_changed()
         b = self.board()
-        v = pipeline.view(b, self.store())
+        rows = self.tracks()
+        mine = tracks.job_rows(rows)
+        v = pipeline.view(b, self.store(), rows)
         local = jobs.local(self.settings.data["hub"]["jobs"])
+        names = self.settings.data["results"].get("names")
+        for job in (local or {}).get("live", []) + (local or {}).get("history", []):
+            d = results.decode_name(job.get("name") or "", names)
+            job["says"] = d["short"] if d and not d["unknown"] else ""
         clusters = self.cluster_state()
         for c in clusters:
             for job in c["jobs"] or []:
-                job["row"] = jobs.match_step(job["name"], v["lanes"], v["stages"])
+                job["row"] = mine.get(f"{c['id']}:{job.get('id')}") or jobs.match_step(job["name"], v["lanes"], v["stages"])
         return {"generated": time.time(), "settings": self.settings.public(), "board": {"available": b is not None, "history": (b or {}).get("history", [])},
                 "pipeline": v, "local": local, "clusters": clusters, "undo": self.undo is not None,
-                "results_stamp": results.stamp(self.settings.data["results"]), "started": self.runs.listing(12),
+                "results_stamp": results.stamp(self.settings.data["results"]) + vasp.stamp(self.settings.data["results"].get("vasp")), "started": self.runs.listing(12),
                 "launchers_stamp": [self._mtime(self.settings.launchers_path), self._mtime(self.settings.data.get("guide"))]}
 
     def change(self, op, args):
@@ -299,6 +369,10 @@ class App:
         if path == "/api/launch/sent":
             plan = launch.sent(a.get("token"))
             message = "Marked as sent."
+            if plan.get("kind") == "local":
+                self.runs.record(plan["label"], plan["shell"], plan["real"], plan["folder"], extra={"launcher": plan["launcher"], "values": plan.get("values") or {}})
+                with self.lock:
+                    self.tracked = (0.0, self.tracked[1])
             if plan["mode"] == "submit" and plan["step"]:
                 try:
                     message = self.change("set_state", {"id": plan["step"], "state": "sent"})
@@ -333,8 +407,13 @@ class App:
             return {"plan": launch.dry_run(self.settings, a.get("token"))}
         if path == "/api/launch/submit" and (launch._plans.get(a.get("token")) or {}).get("kind") == "local":
             plan = launch.take_local(a.get("token"), a.get("confirm"))
-            run = self.runs.start(self.settings, plan["label"], plan["shell"], plan["real"], plan["folder"])
-            result = {"ok": True, "output": "Started on this computer. Its output is in Jobs.", "plan": plan, "run": run["id"]}
+            run = self.runs.start(self.settings, plan["label"], plan["shell"], plan["real"], plan["folder"],
+                                  extra={"launcher": plan["launcher"], "values": plan.get("values") or {}})
+            with self.lock:
+                self.tracked = (0.0, self.tracked[1])
+            shown = bool(tracks.spec(self.launcher(plan["launcher"])))
+            result = {"ok": True, "output": "Started on this computer. Its output is in Jobs." + (" It has its own rows in the pipeline (Overview)." if shown else ""),
+                      "plan": plan, "run": run["id"], "tracked": shown}
             if plan["sends"] and plan["step"]:
                 try:
                     result["board"] = self.change("set_state", {"id": plan["step"], "state": "sent"})
@@ -405,7 +484,9 @@ def make_handler(app, port):
                     return self.send_json(200, app.launch_options(unquote(params.get("step", ""))))
                 if path == "/api/results":
                     cfg = app.settings.data["results"]
-                    return self.send_json(200, {"kappa": results.kappa_runs(cfg["kappa"]), "potentials": results.potential_runs(cfg["runs"], cfg.get("elements"))})
+                    return self.send_json(200, {"kappa": results.kappa_runs(cfg["kappa"], cfg.get("names")), "potentials": results.potential_runs(cfg["runs"], cfg.get("elements"), cfg.get("names")),
+                                                "names": results.name_legend(cfg.get("names")), "launched": app.launched(),
+                                                "vasp": vasp.sets(cfg.get("vasp"), app.settings.beside("vasp_cache.local.json"))})
                 if path == "/api/results/run":
                     from urllib.parse import unquote
                     run = results.potential_run(app.settings.data["results"]["runs"], unquote(params.get("name", "")))

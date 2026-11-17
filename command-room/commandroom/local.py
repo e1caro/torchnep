@@ -124,7 +124,7 @@ class Runs:
             json.dump(meta, f, indent=1)
         os.replace(tmp, self._path(meta["id"], ".json"))
 
-    def start(self, settings, label, shell, command, cwd, origin="you", on_end=None):
+    def start(self, settings, label, shell, command, cwd, origin="you", on_end=None, extra=None):
         os.makedirs(self.folder, exist_ok=True)
         run_id = time.strftime("%Y%m%d_%H%M%S") + "_" + re.sub(r"[^A-Za-z0-9]+", "-", label).strip("-")[:40]
         with self.lock:
@@ -139,6 +139,7 @@ class Runs:
                 raise
             meta = {"id": run_id, "label": label, "shell": shell, "command": command, "cwd": cwd, "origin": origin, "started": time.time(),
                     "ended": None, "code": None, "state": "running", "pid": proc.pid}
+            meta.update(extra or {})
             self._write(meta)
             self.live[run_id] = (proc, meta)
 
@@ -164,6 +165,16 @@ class Runs:
             meta["stopping"] = True
         _kill(proc)
         return {"message": "Stopping it."}
+
+    def text(self, run_id, limit=2000000):
+        """Everything a run printed (the first part of it when it printed a great deal)."""
+        if not re.fullmatch(r"[A-Za-z0-9_.-]+", run_id or ""):
+            return ""
+        try:
+            with open(self._path(run_id, ".log"), "rb") as f:
+                return f.read(limit).decode("utf-8", errors="replace").replace("\r\n", "\n").replace("\r", "\n")
+        except OSError:
+            return ""
 
     def tail(self, run_id, size=TAIL):
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", run_id or ""):
@@ -195,6 +206,34 @@ class Runs:
             lines = [line for line in self.tail(meta["id"], 600).split("\n") if line.strip()]
             meta["last"] = lines[-1][:200] if lines else ""
             out.append(meta)
+        return out
+
+    def record(self, label, shell, command, cwd, extra=None):
+        """Write down a command the user ran by hand, so that it is listed and tracked like the others."""
+        os.makedirs(self.folder, exist_ok=True)
+        run_id = time.strftime("%Y%m%d_%H%M%S") + "_" + re.sub(r"[^A-Za-z0-9]+", "-", label).strip("-")[:40]
+        with self.lock:
+            while os.path.exists(self._path(run_id, ".json")):
+                run_id += "x"
+            now = time.time()
+            meta = {"id": run_id, "label": label, "shell": shell, "command": command, "cwd": cwd, "origin": "you, by hand", "started": now, "ended": now,
+                    "code": None, "state": "byhand"}
+            meta.update(extra or {})
+            self._write(meta)
+        return dict(meta)
+
+    def metas(self):
+        """Every run ever started here, as recorded (no output is read)."""
+        if not os.path.isdir(self.folder):
+            return []
+        out = []
+        with self.lock:
+            for name in os.listdir(self.folder):
+                meta = read_json(os.path.join(self.folder, name)) if name.endswith(".json") else None
+                if isinstance(meta, dict) and "id" in meta:
+                    if meta.get("state") == "running" and meta["id"] not in self.live:
+                        meta["state"] = "unknown"
+                    out.append(meta)
         return out
 
     def log_path(self, run_id):

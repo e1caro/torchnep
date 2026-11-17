@@ -17,7 +17,10 @@ A launcher:
                 {"name": "only", "label": "Only these", "format": " --only {value}"},
                 {"name": "watch", "label": "Keep watching", "switch": " --watch"},
                 {"name": "kind", "label": "Kind", "choices": ["a", "b"], "default": "a"},
-                {"name": "line", "label": "Arguments", "raw": true}]}
+                {"name": "line", "label": "Arguments", "raw": true},
+                {"name": "models", "label": "Models", "kind": "models", "required": true}]}
+A field of kind "models" takes run names separated by spaces (Results can fill it from the runs you select);
+each name is checked (letters, digits, _ . -) and quoted on its own.
 """
 import os
 import re
@@ -50,7 +53,8 @@ def _fields(raw):
         if isinstance(f, dict) and re.fullmatch(r"[a-z][a-z0-9_]*", str(f.get("name") or "")):
             out.append({"name": f["name"], "label": str(f.get("label") or f["name"]), "default": str(f.get("default") or ""),
                         "required": bool(f.get("required")), "format": str(f.get("format") or "{value}"), "switch": str(f.get("switch") or ""),
-                        "choices": [str(c) for c in f.get("choices") or []], "raw": bool(f.get("raw")), "help": str(f.get("help") or "")})
+                        "choices": [str(c) for c in f.get("choices") or []], "raw": bool(f.get("raw")), "help": str(f.get("help") or ""),
+                        "kind": str(f.get("kind") or "")})
     return out
 
 
@@ -63,7 +67,7 @@ def _launcher(raw, known):
             "what": str(raw.get("what") or ""), "shell": shell, "cwd": str(raw.get("cwd") or ""), "command": str(raw["command"]), "dry": str(raw.get("dry") or ""),
             "contacts": str(raw.get("contacts") or ""), "sends": bool(raw.get("sends")), "copy": bool(raw.get("copy")),
             "auto": {"every": max(300, int(auto.get("every") or 1800)), "values": {str(k): str(v) for k, v in (auto.get("values") or {}).items()}} if auto else None,
-            "fields": _fields(raw.get("fields")), "source": "yours"}
+            "fields": _fields(raw.get("fields")), "source": "yours", "track": raw.get("track") if isinstance(raw.get("track"), dict) else None}
 
 
 def load(path):
@@ -144,6 +148,12 @@ def render(launcher, values, dry=False):
             if f["required"]:
                 raise LauncherError(f"{f['label']} is needed")
             part = ""
+        elif f["kind"] == "models":
+            names = raw.split()
+            bad = [n for n in names if not re.fullmatch(r"[A-Za-z0-9_.-]+", n)]
+            if bad:
+                raise LauncherError(f"{f['label']}: {bad[0]} is not a run name (letters, digits, _ . - only)")
+            part = f["format"].replace("{value}", " ".join(quote(n, launcher["shell"]) for n in names))
         else:
             if f["choices"] and raw not in f["choices"]:
                 raise LauncherError(f"{f['label']} must be one of: {', '.join(f['choices'])}")
@@ -160,4 +170,5 @@ def public(launcher):
     keys = ("id", "process", "label", "what", "shell", "cwd", "command", "dry", "contacts", "sends", "copy", "fields", "source", "usage", "notes", "runs_on", "section")
     out = {k: launcher[k] for k in keys if k in launcher}
     out["auto"] = bool(launcher.get("auto"))
+    out["tracked"] = bool(launcher.get("track"))
     return out

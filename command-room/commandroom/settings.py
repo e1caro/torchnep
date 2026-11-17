@@ -17,7 +17,7 @@ DEFAULTS = {
     "python": "",
     "board": {"data": "", "tool": ""},
     "hub": {"jobs": ""},
-    "results": {"kappa": [], "runs": [], "elements": {}, "fetch_to": ""},
+    "results": {"kappa": [], "runs": [], "elements": {}, "names": [], "fetch_to": "", "vasp": []},
     "pipeline": "",
     "launchers": "",
     "guide": "",

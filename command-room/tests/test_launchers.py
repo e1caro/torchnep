@@ -93,6 +93,17 @@ class Catalogue(Base):
             launchers.render(launchers._launcher({"id": "x", "command": "run {missing}"}, set()), {})
         self.assertEqual(launchers.quote("it's", "powershell"), "'it''s'")
 
+    def test_a_list_of_models(self):
+        x = launchers._launcher({"id": "m", "command": "bash run.sh {models}", "dry": "bash run.sh --dry-run {models}",
+                                 "fields": [{"name": "models", "label": "Models", "kind": "models", "required": True}]}, set())
+        self.assertEqual(x["fields"][0]["kind"], "models")
+        self.assertEqual(launchers.render(x, {"models": " A_1  b.2 "}), "bash run.sh A_1 b.2")
+        self.assertEqual(launchers.render(x, {"models": "A_1"}, dry=True), "bash run.sh --dry-run A_1")
+        with self.assertRaisesRegex(launchers.LauncherError, "not a run name"):
+            launchers.render(x, {"models": "A_1 x;rm"})
+        with self.assertRaisesRegex(launchers.LauncherError, "needed"):
+            launchers.render(x, {"models": "  "})
+
     def test_what_the_interface_gets(self):
         public = launchers.public(self.by("send-tree"))
         self.assertEqual((public["sends"], public["auto"], public["contacts"]), (True, False, "north"))
