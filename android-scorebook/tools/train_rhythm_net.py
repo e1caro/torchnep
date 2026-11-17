@@ -150,6 +150,7 @@ class Perf:
 
 
 def load(data_dir, splits):
+    """Performances of the given splits ("synth": the renditions of scores made by dcml_prepare.py)."""
     perfs = []
     rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(data_dir, "index.tsv"))][1:]
     for r in rows:
@@ -377,6 +378,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--epochs", type=int, default=24)
     ap.add_argument("--hidden", type=int, default=128)
+    ap.add_argument("--synth", help="renditions of more scores (dcml_prepare.py), to learn notation from more pieces")
+    ap.add_argument("--synth-share", type=float, default=0.45, help="share of the training windows taken from them")
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--also-dev", action="store_true", help="learn from the development pieces too (for the weights that are shipped)")
     ap.add_argument("--eval-every", type=int, default=2)
@@ -403,6 +406,13 @@ def main():
     for p in train:
         by_piece.setdefault(p.piece, []).append(p)
     pieces = list(by_piece.values())
+    synth_pieces = []
+    if args.synth:
+        by = {}
+        for p in load(args.synth, {"synth"}):
+            by.setdefault(p.piece, []).append(p)
+        synth_pieces = list(by.values())
+        print(f"{len(synth_pieces)} more pieces as renditions of their scores", flush=True)
     steps_per_epoch = sum(len(p.on) for p in train) // (args.length * args.batch)
     total = args.epochs * steps_per_epoch
     sched = torch.optim.lr_scheduler.OneCycleLR(opt, max_lr=args.lr, total_steps=total, pct_start=0.05)
@@ -421,8 +431,11 @@ def main():
             while True:
                 items = []
                 for _ in range(args.batch):
-                    # half of the windows by piece (variety), half by performance length (coverage)
-                    p = r.choice(r.choice(pieces)) if r.random() < 0.5 else r.choices(train, weights=weights)[0]
+                    if synth_pieces and r.random() < args.synth_share:
+                        p = r.choice(r.choice(synth_pieces))
+                    else:
+                        # half of the windows by piece (variety), half by performance length (coverage)
+                        p = r.choice(r.choice(pieces)) if r.random() < 0.5 else r.choices(train, weights=weights)[0]
                     items.append(sample(p, args.length, r, True))
                 yield batch(items)
 
