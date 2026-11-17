@@ -73,11 +73,14 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
   hand is replaced by the pattern you choose, following the chord of each bar on your own beats (so it follows
   your rubato). The result is saved as a new song with its score, playback and exports. From the accompaniment
   screen ("Use it on my last song") or from a song's menu ("Add an accompaniment…").
-- **Updates from inside the app.** When the app opens it looks at this project's list of releases on GitHub; if
-  there is a newer version, a banner offers it and one tap downloads and installs it over the current one (your
-  scores and settings stay). Android asks you to confirm, and the first time to allow Scorebook to install apps.
-  Also in Settings → Updates, where the automatic check can be turned off. This is the only thing Scorebook uses
-  the internet for, and nothing is sent: listening, transcription and everything else run on the phone.
+- **It updates itself.** When the app opens it looks at this project's list of releases on GitHub. A newer
+  version is downloaded in the background (on Wi-Fi; on mobile data a banner offers it instead) and installed
+  when you leave the app, never while you are playing, keeping your scores and settings. Android decides how
+  silent this can be: the first time it asks you to confirm and to allow Scorebook to install apps; after that,
+  on Android 12 and newer, an app may update itself without asking. Where Android still wants a yes, a banner
+  asks for one tap. Settings → Updates has both switches (look for updates; update by itself) and a manual
+  check. This is the only thing Scorebook uses the internet for, and nothing is sent: listening, transcription
+  and everything else run on the phone.
 - **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 
