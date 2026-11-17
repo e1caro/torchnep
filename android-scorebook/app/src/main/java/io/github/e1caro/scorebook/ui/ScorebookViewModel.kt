@@ -50,6 +50,7 @@ import io.github.e1caro.scorebook.core.score.ScoreBuilder
 import io.github.e1caro.scorebook.data.Exporter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -667,6 +668,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 val data = withContext(Dispatchers.IO) { repo.take(takeId) } ?: return@launch
                 val (t, score) = withContext(Dispatchers.Default) { analyze(data, song.title) }
                 _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id), message = message)
+                _take.value?.let { scoreAudioFor(it) } // get the piano sound ready for the play button
             } finally {
                 _opening.value = false
             }
@@ -692,6 +694,25 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         if (wasPlaying) startPlayback(at)
     }
 
+    private var scoreAudio: Pair<String, kotlinx.coroutines.Deferred<Pair<ShortArray, Int>>>? = null
+
+    /**
+     * The score of [c] played by the piano sound. Making it takes a few seconds for a long piece on a phone, so it
+     * is started as soon as the score is on screen and shared with the play button: by the time the player
+     * presses it, the sound is usually ready. (Main thread only.)
+     */
+    private fun scoreAudioFor(c: TakeUi): kotlinx.coroutines.Deferred<Pair<ShortArray, Int>> {
+        val key = "${c.takeId}|${c.data.settings}|${c.data.overrides}|${c.data.edits}"
+        scoreAudio?.takeIf { it.first == key }?.let { return it.second }
+        val t = c.transcription
+        val made = viewModelScope.async(Dispatchers.Default) {
+            val synth = io.github.e1caro.scorebook.core.play.PianoSynth
+            synth.render(synth.voices(t), 22050) to 22050
+        }
+        scoreAudio = key to made
+        return made
+    }
+
     private fun startPlayback(from: Double) {
         val c = _take.value ?: return
         val pb = _playback.value
@@ -699,17 +720,12 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         player.stop()
         _playback.update { it.copy(preparing = true, playing = false) }
         playJob = viewModelScope.launch {
-            val audio = withContext(Dispatchers.Default) {
-                val key = "${c.takeId}|${pb.source}|${c.data.settings}|${c.data.overrides}|${c.data.edits}"
-                pcmCache?.takeIf { it.first == key }?.second ?: run {
-                    val made = when (pb.source) {
-                        PlaySource.SCORE -> io.github.e1caro.scorebook.core.play.PianoSynth.render(
-                            io.github.e1caro.scorebook.core.play.PianoSynth.voices(c.transcription), 22050) to 22050
-                        PlaySource.RECORDING -> io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(c.takeId))
-                            ?.let { (pcm, sr) -> io.github.e1caro.scorebook.core.library.Edits.apply(pcm, sr, c.data.edits) to sr }
-                    }
-                    if (made != null) pcmCache = key to made
-                    made
+            val audio: Pair<ShortArray, Int>? = when (pb.source) {
+                PlaySource.SCORE -> scoreAudioFor(c).await()
+                PlaySource.RECORDING -> withContext(Dispatchers.Default) {
+                    val key = "${c.takeId}|${c.data.edits}"
+                    pcmCache?.takeIf { it.first == key }?.second ?: io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(c.takeId))
+                        ?.let { (pcm, sr) -> io.github.e1caro.scorebook.core.library.Edits.apply(pcm, sr, c.data.edits) to sr }?.also { pcmCache = key to it }
                 }
             }
             if (audio == null) {
@@ -765,6 +781,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 _library.value = newLib
             }
             _take.update { it?.copy(transcription = t, score = score, busy = false, message = message ?: it.message) }
+            _take.value?.let { scoreAudioFor(it) }
         }
     }
 

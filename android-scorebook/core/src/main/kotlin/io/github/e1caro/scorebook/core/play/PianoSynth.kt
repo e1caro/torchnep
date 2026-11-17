@@ -33,12 +33,34 @@ object PianoSynth {
     }
 
     /** [tuningCents]: the whole piano flat (negative) or sharp, for testing the tuning estimator. */
-    fun render(voices: List<Voice>, sampleRate: Int = 22050, tuningCents: Double = 0.0): ShortArray {
+    /**
+     * [threads]: how many processor cores to use (the notes are independent of each other, so a long piece is
+     * ready several times sooner on a phone); the result is the same whatever the number.
+     */
+    fun render(
+        voices: List<Voice>, sampleRate: Int = 22050, tuningCents: Double = 0.0,
+        threads: Int = Runtime.getRuntime().availableProcessors().coerceIn(1, 6),
+    ): ShortArray {
         if (voices.isEmpty()) return ShortArray(0)
         val release = 0.15
         val end = voices.maxOf { it.start + it.duration } + release + 0.3
-        val out = FloatArray((end * sampleRate).toInt() + 1)
-        for (v in voices) addVoice(out, v, sampleRate, release, tuningCents)
+        val size = (end * sampleRate).toInt() + 1
+        val out = FloatArray(size)
+        val n = if (voices.size < 64) 1 else threads.coerceAtLeast(1)
+        if (n == 1) {
+            for (v in voices) addVoice(out, v, sampleRate, release, tuningCents)
+        } else {
+            // each thread takes every n-th note into its own buffer; the buffers are then added up
+            val parts = Array(n) { FloatArray(size) }
+            val work = (0 until n).map { k ->
+                Thread {
+                    var i = k
+                    while (i < voices.size) { addVoice(parts[k], voices[i], sampleRate, release, tuningCents); i += n }
+                }.also { it.start() }
+            }
+            work.forEach { it.join() }
+            for (part in parts) for (i in 0 until size) out[i] += part[i]
+        }
         // Always use the full level, with the peaks rounded off: a phone speaker is small, and music played softly
         // (or low on the keyboard) would otherwise be close to inaudible.
         var peak = 0f
