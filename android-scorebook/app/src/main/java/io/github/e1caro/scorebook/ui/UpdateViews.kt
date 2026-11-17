@@ -30,6 +30,7 @@ import kotlin.math.roundToInt
 private fun statusLine(u: UpdateUi): String = when (u.state) {
     UpdateState.AVAILABLE -> u.update?.let { "${it.name} is available" } ?: ""
     UpdateState.DOWNLOADING -> "Downloading ${u.update?.name ?: "the update"}… ${(u.progress * 100).roundToInt()}%"
+    UpdateState.READY -> "${u.update?.name ?: "The update"} is ready"
     UpdateState.INSTALLING -> "Installing… Android may ask you to confirm"
     UpdateState.FAILED -> u.message ?: "The update did not work"
     UpdateState.CHECKING -> "Looking for updates…"
@@ -41,6 +42,7 @@ private fun statusLine(u: UpdateUi): String = when (u.state) {
 @Composable
 fun UpdateBanner(vm: ScorebookViewModel) {
     val u by vm.update.collectAsState()
+    val needsTap by vm.needsUpdateTap.collectAsState()
     val update = u.update ?: return
     if (u.state == UpdateState.IDLE || u.state == UpdateState.UP_TO_DATE || u.state == UpdateState.CHECKING) return
     Column(
@@ -50,14 +52,22 @@ fun UpdateBanner(vm: ScorebookViewModel) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(statusLine(u), color = if (u.state == UpdateState.FAILED) RecordRed else Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                if (u.state == UpdateState.AVAILABLE && update.notes.isNotBlank()) {
-                    Text(update.notes.lineSequence().first(), color = InkDim, fontSize = 12.sp, lineHeight = 16.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                val detail = when {
+                    (u.state == UpdateState.READY || u.state == UpdateState.AVAILABLE) && needsTap -> "Android needs your OK: tap Install and confirm. If it allows it, later updates install by themselves."
+                    u.state == UpdateState.READY && vm.autoInstall -> "It installs by itself when you leave the app."
+                    u.message != null && u.state != UpdateState.FAILED -> u.message
+                    (u.state == UpdateState.AVAILABLE || u.state == UpdateState.READY) && update.notes.isNotBlank() -> update.notes.lineSequence().first()
+                    else -> null
                 }
+                if (detail != null) Text(detail, color = InkDim, fontSize = 12.sp, lineHeight = 16.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
-            if (u.state == UpdateState.AVAILABLE || u.state == UpdateState.FAILED) {
+            if (u.state == UpdateState.AVAILABLE || u.state == UpdateState.READY || u.state == UpdateState.FAILED) {
                 Spacer(Modifier.width(10.dp))
                 Box(Modifier.clip(RoundedCornerShape(50)).background(Gold).clickable { vm.installUpdate() }.padding(horizontal = 14.dp, vertical = 8.dp)) {
-                    Text(if (u.state == UpdateState.FAILED) "Try again" else "Update · ${update.sizeText}", color = Stage, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, softWrap = false)
+                    Text(
+                        when { u.state == UpdateState.FAILED -> "Try again"; u.state == UpdateState.READY || needsTap -> "Install now"; else -> "Update · ${update.sizeText}" },
+                        color = Stage, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, softWrap = false,
+                    )
                 }
             }
         }
@@ -86,14 +96,14 @@ fun UpdateSettings(vm: ScorebookViewModel) {
     }
     Spacer(Modifier.height(10.dp))
     val busy = u.state == UpdateState.CHECKING || u.state == UpdateState.DOWNLOADING || u.state == UpdateState.INSTALLING
-    val canInstall = update != null && (u.state == UpdateState.AVAILABLE || u.state == UpdateState.FAILED)
+    val canInstall = update != null && (u.state == UpdateState.AVAILABLE || u.state == UpdateState.READY || u.state == UpdateState.FAILED)
     if (!busy) {
         Box(
             Modifier.clip(RoundedCornerShape(50)).background(if (canInstall) Gold else StageHigh)
                 .clickable { if (canInstall) vm.installUpdate() else vm.checkForUpdate(manual = true) }.padding(horizontal = 18.dp, vertical = 10.dp),
         ) {
             Text(
-                if (canInstall) "Update now · ${update!!.sizeText}" else "Check for updates",
+                if (!canInstall) "Check for updates" else if (u.state == UpdateState.READY) "Install now" else "Update now · ${update!!.sizeText}",
                 color = if (canInstall) Stage else Gold, fontWeight = FontWeight.Bold, fontSize = 14.sp,
             )
         }

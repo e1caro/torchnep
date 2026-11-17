@@ -5,6 +5,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageInstaller
+import android.net.ConnectivityManager
 import android.os.Build
 import io.github.e1caro.scorebook.core.update.Update
 import io.github.e1caro.scorebook.core.update.Updates
@@ -81,15 +82,22 @@ class Updater(private val context: Context) {
         }
     }
 
+    /** True on Wi-Fi or another connection that is not billed by the megabyte: fine for a 130 MB download. */
+    fun unmetered(): Boolean = try {
+        !(context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).isActiveNetworkMetered
+    } catch (e: Exception) { false }
+
     /**
-     * Hands the APK to Android's installer. Android asks the user to confirm (the first time it also asks to allow
-     * Scorebook to install apps); from Android 12 on, later updates of itself can go through without asking.
+     * Gets the APK ready inside Android's installer (the slow part: copying 130 MB) without installing it yet.
+     * Returns the installer session to [commit] later; earlier unfinished sessions of ours are dropped.
      */
-    fun install(apk: File) {
+    fun prepare(apk: File): Int {
         val installer = context.packageManager.packageInstaller
+        for (old in installer.mySessions) try { installer.abandonSession(old.sessionId) } catch (_: Exception) {}
         val params = PackageInstaller.SessionParams(PackageInstaller.SessionParams.MODE_FULL_INSTALL)
         params.setAppPackageName(context.packageName)
         params.setSize(apk.length())
+        // an app updating itself may be allowed to do it without asking (Android 12+, once the user has let it install)
         if (Build.VERSION.SDK_INT >= 31) params.setRequireUserAction(PackageInstaller.SessionParams.USER_ACTION_NOT_REQUIRED)
         val id = installer.createSession(params)
         installer.openSession(id).use { session ->
@@ -97,15 +105,36 @@ class Updater(private val context: Context) {
                 apk.inputStream().use { it.copyTo(out, 1 shl 16) }
                 session.fsync(out)
             }
+        }
+        return id
+    }
+
+    /**
+     * Installs a prepared session: Android replaces the app and keeps its data. If Android wants the user to
+     * confirm, [UpdateReceiver] shows its screen when the app is on screen; otherwise the session is dropped and
+     * [needsConfirmation] is set, so the app can ask for one tap next time.
+     */
+    fun commit(sessionId: Int) {
+        val installer = context.packageManager.packageInstaller
+        installer.openSession(sessionId).use { session ->
             val intent = Intent(context, UpdateReceiver::class.java).setAction(UpdateReceiver.ACTION)
             val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 31) PendingIntent.FLAG_MUTABLE else 0)
-            session.commit(PendingIntent.getBroadcast(context, id, intent, flags).intentSender)
+            session.commit(PendingIntent.getBroadcast(context, sessionId, intent, flags).intentSender)
         }
     }
+
+    /** Prepares and installs in one go (the player asked for it and is looking at the app). */
+    fun install(apk: File) = commit(prepare(apk))
 
     companion object {
         /** What the installer said last (a failure message), for the screen to show. */
         val installProblem = MutableStateFlow<String?>(null)
+
+        /** Android asked for the user's confirmation while the app was not on screen: ask for a tap next time. */
+        val needsConfirmation = MutableStateFlow(false)
+
+        /** Whether the app is on screen (set by the UI): Android's confirmation can only be shown then. */
+        @Volatile var onScreen = false
     }
 }
 
@@ -116,6 +145,15 @@ class UpdateReceiver : BroadcastReceiver() {
             PackageInstaller.STATUS_PENDING_USER_ACTION -> {
                 @Suppress("DEPRECATION")
                 val confirm = intent.getParcelableExtra<Intent>(Intent.EXTRA_INTENT) ?: return
+                if (!Updater.onScreen) {
+                    // an automatic install while the app is closed, and Android wants a yes: not now
+                    val id = intent.getIntExtra(PackageInstaller.EXTRA_SESSION_ID, -1)
+                    if (id >= 0) try { context.packageManager.packageInstaller.abandonSession(id) } catch (_: Exception) {}
+                    // remembered across restarts of the app, so the request for a tap is not lost
+                    context.getSharedPreferences("scorebook", Context.MODE_PRIVATE).edit().putBoolean("updateNeedsTap", true).apply()
+                    Updater.needsConfirmation.value = true
+                    return
+                }
                 try {
                     context.startActivity(confirm.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                 } catch (e: Exception) {

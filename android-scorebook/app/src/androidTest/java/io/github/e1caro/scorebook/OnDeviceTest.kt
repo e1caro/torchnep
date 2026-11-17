@@ -59,6 +59,12 @@ class OnDeviceTest {
     private val ctx = instrumentation.targetContext
     private val out: File = ctx.getExternalFilesDir(null)!!.also { it.mkdirs() }
 
+    /** The app under test must not start replacing itself with the published version in the middle of a test. */
+    @org.junit.Before
+    fun noSelfUpdate() {
+        (ctx.applicationContext as ScorebookApp).prefs.autoInstall = false
+    }
+
     @Test
     fun transcribeSaveExportAndShow() {
         val pcm = readWav(instrumentation.context.assets.open("modulation_clean.wav")) // 22.05 kHz

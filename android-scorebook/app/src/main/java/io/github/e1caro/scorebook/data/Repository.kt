@@ -85,6 +85,14 @@ class Prefs(context: Context) {
     var autoUpdate: Boolean
         get() = sp.getBoolean("autoUpdate", true)
         set(v) = sp.edit().putBoolean("autoUpdate", v).apply()
+    /** Download new versions by themselves (on Wi-Fi) and install them when the app is left. */
+    var autoInstall: Boolean
+        get() = sp.getBoolean("autoInstall", true)
+        set(v) = sp.edit().putBoolean("autoInstall", v).apply()
+    /** Android refused to install an update without the user's confirmation: the app asks for one tap. */
+    var updateNeedsTap: Boolean
+        get() = sp.getBoolean("updateNeedsTap", false)
+        set(v) = sp.edit().putBoolean("updateNeedsTap", v).apply()
     var lastUpdateCheck: Long
         get() = sp.getLong("lastUpdateCheck", 0)
         set(v) = sp.edit().putLong("lastUpdateCheck", v).apply()
