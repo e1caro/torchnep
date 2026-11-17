@@ -82,12 +82,65 @@ def _popen(args, cwd, stdout):
         raise LocalError(f"the command could not be started: {err}")
 
 
+def _kill_pid(pid):
+    if WINDOWS:
+        subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, timeout=20, creationflags=subprocess.CREATE_NO_WINDOW)
+    else:
+        os.killpg(pid, signal.SIGTERM)
+
+
+def _created_windows(pid):
+    """When a running process was created (seconds since 1970), or None when it has ended or cannot be read."""
+    import ctypes
+    from ctypes import wintypes
+    k = ctypes.WinDLL("kernel32", use_last_error=True)
+    k.OpenProcess.argtypes = [wintypes.DWORD, wintypes.BOOL, wintypes.DWORD]
+    k.OpenProcess.restype = wintypes.HANDLE
+    k.GetExitCodeProcess.argtypes = [wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD)]
+    k.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+    k.CloseHandle.argtypes = [wintypes.HANDLE]
+    handle = k.OpenProcess(0x1000, False, int(pid))
+    if not handle:
+        return None
+    try:
+        code = wintypes.DWORD()
+        if not k.GetExitCodeProcess(handle, ctypes.byref(code)) or code.value != 259:
+            return None
+        times = [wintypes.FILETIME() for _ in range(4)]
+        if not k.GetProcessTimes(handle, *[ctypes.byref(t) for t in times]):
+            return None
+        return ((times[0].dwHighDateTime << 32) | times[0].dwLowDateTime) / 1e7 - 11644473600
+    finally:
+        k.CloseHandle(handle)
+
+
+def alive(pid, started):
+    """True while the process a run started is still running. On Windows the process must also have been created
+    when the run started, so that a later program that happens to get the same number is not taken for it."""
+    try:
+        pid = int(pid)
+    except (TypeError, ValueError):
+        return False
+    if pid <= 0:
+        return False
+    if WINDOWS:
+        try:
+            created = _created_windows(pid)
+        except (OSError, AttributeError, ValueError):
+            return False
+        return created is not None and (not started or abs(created - float(started)) < 60)
+    try:
+        os.kill(pid, 0)
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
 def _kill(proc):
     try:
-        if WINDOWS:
-            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=20, creationflags=subprocess.CREATE_NO_WINDOW)
-        else:
-            os.killpg(proc.pid, signal.SIGTERM)
+        _kill_pid(proc.pid)
     except (OSError, subprocess.SubprocessError):
         try:
             proc.kill()
@@ -159,12 +212,33 @@ class Runs:
     def stop(self, run_id):
         with self.lock:
             entry = self.live.get(run_id)
-            if not entry:
-                raise LocalError("that run is not running any more")
-            proc, meta = entry
-            meta["stopping"] = True
-        _kill(proc)
+            if entry:
+                proc, meta = entry
+                meta["stopping"] = True
+            else:
+                meta = read_json(self._path(run_id, ".json")) if re.fullmatch(r"[A-Za-z0-9_.-]+", run_id or "") else None
+                if not (isinstance(meta, dict) and self._adopted(meta)):
+                    raise LocalError("that run is not running any more")
+        if entry:
+            _kill(proc)
+            return {"message": "Stopping it."}
+        try:
+            _kill_pid(int(meta["pid"]))
+        except (OSError, subprocess.SubprocessError) as err:
+            raise LocalError(f"it could not be stopped: {err}")
+        with self.lock:
+            meta.update(state="stopped", ended=time.time())
+            self._write(meta)
         return {"message": "Stopping it."}
+
+    def _adopted(self, meta):
+        """A run recorded as running that this copy of the program did not start, but whose process still runs."""
+        return meta.get("state") == "running" and meta["id"] not in self.live and alive(meta.get("pid"), meta.get("started"))
+
+    def _seen(self, meta):
+        if meta.get("state") == "running" and meta["id"] not in self.live and not self._adopted(meta):
+            meta["state"] = "unknown"
+        return meta
 
     def text(self, run_id, limit=2000000):
         """Everything a run printed (the first part of it when it printed a great deal)."""
@@ -188,7 +262,8 @@ class Runs:
             return ""
 
     def listing(self, limit=30):
-        """Newest first. A run recorded as running whose process is gone (the program was closed) is marked so."""
+        """Newest first. A run recorded as running whose process is gone (the program was closed) is marked so;
+        one whose process still runs after the program was restarted stays running."""
         if not os.path.isdir(self.folder):
             return []
         with self.lock:
@@ -200,8 +275,7 @@ class Runs:
             meta = read_json(os.path.join(self.folder, name))
             if not isinstance(meta, dict) or "id" not in meta:
                 continue
-            if meta.get("state") == "running" and meta["id"] not in self.live:
-                meta["state"] = "unknown"
+            self._seen(meta)
             meta.pop("pid", None)
             lines = [line for line in self.tail(meta["id"], 600).split("\n") if line.strip()]
             meta["last"] = lines[-1][:200] if lines else ""
@@ -231,9 +305,7 @@ class Runs:
             for name in os.listdir(self.folder):
                 meta = read_json(os.path.join(self.folder, name)) if name.endswith(".json") else None
                 if isinstance(meta, dict) and "id" in meta:
-                    if meta.get("state") == "running" and meta["id"] not in self.live:
-                        meta["state"] = "unknown"
-                    out.append(meta)
+                    out.append(self._seen(meta))
         return out
 
     def log_path(self, run_id):
