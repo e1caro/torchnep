@@ -17,7 +17,6 @@ unreliable lengths, any tempo, any key) so that it also works on notes heard by 
 usage: train_rhythm_net.py --data /path/to/prepared --out rhythm_net.bin [--epochs 24] [--hidden 128]
 """
 import argparse
-import bisect
 import math
 import os
 import random
