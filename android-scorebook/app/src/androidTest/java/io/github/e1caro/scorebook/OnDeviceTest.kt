@@ -149,7 +149,11 @@ class OnDeviceTest {
             Thread.sleep(1500)
             shot("1-take.png")
             // the play button: the score really plays (the position moves) and can be stopped
-            scenario.onActivity { ViewModelProvider(it)[ScorebookViewModel::class.java].togglePlay() }
+            // a real tap on the button, as a finger would: found on screen by its description
+            val device = androidx.test.uiautomator.UiDevice.getInstance(instrumentation)
+            val button = device.wait(androidx.test.uiautomator.Until.findObject(androidx.test.uiautomator.By.desc("Play")), 8000)
+            assertTrue("the play button is on screen", button != null)
+            button.click()
             var playing = false
             for (k in 0 until 40) {
                 scenario.onActivity { playing = ViewModelProvider(it)[ScorebookViewModel::class.java].playback.value.playing }

@@ -1,5 +1,6 @@
 package io.github.e1caro.scorebook.core.export
 
+import io.github.e1caro.scorebook.core.analysis.Pedal
 import io.github.e1caro.scorebook.core.correct.Hand
 import io.github.e1caro.scorebook.core.correct.Transcription
 import java.io.ByteArrayOutputStream
@@ -8,8 +9,10 @@ import kotlin.math.roundToInt
 
 /**
  * Standard MIDI file (type 1): a tempo track with one tempo event per detected beat, then one track per hand.
- * Notes keep the performance timing, placed on the beat grid, so the file sounds like the take and still lines
- * up with bars in a DAW or notation program.
+ * Notes keep the performance as it was: when each was struck and how long it really sounded (not the tidied
+ * lengths of the score), placed on the beat grid so the file still lines up with bars in a DAW or notation
+ * program. The sustain pedal is written too (controller 64): from a MIDI keyboard as it was used, with each
+ * note ending where its key was released; from the microphone where the notes show it was down (see [Pedal]).
  */
 object MidiWriter {
     const val PPQ = 480
@@ -34,13 +37,21 @@ object MidiWriter {
         }
         for (c in t.keyChanges().drop(1)) tempo.add(max(0, (c.tick / 48.0 * PPQ).roundToInt()) to meta(0x59, byteArrayOf(c.key.fifths.toByte(), if (c.key.mode.name == "MINOR") 1 else 0)))
         val tracks = mutableListOf(track(tempo))
+        val pedal = Pedal.spans(t.notes)
         for ((ch, hand) in Hand.entries.withIndex()) {
             val ev = ArrayList<Pair<Int, ByteArray>>()
             ev.add(0 to meta(0x03, (if (hand == Hand.RIGHT) "Right hand" else "Left hand").toByteArray()))
             ev.add(0 to byteArrayOf((0xC0 or ch).toByte(), 0))
+            // the pedal acts on the whole instrument: the same events on both hands' channels
+            for (span in pedal) {
+                val down = tickOf(span.from)
+                ev.add(down to byteArrayOf((0xB0 or ch).toByte(), 64, 127))
+                ev.add(max(down + 1, tickOf(span.to)) to byteArrayOf((0xB0 or ch).toByte(), 64, 0))
+            }
             for (n in t.notes.filter { it.hand == hand }) {
                 val on = tickOf(n.onset)
-                val off = max(on + 1, tickOf(n.offset))
+                // the key's own release when it is known (the pedal events above carry the rest of the sound)
+                val off = max(on + 1, tickOf(if (n.keyOff >= 0) n.keyOff else n.offset))
                 ev.add(on to byteArrayOf((0x90 or ch).toByte(), n.pitch.toByte(), n.velocity.coerceIn(1, 127).toByte()))
                 ev.add(off to byteArrayOf((0x80 or ch).toByte(), n.pitch.toByte(), 0))
             }

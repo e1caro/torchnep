@@ -130,6 +130,9 @@ fun TakeScreen(vm: ScorebookViewModel, ui: TakeUi, onBack: () -> Unit) {
             Chip("${t.grid.numerator}/${t.grid.denominator}")
             Chip("${t.notes.size} notes")
             if (ai > 0) Chip("$ai AI-decided", color = AiBlue)
+            // how much of the playing had the sustain pedal down (it is written into the MIDI file)
+            val pedal = remember(t) { io.github.e1caro.scorebook.core.analysis.Pedal.share(t.notes) }
+            if (pedal >= 0.05) Chip("Pedal ${(pedal * 100).roundToInt()}%")
         }
         if (ui.takes.size > 1) {
             Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 14.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -288,7 +291,9 @@ private fun ActionBar(vm: ScorebookViewModel, ui: TakeUi, pb: PlaybackUi, onAdju
                 Modifier.padding(horizontal = 6.dp).size(48.dp).clip(CircleShape).background(Gold).clickable { vm.togglePlay() },
                 contentAlignment = Alignment.Center,
             ) {
-                if (active) Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Stage))
+                // getting the sound ready (a turning ring), playing (a stop square), or ready to play
+                if (pb.preparing) androidx.compose.material3.CircularProgressIndicator(Modifier.size(26.dp), color = Stage, strokeWidth = 3.dp)
+                else if (active) Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Stage))
                 else Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = Stage, modifier = Modifier.size(30.dp))
             }
             BarAction("Adjust", onClick = onAdjust) { Icon(painterResource(R.drawable.ic_tune), contentDescription = null, tint = Ink) }
