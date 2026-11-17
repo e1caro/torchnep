@@ -18,7 +18,11 @@ import kotlin.math.min
  */
 class ScoreBuilder {
 
-    fun build(t: Transcription, title: String, subtitle: String = ""): Score {
+    /**
+     * [exactLengths]: write every note with its own length and the rests between notes (for music that was
+     * written, such as accompaniment patterns and motifs), instead of the legato reading used for what was heard.
+     */
+    fun build(t: Transcription, title: String, subtitle: String = "", exactLengths: Boolean = false): Score {
         val grid = t.grid
         val barTicks = grid.barTicks
         val beatTicks = grid.beatTicks
@@ -28,7 +32,7 @@ class ScoreBuilder {
         val keys = measureKeys(t, nMeasures, barTicks)
 
         // per staff: groups of notes struck together, with their sounding length in the single voice
-        val staffGroups = Hand.entries.map { hand -> groups(notes.filter { it.hand == hand }, nMeasures * barTicks, barTicks) }
+        val staffGroups = Hand.entries.map { hand -> groups(notes.filter { it.hand == hand }, nMeasures * barTicks, barTicks, exactLengths) }
 
         val measures = (0 until nMeasures).map { m ->
             val start = m * barTicks
@@ -63,7 +67,7 @@ class ScoreBuilder {
 
     private class Group(val tick: Int, var length: Int, val notes: List<TNote>)
 
-    private fun groups(notes: List<TNote>, endTick: Int, barTicks: Int): List<Group> {
+    private fun groups(notes: List<TNote>, endTick: Int, barTicks: Int, exactLengths: Boolean): List<Group> {
         val byTick = notes.groupBy { it.tick }.toSortedMap()
         val ticks = byTick.keys.toList()
         return ticks.mapIndexed { i, tk ->
@@ -73,7 +77,8 @@ class ScoreBuilder {
             // Legato: a note lasts until the next note of the same hand. Piano note endings heard by the model are
             // unreliable (high notes fade fast, the pedal blurs them), so a rest is only written when the next note
             // is more than a bar away; then the note keeps its own (snapped) length.
-            if (next - tk <= barTicks || len >= next - tk) len = next - tk
+            if (exactLengths) len = min(len, next - tk)
+            else if (next - tk <= barTicks || len >= next - tk) len = next - tk
             Group(tk, min(len, endTick - tk), ns)
         }
     }

@@ -339,7 +339,7 @@ fun SettingsScreen(vm: ScorebookViewModel) {
     var strict by remember { mutableFloatStateOf(prefs.strictness) }
     var corrections by remember { mutableIntStateOf(vm.corrections()) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        ScreenTitle("Settings", "Everything runs on this phone, offline")
+        ScreenTitle("Settings", "Your music stays on this phone")
         Section("RECORDING") {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
@@ -387,6 +387,22 @@ fun SettingsScreen(vm: ScorebookViewModel) {
                 color = InkDim, fontSize = 13.sp, lineHeight = 18.sp,
             )
             TextButton(onClick = { vm.resetLearning(); corrections = 0 }) { Text("Reset what Scorebook learned", color = Gold) }
+        }
+        Section("UPDATES") {
+            UpdateSettings(vm)
+            Spacer(Modifier.height(12.dp))
+            var auto by remember { mutableStateOf(vm.autoUpdate) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Look for updates when the app opens", color = Ink, fontSize = 16.sp)
+                    Text(
+                        "The only thing Scorebook uses the internet for: it reads the list of versions on GitHub. Nothing about you or your music is sent. " +
+                            "Updating keeps your scores and settings.",
+                        color = InkDim, fontSize = 13.sp, lineHeight = 18.sp,
+                    )
+                }
+                Switch(checked = auto, onCheckedChange = { auto = it; vm.autoUpdate = it }, colors = SwitchDefaults.colors(checkedTrackColor = Gold, checkedThumbColor = Stage))
+            }
         }
         Section("ABOUT") {
             Text(

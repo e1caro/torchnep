@@ -2,7 +2,8 @@
 
 Play the piano, get sheet music. Scorebook listens through the phone's microphone (or a USB / Bluetooth MIDI
 keyboard), transcribes both hands, finds the key, tempo, meter and chords, fixes unclear notes using the musical
-context, and writes an engraved score you can save as PDF, MIDI or MusicXML. Everything runs on the phone, offline.
+context, and writes an engraved score you can save as PDF, MIDI or MusicXML. Everything runs on the phone, offline
+(the internet is only used to look for a newer version of the app).
 
 The design — architecture, transcription model, and how note probabilities are combined with the musical
 context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
@@ -49,11 +50,26 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
 - **Accompaniment of the day.** Every day the Listen screen proposes one left-hand pattern to try (Alberti bass,
   pop ballad arpeggio, stride, bossa nova, boogie-woogie, waltz, barcarolle… 15 in all, easy to hard, in 4/4, 3/4
   and 6/8), written out on the staff in one of the keys you play most, over a chord progression that suits it,
-  with what it is, a tip, playback, and tempo and key controls. All patterns can be browsed any day.
+  with what it is, a tip, playback, and tempo and key controls. Not in the mood for it? *Another one* gives a
+  different recommendation, and all patterns can be browsed any day.
+- **Motif of the day.** Not only chords: every day also brings a figure that musicians reuse, written out for
+  both hands. Lament bass, line cliché, walking-bass turnaround, blues turnaround and lick, montuno with its
+  tumbao bass, La Folia, pedal point, alternating bass with walk-ups, falling-fifths sequence, minimal ostinato,
+  shuffle riff, tango marcato and síncopa. Each with where it comes from and how to practise it.
+- **Play-along check.** *Check my playing* listens while you play the pattern or motif once, at your own tempo
+  (microphone or MIDI keyboard; nothing is recorded), and tells you how it went: one to three stars, how many
+  notes were there (the missing ones light up on the score), how steady the rhythm was and the tempo you played
+  at. Swung eighths and playing in another octave are fine. A passed check counts for the day: the Listen screen
+  shows how many days in a row you have practised, and each pattern keeps its best stars.
 - **Accompany my song.** Take any song you recorded: your right hand stays exactly as you played it and the left
   hand is replaced by the pattern you choose, following the chord of each bar on your own beats (so it follows
   your rubato). The result is saved as a new song with its score, playback and exports. From the accompaniment
   screen ("Use it on my last song") or from a song's menu ("Add an accompaniment…").
+- **Updates from inside the app.** When the app opens it looks at this project's list of releases on GitHub; if
+  there is a newer version, a banner offers it and one tap downloads and installs it over the current one (your
+  scores and settings stay). Android asks you to confirm, and the first time to allow Scorebook to install apps.
+  Also in Settings → Updates, where the automatic check can be turned off. This is the only thing Scorebook uses
+  the internet for, and nothing is sent: listening, transcription and everything else run on the phone.
 - **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 
@@ -89,6 +105,30 @@ neglected piano): F1 0.84–0.86, tempo and keys still right. This is where the 
 your own corrections matter most.
 
 Not measured: a real phone in a real room. The numbers above are the best available stand-in.
+
+**Against the sheet music** (reading rhythm, key and hands; the notes themselves are given exactly, as from a
+MIDI keyboard). 235 real concert performances of 76 classical pieces that were kept aside (ASAP dataset: Bach,
+Beethoven, Chopin, Liszt, Schubert, Schumann, Haydn, Ravel …), each compared note by note with its published
+score. Reproduce with `tools/asap_prepare.py` and `AsapEvalTest`.
+
+| what Scorebook writes | before | now |
+|---|---|---|
+| beats where the score has them (within 70 ms) | 41 % | **52 %** |
+| the pulse found, at any level (e.g. eighths instead of quarters) | 50 % | **60 %** |
+| tempo level right (not half, double or 1.5×) | 34 % | **44 %** |
+| bar lines | 19 % | **23 %** |
+| time signature | 27 % | **33 %** |
+| key signature | 89 % | 87 % |
+| note on the right staff (hand) | 89 % | 89 % |
+| note at the right place in its bar | 7 % | **9 %** |
+
+This is the hard case, and the honest picture: concert pianists stretch the beat by a factor of two to four
+within a piece (Liszt, Chopin, Scriabin), and no program reads that reliably (the best published neural systems
+reach roughly 80 % of beats and 60 % of bar lines on this dataset). Where the tempo is steady the result is very
+different: Bach comes out at 87 % of the pulse and 97 % of key signatures, the best performances at 98 % of
+beats, and the steady test pieces in this repository are all right. So: play with a steady beat (or use
+*Adjust* to fix tempo, time signature and key) and the page is usually right; play with a lot of rubato and
+the notes are right but the bar lines often are not.
 
 ## Build
 
@@ -128,8 +168,8 @@ cd tools && python make_command_fixtures.py --of-model ../app/src/main/assets/on
 ```
 core/   plain Kotlin: transcribe/ (model stream, decoder), analysis/ (rhythm, key, chords), correct/ (fusion,
         learning, hands, pipeline), score/, engrave/ (layout, live staff, SVG), export/ (MusicXML, MIDI),
-        live/ (auto start/stop, MIDI input, live session), library/, accompany/ (patterns, the daily pick,
-        accompany my song), commands/, play/ (piano sound)
+        live/ (auto start/stop, MIDI input, live session), library/, update/ (finding a newer release), accompany/ (patterns, motifs, the
+        daily picks, accompany my song), practice/ (play-along check, streak), commands/, play/ (piano sound)
 app/    Android: audio capture, LiteRT model, MIDI devices, storage, PDF, Compose UI
 tools/  fixture generator
 ```

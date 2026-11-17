@@ -73,6 +73,21 @@ class Prefs(context: Context) {
     var commands: io.github.e1caro.scorebook.core.commands.CommandConfig
         get() = try { sp.getString("commands", null)?.let { io.github.e1caro.scorebook.core.library.Codec.commands(it) } ?: io.github.e1caro.scorebook.core.commands.CommandConfig() } catch (_: Exception) { io.github.e1caro.scorebook.core.commands.CommandConfig() }
         set(v) = sp.edit().putString("commands", io.github.e1caro.scorebook.core.library.Codec.encode(v)).apply()
+    /** Days practised with the play-along check and the best result of each study, as JSON. */
+    var practice: io.github.e1caro.scorebook.core.practice.PracticeLog
+        get() = try { sp.getString("practice", null)?.let { io.github.e1caro.scorebook.core.library.Codec.practice(it) } ?: io.github.e1caro.scorebook.core.practice.PracticeLog() } catch (_: Exception) { io.github.e1caro.scorebook.core.practice.PracticeLog() }
+        set(v) = sp.edit().putString("practice", io.github.e1caro.scorebook.core.library.Codec.encode(v)).apply()
+    /** "Another one" on today's recommendations: the day they were asked on, and how many times for each kind. */
+    var skips: Triple<Long, Int, Int>
+        get() = Triple(sp.getLong("skipDay", 0), sp.getInt("skipPattern", 0), sp.getInt("skipMotif", 0))
+        set(v) = sp.edit().putLong("skipDay", v.first).putInt("skipPattern", v.second).putInt("skipMotif", v.third).apply()
+    /** Look for a newer version when the app opens (the only use of the internet). */
+    var autoUpdate: Boolean
+        get() = sp.getBoolean("autoUpdate", true)
+        set(v) = sp.edit().putBoolean("autoUpdate", v).apply()
+    var lastUpdateCheck: Long
+        get() = sp.getLong("lastUpdateCheck", 0)
+        set(v) = sp.edit().putLong("lastUpdateCheck", v).apply()
     var autoPdf: Boolean
         get() = sp.getBoolean("autoPdf", true)
         set(v) = sp.edit().putBoolean("autoPdf", v).apply()

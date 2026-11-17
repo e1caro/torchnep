@@ -64,8 +64,15 @@ class KeyTracker(
     }
 
     private fun emissions(chroma: Array<DoubleArray>): Array<DoubleArray> = Array(chroma.size) { s ->
-        DoubleArray(24) { k -> var e = 0.0; for (p in 0 until 12) e += chroma[s][p] * logProfile[k][p]; temperature * e }
+        val prior = keyPrior?.getOrNull(s)
+        DoubleArray(24) { k -> var e = 0.0; for (p in 0 until 12) e += chroma[s][p] * logProfile[k][p]; temperature * e + (prior?.get(k) ?: 0.0) }
     }
+
+    /**
+     * Outside knowledge about the key at each step (log weights for the 24 keys), added to what the notes say:
+     * the rhythm network's reading of the key signature. Null: the notes alone decide.
+     */
+    var keyPrior: Array<DoubleArray>? = null
 
     /** Live: the probability of each key now, given everything so far. One row per step. */
     fun filter(chroma: Array<DoubleArray>): Array<DoubleArray> {

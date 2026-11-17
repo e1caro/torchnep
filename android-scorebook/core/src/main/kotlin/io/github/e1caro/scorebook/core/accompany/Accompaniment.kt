@@ -1,30 +1,29 @@
 package io.github.e1caro.scorebook.core.accompany
 
-import io.github.e1caro.scorebook.core.analysis.BeatGrid
 import io.github.e1caro.scorebook.core.analysis.Chord
 import io.github.e1caro.scorebook.core.analysis.ChordQuality
 import io.github.e1caro.scorebook.core.analysis.ChordTracker
-import io.github.e1caro.scorebook.core.correct.Decision
 import io.github.e1caro.scorebook.core.correct.Hand
-import io.github.e1caro.scorebook.core.correct.TNote
-import io.github.e1caro.scorebook.core.correct.TimedChord
-import io.github.e1caro.scorebook.core.correct.TimedKey
 import io.github.e1caro.scorebook.core.correct.Transcription
 import io.github.e1caro.scorebook.core.music.Key
 import io.github.e1caro.scorebook.core.music.Mode
 import io.github.e1caro.scorebook.core.music.pc
 import io.github.e1caro.scorebook.core.transcribe.NoteEvent
-import kotlin.math.roundToInt
 
-/** What to practise today: a pattern, written in a key, over a progression. */
-data class DailyPick(val pattern: Pattern, val key: Key, val progression: Progression, val bpm: Int) {
-    val chords: List<Chord> get() = progression.chords(key)
-
-    /** "Pop · Easy · 4/4". */
-    val tagline: String get() = "${pattern.style} · ${pattern.level.label} · ${pattern.meter.label}"
-
-    /** "in D minor · i – VI – III – VII". */
-    val harmony: String get() = "in ${key.displayName} · ${progression.roman(key)}"
+/** An accompaniment pattern written in a key, over a progression. */
+data class DailyPick(val pattern: Pattern, override val key: Key, val progression: Progression, override val bpm: Int) : Study {
+    override val id: String get() = "pattern:${pattern.id}"
+    override val name: String get() = pattern.name
+    override val style: String get() = pattern.style
+    override val level: Level get() = pattern.level
+    override val meter: Meter get() = pattern.meter
+    override val about: String get() = pattern.about
+    override val tip: String get() = pattern.tip
+    override val chords: List<Chord> get() = progression.chords(key)
+    override val roman: String get() = progression.roman(key)
+    override fun transcription(repeats: Int): Transcription = Accompaniment.transcription(this, repeats)
+    override fun transposed(semitones: Int): DailyPick = copy(key = key.transpose(semitones))
+    override fun withTempo(delta: Int): DailyPick = copy(bpm = (bpm + delta).coerceIn(40, 200))
 }
 
 object Accompaniment {
@@ -54,22 +53,9 @@ object Accompaniment {
      * The pick written out as a transcription (steady beat, left hand only), ready for the score builder, the
      * engraver and the piano synthesizer. [repeats]: how many times the progression is played.
      */
-    fun transcription(pick: DailyPick, repeats: Int = 1): Transcription {
-        val meter = pick.pattern.meter
-        val chords = List(repeats) { pick.chords }.flatten()
-        val beatSeconds = 60.0 / pick.bpm
-        val beats = List(chords.size * meter.beatsPerBar + 1) { it * beatSeconds }
-        val grid = BeatGrid(beats, meter.beatsPerBar, meter.compound, 0)
-        fun time(tick: Int) = tick.toDouble() / meter.beatTicks * beatSeconds
-        val notes = notes(pick.pattern, chords).mapIndexed { i, n ->
-            val tick = n.bar * meter.barTicks + n.tick
-            TNote(i, n.pitch, time(tick), time(tick + n.duration) - 0.02, if (n.accent) 78 else 64, Hand.LEFT, tick, n.duration, Decision.MIDI)
-        }
-        val timedChords = chords.mapIndexedNotNull { bar, c ->
-            if (bar > 0 && chords[bar - 1] == c) null else TimedChord(c, bar * meter.barTicks, time(bar * meter.barTicks))
-        }
-        return Transcription(notes, emptyList(), grid, listOf(TimedKey(pick.key, 0, 0.0)), timedChords)
-    }
+    fun transcription(pick: DailyPick, repeats: Int = 1): Transcription =
+        Studies.transcription(pick.pattern.meter, pick.bpm, pick.key, pick.chords,
+            notes(pick.pattern, pick.chords).map { StudyNote(it.bar, it.tick, it.duration, it.pitch, Hand.LEFT, it.accent) }, repeats)
 
     /**
      * "Accompany my song": the right hand of a recorded take stays exactly as it was played; the left hand is
@@ -158,10 +144,27 @@ object Daily {
     fun withPattern(pattern: Pattern, key: Key, index: Int = 0): DailyPick =
         DailyPick(pattern, key, Progressions.byId(pattern.progressions[Math.floorMod(index, pattern.progressions.size)]), pattern.bpm)
 
-    fun transpose(pick: DailyPick, semitones: Int): DailyPick = pick.copy(key = pick.key.transpose(semitones))
+    fun transpose(pick: DailyPick, semitones: Int): DailyPick = pick.transposed(semitones)
 
-    fun tempo(pick: DailyPick, delta: Int): DailyPick = pick.copy(bpm = (pick.bpm + delta).coerceIn(40, 200))
+    fun tempo(pick: DailyPick, delta: Int): DailyPick = pick.withTempo(delta)
 
-    @Suppress("unused")
-    private fun round(x: Double) = x.roundToInt()
+    // a different order from the patterns', so the pair of the day keeps changing
+    private val MOTIF_ORDER = listOf("lament", "pedal", "walking-turnaround", "ostinato", "country", "folia", "montuno", "line-cliche",
+        "shuffle", "sequence", "blues-lick", "tango", "turnaround")
+
+    /** The motif of the day, in one of the player's keys of the motif's mode when there is one. */
+    fun motif(epochDay: Long, favoriteKeys: List<Key> = emptyList()): MotifPick {
+        val motif = Motifs.byId(MOTIF_ORDER[Math.floorMod(epochDay, MOTIF_ORDER.size.toLong()).toInt()])
+        return withMotif(motif, favoriteKeys, epochDay)
+    }
+
+    /** Any motif, in a key that suits the player: their own keys in its mode, or the relatives of their keys. */
+    fun withMotif(motif: Motif, favoriteKeys: List<Key> = emptyList(), epochDay: Long = 0): MotifPick {
+        val own = favoriteKeys.map { if (it.mode == motif.mode) it else relative(it) }.distinct().take(3)
+        val pool = if (own.isNotEmpty() && Math.floorMod(epochDay, 3L) != 1L) own else COMMON_KEYS.filter { it.mode == motif.mode }
+        return MotifPick(motif, pool[Math.floorMod(epochDay * 5, pool.size.toLong()).toInt()], motif.bpm)
+    }
+
+    /** The key with the same key signature in the other mode (C major and A minor). */
+    private fun relative(key: Key): Key = if (key.mode == Mode.MAJOR) Key((key.tonic + 9) % 12, Mode.MINOR) else Key((key.tonic + 3) % 12, Mode.MAJOR)
 }

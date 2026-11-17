@@ -107,4 +107,6 @@ object Codec {
     fun personal(s: String): PersonalModel = json.decodeFromString(s)
     fun encode(c: io.github.e1caro.scorebook.core.commands.CommandConfig): String = json.encodeToString(c)
     fun commands(s: String): io.github.e1caro.scorebook.core.commands.CommandConfig = json.decodeFromString(s)
+    fun encode(l: io.github.e1caro.scorebook.core.practice.PracticeLog): String = json.encodeToString(l)
+    fun practice(s: String): io.github.e1caro.scorebook.core.practice.PracticeLog = json.decodeFromString(s)
 }
