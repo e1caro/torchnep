@@ -29,12 +29,12 @@ export function Portfolio() {
               <article key={r.id} className="card hero p-5 flex flex-col gap-4 cursor-pointer hover:border-accent transition-colors" style={accentStyle(col)} onClick={() => go(`b/${r.id}`)}>
                 <div className="flex items-start gap-3">
                   <span className="w-11 h-11 rounded-2xl grid place-items-center text-white shrink-0" style={{ background: col }}><Icon size={22} /></span>
-                  <div className="min-w-0 flex-1"><h2 className="font-semibold truncate">{r.big.name}</h2><p className="text-xs text-muted">{t(`t_${r.big.type}`)} · {r.big.sizeM2} m² · {dateLong(r.big.startDate, r.day - 1, lang)}</p></div>
-                  <span className="chip">{rt?.progress != null ? t('loading') : on ? <><span className="w-1.5 h-1.5 rounded-full bg-good pulse" />{t('running')}</> : rt ? t('paused') : t('notLoaded')}</span>
+                  <div className="min-w-0 flex-1"><h2 className="font-semibold truncate">{r.big.name}</h2><p className="text-xs text-muted truncate">{t(`t_${r.big.type}`)} · {r.big.sizeM2} m²</p><p className="text-xs text-ink2 num whitespace-nowrap">{dateLong(r.big.startDate, r.day - 1, lang)}</p></div>
+                  <span className="chip shrink-0 whitespace-nowrap">{rt?.progress != null ? t('loading') : on ? <><span className="w-1.5 h-1.5 rounded-full bg-good pulse" />{t('running')}</> : rt ? t('paused') : t('notLoaded')}</span>
                 </div>
                 <Spark data={snap?.spark ?? []} color={col} />
                 <div className="grid grid-cols-3 gap-2">
-                  <div><div className="label">{t('revenue')}</div><div className="font-semibold mt-0.5">{snap ? moneyC(snap.rev30, lang) : '–'}</div></div>
+                  <div><div className="label">{t('revenue')}</div><div className="font-semibold mt-0.5 num whitespace-nowrap">{snap ? moneyC(snap.rev30, lang) : '–'}</div></div>
                   <div><div className="label">{t('margin')}</div><div className="font-semibold mt-0.5">{snap ? pct(snap.margin30, lang, 0) : '–'}</div></div>
                   <div><div className="label">{t('profit')}</div><div className={`font-semibold mt-0.5 ${snap && snap.profit30 < 0 ? 'text-bad' : ''}`}>{snap ? moneyC(snap.profit30, lang) : '–'}</div></div>
                 </div>

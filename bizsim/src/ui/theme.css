@@ -64,5 +64,5 @@ input[type="range"].slider::-moz-range-thumb { width: 14px; height: 14px; border
 @media (prefers-reduced-motion: reduce) { .fade-in { animation: none; } }
 .pulse { animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.45; } }
-.safe-b { padding-bottom: env(safe-area-inset-bottom); }
-.safe-t { padding-top: env(safe-area-inset-top); }
+.safe-b { padding-bottom: max(env(safe-area-inset-bottom), var(--safe-area-inset-bottom, 0px)); }
+.safe-t { padding-top: max(env(safe-area-inset-top), var(--safe-area-inset-top, 0px)); }

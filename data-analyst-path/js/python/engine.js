@@ -253,10 +253,13 @@
       'products.csv': function () { return tbl(['product_id', 'name', 'category', 'price'], d.products); },
       'messy_orders.csv': function () { return P.readCsvText(DA.gen.messyCsv()); },
     };
+    if (DA.biz) ['sales', 'days', 'products', 'customers'].forEach(function (t) { files['biz_' + t + '.csv'] = function () { var f = DA.biz.data().flat[t]; return tbl(f.cols, f.rows); }; });
     Object.keys(DA.gen.csv || {}).forEach(function (name) { if (name !== 'funnel_sample.csv') files[name] = function () { return P.readCsvText(DA.gen.csv[name]()); }; });
     return files;
   };
   var cache = {};
+  P.dropFiles = function (re) { Object.keys(cache).forEach(function (k) { if (re.test(k)) delete cache[k]; }); };
+  DA.py = P;
   P.readFile = function (name) {
     var f = P.files()[name];
     if (!f) throw err('FileNotFoundError', "[Errno 2] No such file or directory: '" + name + "'. Files here: " + Object.keys(P.files()).join(', '));

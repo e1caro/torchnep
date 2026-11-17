@@ -168,7 +168,9 @@ export class Sim {
     // very perishable goods are made or delivered daily
     const lead = opening ? 0 : spoil >= 0.15 ? 1 : this.supLead[sup];
     const e = Math.max(this.ewma[p], 0.02) * 1.35, cycle = Math.max(perish ? 1 : 2, lead);
-    const low = Math.max(1, small.reorderDays * e * (spoil >= 0.15 ? 0.5 : 1)), high = Math.max(perish ? 2 : 3, low + cycle * e);
+    // fresh goods are never stocked for longer than they keep
+    const cover = perish ? Math.min(small.reorderDays, Math.max(1, 0.045 / spoil)) : small.reorderDays;
+    const low = Math.max(1, cover * e * (spoil >= 0.15 ? 0.5 : 1)), high = Math.max(perish ? 2 : tpl.minStock, low + cycle * e);
     if (!opening && this.stock[p] + this.onOrder[p] > low) return;
     const qty = Math.max(1, Math.ceil(high - this.stock[p] - this.onOrder[p]));
     const late = opening || hashUnit(this.big.seed, 0x1a7e, d, p) < this.supOnTime[sup] ? 0 : 1 + Math.floor(hashUnit(this.big.seed, 0x1a7f, d, p) * 4);
@@ -469,7 +471,7 @@ export class Sim {
     // costs
     const rent = Math.round((big.sizeM2 * tpl.rentM2[big.locationTier - 1] * 100) / dim);
     const util = Math.round(((big.sizeM2 * tpl.utilitiesM2 * (0.85 + 0.02 * Math.abs(info.temp - 18)) * (closed ? 0.5 : 1)) / dim) * 100);
-    const fees = Math.round(cardSales * CARD_FEE), other = Math.round(net * 0.004) + (rng.chance(1 / 90) ? Math.round(big.sizeM2 * rng.range(3, 9) * 100) : 0);
+    const fees = Math.round(cardSales * CARD_FEE), other = Math.round(net * tpl.overheadPct) + Math.round((big.sizeM2 * tpl.overheadM2 * 100) / dim) + (rng.chance(1 / 90) ? Math.round(big.sizeM2 * rng.range(3, 9) * 100) : 0);
     const add = [rent, labour, util, mktToday, fees, other];
     for (let i = 0; i < 6; i++) this.mtd[i] += add[i];
     const opex = rent + util + mktToday + fees + other, gm = net - cogs, profit = gm - refundsNet - waste - labour - opex;

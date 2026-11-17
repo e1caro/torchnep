@@ -56,7 +56,16 @@
     m.dateCols = {};
     return m;
   };
-  BI.model = function (name) { return name === 'club' ? BI.clubModel() : BI.retailModel(); };
+  // The active BizSim business: sale lines with their product, category and ticket fields, and the identified customers.
+  BI.bizModel = function () {
+    var m = new Model(), f = DA.biz.data().flat, rows = function (t) { return t.rows.map(function (r) { var o = {}; t.cols.forEach(function (c, j) { o[c] = r[j]; }); return o; }); };
+    m.addTable('Sales', f.sales.cols, rows(f.sales));
+    m.addTable('Customers', f.customers.cols, rows(f.customers));
+    m.addRelationship('Sales', 'customer_id', 'Customers', 'customer_id');
+    m.dateCols = { Sales: ['date', 'month'] };
+    return m;
+  };
+  BI.model = function (name) { return name === 'biz' ? BI.bizModel() : name === 'club' ? BI.clubModel() : BI.retailModel(); };
 
   function tokenize(src, mode) {
     var toks = [], i = 0, n = src.length, m;
@@ -626,7 +635,7 @@
     'Members[start_month]': { table: 'Members', col: 'start_month', label: 'start month' },
     'Invoices[month]': { table: 'Invoices', col: 'month', label: 'month' },
   };
-  BI.dimsFor = function (model) { return Object.keys(BI.dims).filter(function (k) { return !!model.tables[BI.dims[k].table]; }); };
+  BI.dimsFor = function (model) { return Object.keys(BI.dims).filter(function (k) { var t = model.tables[BI.dims[k].table]; return !!t && t.cols.indexOf(BI.dims[k].col) >= 0; }); };
 
   // opts.where (Tableau only): a filter on the Sales rows, applied before anything is computed (the Filters shelf).
   BI.breakdown = function (model, mode, formula, dimKey, opts) {

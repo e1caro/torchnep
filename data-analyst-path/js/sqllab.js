@@ -37,6 +37,10 @@
     if (!refDbs[ds]) refDbs[ds] = DA.buildDb(SQL, ds); // never exposed to the learner
     return refDbs[ds];
   }
+  // The business dataset changes when another business becomes the active one.
+  DA.sqlLabReset = function (ds) {
+    [userDbs, refDbs].forEach(function (m) { if (m[ds]) { m[ds].close(); delete m[ds]; } });
+  };
   function lastResult(res) { return res && res.length ? res[res.length - 1] : undefined; }
 
   // True when any statement in the text starts with a keyword that changes data or structure.
@@ -103,9 +107,10 @@
     if (!params[0]) return L.mapView(lab);
     var dsId = params[0] && DA.datasets[params[0]] ? params[0] : ui.defaultDataset();
     var ds = DA.datasets[dsId];
-    var list = DA.challenges.filter(function (c) { return c.ds === dsId; });
+    var list = DA.challenges.concat(DA.bizSql || []).filter(function (c) { return c.ds === dsId; });
     var examples = (DA.sqlExamples || []).filter(function (ex) { return ex.ds === dsId; });
     var cur = list.filter(function (c) { return c.id === params[1]; })[0] || null;
+    if (cur && cur.ds === 'biz' && L.get('biz')) lab = L.get('biz');
     var wcur = cur ? lab.byId[cur.id] : null;
     if (wcur && !L.isUnlocked(lab, wcur)) return L.lockedView(lab, wcur);
     var session = { hinted: false };

@@ -69,7 +69,7 @@ export const bookshop: Template = {
       ...nf([['Notebook A5', 'Cuaderno A5'], ['Gel pen', 'Bolígrafo de gel'], ['Bookmark', 'Marcapáginas'], ['Tote bag', 'Bolsa de tela'], ['Weekly planner', 'Agenda semanal'], ['Greeting card', 'Tarjeta de felicitación'], ['Jigsaw puzzle', 'Puzle'], ['Reading light', 'Luz de lectura']], [['', ''], ['Kraft', 'Kraft'], ['Botanical', 'Botánico'], ['Classic', 'Clásico'], ['Colour', 'Color']]),
     },
   ],
-  baseTraffic: 260, size: [30, 500, 110], conv: 0.26, basket: 1.6, multiQty: 0.05, elasticity: 1,
+  baseTraffic: 220, size: [30, 500, 110], conv: 0.26, basket: 1.6, multiQty: 0.05, elasticity: 1,
   dow: [0.8, 0.8, 0.85, 0.95, 1.2, 1.7, 0.7], month: [1.05, 0.85, 0.9, 1.15, 0.95, 1, 1, 0.8, 1.2, 0.95, 1.05, 1.9],
   events: { book_day: 3.2, christmas_season: 1.2, back_to_school: 1.2, black_friday: 1.4, mothers_day: 1.2 },
   holiday: 0, rain: -0.1, heat: -0.04,
@@ -77,11 +77,11 @@ export const bookshop: Template = {
   hoursWe: curve([[9, 0], [10, 4], [12, 10], [14, 8], [17, 8], [19, 9], [21, 2], [22, 0]]),
   identified: 0.55, custK: 700, churn: 0.14,
   segments: [[['Avid reader', 'Lector habitual'], 0.3], [['Student', 'Estudiante'], 0.2], [['Parent', 'Padre o madre'], 0.22], [['Gift buyer', 'Comprador de regalos'], 0.2], [['Tourist', 'Turista'], 0.08]],
-  returnRate: 0.015, returnOnline: 0.04, restock: 0.95, onlineShare: 0.12, txPerStaffHour: 9,
+  returnRate: 0.015, returnOnline: 0.04, restock: 0.95, onlineShare: 0.12, txPerStaffHour: 5,
   roles: [[['Bookseller', 'Librero'], 10.4], [['Shop manager', 'Encargado'], 14.8]],
-  items: [150, 1200, 480], leadTime: [2, 6], reorderDefault: 7,
+  items: [150, 1200, 800], leadTime: [2, 6], reorderDefault: 7,
   suppliers: [['Distribuidora Letras', 'Distribuidora Letras'], ['Logística del Libro', 'Logística del Libro'], ['Atlántida Distribución', 'Atlántida Distribución'], ['Papelería Mayorista Sol', 'Papelería Mayorista Sol']],
-  rentM2: [12, 26, 60], fitoutM2: 420, utilitiesM2: 1.8, marketingScale: 900, hoursDefault: [10, 21], closedDefault: 6,
+  rentM2: [15, 32, 70], fitoutM2: 420, utilitiesM2: 1.8, overheadM2: 5, overheadPct: 0.03, minStock: 8, marketingScale: 900, hoursDefault: [10, 21], closedDefault: 6,
   catalogue,
   extras: big => {
     const rng = new Rng(hash32(big.seed, 0xa07));

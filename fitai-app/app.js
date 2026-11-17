@@ -32,11 +32,11 @@ const KIND_MUSCLES = {
   PULL: ['lats', 'middle back', 'traps', 'biceps', 'forearms', 'lower back', 'abdominals'],
 };
 const DAYS = {
-  FULL: ['quadriceps', 'chest', 'lats', 'abdominals', 'shoulders', 'hamstrings', 'glutes', 'biceps', 'triceps', 'calves'],
-  UPPER: ['chest', 'lats', 'shoulders', 'abdominals', 'middle back', 'biceps', 'triceps', 'traps'],
-  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'abdominals', 'calves', 'lower back', 'quadriceps', 'hamstrings'],
-  PUSH: ['chest', 'shoulders', 'triceps', 'abdominals', 'chest', 'shoulders', 'triceps'],
-  PULL: ['lats', 'middle back', 'biceps', 'abdominals', 'traps', 'lower back', 'forearms'],
+  FULL: ['quadriceps', 'chest', 'lats', 'shoulders', 'hamstrings', 'glutes', 'biceps', 'triceps', 'abdominals', 'calves'],
+  UPPER: ['chest', 'lats', 'shoulders', 'middle back', 'biceps', 'triceps', 'abdominals', 'traps'],
+  LOWER: ['quadriceps', 'hamstrings', 'glutes', 'calves', 'lower back', 'abdominals', 'quadriceps', 'hamstrings'],
+  PUSH: ['chest', 'shoulders', 'triceps', 'chest', 'shoulders', 'abdominals', 'triceps'],
+  PULL: ['lats', 'middle back', 'biceps', 'traps', 'lower back', 'abdominals', 'forearms'],
 };
 const KIND_NAME = { FULL: 'Full body', UPPER: 'Upper body', LOWER: 'Lower body', PUSH: 'Push', PULL: 'Pull' };
 const SPLITS = {
@@ -155,11 +155,12 @@ function allowed(e, p, have) {
 
 // How long an exercise really takes: about 40 s per set plus its rest, and 1 minute to set up and move on.
 // Timed items ("8 min" of cardio, "30s" stretches) count their own time.
+const REST_OVER = 1.25, SET_SECS = 50, CHANGE_SECS = 150;
 function exSecs(it) {
-  const m = String(it.reps).match(/^(\d+)\s*min/), s = String(it.reps).match(/^(\d+)\s*s/);
-  if (m) return +m[1] * 60 + 45;
-  if (s) return it.sets * (+s[1] + it.rest) - it.rest + 25; // holds and stretches move on quickly
-  return it.sets * (40 + it.rest) - it.rest + 60;
+  const m = String(it.reps).match(/^(\d+)\s*min/), s = String(it.reps).match(/^(\d+)\s*s/), r = (+it.rest || 0) * REST_OVER;
+  if (m) return +m[1] * 60 + 90;
+  if (s) return it.sets * (+s[1] + r) - r + 40; // holds and stretches move on quickly
+  return it.sets * (SET_SECS + r) - r + CHANGE_SECS;
 }
 const WARMUP = 4 * 60;
 // cardio: none, at the start (it doubles as the warm-up) or at the end; fat loss defaults to the end
@@ -209,6 +210,15 @@ if (S.plan && !S.plan.timed && S.profile) {
   });
   S.plan.timed = 1; save('plan', S.plan);
 }
+if (S.plan && S.plan.timed !== 2 && S.profile) {
+  S.plan.days.forEach(d => {
+    if (d.routine) return;
+    const tot = () => WARMUP + d.items.reduce((a, it) => a + exSecs(it), 0);
+    const strength = () => d.items.filter(it => !/min|s$/.test(String(it.reps)) && BY[it.id]?.m[0] !== 'abdominals');
+    while (tot() > S.profile.minutes * 60 + 180 && strength().length > 2) d.items.splice(d.items.lastIndexOf(strength().pop()), 1);
+  });
+  S.plan.timed = 2; save('plan', S.plan);
+}
 function generatePlan(p) {
   const r = rng(Date.now() & 0xffffff), have = equipSet(p);
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
@@ -227,8 +237,8 @@ function generatePlan(p) {
     if (!c.length) return null;
     used.add(c[0].id); return c[0];
   };
-  const minStr = p.minutes <= 30 ? 3 : p.minutes <= 45 ? 4 : p.minutes <= 60 ? 5 : 6;
-  const maxStr = p.minutes <= 30 ? 4 : p.minutes <= 45 ? 5 : p.minutes <= 60 ? 5 : p.minutes <= 75 ? 6 : 7;
+  const minStr = p.minutes <= 45 ? 2 : p.minutes <= 75 ? 3 : 4;
+  const maxStr = p.minutes <= 30 ? 3 : p.minutes <= 45 ? 4 : p.minutes <= 75 ? 5 : p.minutes <= 90 ? 6 : 7;
   const days = SPLITS[p.days].map((kind, di) => {
     const slots = [...DAYS[kind], ...DAYS[kind]], allow = KIND_MUSCLES[kind]; // long sessions go round the muscles again
     const extra = shuffle(focusMuscles.filter(m => !allow || allow.includes(m)), r).slice(0, 1);
@@ -247,15 +257,6 @@ function generatePlan(p) {
       const it = { id: e.id, sets: focusMuscles.includes(m) ? sets + 1 : sets, reps: isAbs && p.goal === 'strength' ? '12-15' : reps, rest: isAbs ? Math.min(rest, 60) : rest };
       if (items.length >= minStr && exSecs(it) > left) break;
       items.push(it); left -= exSecs(it);
-    }
-    // Guarantee every workout day includes a dedicated core/abdominals exercise without exceeding maxStr
-    if (!items.some(it => BY[it.id]?.m[0] === 'abdominals')) {
-      const ab = pick('abdominals', items);
-      if (ab) {
-        const abIt = { id: ab.id, sets: focusMuscles.includes('abdominals') ? sets + 1 : sets, reps: p.goal === 'strength' ? '12-15' : reps, rest: Math.min(rest, 60) };
-        if (items.length >= maxStr) items[items.length - 1] = abIt;
-        else items.push(abIt);
-      }
     }
     if (cIt && pos === 'start') { items.unshift(cIt); tail.shift(); }
     // stretches for the muscles worked today, most worked first, one per muscle before repeating
@@ -279,7 +280,7 @@ function generatePlan(p) {
     while (!+p.stretchMin && over() > 90 && items.filter(it => BY[it.id]?.c === 'stretching').length > 3) items.splice(items.findLastIndex(it => BY[it.id]?.c === 'stretching'), 1);
     return { name: `Day ${di + 1} · ${KIND_NAME[kind]}`, kind, items };
   });
-  return { created: Date.now(), days, timed: 1, ver: 3 };
+  return { created: Date.now(), days, timed: 2, abs: 1, ver: 3 };
 }
 
 // ---------- today's time ----------
@@ -318,8 +319,8 @@ function fitDay(di, minutes) {
   const used = () => fixed + str.reduce((a, it) => a + exSecs(it), 0), budget = minutes * 60;
   const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, p, have));
   const slots = [...DAYS[base.kind], ...DAYS[base.kind], ...DAYS[base.kind]];
-  const minStr = minutes <= 30 ? 3 : minutes <= 45 ? 4 : minutes <= 60 ? 5 : 6;
-  const maxStr = minutes <= 30 ? 4 : minutes <= 45 ? 5 : minutes <= 60 ? 5 : minutes <= 75 ? 6 : 7;
+  const minStr = minutes <= 45 ? 2 : minutes <= 75 ? 3 : 4;
+  const maxStr = minutes <= 30 ? 3 : minutes <= 45 ? 4 : minutes <= 75 ? 5 : minutes <= 90 ? 6 : 7;
   for (let k = 0; k < slots.length; k++) {
     if (str.length >= maxStr) break;
     const m = slots[(k + str.length) % slots.length];
@@ -330,18 +331,7 @@ function fitDay(di, minutes) {
     if (str.length >= minStr && used() + exSecs(it) > budget + 60) break;
     str.push(it);
   }
-  while ((used() > budget + 60 && str.length > minStr) || str.length > maxStr) {
-    const idx = str.findLastIndex(it => BY[it.id]?.m[0] !== 'abdominals');
-    if (idx >= 0) str.splice(idx, 1); else break;
-  }
-  if (!str.some(it => BY[it.id]?.m[0] === 'abdominals')) {
-    const ab = shuffle(pool.filter(e => e.m[0] === 'abdominals' && !str.some(x => x.id === e.id)), r)[0];
-    if (ab) {
-      const abIt = { id: ab.id, sets, reps: p.goal === 'strength' ? '12-15' : reps, rest: Math.min(rest, 60) };
-      if (str.length >= maxStr) str[str.length - 1] = abIt;
-      else str.push(abIt);
-    }
-  }
+  while ((used() > budget + 60 && str.length > minStr) || str.length > maxStr) str.pop();
   for (let k = str.length - 1; k >= 0 && used() > budget + 60; k--) if (str[k].sets > 2) { str[k].sets--; k++; }
   // short on time: shorter cardio, fewer stretches (only what is on "auto")
   if (cardio.length && !+p.cardioMin) while (used() > budget + 60 && parseInt(cardio[0].reps) > 5) cardio[0].reps = `${parseInt(cardio[0].reps) - 1} min`;
@@ -611,31 +601,36 @@ window.startWorkout = di => { const d = dayFor(di); startSession(d.name, d.items
 
 const MEDAL_NAME = ['', 'Bronze', 'Silver', 'Gold', 'Platinum'];
 const medal = t => t ? `<span class="medal m${t}">${MEDAL_NAME[t]}</span>` : '';
+const XW = load('xw', {});
+const isBody = e => !e?.e || e.e === 'body only' || e.e === 'none';
+const bwOnly = x => isBody(BY[x.id]) && !XW[x.id];
 function workoutView() {
   if (!session) { location.hash = '#/home'; return; }
   const x = session.ex[session.cur], e = BY[x.id], n = session.ex.length, ts = timedSecs(x.reps), timed = ts !== null || isNaN(parseInt(x.reps));
+  const bw = !timed && bwOnly(x);
+  if (bw && x.sets.some(s => !s.done && s.w !== '')) { x.sets.forEach(s => { if (!s.done) s.w = ''; }); saveSess(); }
   const xpNow = session.ex.reduce((a, q) => a + exXp(q).xp, 0), tier = exXp(x).tier, run = session.timer && session.timer.ex === session.cur ? session.timer : null;
   view.innerHTML = `<div class="row between"><button class="icon" aria-label="Leave the workout for now" onclick="location.hash='#/home'">${ic('back', 20)}</button>
   <div class="mut">${esc(session.name)}</div><div class="xpchip">+${xpNow} XP</div></div>
   <div class="row between"><span>${medal(tier)}</span><span class="mut">Exercise ${session.cur + 1} of ${n}</span></div>
   <div class="prog"><i style="width:${(session.cur + 1) / n * 100}%"></i></div>
   <div class="row between exhead"><h1>${esc(e.n)}</h1>${similar(x).length ? `<button class="icon" aria-label="Swap for a similar exercise" onclick="swapPick()">${ic('swap', 20)}</button>` : ''}</div>${demo(e)}
-  <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last && !timed ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
-  ${typeof wgAll === 'function' && !timed ? wgAll(x.id).map(g => `<div class="wgchip${g.daily ? ' day' : ''}">🎯 ${g.daily ? 'Daily challenge:' : 'Weight goal:'} <b>${wgLoad(g)}</b></div>`).join('') : ''}
+  <div class="mut" style="margin:8px 0">Target ${x.sets.length} × ${x.reps}${x.last && !timed && !bw ? ` · last time ${x.last.w} kg × ${x.last.r}` : ''}</div>
+  ${typeof wgAll === 'function' && !timed && !bw ? wgAll(x.id).map(g => `<div class="wgchip${g.daily ? ' day' : ''}">🎯 ${g.daily ? 'Daily challenge:' : 'Weight goal:'} <b>${wgLoad(g)}</b></div>`).join('') : ''}
   ${run ? `<div class="card wtimer"><div class="mut">Set ${run.set + 1}</div><div class="t" id="wt">--:--</div><button class="btn ghost sm" onclick="stopTimer()">Stop</button></div>` : ''}
-  <table class="sets"><tr class="mut"><th>Set</th>${timed ? '<th></th>' : '<th>kg</th><th>Reps</th>'}<th></th></tr>
+  <table class="sets"><tr class="mut"><th>Set</th>${timed ? '<th></th>' : bw ? '<th>Reps</th>' : `<th>${isBody(e) ? '+kg' : 'kg'}</th><th>Reps</th>`}<th></th></tr>
   ${x.sets.map((s, i) => `<tr class="${s.done ? 'done' : ''}"><td>${i + 1}</td>
-  ${timed ? `<td>${ts && !s.done && !run ? `<button class="btn sm" onclick="startTimer(${i})">${ic('play', 14)} ${fmtSecs(ts)}</button>` : ''}</td>` : `<td><input type="number" inputmode="decimal" value="${s.w}" aria-label="Weight set ${i + 1}" onchange="setVal(${i},'w',this.value)"></td>
-  <td><input type="number" inputmode="numeric" value="${s.r}" placeholder="${esc(x.reps)}" aria-label="Reps set ${i + 1}" onchange="setVal(${i},'r',this.value)"></td>`}
+  ${timed ? `<td>${ts && !s.done && !run ? `<button class="btn sm" onclick="startTimer(${i})">${ic('play', 14)} ${fmtSecs(ts)}</button>` : ''}</td>` : `${bw ? '' : `<td><input type="number" inputmode="decimal" data-k="w" value="${s.w}" aria-label="Weight set ${i + 1}" onchange="setVal(${i},'w',this.value)"></td>`}
+  <td><input type="number" inputmode="numeric" data-k="r" value="${s.r}" placeholder="${esc(x.reps)}" aria-label="Reps set ${i + 1}" onchange="setVal(${i},'r',this.value)"></td>`}
   <td><button class="ck ${s.done ? 'on' : ''}" aria-label="Complete set ${i + 1}" onclick="doneSet(${i})">${s.done ? ic('check', 20) : ''}</button></td></tr>`).join('')}</table>
-  ${timed ? '' : `<button class="btn sm ghost" onclick="addSet()">${ic('plus', 16)} Add set</button>`}
+  ${timed ? '' : `<div class="row xwrow"><button class="btn sm ghost" onclick="addSet()">${ic('plus', 16)} Add set</button>${isBody(e) ? `<button class="btn sm ghost xwb" onclick="xwInfo('${x.id}')">${XW[x.id] ? 'Remove extra weight' : '+ Extra weight'}</button>` : ''}</div>`}
   <div class="row" style="margin-top:16px"><button class="btn ghost" ${session.cur ? '' : 'disabled'} onclick="nav(-1)">Previous</button>
   ${session.cur < n - 1 ? '<button class="btn" onclick="nav(1)">Next</button>' : '<button class="btn gold" onclick="finish()">Finish</button>'}</div>
   <details class="card"><summary>Instructions</summary><ol class="how">${e.i.map(s => `<li>${esc(s)}</li>`).join('')}</ol></details>
   <button class="btn ghost sm" onclick="quitWorkout()">Discard workout</button>`;
   startLoops();
   if (run) tickTimer();
-  if (typeof wgArrive === 'function' && !timed) wgArrive(x);
+  if (typeof wgArrive === 'function' && !timed && !bw) wgArrive(x);
 }
 const fmtSecs = t => `${Math.floor(t / 60)}:${String(t % 60).padStart(2, '0')}`;
 // Timed exercises (cardio, holds, stretches): a countdown per set that ticks the set off by itself when it ends.
@@ -790,7 +785,7 @@ function settings() {
   <h2 class="sec">Your data</h2>
   <div class="row"><button class="btn ghost" id="exp">Export</button><button class="btn ghost" id="rst">Delete everything</button></div>
   ${APP_CODE && !APP_PLAY && !APP_DEV ? `<section class="card row between setrow"><div><b>App 1.${APP_CODE}</b>${APP_NEW ? `<div class="mut">${esc(APP_NEW.name)} is ready</div>` : ''}</div>${APP_NEW ? `<a class="btn sm" href="${APP_NEW.url}">Update</a>` : '<button class="btn sm ghost" onclick="appUpdate(true)">Check</button>'}</section>` : ''}
-  <div class="mut setfoot"><span>FitQuest version 203</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
+  <div class="mut setfoot"><span>FitQuest version 207</span> · <span>free, no ads. Without an account everything stays on this device. Estimates are guidance, not medical advice. Exercises: free-exercise-db (Unlicense). Muscle maps: react-native-body-highlighter (MIT). Fonts: Google Fonts (SIL OFL).</span> <span>${GI_CREDIT}</span> <a href="privacy.html" target="_blank" rel="noopener">Privacy</a> · <a href="CREDITS.md" target="_blank" rel="noopener">Credits</a></div>`;
   $('#exp').onclick = () => {
     const url = URL.createObjectURL(new Blob([JSON.stringify({ profile: S.profile, plan: S.plan, history: S.history, weights: S.weights }, null, 1)], { type: 'application/json' }));
     const a2 = document.createElement('a'); a2.href = url; a2.download = 'fitquest-data.json'; a2.click();
@@ -935,6 +930,20 @@ try { localStorage.removeItem('fc.gym'); } catch { /* storage blocked */ } // th
     await langReady();
   } catch { view.innerHTML = '<h1>Could not load exercises</h1><p class="mut">Open the app once with a connection.</p>'; return; }
   EX.forEach(e => { BY[e.id] = e; });
+  if (S.profile && S.plan && S.plan.abs !== 1) {
+    const have = equipSet(S.profile), keep = S.profile.focus?.includes('abs');
+    const pool = EX.filter(e => ['strength', 'plyometrics', 'powerlifting', 'olympic weightlifting'].includes(e.c) && allowed(e, S.profile, have));
+    if (!keep) S.plan.days.forEach(d => {
+      if (d.routine) return;
+      const i = d.items.findIndex(it => BY[it.id]?.m[0] === 'abdominals' && !/min|s$/.test(String(it.reps)));
+      if (i < 0) return;
+      const has = new Set(d.items.map(it => BY[it.id]?.m[0])), m = (DAYS[d.kind] || DAYS.FULL).find(x => x !== 'abdominals' && !has.has(x));
+      const c = m && shuffle(pool.filter(e => e.m[0] === m && !d.items.some(it => it.id === e.id)), Math.random)[0];
+      const like = d.items.find(it => it !== d.items[i] && BY[it.id]?.m[0] !== 'abdominals' && !/min|s$/.test(String(it.reps)) && BY[it.id]?.c !== 'cardio');
+      if (c && like) d.items[i] = { id: c.id, sets: like.sets, reps: like.reps, rest: like.rest };
+    });
+    S.plan.abs = 1; save('plan', S.plan);
+  }
   // Upgrade existing plans to v3 (balanced 4-5 strength exercises including abs + 3-5 stretches)
   if (S.profile && S.plan && S.plan.ver !== 3) {
     if (typeof RT !== 'undefined' && Array.isArray(RT)) {

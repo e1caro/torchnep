@@ -1810,3 +1810,25 @@ body.touring .tabbar { z-index: 80; }
   .tour-actions { flex-wrap: nowrap; }
   .tour-progress { margin-bottom: 8px; }
 }
+
+/* ---------- business base (js/bizbase.js) ---------- */
+.biz .card { margin-bottom: 1rem; }
+.biz-hero { background: linear-gradient(135deg, color-mix(in srgb, var(--accent, #2563eb) 12%, transparent), transparent 55%), var(--card, transparent); }
+.biz-head { display: flex; gap: .8rem; align-items: center; }
+.biz-head h2 { margin: 0; }
+.biz-head p { margin: .15rem 0 0; }
+.biz-icon { font-size: 2rem; line-height: 1; width: 3.2rem; height: 3.2rem; display: grid; place-items: center; border-radius: 1rem; background: color-mix(in srgb, var(--accent, #2563eb) 16%, transparent); flex: none; }
+.biz-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: .6rem; margin: 1rem 0 .6rem; }
+.biz-kpi { display: flex; flex-direction: column; gap: .15rem; padding: .6rem .7rem; border-radius: .8rem; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); }
+.biz-kpi strong { font-size: 1.15rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.biz-labs { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .6rem; margin: .8rem 0 1rem; }
+.biz-lab { display: flex; flex-direction: column; gap: .25rem; padding: .7rem .8rem; border-radius: .8rem; border: 1px solid color-mix(in srgb, currentColor 14%, transparent); text-decoration: none; color: inherit; min-height: 44px; }
+.biz-lab:hover, .biz-lab:focus-visible { border-color: var(--accent, #2563eb); }
+.biz-meter, .biz-bar { display: block; height: 6px; border-radius: 3px; background: color-mix(in srgb, currentColor 14%, transparent); overflow: hidden; }
+.biz-meter > span, .biz-bar > span { display: block; height: 100%; width: 0; background: var(--accent, #2563eb); transition: width .2s; }
+.biz-bar { margin-top: .5rem; min-width: 12rem; }
+.biz-row { display: flex; gap: .7rem; align-items: center; padding: .55rem 0; border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent); }
+.biz-row-main { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.biz-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: .7rem; margin: .6rem 0 1rem; }
+.biz-form label { display: flex; flex-direction: column; gap: .3rem; font-size: .9rem; }
+.biz-form select, .biz-form input[type="text"] { min-height: 44px; font-size: 16px; }

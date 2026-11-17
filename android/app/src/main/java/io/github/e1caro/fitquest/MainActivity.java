@@ -2,19 +2,31 @@ package io.github.e1caro.fitquest;
 
 import android.Manifest;
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.ClipData;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Insets;
+import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.PowerManager;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
+import android.speech.tts.TextToSpeech;
 import android.provider.MediaStore;
 import android.util.Base64;
 import android.view.WindowInsets;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -38,6 +50,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -139,9 +152,23 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
+        resumed = true;
         if (picking) picking = false; // back from the camera: the page keeps its photo, a new version waits
         else if (ready) { ready = false; recreate(); } // switch to the new version (the app's data stays in its storage)
         else if (BuildConfig.SELF_UPDATE) new Thread(this::checkUpdate).start();
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        resumed = false;
+    }
+
+    @Override
+    protected void onDestroy() {
+        restCancel();
+        if (tts != null) tts.shutdown();
+        super.onDestroy();
     }
 
     @Override
@@ -188,6 +215,39 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
+        public void speak(String text, String lang) {
+            if (ownPage) runOnUiThread(() -> say(text, lang));
+        }
+
+        @JavascriptInterface
+        public void keepAwake(boolean on) {
+            if (!ownPage) return;
+            runOnUiThread(() -> {
+                if (on) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            });
+        }
+
+        @JavascriptInterface
+        public void restAlarm(int ms, String title, String text, String voice, String lang) {
+            if (!ownPage) return;
+            runOnUiThread(() -> {
+                restCancel();
+                if (ms <= 0) return;
+                restTitle = title;
+                restText = text;
+                restVoice = voice;
+                restLang = lang;
+                PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+                if (pm != null) {
+                    restLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "fitquest:rest");
+                    restLock.acquire(Math.min(ms, 15 * 60 * 1000) + 10000L);
+                }
+                main.postDelayed(restDone, ms);
+            });
+        }
+
+        @JavascriptInterface
         public void testReminder() {
             if (ownPage) ReminderReceiver.show(MainActivity.this);
         }
@@ -205,6 +265,79 @@ public class MainActivity extends Activity {
             prefs().edit().putBoolean("asked", true).apply();
             runOnUiThread(() -> requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, 7));
         }
+    }
+
+    // ---------- training without looking at the phone: a voice coach, and the end of a rest felt with the screen off ----------
+    private TextToSpeech tts;
+    private boolean ttsReady;
+    private String ttsText, ttsLang;
+    private volatile boolean resumed;
+    private final Handler main = new Handler(Looper.getMainLooper());
+    private PowerManager.WakeLock restLock;
+    private String restTitle, restText, restVoice, restLang;
+    private final Runnable restDone = () -> {
+        if (!resumed) {
+            buzz();
+            restNotify();
+            if (restVoice != null && !restVoice.isEmpty()) say(restVoice, restLang);
+        }
+        main.postDelayed(this::releaseRest, 6000);
+    };
+
+    private void say(String text, String lang) {
+        if (text == null || text.isEmpty()) return;
+        if (tts == null) {
+            ttsText = text;
+            ttsLang = lang;
+            tts = new TextToSpeech(this, st -> {
+                ttsReady = st == TextToSpeech.SUCCESS;
+                if (ttsReady && ttsText != null) say(ttsText, ttsLang);
+                ttsText = null;
+            });
+            tts.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+            return;
+        }
+        if (!ttsReady) { ttsText = text; ttsLang = lang; return; }
+        tts.setLanguage(Locale.forLanguageTag(lang == null ? "es-ES" : lang));
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH, null, "fq");
+    }
+
+    private void buzz() {
+        Vibrator v = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        if (v == null) return;
+        long[] p = {0, 400, 150, 400, 150, 400};
+        if (Build.VERSION.SDK_INT >= 26) v.vibrate(VibrationEffect.createWaveform(p, -1));
+        else v.vibrate(p, -1);
+    }
+
+    private void restNotify() {
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        if (Build.VERSION.SDK_INT >= 26 && nm.getNotificationChannel("rest") == null) {
+            NotificationChannel ch = new NotificationChannel("rest", getString(R.string.rest_channel), NotificationManager.IMPORTANCE_HIGH);
+            ch.setSound(null, null);
+            ch.enableVibration(false);
+            nm.createNotificationChannel(ch);
+        }
+        Intent open = new Intent(this, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        PendingIntent pi = PendingIntent.getActivity(this, 2, open, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Notification.Builder b = Build.VERSION.SDK_INT >= 26 ? new Notification.Builder(this, "rest") : new Notification.Builder(this);
+        b.setSmallIcon(R.drawable.ic_stat_fitquest).setContentTitle(restTitle).setContentText(restText).setContentIntent(pi).setAutoCancel(true);
+        if (Build.VERSION.SDK_INT >= 26) b.setTimeoutAfter(5 * 60 * 1000L);
+        try { nm.notify(2, b.build()); } catch (SecurityException ignored) { /* notifications not allowed: the vibration is enough */ }
+    }
+
+    private void releaseRest() {
+        if (restLock != null && restLock.isHeld()) restLock.release();
+        restLock = null;
+    }
+
+    private void restCancel() {
+        main.removeCallbacks(restDone);
+        releaseRest();
+        NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        if (nm != null) nm.cancel(2);
     }
 
     @Override

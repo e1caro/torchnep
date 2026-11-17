@@ -499,7 +499,7 @@
 
   /* ================================================================ router */
 
-  var routes = { '': 'home', profile: 'profile', roadmap: 'journey', journey: 'journey', mission: 'mission', boss: 'boss', lesson: 'lesson', lab: 'lab', sheets: 'sheets', python: 'python', bi: 'bi', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
+  var routes = { '': 'home', profile: 'profile', roadmap: 'journey', journey: 'journey', mission: 'mission', boss: 'boss', lesson: 'lesson', lab: 'lab', sheets: 'sheets', python: 'python', bi: 'bi', biz: 'biz', practice: 'practice', feed: 'feed', collection: 'collection', arcade: 'arcade',
     me: 'me', settings: 'settings', prompts: 'prompts', tools: 'tools' };
   var navOf = { '': 'home', lesson: 'journey', roadmap: 'journey', mission: 'journey', boss: 'journey', collection: 'feed',
     lab: 'practice', sheets: 'practice', python: 'practice', bi: 'practice', arcade: 'practice', settings: 'me', prompts: 'me', tools: 'me', profile: 'me' };

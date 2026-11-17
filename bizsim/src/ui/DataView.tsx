@@ -11,14 +11,17 @@ import { int } from './fmt';
 
 const PAGE = 200;
 
-export function DataView({ recipe: r }: { recipe: Recipe }) {
+export function DataView({ recipe: r, playing }: { recipe: Recipe; playing: boolean }) {
   const t = useT(), lang = useStore(s => s.settings.lang), li = lang === 'es' ? 1 : 0, setDirty = useStore(s => s.setDirty);
+  // while the simulation plays the table stays on the day it was opened, so rows do not reload every second
+  const [day, setDay] = useState(r.day);
+  useEffect(() => { if (!playing) setDay(r.day); }, [playing, r.day]);
   const [tables, setTables] = useState<TableInfo[]>([]), [name, setName] = useState('transactions');
   const [sort, setSort] = useState<{ col: number; desc: boolean } | undefined>(), [filters, setFilters] = useState<Record<number, string>>({}), [search, setSearch] = useState('');
   const [total, setTotal] = useState(0), [pages, setPages] = useState<Record<number, Value[][]>>({}), gen = useRef(0), asked = useRef(new Set<number>());
-  useEffect(() => { sim.call('tables', { id: r.id, dirty: r.dirty, lang }).then(setTables).catch(() => { }); }, [r.id, r.day, r.dirty, lang]);
+  useEffect(() => { sim.call('tables', { id: r.id, dirty: r.dirty, lang }).then(setTables).catch(() => { }); }, [r.id, day, r.dirty, lang]);
   const info = tables.find(x => x.name === name) ?? tables[0];
-  const qKey = JSON.stringify([info?.name, sort, filters, search, r.day, r.dirty, lang]);
+  const qKey = JSON.stringify([info?.name, sort, filters, search, day, r.dirty, lang]);
   const [debounced, setDebounced] = useState(qKey);
   useEffect(() => { const h = setTimeout(() => setDebounced(qKey), 250); return () => clearTimeout(h); }, [qKey]);
   const load = (page: number, g: number) => {
@@ -50,6 +53,7 @@ export function DataView({ recipe: r }: { recipe: Recipe }) {
           <Toggle checked={r.dirty} onChange={x => setDirty(r.id, x)} label={t('dirty')} />
         </div>
         <p className="text-xs text-muted mt-1">{t('filterHelp')}</p>
+        {playing && <p className="text-xs text-accent mt-1 font-semibold">{t('liveFrozen')}</p>}
       </Card>
       <div className="card overflow-hidden">
         <div ref={box} className="overflow-auto num text-[13px]" style={{ height: 'min(62vh, 640px)' }}>

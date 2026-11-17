@@ -109,6 +109,7 @@
     if (DA.tour) root.appendChild(section('Tour with Dot', 'A two-minute guided walk through every part of the app.', DA.tour.button('btn')));
 
     root.appendChild(syncCard());
+    if (DA.biz && DA.biz.settingsCard) root.appendChild(DA.biz.settingsCard(section));
 
     root.appendChild(section('Daily goal', 'The XP you aim for each day. Reaching it keeps your streak alive. Pick something you can do on a busy day.',
       choice('goal', 'Daily XP goal', [[20, 'Easy · 20 XP', 'A quiz and a note, about 5 minutes'], [40, 'Regular · 40 XP', 'One practice round, about 10 minutes'], [80, 'Serious · 80 XP', 'A lesson and a round, about 30 minutes']],
