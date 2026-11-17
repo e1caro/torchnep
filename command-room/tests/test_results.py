@@ -162,6 +162,9 @@ class Potentials(unittest.TestCase):
         self.assertEqual(about["Data"], "Trained on 2 structures (A). Checked on 1 structure it never saw (B). 1 more was left out of both (C). This choice of structures is the split called fold3.")
         self.assertEqual(about["Training"], "1500 steps of Adam, then 4000 steps of L-BFGS. It started from random weights. Seed 1.")
         self.assertEqual(results.brief_run(data), "cutoffs 7 and 5 Å; 128 neurons; 2 trained, 1 held out")
+        data["args"]["lbfgs_tol"] = 1e-07
+        about = {line["label"]: line["text"] for line in results.describe_run(data)}
+        self.assertTrue(about["Training"].startswith("1500 steps of Adam, then at most 4000 steps of L-BFGS (it stops earlier when the loss changes by less than 1e-07)."))
         warm = results.describe_run({"args": {"epochs": 10, "init": "runs/base_v1.pt", "rescale": True}, "rows": [{"src": "A", "test": False}]})
         self.assertIn("No structure was held out", warm[0]["text"])
         self.assertIn("started from the model base_v1, with the descriptor scale recomputed", warm[1]["text"])

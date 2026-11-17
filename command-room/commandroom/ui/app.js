@@ -326,7 +326,7 @@
     const field = (f) => { const v = LP.values[f.name] != null ? LP.values[f.name] : f.default;
       if (f.switch) return `<label class="check"><input type="checkbox" name="${f.name}" ${v === "1" ? "checked" : ""}> ${esc(f.label)}</label>`;
       if (f.choices.length) return `<label class="field">${esc(f.label)}<select name="${f.name}">${f.required ? "" : `<option value=""></option>`}${f.choices.map((c) => `<option ${c === v ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></label>`;
-      return `<label class="field">${esc(f.label)}<input type="text" name="${f.name}" value="${esc(v || "")}" spellcheck="false" ${f.required ? "required" : ""}></label>`; };
+      return `<label class="field" title="${esc(f.help || "")}">${esc(f.label)}<input type="text" name="${f.name}" value="${esc(v || "")}" placeholder="${esc(f.help || "")}" spellcheck="false" ${f.required ? "required" : ""}></label>`; };
     const link = x.sends && openSteps().length ? `<label class="field">Mark this step as sent when it starts<select name="__step"><option value="">no step</option>${openSteps().map((s) => `<option value="${esc(s.id)}" ${LP.values.__step === s.id ? "selected" : ""}>${esc(stageLabel(s.stage))} of ${esc(s.name)}</option>`).join("")}</select></label>` : "";
     return `<div class="panel"><h2>${x.source === "guide" ? "Command of your guide" : "Launcher"}</h2><h3 style="margin-top:0">${esc(x.label)}</h3><p class="lead">${esc(x.what)}</p>
         <dl><dt>Runs</dt><dd>${hand ? "you run it" + (contact ? ", it needs " + esc(contact.label) : "") : esc(SHELL[x.shell]) + " on this computer" + (contact ? ", and connects to " + esc(contact.label) : "")}</dd>

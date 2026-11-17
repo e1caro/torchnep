@@ -262,7 +262,9 @@ def describe_run(data):
         out.append({"label": "Data", "text": " ".join(text)})
     text = []
     if args.get("epochs") is not None:
-        text.append(f"{_num(args['epochs'])} steps of Adam" + (f", then {_num(args['lbfgs'])} steps of L-BFGS" if args.get("lbfgs") else "") + ".")
+        text.append(f"{_num(args['epochs'])} steps of Adam" + (
+            f", then at most {_num(args['lbfgs'])} steps of L-BFGS (it stops earlier when the loss changes by less than {args['lbfgs_tol']:g})" if args.get("lbfgs") and args.get("lbfgs_tol")
+            else f", then {_num(args['lbfgs'])} steps of L-BFGS" if args.get("lbfgs") else "") + ".")
     if args.get("init"):
         start = os.path.splitext(os.path.basename(str(args["init"]).replace("\\", "/")))[0]
         text.append(f"It started from the model {start}" + (", with the descriptor scale recomputed for this data" if args.get("rescale") else "") + ".")
