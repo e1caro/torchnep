@@ -189,7 +189,6 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     private var wavDecimator = Decimator2() // the take's recording is kept at half the capture rate
     private var toModel: Resampler? = null // capture rate → the model's rate, with tuning compensation
     private var takeTuning = 0.0 // the compensation (cents) the current take is transcribed with
-    private var model: TfliteModel? = null
     private var session: LiveSession? = null
     private var wav: WavWriter? = null
     private var takeId: String? = null
@@ -429,8 +428,8 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         return Decoder.forModel(m.spec, repo.personal().calibration).decode(st.grid)
     }
 
-    /** The transcription model, loaded once (the piano model is 109 MB, memory-mapped). */
-    private fun ensureModel(): TfliteModel? = model ?: (try { TfliteModel.load(getApplication()) } catch (e: Exception) { null })?.also { model = it }
+    /** The transcription model: one for the whole app (see ScorebookApp.model). */
+    private fun ensureModel(): TfliteModel? = sb.model()
 
     /** The tuning compensation in use: this piano's learned tuning, or none if it is close to concert pitch. */
     private fun appliedTuning(): Double = repo.personal().tuningCents.let { if (kotlin.math.abs(it) < TuningCompensation.MIN_CENTS) 0.0 else it }
@@ -625,7 +624,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
      * the new notes and a line for the "saved" message; null if nothing changes.
      */
     private fun retune(takeId: String, heard: List<io.github.e1caro.scorebook.core.transcribe.NoteEvent>): Pair<List<io.github.e1caro.scorebook.core.transcribe.NoteEvent>, String>? {
-        val m = model ?: return null
+        val m = ensureModel() ?: return null
         if (heard.size < 12) return null
         val (pcm, sr) = io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(takeId)) ?: return null
         val n = minOf(pcm.size, sr * 90) // the first minute and a half is plenty to measure
@@ -1151,7 +1150,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         _accompany.update { it?.copy(check = CheckUi(CheckState.ANALYZING)) }
         val played = if (run.stream != null) {
             run.stream.flush()
-            val m = model
+            val m = ensureModel()
             if (m == null) emptyList() else Decoder.forModel(m.spec, repo.personal().calibration).decode(run.stream.grid)
                 .filter { it.presence >= 0.5 }.map { PlayAlong.Played(it.pitch, it.onset * run.timeScale) }
         } else run.midi.toList()
@@ -1343,9 +1342,6 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         beeper.stop()
         audio.stop()
         midi.stop()
-        // the model is released by the worker itself, after whatever it is doing: closing it under a running
-        // inference crashes, and closing "nothing" while it is still loading would leak it
-        worker.execute { model?.close(); model = null }
         worker.shutdown()
     }
 }

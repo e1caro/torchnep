@@ -314,11 +314,8 @@ class OnDeviceTest {
     }
 
     companion object {
-        private var shared: TfliteModel? = null
-
-        /** One model for all the tests: it is 109 MB, and each instance has its own working memory. */
-        @Synchronized
-        fun sharedModel(ctx: android.content.Context): TfliteModel = shared ?: TfliteModel.load(ctx).also { shared = it }
+        /** The app's one model (109 MB, and as much working memory again): the tests use it too. */
+        fun sharedModel(ctx: android.content.Context): TfliteModel = (ctx.applicationContext as ScorebookApp).model()!!
     }
 
     private fun shot(name: String) {
