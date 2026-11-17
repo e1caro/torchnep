@@ -4,7 +4,9 @@ import io.github.e1caro.scorebook.core.analysis.BeatGrid
 import io.github.e1caro.scorebook.core.analysis.Chord
 import io.github.e1caro.scorebook.core.analysis.ChordTracker
 import io.github.e1caro.scorebook.core.analysis.KeyTracker
+import io.github.e1caro.scorebook.core.analysis.NeuralRhythm
 import io.github.e1caro.scorebook.core.analysis.RhythmAnalyzer
+import io.github.e1caro.scorebook.core.analysis.RhythmNet
 import io.github.e1caro.scorebook.core.analysis.TimedNote
 import io.github.e1caro.scorebook.core.analysis.VotingNote
 import io.github.e1caro.scorebook.core.music.Key
@@ -13,6 +15,8 @@ import io.github.e1caro.scorebook.core.transcribe.NoteEvent
 import kotlinx.serialization.Serializable
 import kotlin.math.abs
 import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
 
@@ -91,7 +95,7 @@ data class Transcription(
  *  3. correction pass 1 (audio × context), re-estimate key and chords, correction pass 2
  *  4. quantization and hand split of the final notes
  */
-class Transcriber(val personal: PersonalModel = PersonalModel()) {
+class Transcriber(val personal: PersonalModel = PersonalModel(), private val net: RhythmNet? = null) {
     private val corrector = NoteCorrector(personal)
     private val keyTracker = KeyTracker()
     private val chordTracker = ChordTracker()
@@ -110,7 +114,19 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
         }
         val present = events.filter { provisional[it.id]!!.present }
         val meterHint = settings.beatsPerBar?.let { it to (settings.compound ?: false) }
-        val grid = rhythm.analyze(present.map { TimedNote(provisional[it.id]!!.pitch, it.onset, it.offset, it.velocity) }, meterHint, settings.tempoScale, settings.barLineAt)
+        // With the rhythm network: beats, bars, places, lengths and hands come from what it says about each note
+        // (see NeuralRhythm); without it (no weights file), from the rule-based analysis.
+        val neural = if (net != null && present.size >= 8) {
+            val ordered = present.sortedWith(compareBy({ it.onset }, { provisional[it.id]!!.pitch }))
+            val ins = ordered.map { RhythmNet.In(provisional[it.id]!!.pitch, it.onset, (it.offset - it.onset).coerceAtLeast(0.03), it.velocity) }
+            val out = net.run(ins)
+            // the "Loose … Strict" setting: how much the usual places win over where a note was actually played
+            val params = NeuralRhythm.Params().let { it.copy(placeSigma = it.placeSigma * (0.6 + 0.8 * settings.strictness)) }
+            Neural(ordered, out, NeuralRhythm(neuralParams ?: params).analyze(ins, out, meterHint, settings.tempoScale, settings.barLineAt))
+        } else null
+        val grid = neural?.result?.grid
+            ?: rhythm.analyze(present.map { TimedNote(provisional[it.id]!!.pitch, it.onset, it.offset, it.velocity) }, meterHint, settings.tempoScale, settings.barLineAt)
+        val neuralIndex = neural?.ordered?.withIndex()?.associate { (i, e) -> e.id to i } ?: emptyMap()
 
         // 2..3. context from clear notes, two correction passes
         var decisions: Map<Int, NoteDecision> = emptyMap()
@@ -123,9 +139,12 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
             })
             val bounds = stepBounds(grid, events)
             val chroma = keyTracker.chroma(voters, bounds)
+            keyTracker.keyPrior = neural?.let { keyPrior(it, bounds) }
             keys = settings.key?.let { fixedKey(it, chroma.size) } ?: keyTracker.track(chroma)
             chordSteps = chordsPerStep(chroma, voters, bounds, keys!!, grid)
-            val hands = hands(events, provisional)
+            val hands = hands(events, provisional).let { split ->
+                if (neural == null) split else split + neuralIndex.mapValues { (_, i) -> if (neural.result.leftHand[i]) Hand.LEFT else Hand.RIGHT }
+            }
             val melody = melodyNeighbours(events, provisional, hands)
             val repetition = RepetitionIndex(
                 events.filter { provisional[it.id]!!.present }.map { e ->
@@ -148,10 +167,14 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
         val timed = finals.map { TimedNote(decisions[it.id]!!.pitch, it.onset, it.offset, it.velocity) }
         val q = rhythm.quantize(timed, grid)
         val handMap = HandSplitter.split(finals.map { HandSplitter.In(it.id, decisions[it.id]!!.pitch, it.onset) }).toMutableMap()
+        if (neural != null) for ((id, i) in neuralIndex) if (id in handMap) handMap[id] = if (neural.result.leftHand[i]) Hand.LEFT else Hand.RIGHT
         for ((id, ov) in overrides) ov.hand?.let { handMap[id] = it }
         val notes = finals.mapIndexed { i, e ->
             val d = decisions[e.id]!!
-            TNote(e.id, d.pitch + settings.transpose, e.onset, e.offset, e.velocity, handMap[e.id] ?: Hand.RIGHT, q[i].tick, q[i].duration, d.decision)
+            val ni = neuralIndex[e.id]
+            val tick = if (ni != null) neural!!.result.ticks[ni] else q[i].tick
+            val duration = if (ni != null) neural!!.result.durations[ni] else q[i].duration
+            TNote(e.id, d.pitch + settings.transpose, e.onset, e.offset, e.velocity, handMap[e.id] ?: Hand.RIGHT, tick, duration, d.decision)
         }
         val k = keys!!
         val keyList = k.regions.map { r -> TimedKey(r.key.transpose(settings.transpose), grid.tickOf(r.fromStep.toDouble()).roundToInt(), grid.time(r.fromStep.toDouble())) }
@@ -179,6 +202,40 @@ class Transcriber(val personal: PersonalModel = PersonalModel()) {
     }
 
     private data class Provisional(val pitch: Int, val present: Boolean, val confidence: Double)
+
+    /** The network's answers for the notes it was given ([ordered]), and the grid made from them. */
+    private class Neural(val ordered: List<NoteEvent>, val out: RhythmNet.Out, val result: NeuralRhythm.Result)
+
+    /** For experiments (the training tools): other settings for [NeuralRhythm] than the defaults. */
+    var neuralParams: NeuralRhythm.Params? = null
+
+    /** Weight of the network's key signature against the notes' own evidence, in the key tracker. */
+    var keyPriorWeight: Double = 2.0
+
+    /**
+     * The network's reading of the key signature, per analysis step, as log weights for the 24 keys: a key gets
+     * the probability of its signature (C major and A minor share one), averaged over the notes around the step.
+     */
+    private fun keyPrior(neural: Neural, bounds: List<Double>): Array<DoubleArray> {
+        val steps = bounds.size - 1
+        val sum = Array(steps) { DoubleArray(12) }
+        val count = DoubleArray(steps)
+        for ((i, e) in neural.ordered.withIndex()) {
+            val s = KeyTracker.stepOf(bounds, e.onset).coerceIn(0, steps - 1)
+            for (k in 0 until 12) sum[s][k] += neural.out.key[i][k]
+            count[s] += 1.0
+        }
+        val half = 8 // steps (beats) on each side
+        return Array(steps) { s ->
+            val acc = DoubleArray(12)
+            var n = 0.0
+            for (j in max(0, s - half)..min(steps - 1, s + half)) { for (k in 0 until 12) acc[k] += sum[j][k]; n += count[j] }
+            DoubleArray(24) { key ->
+                val signature = if (key < 12) key else (key - 12 + 3) % 12 // by the tonic of the major key with that signature
+                if (n == 0.0) 0.0 else keyPriorWeight * ln(acc[signature] / n + 0.02)
+            }
+        }
+    }
 
     /**
      * For harmony, a low note counts until the next low note is struck (up to 2.5 s), however short the model

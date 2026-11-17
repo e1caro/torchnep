@@ -117,6 +117,9 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
             StatusPill(ui.status)
         }
 
+        // a newer version of the app: one tap updates it (not shown in the middle of a take)
+        if (!recording && ui.status != ListenStatus.SAVING) UpdateBanner(vm)
+
         // what is happening
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 8.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp))
@@ -229,8 +232,12 @@ fun ListenScreen(vm: ScorebookViewModel, onLibrary: () -> Unit) {
 
         // what to try today (not while a take is being recorded)
         if (!recording && ui.status != ListenStatus.SAVING) {
-            val pick = remember(lib) { vm.dailyPick() }
-            DailyAccompanimentCard(pick) { vm.openAccompaniment() }
+            val skips by vm.skips.collectAsState()
+            val pick = remember(lib, skips) { vm.dailyPick() }
+            val motif = remember(lib, skips) { vm.dailyMotif() }
+            val log by vm.practice.collectAsState()
+            DailyCard(pick, motif, log, java.time.LocalDate.now().toEpochDay(), onPattern = { vm.openAccompaniment() }, onMotif = { vm.openMotif() },
+                onAnother = { vm.anotherRecommendation(it) })
         }
 
         // the piano commands, as a cheat sheet

@@ -86,8 +86,8 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
             return BeatGrid(generateSequence(start) { it + 0.6 }.takeWhile { it <= end + 0.6 }.toList(), 4, false, 0)
         }
         val env = envelope(sorted)
-        val period = tempoPeriod(env)
-        var beats = trackBeats(env, period, sorted)
+        val period = periodForExperiments?.invoke(sorted) ?: tempoPeriod(env)
+        var beats = trackBeats(env, tempoCurve(env, period), sorted)
         if (tempoScale < 0.75) beats = halve(beats, sorted) else if (tempoScale > 1.5) beats = double(beats)
         val (bpb, phase) = meterHint?.let { hint ->
             // a known bar line fixes where bars start; otherwise the accents decide
@@ -135,30 +135,94 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
         }
         for (lag in minLag..maxLag) {
             val bpm = 60.0 / (lag * DT)
-            val prior = exp(-0.5 * sq(log2(bpm / 100.0) / 0.9))
+            val prior = exp(-0.5 * sq(log2(bpm / TEMPO_CENTRE) / TEMPO_WIDTH))
             // a beat is also supported by its half (subdivisions) and its double (bar-level accents)
             val half = if (lag / 2 >= minLag / 2) r[lag / 2] else 0.0
             val dbl = if (lag * 2 <= maxLag) r[lag * 2] else 0.0
-            val score = (r[lag] + 0.25 * half + 0.25 * dbl) * prior
+            val third = if (lag / 3 >= minLag / 3) r[lag / 3] else 0.0
+            val score = (r[lag] + TEMPO_HALF * half + TEMPO_DOUBLE * dbl + TEMPO_THIRD * third) * prior
             if (score > bestScore) { bestScore = score; best = lag * DT }
         }
         return best
     }
 
-    /** Dynamic-programming beat tracking (Ellis 2007) on the envelope; follows gradual tempo changes. */
-    private fun trackBeats(env: Envelope, period: Double, notes: List<TimedNote>): List<Double> {
+    /**
+     * The beat length at every moment. A pianist's tempo is not one number: it breathes with the phrases and
+     * changes between sections. Every second, the periodicity of the surrounding [CURVE_SPAN] seconds is measured
+     * at beat lengths within [CURVE_RANGE] octaves of [period] (the piece's overall beat length), and the path through
+     * them that is both well supported and smooth is taken (Viterbi).
+     */
+    private fun tempoCurve(env: Envelope, period: Double): DoubleArray {
         val v = env.v
         val n = v.size
-        val p = period / DT
-        val tight = 60.0 + 200.0 * strictness
+        val hop = (1.0 / DT).toInt()
+        val half = (CURVE_SPAN / 2 / DT).toInt()
+        val k = 2 * (CURVE_RANGE * 24).roundToInt() + 1
+        val lags = DoubleArray(k) { (period / DT * Math.pow(2.0, (it - k / 2) / 24.0)).coerceIn(8.0, 400.0) }
+        val w = max(1, (n + hop - 1) / hop)
+        val em = Array(w) { DoubleArray(k) }
+        for (wi in 0 until w) {
+            val c = wi * hop + hop / 2
+            val a = max(0, c - half)
+            val b = min(n, c + half)
+            var energy = 1e-9
+            for (i in a until b) energy += v[i] * v[i]
+            for (j in 0 until k) {
+                // support at the beat length and, more weakly, at twice it (a beat carries its bar-level accents too)
+                var s1 = 0.0
+                var s2 = 0.0
+                val l1 = lags[j].roundToInt()
+                val l2 = (2 * lags[j]).roundToInt()
+                for (i in a until b - l1) s1 += v[i] * v[i + l1]
+                for (i in a until b - l2) s2 += v[i] * v[i + l2]
+                val off = (j - k / 2) / 24.0
+                em[wi][j] = (s1 + 0.5 * s2) / energy - CURVE_HOME * off * off
+            }
+        }
+        val score = Array(w) { DoubleArray(k) }
+        val back = Array(w) { IntArray(k) }
+        for (j in 0 until k) score[0][j] = em[0][j]
+        for (wi in 1 until w) for (j in 0 until k) {
+            var best = Double.NEGATIVE_INFINITY
+            var bi = j
+            for (i in 0 until k) {
+                val d = (i - j) / 24.0
+                val sc = score[wi - 1][i] - CURVE_SMOOTH * d * d
+                if (sc > best) { best = sc; bi = i }
+            }
+            score[wi][j] = best + em[wi][j]
+            back[wi][j] = bi
+        }
+        val path = IntArray(w)
+        path[w - 1] = (0 until k).maxByOrNull { score[w - 1][it] }!!
+        for (wi in w - 1 downTo 1) path[wi - 1] = back[wi][path[wi]]
+        // per frame, linearly between the centres of the windows (in log beat length)
+        return DoubleArray(n) { i ->
+            val x = ((i - hop / 2).toDouble() / hop).coerceIn(0.0, (w - 1).toDouble())
+            val lo = floor(x).toInt()
+            val hi = min(w - 1, lo + 1)
+            val f = x - lo
+            exp(ln(lags[path[lo]]) * (1 - f) + ln(lags[path[hi]]) * f)
+        }
+    }
+
+    /**
+     * Dynamic-programming beat tracking (Ellis 2007) on the envelope, with the expected beat length following the
+     * tempo curve ([period], in frames, for every frame).
+     */
+    private fun trackBeats(env: Envelope, period: DoubleArray, notes: List<TimedNote>): List<Double> {
+        val v = env.v
+        val n = v.size
+        val tight = TIGHT_BASE + TIGHT_STRICT * strictness
         val mean = v.average()
         val sd = sqrt(v.sumOf { sq(it - mean) } / n).coerceAtLeast(1e-9)
         val local = DoubleArray(n) { (v[it] - mean) / sd }
         val score = DoubleArray(n)
         val back = IntArray(n) { -1 }
-        val lo = (p * 0.5).roundToInt().coerceAtLeast(1)
-        val hi = (p * 2.0).roundToInt()
         for (i in 0 until n) {
+            val p = period[i]
+            val lo = (p * 0.6).roundToInt().coerceAtLeast(1)
+            val hi = (p * 1.7).roundToInt()
             var bestPrev = -1
             var best = 0.0
             for (tau in lo..hi) {
@@ -172,6 +236,7 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
         // best end within the last period after the last onset
         val lastOnset = ((notes.last().onset - env.t0) / DT).roundToInt().coerceIn(0, n - 1)
         var end = lastOnset
+        val p = period[lastOnset]
         for (i in max(0, lastOnset - p.toInt())..min(n - 1, lastOnset + p.toInt())) if (score[i] > score[end]) end = i
         val idx = ArrayList<Int>()
         var i = end
@@ -228,7 +293,7 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
             loud[b] = max(loud[b], nt.velocity / 127.0)
             count[b] += nt.weight
         }
-        return DoubleArray(beats.size) { 1.0 * bass[it] + 0.6 * len[it] + 0.4 * loud[it] + 0.3 * ln(1 + count[it]) }
+        return DoubleArray(beats.size) { ACCENT_BASS * bass[it] + ACCENT_LENGTH * len[it] + ACCENT_LOUD * loud[it] + ACCENT_COUNT * ln(1 + count[it]) }
     }
 
     private fun meter(beats: List<Double>, notes: List<TimedNote>): Pair<Int, Int> {
@@ -241,7 +306,7 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
                 val on = a.indices.filter { Math.floorMod(it - phase, m) == 0 }.map { a[it] }
                 val off = a.indices.filter { Math.floorMod(it - phase, m) != 0 }.map { a[it] }
                 if (on.isEmpty() || off.isEmpty()) continue
-                val prior = when (m) { 4 -> 0.12; 3 -> 0.0; else -> -0.08 }
+                val prior = when (m) { 4 -> METER_FOUR; 3 -> METER_THREE; else -> 0.0 }
                 val s = (on.average() - off.average()) / sd + prior
                 if (s > bestScore + 1e-9) { bestScore = s; best = m to phase }
             }
@@ -310,6 +375,27 @@ class RhythmAnalyzer(val strictness: Double = 0.5) {
     }
 
     companion object {
+        /** For the measuring tools only: a beat length given from outside instead of the one found. */
+        @Volatile var periodForExperiments: ((List<TimedNote>) -> Double)? = null
+        // Settings of the beat tracker. Mutable only so that the measuring tools can search them; the values here
+        // are the ones fitted on the tuning set of real performances (tools/asap_prepare.py, AsapEvalTest).
+        @JvmField var CURVE_SPAN = 8.0 // seconds of music each tempo measurement looks at
+        @JvmField var CURVE_SMOOTH = 48.0 // cost of the tempo changing from one second to the next (per octave², squared)
+        @JvmField var CURVE_HOME = 0.1 // pull towards the piece's overall beat length
+        @JvmField var CURVE_RANGE = 0.45 // how far (octaves) the tempo may move from the overall one: never to half or double
+        @JvmField var TIGHT_BASE = 5.0 // how strongly beats keep the expected length
+        @JvmField var TIGHT_STRICT = 50.0
+        @JvmField var TEMPO_CENTRE = 100.0 // the most likely tempo (beats a minute) and how wide the range is (octaves)
+        @JvmField var TEMPO_WIDTH = 0.9
+        @JvmField var TEMPO_HALF = 0.25 // support a beat length gets from half, double and a third of itself
+        @JvmField var TEMPO_DOUBLE = 0.25
+        @JvmField var TEMPO_THIRD = 0.0
+        @JvmField var ACCENT_BASS = 1.0 // what marks a strong beat: low notes, long notes, loud notes, many notes
+        @JvmField var ACCENT_LENGTH = 0.6
+        @JvmField var ACCENT_LOUD = 0.4
+        @JvmField var ACCENT_COUNT = 0.3
+        @JvmField var METER_FOUR = 0.2 // how much more likely four (or three) beats in a bar are than two
+        @JvmField var METER_THREE = 0.08
         const val DT = 0.01
         private fun sq(x: Double) = x * x
         private fun log2(x: Double) = ln(x) / ln(2.0)

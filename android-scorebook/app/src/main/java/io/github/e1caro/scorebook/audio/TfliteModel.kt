@@ -29,6 +29,8 @@ class TfliteModel private constructor(override val spec: ModelSpec, private val 
         when { "onset" in n -> "onset"; "offset" in n -> "offset"; "frame" in n -> "frame"; "velocity" in n -> "velocity"; else -> "other$i" }
     }.let { byName -> if (listOf("onset", "frame", "velocity").all { it in byName }) byName else mapOf("frame" to 0, "onset" to 1, "offset" to 2, "velocity" to 3) }
 
+    // one caller at a time: the model is shared by the whole app, and its buffers are too
+    @Synchronized
     override fun run(window: FloatArray, onsetOut: FloatArray, noteOut: FloatArray, velocityOut: FloatArray): Boolean {
         input.rewind()
         input.asFloatBuffer().put(window)
