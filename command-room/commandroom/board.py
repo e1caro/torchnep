@@ -36,7 +36,7 @@ def _run(settings, args):
         raise BoardError("the board's command line (tablero.py) is not set in the local settings")
     cmd = [settings.python, tool] + args + ["--by", "command-room"]
     try:
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace", creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except (OSError, subprocess.TimeoutExpired) as err:
         raise BoardError(f"the board's command line could not be run: {err}")
     if res.returncode != 0:

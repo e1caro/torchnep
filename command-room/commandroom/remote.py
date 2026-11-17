@@ -51,7 +51,7 @@ def run(settings, cluster_id, script, timeout=60, binary=False):
         lines.append(f"export PATH={shlex.quote(cluster['path_prefix'])}:$PATH")
     lines.append(script)
     try:
-        res = subprocess.run(_argv(cluster, settings), input=("\n".join(lines) + "\n").encode("utf-8"), capture_output=True, timeout=timeout)
+        res = subprocess.run(_argv(cluster, settings), input=("\n".join(lines) + "\n").encode("utf-8"), capture_output=True, timeout=timeout, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except subprocess.TimeoutExpired:
         raise RemoteError(f"{cluster['label']} did not answer in {timeout} s")
     except OSError as err:

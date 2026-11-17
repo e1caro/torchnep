@@ -60,7 +60,7 @@ def ask(settings, question, ctx, timeout=120):
     prompt = "Context (JSON):\n" + json.dumps(ctx, ensure_ascii=False) + "\n\nQuestion: " + question[:2000]
     cmd = [exe, "-p", "--output-format", "json", "--tools", "", "--no-session-persistence", "--strict-mcp-config", "--append-system-prompt", SYSTEM]
     try:
-        res = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout)
+        res = subprocess.run(cmd, input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     except subprocess.TimeoutExpired:
         raise AssistantError(f"the assistant did not answer in {timeout} s")
     except OSError as err:

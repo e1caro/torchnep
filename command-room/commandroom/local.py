@@ -85,7 +85,7 @@ def _popen(args, cwd, stdout):
 def _kill(proc):
     try:
         if WINDOWS:
-            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=20)
+            subprocess.run(["taskkill", "/PID", str(proc.pid), "/T", "/F"], capture_output=True, timeout=20, creationflags=subprocess.CREATE_NO_WINDOW)
         else:
             os.killpg(proc.pid, signal.SIGTERM)
     except (OSError, subprocess.SubprocessError):
