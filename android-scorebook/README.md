@@ -106,6 +106,30 @@ your own corrections matter most.
 
 Not measured: a real phone in a real room. The numbers above are the best available stand-in.
 
+**Against the sheet music** (reading rhythm, key and hands; the notes themselves are given exactly, as from a
+MIDI keyboard). 235 real concert performances of 76 classical pieces that were kept aside (ASAP dataset: Bach,
+Beethoven, Chopin, Liszt, Schubert, Schumann, Haydn, Ravel …), each compared note by note with its published
+score. Reproduce with `tools/asap_prepare.py` and `AsapEvalTest`.
+
+| what Scorebook writes | before | now |
+|---|---|---|
+| beats where the score has them (within 70 ms) | 41 % | **52 %** |
+| the pulse found, at any level (e.g. eighths instead of quarters) | 50 % | **60 %** |
+| tempo level right (not half, double or 1.5×) | 34 % | **44 %** |
+| bar lines | 19 % | **23 %** |
+| time signature | 27 % | **33 %** |
+| key signature | 89 % | 87 % |
+| note on the right staff (hand) | 89 % | 89 % |
+| note at the right place in its bar | 7 % | **9 %** |
+
+This is the hard case, and the honest picture: concert pianists stretch the beat by a factor of two to four
+within a piece (Liszt, Chopin, Scriabin), and no program reads that reliably (the best published neural systems
+reach roughly 80 % of beats and 60 % of bar lines on this dataset). Where the tempo is steady the result is very
+different: Bach comes out at 87 % of the pulse and 97 % of key signatures, the best performances at 98 % of
+beats, and the steady test pieces in this repository are all right. So: play with a steady beat (or use
+*Adjust* to fix tempo, time signature and key) and the page is usually right; play with a lot of rubato and
+the notes are right but the bar lines often are not.
+
 ## Build
 
 CI does it: `.github/workflows/android-scorebook.yml` runs the core tests and builds the APK on every push that

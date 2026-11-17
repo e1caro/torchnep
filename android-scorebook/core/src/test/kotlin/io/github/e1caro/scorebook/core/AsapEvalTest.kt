@@ -87,6 +87,8 @@ object Asap {
 
     class Score(val perf: Perf) {
         var beatF = 0.0
+        /** The same, allowing the pulse to be found at another level (every 2nd or 3rd beat, or 2 or 3 per beat). */
+        var pulseF = 0.0
         var downbeatF = 0.0
         /** Found beat length over the true one: 1 = right, 0.5 = twice too fast, 2 = twice too slow. */
         var tempoRatio = 1.0
@@ -104,14 +106,19 @@ object Asap {
 
     private fun median(xs: List<Double>): Double = xs.sorted().let { if (it.isEmpty()) 0.0 else it[it.size / 2] }
 
-    fun score(p: Perf, t: Transcription): Score {
+    /** Beats, bars, tempo level and time signature of a grid against the annotations. */
+    fun scoreGrid(p: Perf, g: io.github.e1caro.scorebook.core.analysis.BeatGrid): Score {
         val s = Score(p)
-        val g = t.grid
         // beats inside the annotated span (annotations may stop before the last chord has faded)
         val lo = p.beats.first() - 0.1
         val hi = p.beats.last() + 0.1
         val found = g.beats.filter { it in lo..hi }
         s.beatF = f1(found, p.beats)
+        val levels = ArrayList<List<Double>>()
+        levels.add(found)
+        for (k in 2..3) for (ph in 0 until k) levels.add(found.filterIndexed { i, _ -> i % k == ph })
+        for (k in 2..3) levels.add(found.zipWithNext().flatMap { (a, b) -> (0 until k).map { a + (b - a) * it / k } })
+        s.pulseF = levels.maxOf { f1(it, p.beats) }
         val first = g.firstBarBeat()
         val foundDown = g.beats.filterIndexed { i, b -> Math.floorMod(i - first, g.beatsPerBar) == 0 && b in lo..hi }
         s.downbeatF = f1(foundDown, p.downbeats)
@@ -119,6 +126,14 @@ object Asap {
         s.tempoRatio = g.medianPeriod() / trueIbi
         val ts = p.main(p.timeSigs, { it.time }, { "${it.num}/${it.den}" })
         s.meterRight = g.beatsPerBar == ts.beatsPerBar && g.compound == ts.compound
+        s.info = "${g.numerator}/${g.denominator} vs ${ts.num}/${ts.den}, tempo x${"%.2f".format(s.tempoRatio)}"
+        return s
+    }
+
+    fun score(p: Perf, t: Transcription): Score {
+        val g = t.grid
+        val s = scoreGrid(p, g)
+        val ts = p.main(p.timeSigs, { it.time }, { "${it.num}/${it.den}" })
         val ks = p.main(p.keySigs, { it.time }, { it.fifths })
         s.keyRight = Math.floorMod(t.mainKey.fifths - ks.fifths, 12) == 0
         s.info = "${g.numerator}/${g.denominator} vs ${ts.num}/${ts.den}, ${t.mainKey} vs ${ks.fifths}, tempo x${"%.2f".format(s.tempoRatio)}"
@@ -153,8 +168,8 @@ object Asap {
             val notes = ss.sumOf { it.matched }.coerceAtLeast(1)
             val bars = ss.sumOf { it.bars }.coerceAtLeast(1)
             fun pct(x: Double) = "%5.1f".format(100 * x)
-            return "%-13s %4d | beats %s  tempo %s  bars %s  meter %s  key %s | placed %s  length %s  hand %s | exact bars %s".format(
-                name, ss.size, pct(ss.map { it.beatF }.average()), pct(ss.count { it.tempoRight }.toDouble() / ss.size),
+            return "%-13s %4d | pulse %s  beats %s  tempo %s  bars %s  meter %s  key %s | placed %s  length %s  hand %s | exact bars %s".format(
+                name, ss.size, pct(ss.map { it.pulseF }.average()), pct(ss.map { it.beatF }.average()), pct(ss.count { it.tempoRight }.toDouble() / ss.size),
                 pct(ss.map { it.downbeatF }.average()), pct(ss.count { it.meterRight }.toDouble() / ss.size), pct(ss.count { it.keyRight }.toDouble() / ss.size),
                 pct(ss.sumOf { it.placed }.toDouble() / notes), pct(ss.sumOf { it.lengthRight }.toDouble() / notes), pct(ss.sumOf { it.handRight }.toDouble() / notes),
                 pct(ss.sumOf { it.barsExact }.toDouble() / bars),
@@ -185,7 +200,13 @@ class AsapEvalTest {
         val started = System.nanoTime()
         // with the rhythm network when SCOREBOOK_RHYTHM_NET names its weights file, otherwise the rule-based analysis
         val net = System.getenv("SCOREBOOK_RHYTHM_NET")?.let { RhythmNet.load(File(it).inputStream()) }
+        // SCOREBOOK_ASAP_ORACLE=period: the true beat length is given (how good is the tracking once the level is right?)
+        if (System.getenv("SCOREBOOK_ASAP_ORACLE") == "period") {
+            val truth = perfs.associate { p -> p.notes.minOf { it.on } to p.beats.zipWithNext { a, b -> b - a }.sorted().let { it[it.size / 2] } }
+            io.github.e1caro.scorebook.core.analysis.RhythmAnalyzer.periodForExperiments = { notes -> truth[notes.first().onset] ?: 0.6 }
+        }
         val scores = perfs.parallelStream().map { p -> Asap.score(p, Transcriber(net = net?.let { Asap.copyOf(it) }).analyze(Asap.events(p), AnalysisSettings())) }.toList()
+        io.github.e1caro.scorebook.core.analysis.RhythmAnalyzer.periodForExperiments = null
         println(Asap.table("$split: ${perfs.size} performances, ${perfs.sumOf { it.notes.size }} notes, ${(System.nanoTime() - started) / 1_000_000_000} s", scores))
         if (System.getenv("SCOREBOOK_ASAP_DETAIL") != null) for (s in scores.sortedBy { it.placed.toDouble() / it.matched.coerceAtLeast(1) }) {
             println("%-70s beats %.2f bars %.2f placed %.2f hand %.2f | %s".format(s.perf.name.take(70), s.beatF, s.downbeatF, s.placed.toDouble() / s.matched.coerceAtLeast(1), s.handRight.toDouble() / s.matched.coerceAtLeast(1), s.info))

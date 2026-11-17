@@ -344,3 +344,35 @@ The app is installed from an APK, not from a store, so it updates itself:
   allowed to skip that after the first time.
 * It is the only network access in the app, and it only reads: nothing about the player or the music leaves the
   phone.
+
+## 13. Measured against the sheet music
+
+`tools/asap_prepare.py` takes the ASAP dataset (1 036 real performances of 225 classical pieces with their
+scores; CC BY-NC-SA, nothing of it is in this repository) and lines up every played note with its note in the
+score through the annotated beats: bar, place in the bar, written length, staff. Pieces are split **by piece**
+into a tuning set (124 pieces), a development set (29) and a held-out set (76, following MAESTRO's own split, so
+the audio model has not heard those recordings either). `AsapEvalTest` runs the analysis on the played notes and
+scores beats, tempo level, bar lines, time signature, key signature, place in the bar, length and staff;
+`AsapTuneTest` searches the tracker's settings on the tuning set.
+
+What it showed, and what was done:
+
+* **The beat tracker was the weak part, not the settings.** Given even the true overall beat length, the old
+  tracker found 46 % of beats: it assumed one steady tempo. It now measures the tempo every second over the
+  surrounding eight seconds and follows the smoothest well-supported path (`RhythmAnalyzer.tempoCurve`, a
+  Viterbi pass over beat lengths within 0.45 octave of the overall one, so never half or double), and the beat
+  search keeps to that curve only loosely. Held-out beats 41 % → 52 %, bar lines 19 % → 23 %.
+* **What did not survive the held-out set or the steady test pieces** and was removed: letting the tempo range a
+  full octave (helps Liszt, makes steady pieces slip to half tempo), moving the tempo prior to the concert
+  pianists' faster beat (double tempo on slow pieces), and choosing the beat level by where accents fall.
+* **A neural rhythm network** (`tools/train_rhythm_net.py`, `RhythmNet.kt`, `NeuralRhythm.kt`): a small
+  convolutional network over the note sequence that says, per note, beat / bar line / beat length / beats per
+  bar / key signature / hand / place in the beat / written length, trained on the tuning set plus renditions of
+  633 more scores (`tools/dcml_prepare.py`, DCML corpora). The Kotlin implementation matches PyTorch to 5·10⁻⁶
+  and runs a 4 000-note piece in about half a second, and `Transcriber` uses it when given weights. It is **not
+  shipped**: on this project's CPU-only training budget it hears the pulse (84 % of its tempo guesses are a
+  simple ratio of the true beat) but chooses the wrong metrical level more often than the rules do (right on
+  34 % of unseen pieces against 48 %). It needs on the order of ten times more training than was possible here
+  (a GPU for some hours); the tools are in place for that.
+* **Where the remaining errors are:** the metrical level (three eighths taken as a beat in 22 % of the held-out
+  performances), bar lines (which need harmony, not only accents), and pieces whose beat stretches several-fold.
