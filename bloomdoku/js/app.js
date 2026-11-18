@@ -1,5 +1,5 @@
 /* Bloomdoku pages: the map of worlds, a level's 100 gardens, the daily bouquet, my garden, the shop, settings;
- * the router, sharing, the Android bridge and the service worker. (Friends: js/friends.js.) */
+ * the router, sharing and the Android bridge. (Friends: js/friends.js. Updates: js/update.js.) */
 (function () {
   'use strict';
   var BD = window.BD, W = BD.worlds, A = BD.art, Shop = BD.shop, C = BD.cloud, h = BD.h, t = BD.t;
@@ -9,6 +9,7 @@
   // Inside the Android app (android-bloomdoku) the shell offers what a WebView lacks: share, copy and vibration.
   BD.native = window.BloomNative || null;
 
+  function T(s) { return s; } // marks a sentence for translation
   function num(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, BD.state.lang === 'es' ? '.' : ','); }
   function standalone() { return !!BD.native || navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches); }
   function isIos() { return /iphone|ipad|ipod/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
@@ -61,10 +62,13 @@
         h('span.grow', h('b', t('Daily bouquet')), h('span', t(W.dailyOf(today).name) + (doneToday ? ' · ' + BD.stars(doneToday.stars) : ''))),
         h('span.streak', { 'aria-label': t('{0} days in a row', W.streak(s.daily, today)) }, '🔥 ' + W.streak(s.daily, today))),
       !standalone() && isIos() && !s.seen.install ? installCard() : null,
+      !tot.solved && !s.seen['tut-classic'] ? h('a.tutorial-card', { href: '#/tutorial' },
+        h('span.emo', '🌱'), h('span.grow', h('b', t('New to sudoku?')), h('span', t('Three tiny gardens with Pua teach the rule in a minute.'))), h('span.go', t('Tutorial'))) : null,
       W.worlds.slice(0, W.CLASSIC).map(worldCard),
       h('section.mode', { id: 'twin' },
         h('h2', '💃 ' + t('Twin gardens')),
-        h('p', t('Two figures in every cell: one sudoku for the first, another for the second, and no couple ever repeats. {0} gardens.', num(W.twinTotal())))),
+        h('p', t('Two figures in every cell: one sudoku for the first, another for the second, and no couple ever repeats. {0} gardens.', num(W.twinTotal()))),
+        h('a.btn.small', { href: '#/tutorial/twin' }, '🐥 ' + t('Try two tiny ones first'))),
       W.worlds.slice(W.CLASSIC).map(worldCard),
       h('p.foot', t('{0} gardens in {1} worlds, and a new bouquet every day.', num(W.total()), W.worlds.length)));
     BD.clear(view).appendChild(page);
@@ -199,49 +203,110 @@
   }
 
   /* ---------- the shop ---------- */
-  function preview(it) {
-    if (it.kind === 'skin') return h('span.pv.tokens', [1, 4, 7].map(function (v) { return h('i', { html: A.token(v, it.value) }); }));
+  // Four aisles; each shows some kinds of things (js/shop.js).
+  var AISLES = [
+    { id: 'helpers', icon: '🧺', name: T('Helpers'), kinds: ['helper', 'hskin'] },
+    { id: 'cells', icon: '🌸', name: T('Cells'), kinds: ['skin', 'sound'] },
+    { id: 'looks', icon: '🎨', name: T('Looks'), kinds: ['theme', 'frame', 'effect'] },
+    { id: 'pua', icon: '🦔', name: T('Pua'), kinds: ['hat', 'coat', 'ring'] },
+  ];
+  var KIND_TITLE = {
+    helper: [T('Helper charges'), T('Used up one by one in the gardens.')],
+    skin: [T('What grows in the cells'), ''],
+    sound: [T('Instrument'), T('How the musical garden sounds.')],
+    theme: [T('Garden looks'), T('The colours of the whole app, by day and by night.')],
+    frame: [T('Board edges'), ''],
+    effect: [T('When a garden blooms'), ''],
+    hat: [T('Pua\'s wardrobe'), T('Your friends see what Pua wears.')],
+    coat: [T('Pua\'s coat'), ''],
+    ring: [T('Ring around your critter'), T('Your friends see it in the ranking.')],
+  };
+  var RARITY = { basic: '', common: T('Common'), rare: T('Rare'), epic: T('Epic'), legendary: T('Legendary') };
+  function miniBoard(cls) { var b = h('span.miniboard' + (cls || '')); for (var i = 0; i < 9; i++) b.appendChild(h('i', { html: i % 4 === 0 ? A.token(i / 4 + 2, BD.skin() === 'numbers' ? 'flowers' : BD.skin()) : '' })); return b; }
+  function preview(it, big) {
+    var s = BD.state;
+    if (it.kind === 'helper') return h('span.pv', { html: BD.fx.art(it.id === 'lady' ? 'lady' : it.id, big ? 96 : 50, 'idle') });
+    if (it.kind === 'hskin') return h('span.pv', { html: BD.fx.art(it.helper, big ? 110 : 58, big ? 'moving demo' : 'idle', it.look) });
+    if (it.kind === 'skin') return h('span.pv.tokens' + (big ? '.big' : ''), (big ? [1, 2, 3, 4, 5, 6, 7, 8, 9] : [1, 4, 7]).map(function (v) { return h('i', { html: A.token(v, it.value) }); }));
     if (it.kind === 'theme') return h('span.pv.swatch', it.colors.map(function (c) { return h('i', { style: { background: c } }); }));
-    if (it.kind === 'hat') return h('span.pv', { html: A.pua('happy', 58, it.value) });
+    if (it.kind === 'frame') return h('span.pv', miniBoard('.fr-' + it.value));
+    if (it.kind === 'hat') return h('span.pv', { html: A.pua('happy', big ? 110 : 58, it.value) });
+    if (it.kind === 'coat') return h('span.pv', { html: A.pua('happy', big ? 110 : 58, null, it.value) });
+    if (it.kind === 'ring') return h('span.pv', h('span.avatar.ring-' + it.value + (big ? '.bigav' : ''), { style: { '--ac': A.colors[((s.avatar || 5) - 1) % 9] }, html: A.token(s.avatar || 5, 'critters') }));
+    if (it.kind === 'sound') return h('span.pv.note', '♪');
     var fx = BD.game.EFFECTS[it.value];
-    return h('span.pv.fx', [0, 1, 2].map(function (i) { return h('i' + (fx.ch ? '.ch' : ''), { style: { '--c': fx.colors[i % fx.colors.length] } }, fx.ch || null); }));
+    return h('span.pv.fx', [0, 1, 2].map(function (i) { return h('i' + (fx.ch ? '.ch' : ''), { style: { '--c': fx.colors[i % fx.colors.length] } }, fx.ch ? fx.ch[i % fx.ch.length] : null); }));
   }
-  function shop() {
-    var s = BD.state, bal = Shop.balance(s);
+  function priceTag(it) {
+    var s = BD.state, now = Shop.price(s, it.id);
+    return now < it.price ? [h('s', String(it.price)), ' 🌰 ' + now] : '🌰 ' + it.price;
+  }
+
+  function shop(aisle) {
+    var s = BD.state, bal = Shop.balance(s), got = Shop.collected(s), deal = Shop.deal(s), keepY = shop.again ? window.scrollY : 0;
+    shop.again = false;
+    if (aisle && AISLES.some(function (a) { return a.id === aisle; })) shop.aisle = aisle;
+    var here = AISLES.filter(function (a) { return a.id === (shop.aisle || 'helpers'); })[0];
+    function redraw() { shop.again = true; shop(); }
     function buy(it, after) {
-      if (!Shop.buy(s, it.id)) { BD.toast(t('You need {0} more chestnuts. Every garden gives some.', it.price - Shop.balance(s))); return; }
+      if (!Shop.buy(s, it.id)) { BD.toast(t('You need {0} more chestnuts. Every garden gives some.', Shop.price(s, it.id) - Shop.balance(s))); return false; }
       BD.save(); BD.applyTheme(); BD.sound.melody([1, 3, 5, 8]);
       BD.toast(after);
-      shop();
+      redraw();
+      return true;
+    }
+    // One thing to keep, up close: what it is, what it costs, try it, buy it or put it on.
+    function open(it) {
+      var owned = Shop.owns(s, it.id), on = Shop.isOn(s, it.id), rare = Shop.rarity(it), stage = h('div.stage.r-' + rare, preview(it, true));
+      var tryIt = it.kind === 'effect' ? function () { BD.game.petals(it.value); }
+        : it.kind === 'sound' ? function () { BD.sound.unlock(); BD.sound.sample(it.value); }
+        : null;
+      var close = BD.sheet(h('div.menu.itemsheet',
+        stage,
+        h('h2', t(it.name)),
+        h('p.muted', (RARITY[rare] ? t(RARITY[rare]) + ' · ' : '') + (it.kind === 'hskin' ? t('A look for this helper: {0}.', t(Shop.HELPERS.filter(function (x) { return x.id === it.helper; })[0].name)) : t(KIND_TITLE[it.kind][0]))),
+        tryIt ? h('button.btn', { type: 'button', onclick: tryIt }, it.kind === 'sound' ? '♪ ' + t('Listen') : '✨ ' + t('Try it')) : null,
+        owned
+          ? h('button.btn.primary', { type: 'button', disabled: on ? true : null, onclick: function () { Shop.wear(s, it.id); BD.save(); BD.applyTheme(); close(); redraw(); } }, on ? '✓ ' + t('On') : t('Put on'))
+          : h('button.btn.primary.buy', { type: 'button', onclick: function () { if (buy(it, t('It is yours!'))) close(); } }, t('Buy for {0}', '🌰 ' + Shop.price(s, it.id))),
+        !owned && Shop.price(s, it.id) < it.price ? h('p.muted.small', t('Today\'s offer: {0} instead of {1}.', Shop.price(s, it.id), it.price)) : null));
+      if (tryIt && it.kind === 'sound') tryIt();
     }
     function card(it) {
-      var owned = Shop.owns(s, it.id), on = owned && Shop.wearing(s, it.kind) === it.value;
-      return h('button.item' + (on ? '.on' : '') + (owned ? '.owned' : ''), {
-        type: 'button', 'data-item': it.id, 'aria-pressed': on ? 'true' : 'false',
-        onclick: function () {
-          if (owned) { Shop.wear(s, it.id); BD.save(); BD.applyTheme(); shop(); return; }
-          if (Shop.balance(s) < it.price) { BD.toast(t('You need {0} more chestnuts. Every garden gives some.', it.price - Shop.balance(s))); return; }
-          BD.confirm(t(it.name), t('Buy it for {0} chestnuts? It is yours to keep.', it.price), t('Buy for {0}', '🌰 ' + it.price), function () { buy(it, t('It is yours!')); });
-        },
-      }, preview(it), h('b', t(it.name)), h('small', on ? '✓ ' + t('On') : owned ? t('Put on') : '🌰 ' + it.price));
+      var owned = Shop.owns(s, it.id), on = Shop.isOn(s, it.id);
+      return h('button.item.r-' + Shop.rarity(it) + (on ? '.on' : '') + (owned ? '.owned' : ''), { type: 'button', 'data-item': it.id, 'aria-pressed': on ? 'true' : 'false', onclick: function () { open(it); } },
+        preview(it), h('b', t(it.name)), h('small', on ? '✓ ' + t('On') : owned ? t('Put on') : priceTag(it)));
     }
-    function section(title, hint, kind) { return h('section.card', h('h2', title), hint ? h('p.muted.small', hint) : null, h('div.items', Shop.of(kind).map(card))); }
+    function section(kind) {
+      var title = KIND_TITLE[kind];
+      if (kind === 'helper') {
+        return h('section.card', h('h2', t(title[0])), h('p.muted.small', t(title[1])),
+          Shop.of('helper').map(function (it) {
+            return h('div.frow', h('span.hicon', { html: BD.fx.art(it.id, 44, 'idle') }), h('span.grow', h('b', t(it.name)), h('small.muted', t(it.what))),
+              h('span.stock', { 'aria-label': t('{0} left', Shop.stock(s, it.id)) }, '×' + Shop.stock(s, it.id)),
+              h('button.btn.small' + (Shop.canBuy(s, it.id) ? '.primary' : ''), { type: 'button', 'data-item': it.id, onclick: function () { buy(it, t('One more: {0}.', t(it.name))); } }, '🌰 ' + it.price));
+          }));
+      }
+      if (kind === 'hskin') {
+        return h('section.card', h('h2', t('Helper looks')), h('p.muted.small', t('Dress the helpers. Each one keeps its job and its moves.')),
+          Shop.HELPERS.map(function (hp) { return [h('h3', t(hp.name)), h('div.items', Shop.looksOf(hp.id).map(card))]; }));
+      }
+      return h('section.card', h('h2', t(title[0])), title[1] ? h('p.muted.small', t(title[1])) : null, h('div.items', Shop.of(kind).map(card)));
+    }
     var page = h('div.page.shopp',
       h('header.hero.small', h('div.hero-pua', { html: A.pua('happy', 64) }),
         h('div.hero-text', h('h1', t('Shop')), h('p', t('Chestnuts come from blooming gardens, daily bouquets, stamps and new levels.'))),
         h('span.purse', { 'aria-label': t('{0} chestnuts', bal) }, '🌰 ' + num(bal))),
-      h('section.card', h('h2', t('Helpers')),
-        Shop.of('helper').map(function (it) {
-          return h('div.frow', h('span.emo', it.icon), h('span.grow', h('b', t(it.name)), h('small.muted', t(it.what))),
-            h('span.stock', { 'aria-label': t('{0} left', Shop.stock(s, it.id)) }, '×' + Shop.stock(s, it.id)),
-            h('button.btn.small' + (Shop.canBuy(s, it.id) ? '.primary' : ''), { type: 'button', 'data-item': it.id, onclick: function () { buy(it, t('One more {0}.', t(it.name))); } }, '🌰 ' + it.price));
-        })),
-      section(t('What grows in the cells'), null, 'skin'),
-      section(t('Garden looks'), t('The colours of the whole app, by day and by night.'), 'theme'),
-      section(t('Pua\'s wardrobe'), t('Your friends see what Pua wears.'), 'hat'),
-      section(t('When a garden blooms'), null, 'effect'),
+      h('div.collected', { 'aria-label': t('{0} of {1} collected', got[0], got[1]) }, h('span', t('{0} of {1} collected', got[0], got[1])), h('div.xpbar', h('span', { style: { width: Math.round(100 * got[0] / got[1]) + '%' } }))),
+      deal ? h('button.deal.r-' + Shop.rarity(deal.item), { type: 'button', 'data-deal': deal.item.id, onclick: function () { open(deal.item); } },
+        preview(deal.item), h('span.grow', h('small', '⭐ ' + t('Today\'s offer')), h('b', t(deal.item.name)), h('span', h('s', String(deal.item.price)), ' 🌰 ' + deal.price))) : null,
+      h('nav.aisles', { 'aria-label': t('Shop') }, AISLES.map(function (a) {
+        return h('button' + (a === here ? '.on' : ''), { type: 'button', 'data-aisle': a.id, 'aria-pressed': a === here ? 'true' : 'false', onclick: function () { shop.aisle = a.id; shop(); } }, h('span', a.icon), t(a.name));
+      })),
+      here.kinds.map(section),
       h('p.foot', t('Nothing here costs real money.')));
     BD.clear(view).appendChild(page);
+    if (keepY) window.scrollTo(0, keepY);
   }
 
   /* ---------- settings ---------- */
@@ -256,6 +321,7 @@
     var page = h('div.page.settingsp',
       h('header.hero.small', h('div.hero-text', h('h1', t('Settings')))),
       BD.friends.settingsCard(settings),
+      BD.update.card(settings),
       h('section.card',
         h('h2', t('What grows in the cells')),
         h('div.segs', skins.map(function (it) { return seg(it.value, skin, t(it.name), setSkin, h('span', { html: A.token(it.value === 'numbers' ? 5 : 1, it.value) })); })),
@@ -281,6 +347,10 @@
         h('ol.steps', h('li', t('Open this page in Safari.')), h('li', t('Tap the Share button (the square with an arrow).')), h('li', t('Choose "Add to Home Screen" and tap Add.'))),
         h('p.muted.small', t('Then open Bloomdoku from its icon: full screen and offline. Your progress stays on this phone.'))) : null,
       h('section.card',
+        h('h2', t('Tutorial')),
+        h('p.muted.small', t('Tiny 4×4 gardens where Pua shows every step. They give no stars.')),
+        h('div.row', h('a.btn', { href: '#/tutorial' }, '🌱 ' + t('The rule')), h('a.btn', { href: '#/tutorial/twin' }, '🐥 ' + t('Twin gardens')))),
+      h('section.card',
         h('h2', t('Start again')),
         h('p.muted.small', t('Clears stars, chestnuts, everything bought and the gardens in progress on this phone. Settings stay.')),
         h('button.btn.ghost.danger', { type: 'button', onclick: function () { BD.confirm(t('Clear all progress?'), t('This cannot be undone.'), t('Clear everything'), function () { BD.reset(); BD.applyTheme(); BD.toast(t('Progress cleared.')); settings(); }); } }, t('Clear all progress'))),
@@ -292,7 +362,6 @@
   function setLang(v) { BD.state.lang = v; BD.save(); BD.applyTheme(); tabs(); }
 
   /* ---------- router ---------- */
-  function T(s) { return s; } // marks a sentence for translation
   var TABS = [
     ['', T('Worlds'), '<path d="M3.500 6.500 9 4l6 2.500L20.500 4v13.500L15 20l-6-2.500L3.500 20zM9 4v13.500M15 6.500V20"/>'],
     ['daily', T('Daily'), '<path d="M12 21v-8M12 13c-4 0-6-2.500-6-6 3 0 6 2 6 6zM12 13c4 0 6-2.500 6-6-3 0-6 2-6 6zM12 9c-1.500-2-1.500-4 0-6 1.500 2 1.500 4 0 6z"/>'],
@@ -317,39 +386,30 @@
     var parts = location.hash.replace(/^#\/?/, '').split('/'), page = parts[0] || '';
     BD.closeSheets();
     BD.friends.stop();
+    BD.fx.clear();
     Array.prototype.forEach.call(document.querySelectorAll('.petals'), function (el) { el.parentNode.removeChild(el); });
-    var playing = (page === 'play' && parts[1]) || (page === 'daily' && parts[1] === 'play');
+    var playing = (page === 'play' && parts[1]) || (page === 'daily' && parts[1] === 'play') || page === 'tutorial';
     document.body.classList.toggle('playing', !!playing);
     if (!playing) BD.game.close();
+    if (!playing && BD.update.applyIfQuiet()) return; // a new version was waiting for a calm moment
     window.scrollTo(0, 0);
     if (page === 'play' && parts[1]) {
       var lv = W.level(parts[1]);
       if (!lv || !W.open(BD.state, lv)) { location.hash = '#/'; return; }
       var g = parseInt(parts[2], 10);
       BD.game.open(view, 'level', lv.key, g >= 1 && g <= W.GARDENS ? g - 1 : null);
+    } else if (page === 'tutorial') { // #/tutorial, #/tutorial/twin, #/tutorial/classic/2
+      var kind = W.TUTORIAL[parts[1]] ? parts[1] : 'classic', step = parseInt(parts[2], 10);
+      BD.game.open(view, 'tutorial', kind, step >= 1 && step <= W.TUTORIAL[kind].length ? step - 1 : 0);
     } else if (page === 'daily' && parts[1] === 'play') BD.game.open(view, 'daily', W.dayKey());
     else if (page === 'daily') { tabs('daily'); daily(); }
     else if (page === 'garden') { tabs('garden'); garden(); }
-    else if (page === 'shop') { tabs('garden'); shop(); }
+    else if (page === 'shop') { tabs('garden'); shop(parts[1]); }
     else if (page === 'settings') { tabs('settings'); settings(); }
     else if (page === 'add') { BD.friends.invite(parts[1]); location.replace('#/friends'); } // an invitation link
     else if (page === 'friend' && parts[1]) { tabs('friends'); BD.friends.friendPage(view, parts[1]); }
     else if (page === 'friends') { tabs('friends'); BD.friends.page(view); }
     else { tabs(''); home(); }
-  }
-
-  /* ---------- offline ---------- */
-  function registerSW() {
-    if (BD.native || !('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return; // the Android app carries its files
-    var had = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', function () {
-      if (!had) { had = true; return; }
-      var bar = document.getElementById('update');
-      BD.clear(bar).appendChild(h('span', t('A new version is ready.')));
-      bar.appendChild(h('button.btn.small.primary', { type: 'button', onclick: function () { location.reload(); } }, t('Reload')));
-      bar.classList.add('show');
-    });
-    navigator.serviceWorker.register('sw.js').catch(function () { /* offline support is optional */ });
   }
 
   BD.start = function () {
@@ -372,7 +432,7 @@
       if (!document.body.classList.contains('playing')) tabs();
     });
     route();
-    registerSW();
+    BD.update.register();
     C.start();
   };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', BD.start); else BD.start();

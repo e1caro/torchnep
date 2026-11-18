@@ -1,0 +1,52 @@
+{
+ "hats": [
+  {
+   "id": "wizard",
+   "name": "Wizard hat",
+   "es": "Sombrero de mago",
+   "svg": "<path d=\"M18 19Q23 8 38 1Q36 10 46 19Q32 23 18 19Z\" fill=\"#8C6FE0\"/><ellipse cx=\"32\" cy=\"19\" rx=\"18\" ry=\"4\" fill=\"#7558CC\"/><circle cx=\"28\" cy=\"13\" r=\"1.4\" fill=\"#FFD86B\"/><circle cx=\"35\" cy=\"8\" r=\"1.6\" fill=\"#FFD86B\"/><circle cx=\"37\" cy=\"15\" r=\"1.1\" fill=\"#FFD86B\"/>"
+  },
+  {
+   "id": "pirate",
+   "name": "Pirate hat",
+   "es": "Sombrero pirata",
+   "svg": "<path d=\"M11 20Q16 8 32 4.500Q48 8 53 20Q42 14.500 32 15.500Q22 14.500 11 20Z\" fill=\"#3B2A4A\"/><path d=\"M11.500 20Q22 14.500 32 15.500Q42 14.500 52.500 20\" fill=\"none\" stroke=\"#FFF3C4\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"29.8\" cy=\"10\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"34.2\" cy=\"10\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"32\" cy=\"7.8\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"32\" cy=\"12.2\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"32\" cy=\"10\" r=\"1.6\" fill=\"#FFE08A\"/>"
+  },
+  {
+   "id": "chef",
+   "name": "Chef's hat",
+   "es": "Gorro de chef",
+   "svg": "<circle cx=\"24\" cy=\"9\" r=\"7\" fill=\"#fff\" stroke=\"#DCD3E6\" stroke-width=\"1\"/><circle cx=\"40\" cy=\"9\" r=\"7\" fill=\"#fff\" stroke=\"#DCD3E6\" stroke-width=\"1\"/><circle cx=\"32\" cy=\"6.5\" r=\"8\" fill=\"#fff\" stroke=\"#DCD3E6\" stroke-width=\"1\"/><rect x=\"21\" y=\"10\" width=\"22\" height=\"10\" rx=\"2.500\" fill=\"#fff\" stroke=\"#DCD3E6\" stroke-width=\"1\"/><path d=\"M21.500 15.500L42.500 15.500\" fill=\"none\" stroke=\"#DCD3E6\" stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+  },
+  {
+   "id": "beanie",
+   "name": "Woolly hat",
+   "es": "Gorro de lana",
+   "svg": "<path d=\"M17 18Q17 5 32 5Q47 5 47 18Z\" fill=\"#2FB5A6\"/><path d=\"M25 7.500L24 15M32 6L32 15M39 7.500L40 15\" fill=\"none\" stroke=\"#7FDCD1\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"15\" y=\"14.500\" width=\"34\" height=\"6.500\" rx=\"3.200\" fill=\"#178A7E\"/><circle cx=\"32\" cy=\"4\" r=\"4.2\" fill=\"#FFF3C4\"/>"
+  },
+  {
+   "id": "headphones",
+   "name": "Headphones",
+   "es": "Auriculares",
+   "svg": "<path d=\"M13.500 33Q13 7 32 7Q51 7 50.500 33\" fill=\"none\" stroke=\"#F2668B\" stroke-width=\"3.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"13.5\" cy=\"33\" r=\"6\" fill=\"#D43B66\"/><circle cx=\"50.5\" cy=\"33\" r=\"6\" fill=\"#D43B66\"/><circle cx=\"13.5\" cy=\"33\" r=\"3\" fill=\"#F9A3BA\"/><circle cx=\"50.5\" cy=\"33\" r=\"3\" fill=\"#F9A3BA\"/>"
+  },
+  {
+   "id": "wreath",
+   "name": "Flower crown",
+   "es": "Corona de flores",
+   "svg": "<ellipse cx=\"20\" cy=\"15\" rx=\"3.4\" ry=\"1.8\" fill=\"#4FB06D\" transform=\"rotate(-30 20 15)\"/><ellipse cx=\"28\" cy=\"11.5\" rx=\"3.4\" ry=\"1.8\" fill=\"#4FB06D\"/><ellipse cx=\"36\" cy=\"11.5\" rx=\"3.4\" ry=\"1.8\" fill=\"#4FB06D\"/><ellipse cx=\"44\" cy=\"15\" rx=\"3.4\" ry=\"1.8\" fill=\"#4FB06D\" transform=\"rotate(30 44 15)\"/><circle cx=\"13.8\" cy=\"19\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"18.2\" cy=\"19\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"16\" cy=\"16.8\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"16\" cy=\"21.2\" r=\"2.3\" fill=\"#F78FB0\"/><circle cx=\"16\" cy=\"19\" r=\"1.6\" fill=\"#FFE08A\"/><circle cx=\"21.8\" cy=\"13\" r=\"2.3\" fill=\"#F5C518\"/><circle cx=\"26.2\" cy=\"13\" r=\"2.3\" fill=\"#F5C518\"/><circle cx=\"24\" cy=\"10.8\" r=\"2.3\" fill=\"#F5C518\"/><circle cx=\"24\" cy=\"15.2\" r=\"2.3\" fill=\"#F5C518\"/><circle cx=\"24\" cy=\"13\" r=\"1.6\" fill=\"#FFE08A\"/><circle cx=\"29.8\" cy=\"10.5\" r=\"2.3\" fill=\"#5AA9F0\"/><circle cx=\"34.2\" cy=\"10.5\" r=\"2.3\" fill=\"#5AA9F0\"/><circle cx=\"32\" cy=\"8.3\" r=\"2.3\" fill=\"#5AA9F0\"/><circle cx=\"32\" cy=\"12.7\" r=\"2.3\" fill=\"#5AA9F0\"/><circle cx=\"32\" cy=\"10.5\" r=\"1.6\" fill=\"#FFE08A\"/><circle cx=\"37.8\" cy=\"13\" r=\"2.3\" fill=\"#9C82EA\"/><circle cx=\"42.2\" cy=\"13\" r=\"2.3\" fill=\"#9C82EA\"/><circle cx=\"40\" cy=\"10.8\" r=\"2.3\" fill=\"#9C82EA\"/><circle cx=\"40\" cy=\"15.2\" r=\"2.3\" fill=\"#9C82EA\"/><circle cx=\"40\" cy=\"13\" r=\"1.6\" fill=\"#FFE08A\"/><circle cx=\"45.8\" cy=\"19\" r=\"2.3\" fill=\"#F59A3C\"/><circle cx=\"50.2\" cy=\"19\" r=\"2.3\" fill=\"#F59A3C\"/><circle cx=\"48\" cy=\"16.8\" r=\"2.3\" fill=\"#F59A3C\"/><circle cx=\"48\" cy=\"21.2\" r=\"2.3\" fill=\"#F59A3C\"/><circle cx=\"48\" cy=\"19\" r=\"1.6\" fill=\"#FFE08A\"/>"
+  },
+  {
+   "id": "bunny",
+   "name": "Bunny ears",
+   "es": "Orejas de conejo",
+   "svg": "<ellipse cx=\"23\" cy=\"9\" rx=\"5\" ry=\"10\" fill=\"#F4F6FA\" stroke=\"#DCD3E6\" stroke-width=\"1\" transform=\"rotate(-12 23 9)\"/><ellipse cx=\"41\" cy=\"9\" rx=\"5\" ry=\"10\" fill=\"#F4F6FA\" stroke=\"#DCD3E6\" stroke-width=\"1\" transform=\"rotate(12 41 9)\"/><ellipse cx=\"23\" cy=\"10\" rx=\"2.2\" ry=\"6.5\" fill=\"#FFC2D1\" transform=\"rotate(-12 23 10)\"/><ellipse cx=\"41\" cy=\"10\" rx=\"2.2\" ry=\"6.5\" fill=\"#FFC2D1\" transform=\"rotate(12 41 10)\"/><path d=\"M17 20Q32 13.500 47 20\" fill=\"none\" stroke=\"#F2668B\" stroke-width=\"2.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+  },
+  {
+   "id": "tophat",
+   "name": "Top hat",
+   "es": "Sombrero de copa",
+   "svg": "<g transform=\"rotate(-9 32 14)\"><rect x=\"22\" y=\"1\" width=\"20\" height=\"16\" rx=\"2\" fill=\"#3B2A4A\"/><rect x=\"22\" y=\"11.500\" width=\"20\" height=\"4.500\" fill=\"#F2668B\"/><ellipse cx=\"32\" cy=\"18\" rx=\"16.500\" ry=\"3.600\" fill=\"#3B2A4A\"/></g>"
+  }
+ ]
+}

@@ -1,0 +1,52 @@
+{
+ "set": "sweets",
+ "name": "Sweets",
+ "es": "Dulces",
+ "items": [
+  {
+   "name": "Macaron",
+   "es": "Macaron",
+   "svg": "<ellipse cx=\"20\" cy=\"27\" rx=\"15\" ry=\"8\" fill=\"#EE7FA0\"/><ellipse cx=\"20\" cy=\"20.5\" rx=\"14\" ry=\"4\" fill=\"#FFF3C4\"/><ellipse cx=\"20\" cy=\"13.5\" rx=\"15\" ry=\"8.5\" fill=\"#F78FB0\"/><ellipse cx=\"14\" cy=\"10.5\" rx=\"5\" ry=\"2.2\" fill=\"#fff\" opacity=\".5\"/>"
+  },
+  {
+   "name": "Toffee",
+   "es": "Tofe",
+   "svg": "<path d=\"M12 20L2 10L4 20L2 30ZM28 20L38 10L36 20L38 30Z\" fill=\"#F9B36B\"/><ellipse cx=\"20\" cy=\"20\" rx=\"10.5\" ry=\"9\" fill=\"#F28A2E\"/><path d=\"M16 13Q13 20 16 27M24 13Q27 20 24 27\" fill=\"none\" stroke=\"#FFE3C2\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+  },
+  {
+   "name": "Lemon slice",
+   "es": "Rodaja de limón",
+   "svg": "<path d=\"M3 13A17 17 0 0 0 37 13Z\" fill=\"#E3B008\"/><path d=\"M7 14.500A13 13 0 0 0 33 14.500Z\" fill=\"#FFF3B0\"/><path d=\"M20 15L20 27M20 15L11 23.500M20 15L29 23.500\" fill=\"none\" stroke=\"#E3B008\" stroke-width=\"1.4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+  },
+  {
+   "name": "Apple lollipop",
+   "es": "Piruleta de manzana",
+   "svg": "<rect x=\"18.700\" y=\"22\" width=\"2.600\" height=\"17\" rx=\"1.300\" fill=\"#C9A26B\"/><circle cx=\"20\" cy=\"14\" r=\"12\" fill=\"#4FB06D\"/><path d=\"M20 14Q24 10 20 7.500Q14 6 12.500 13Q12 21 20 21.500\" fill=\"none\" stroke=\"#B5E6C2\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+  },
+  {
+   "name": "Mint ice cream",
+   "es": "Helado de menta",
+   "svg": "<path d=\"M11 21L20 39L29 21Z\" fill=\"#E0B070\"/><path d=\"M15 23L22 34M25 23L18 34\" fill=\"none\" stroke=\"#C48F4A\" stroke-width=\"1\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"20\" cy=\"15\" r=\"11.5\" fill=\"#2FB5A6\"/><circle cx=\"15.5\" cy=\"11\" r=\"2.6\" fill=\"#7FDCD1\"/><circle cx=\"24\" cy=\"17\" r=\"1.2\" fill=\"#178A7E\"/><circle cx=\"18\" cy=\"19\" r=\"1.2\" fill=\"#178A7E\"/>"
+  },
+  {
+   "name": "Ice lolly",
+   "es": "Polo",
+   "svg": "<rect x=\"18.300\" y=\"27\" width=\"3.400\" height=\"12\" rx=\"1.700\" fill=\"#C9A26B\"/><rect x=\"10\" y=\"2\" width=\"20\" height=\"27\" rx=\"9\" fill=\"#4D9DE8\"/><rect x=\"13.500\" y=\"7\" width=\"3.400\" height=\"13\" rx=\"1.700\" fill=\"#9CC8F5\"/>"
+  },
+  {
+   "name": "Gummy bear",
+   "es": "Osito de goma",
+   "svg": "<circle cx=\"13.5\" cy=\"6\" r=\"3.6\" fill=\"#8C6FE0\"/><circle cx=\"26.5\" cy=\"6\" r=\"3.6\" fill=\"#8C6FE0\"/><circle cx=\"9.5\" cy=\"23\" r=\"4\" fill=\"#8C6FE0\"/><circle cx=\"30.5\" cy=\"23\" r=\"4\" fill=\"#8C6FE0\"/><circle cx=\"14\" cy=\"35\" r=\"4.2\" fill=\"#8C6FE0\"/><circle cx=\"26\" cy=\"35\" r=\"4.2\" fill=\"#8C6FE0\"/><ellipse cx=\"20\" cy=\"26\" rx=\"9.5\" ry=\"10.5\" fill=\"#8C6FE0\"/><circle cx=\"20\" cy=\"12\" r=\"8\" fill=\"#9C82EA\"/><circle cx=\"17.2\" cy=\"11\" r=\"1.2\" fill=\"#3B2A4A\"/><circle cx=\"22.8\" cy=\"11\" r=\"1.2\" fill=\"#3B2A4A\"/><ellipse cx=\"20\" cy=\"14.5\" rx=\"2.2\" ry=\"1.5\" fill=\"#6A4BC9\"/><ellipse cx=\"20\" cy=\"27\" rx=\"5\" ry=\"6\" fill=\"#B5A2FA\"/>"
+  },
+  {
+   "name": "Doughnut",
+   "es": "Dónut",
+   "svg": "<path d=\"M20 4.500a15.500 15.500 0 1 0 .01 0ZM20 15a5 5 0 1 1 -.01 0Z\" fill=\"#E0B070\" fill-rule=\"evenodd\"/><path d=\"M20 6.500a13.500 13.500 0 1 0 .01 0ZM20 14.500a5.500 5.500 0 1 1 -.01 0Z\" fill=\"#D05FC2\" fill-rule=\"evenodd\"/><path d=\"M11 14L13 16M27 11L29 12.500M30 24L28 26M13 27L15 28.500M20 30L22 30.500\" fill=\"none\" stroke=\"#fff\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>"
+  },
+  {
+   "name": "Cherry cupcake",
+   "es": "Magdalena de cereza",
+   "svg": "<path d=\"M9 23L31 23L28 38L12 38Z\" fill=\"#F3D2B0\"/><path d=\"M15 25L16 36M20 25L20 36M25 25L24 36\" fill=\"none\" stroke=\"#D9A878\" stroke-width=\"1.2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M6 24Q5 9 20 8Q35 9 34 24Z\" fill=\"#E2574C\"/><circle cx=\"20\" cy=\"6\" r=\"3.6\" fill=\"#C23A30\"/><ellipse cx=\"14\" cy=\"14\" rx=\"3.5\" ry=\"2\" fill=\"#F29088\"/>"
+  }
+ ]
+}

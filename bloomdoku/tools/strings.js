@@ -26,6 +26,7 @@ function catalog() {
   });
   W.DAILY.forEach((d) => out.add(d.name));
   W.TITLES.forEach((x) => out.add(x[1]));
+  Object.keys(W.TUTORIAL).forEach((k) => W.TUTORIAL[k].forEach((lesson) => out.add(lesson.intro)));
   return out;
 }
 function spanish() {

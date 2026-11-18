@@ -15,7 +15,7 @@ only add at the end.
 
 | # | World | New rule | Boards |
 |---|---|---|---|
-| 1 | 🌱 Sprout Nursery | Rows, columns and plots hold each flower once | 4×4, then 6×6 |
+| 1 | 🌱 Sprout Nursery | Rows, columns and plots hold each flower once | 9×9, nearly full (4×4 only in the tutorial) |
 | 2 | 🌷 Tulip Meadow | The classic garden; pencil notes, "only one place" and "only one fits" | 9×9 |
 | 3 | 🐝 Honeybee Crossing | The two bee paths (diagonals) also hold each flower once | 6×6, then 9×9 |
 | 4 | 🐸 Lily Pond | Plots are wobbly lily pads (jigsaw regions) | 5×5, 6×6, 7×7, 9×9 |
@@ -145,6 +145,24 @@ only add at the end.
   local origin, self-updating from the releases' `web.zip`), with share, clipboard and vibration for the web side.
 - `.github/workflows/android-bloomdoku.yml`: tests, builds, and publishes `Bloomdoku-1.N.apk` as release
   `bloomdoku-N`, signed with the repository's key.
+
+## 10. Added on request: a bigger shop, animated helpers, self-update, a 9×9 start
+
+- **The map starts with normal 9×9 sudokus.** World 1 is now 9×9 gardens with most flowers planted (56, 52, 48 and
+  45 of 81), and the twin worlds are all 9×9. The 4×4 boards are only a **tutorial**: three lessons (Pua shows
+  each step, then only where to look, then nothing) and two for twin gardens, not saved as gardens.
+- **Fewer chestnuts:** 2, 3 or 4 for a garden by its stars, 6 to 10 for a daily bouquet, 25 for a world stamp, 10
+  for a player level. The whole shop costs a bit over half of everything a player can earn.
+- **A bigger, cooler shop** in four aisles (helpers, cells, looks, Pua) with a daily offer, rarities and a close-up
+  to try things: 15 helper looks (four per helper), seven cell sets (gems, sweets and sea friends added), six
+  instruments, ten garden looks with their own skies, seven board edges, eleven bloom effects, 16 hats, 9 coats and
+  6 rings for Pua (95 things in all).
+- **Every helper is animated** in its chosen look: the bee flies to its cell and hovers, the caterpillar crawls,
+  the ladybird walks over the cells it marks, the owl lands and looks around, the frog jumps; wings flap, eyes
+  blink, legs wiggle; reduced motion respected.
+- **It updates itself, like the other apps:** the service worker checks on opening, on coming back and every half
+  hour, and switches at a calm moment; the Android shell downloads new web files by itself and reports to Settings
+  → Version (*Check for updates*, and a link when a release needs a new APK).
 
 ## Later, in this order
 

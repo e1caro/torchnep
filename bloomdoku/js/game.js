@@ -6,7 +6,7 @@
  */
 (function () {
   'use strict';
-  var BD = window.BD, E = BD.engine, W = BD.worlds, A = BD.art, Shop = BD.shop, h = BD.h, t = BD.t, Snd = BD.sound;
+  var BD = window.BD, E = BD.engine, W = BD.worlds, A = BD.art, Shop = BD.shop, Fx = BD.fx, h = BD.h, t = BD.t, Snd = BD.sound;
   var P = (BD.game = {});
   var G = null;      // the game on screen
   var els = null;    // its DOM nodes
@@ -43,24 +43,26 @@
   }
   function save() {
     if (!G || G.won) return;
+    if (G.mode === 'tutorial') { BD.save(); return; } // a tutorial garden is short: it is not kept between visits
     BD.state.games[G.id] = { pz: G.pz, vals: G.vals, notes: G.notes, slips: G.slips, frog: G.frog, owl: G.owl, bees: G.bees, told: G.told, time: G.time, mark: G.mark, flagged: G.flagged };
     BD.save();
   }
 
   // P.open(view, 'level', '3-2') continues that level; P.open(view, 'level', '3-2', 16) opens its garden 17;
-  // P.open(view, 'daily', '2026-11-18') opens that day's bouquet.
+  // P.open(view, 'daily', '2026-11-18') opens that day's bouquet; P.open(view, 'tutorial', 'classic', 0) a lesson.
   P.open = function (view, mode, key, garden) {
     P.close();
-    var id = mode === 'daily' ? 'daily:' + key : key;
+    var id = mode === 'daily' ? 'daily:' + key : mode === 'tutorial' ? 'tutorial:' + key + ':' + garden : key;
     var lv = mode === 'level' ? W.level(key) : null;
     if (mode === 'level' && !lv) { location.hash = '#/'; return; }
     BD.clear(view).appendChild(h('div.planting', h('div', { html: A.pua('think', 84) }), h('p', { text: t('Planting the seeds…') })));
     // Let the "planting" message paint before the generator runs.
     setTimeout(function () {
-      var saved = BD.state.games[id], g;
+      var saved = mode === 'tutorial' ? null : BD.state.games[id], g;
       if (saved && (mode === 'daily' || garden == null || saved.pz.garden === garden)) g = fromSave(saved);
-      else g = fresh(mode === 'daily' ? W.dailyPuzzle(key) : W.puzzle(key, garden == null ? W.at(BD.state, key) : garden));
+      else g = fresh(mode === 'daily' ? W.dailyPuzzle(key) : mode === 'tutorial' ? W.tutorialPuzzle(key, garden) : W.puzzle(key, garden == null ? W.at(BD.state, key) : garden));
       g.id = id; g.mode = mode; g.key = key; g.level = lv;
+      g.lesson = mode === 'tutorial' ? W.TUTORIAL[key][garden] : null; g.step = mode === 'tutorial' ? garden : 0;
       g.S = E.build(g.pz);
       g.twin = !!g.pz.twin;
       g.h = g.pz.n * g.pz.n; // cells on the board
@@ -78,6 +80,7 @@
   P.close = function () {
     if (ticker) clearInterval(ticker);
     ticker = null; G = null; els = null; P.current = null;
+    Fx.clear();
     document.removeEventListener('keydown', onKey);
   };
   function tick() {
@@ -138,8 +141,8 @@
   function build(view) {
     var pz = G.pz, n = pz.n, c;
     var lv = G.level, color = lv ? lv.world.color : '#F2668B';
-    var title = lv ? t(lv.name) + ' · ' + t('Garden {0}', pz.garden + 1) : t(W.dailyOf(G.key).name);
-    var sub = lv ? lv.world.icon + ' ' + t(lv.world.name) + ' ' + lv.key : '💐 ' + t('Daily bouquet');
+    var title = lv ? t(lv.name) + ' · ' + t('Garden {0}', pz.garden + 1) : G.lesson ? t('Tutorial') + ' · ' + (G.step + 1) + '/' + W.TUTORIAL[G.key].length : t(W.dailyOf(G.key).name);
+    var sub = lv ? lv.world.icon + ' ' + t(lv.world.name) + ' ' + lv.key : G.lesson ? '🌱 ' + t('A tiny garden to learn') : '💐 ' + t('Daily bouquet');
 
     els = {};
     els.cells = [];
@@ -191,7 +194,7 @@
     els.redo = tool('redo', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 7l4.500 4.500L15 16"/><path d="M19.500 11.500H10a5.500 5.500 0 0 0 0 11h2"/></svg>', t('Redo'), redo);
     els.notes = tool('notes', '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1-4.500L16.500 4a2.100 2.100 0 0 1 3 3L8 18.500z"/><path d="M14.500 6l3 3"/></svg>', t('Notes'), function () { G.noteMode = !G.noteMode; Snd.soft(); paint(); });
     els.fly = tool('fly', '<span class="emo">🦋</span>', t('Butterfly'), butterfly);
-    els.hintBtn = tool('hintb', '<span class="emo">🐝</span>', t('Hint'), bee);
+    els.hintBtn = tool('hintb', Fx.art('bee', 28, 'idle'), t('Hint'), bee);
     els.friends = tool('friends', '<span class="emo">🧺</span>', t('Helpers'), helpers);
 
     var top = h('header.play-top',
@@ -208,13 +211,15 @@
     BD.clear(view).appendChild(root);
     document.addEventListener('keydown', onKey);
 
-    var tip = G.twin && !BD.state.seen.twinTip;
-    var hello = G.vals.join() !== pz.givens.join() ? t('Welcome back. Your garden is as you left it.')
+    var tip = G.twin && !G.lesson && !BD.state.seen.twinTip;
+    var hello = G.lesson ? t(G.lesson.intro)
+      : G.vals.join() !== pz.givens.join() ? t('Welcome back. Your garden is as you left it.')
       : tip ? t('Tap the left half of a cell for its first figure and the right half for the second.')
       : lv ? t(lv.teaches) + '.' : t('Today\'s garden is the same for everyone. Take your time.');
     if (tip) { BD.state.seen.twinTip = 1; BD.save(); }
     say(hello, 'hi');
     paint();
+    coach(hello);
   }
 
   function say(text, mood) {
@@ -319,8 +324,10 @@
   function apply(op, forward) {
     op.forEach(function (m) { G.vals[m[0]] = forward ? m[3] : m[1]; G.notes[m[0]] = forward ? m[4] : m[2]; delete G.flagged[m[0]]; });
   }
+  function shooBee() { if (G && G.beeFx) { Fx.dismiss(G.beeFx); G.beeFx = null; } }
+  function cellEl(slot) { return els.cells[slot % G.h]; }
   function commit(op) {
-    G.hint = null; G.lady = null;
+    G.hint = null; G.lady = null; shooBee();
     if (!op.length) return;
     apply(op, true);
     G.undo.push(op);
@@ -330,7 +337,7 @@
   function resync() { // after undo, redo or a flight back: which groups are complete now
     G.bloomed = {};
     E.doneGroups(G.S, G.vals).forEach(function (gi) { G.bloomed[gi] = 1; });
-    G.hint = null; G.lady = null;
+    G.hint = null; G.lady = null; shooBee();
     save(); paint();
   }
   function undo() { if (!G.undo.length || G.won) return; var op = G.undo.pop(); apply(op, false); G.redo.push(op); Snd.soft(); resync(); }
@@ -379,7 +386,7 @@
     Snd.tap();
     if (!right) {
       G.slips++;
-      if (BD.state.set.wilt) { Snd.wilt(); say(t('That one wilted. Something it sees already has it, or it belongs elsewhere.'), 'oops'); }
+      if (BD.state.set.wilt) { Snd.wilt(); say(G.lesson ? t('That one wilted. Tap Erase and try another flower.') : t('That one wilted. Something it sees already has it, or it belongs elsewhere.'), 'oops'); }
       else Snd.note(v);
       save(); paint();
       if (!BD.state.set.wilt && G.vals.every(function (x) { return x; })) say(t('The garden is full but something is off. The owl can find it.'), 'think');
@@ -411,6 +418,7 @@
       say(kind === 'row' ? t('A whole row in bloom!') : kind === 'col' ? t('A whole column in bloom!') : kind === 'diag' ? t('A bee path in bloom!') : t('A whole plot in bloom!'), 'happy');
     }
     save(); paint();
+    coach();
   }
   function bloom(slots, delay) {
     slots.forEach(function (slot, i) {
@@ -458,21 +466,21 @@
 
   function helpers() {
     if (G.won) return;
-    function row(icon, name, what, note, fn, id) {
+    function row(helper, name, what, note, fn, id) {
       var none = id && Shop.stock(BD.state, id) < 1;
-      return h('button.helper' + (none ? '.none' : ''), { type: 'button', 'data-helper': id || name, onclick: function () { close(); if (none) location.hash = '#/shop'; else fn(); } },
-        h('span.emo', icon), h('span.grow', h('b', name), h('span', none ? t('None left. Get more in the shop.') : what)),
+      return h('button.helper' + (none ? '.none' : ''), { type: 'button', 'data-helper': helper, onclick: function () { close(); if (none) location.hash = '#/shop'; else fn(); } },
+        h('span.hicon', { html: Fx.art(helper, 44, 'idle') }), h('span.grow', h('b', name), h('span', none ? t('None left. Get more in the shop.') : what)),
         h('small', id ? '×' + Shop.stock(BD.state, id) + (note ? ' · ' + note : '') : note));
     }
     var close = BD.sheet(h('div.menu',
       h('h2', t('Helpers')),
-      row('🐝', t('Bee'), t('A hint: flies to a cell you can solve now and says why. Ask again and it names the flower.'), t('free'), bee),
-      row('🐛', t('Caterpillar'), t('Writes the pencil notes, or tidies the ones you have.'), t('free'), caterpillar),
-      row('🐞', t('Ladybird'), t('Shows every cell where one flower can still go.'), '', ladybird, 'lady'),
-      row('🦉', t('Owl'), t('Shows which flowers are wilted.'), t('costs ★'), owl, 'owl'),
-      row('🐸', t('Frog'), t('Plants one flower for you.'), t('costs ★'), frog, 'frog'),
+      row('bee', t('Bee'), t('A hint: flies to a cell you can solve now and says why. Ask again and it names the flower.'), t('free'), bee),
+      row('cat', t('Caterpillar'), t('Writes the pencil notes, or tidies the ones you have.'), t('free'), caterpillar),
+      row('lady', t('Ladybird'), t('Shows every cell where one flower can still go.'), '', ladybird, 'lady'),
+      row('owl', t('Owl'), t('Shows which flowers are wilted.'), t('costs ★'), owl, 'owl'),
+      row('frog', t('Frog'), t('Plants one flower for you.'), t('costs ★'), frog, 'frog'),
       h('p.muted.small', t('The second star is for a garden finished with nothing revealed: no owl, no frog, no flower named by the bee.')),
-      h('a.btn.ghost', { href: '#/shop', onclick: function () { close(); } }, '🌰 ' + t('More helpers in the shop'))));
+      h('a.btn.ghost', { href: '#/shop/helpers', onclick: function () { close(); } }, '🌰 ' + t('More helpers and new looks in the shop'))));
   }
 
   // The hint. First it shows where to look and why; asked again about the same cell, it names the flower.
@@ -492,6 +500,16 @@
       return;
     }
     G.bees++;
+    var ex = explain(hint);
+    G.sel = hint.cell; G.armed = 0; G.lady = null; G.hint = ex.hi;
+    save(); paint();
+    flyBee(hint.cell);
+    say(ex.text, 'think');
+  }
+  // The bee flies from its button to the cell and hovers there until the next move.
+  function flyBee(slot) { shooBee(); G.beeFx = Fx.bee(cellEl(slot), els.hintBtn); }
+  // A step of the logic solver in words, and what to light up on the board for it.
+  function explain(hint) {
     var S = G.S, text = '', hi = { cell: hint.cell, v: hint.v, groupCells: [], viaCells: [] };
     if (hint.via.length) {
       var e = hint.via[hint.via.length - 1], g = S.groups[e.group];
@@ -508,9 +526,19 @@
     } else if (hint.type === 'last') { hi.groupCells = hint.g.cells; text += t('This is the last free cell of its {0}.', groupName(hint.g)); }
     else if (hint.type === 'hidden') { hi.groupCells = hint.g.cells; text += t('One flower has no other place left in this {0}. Which one?', groupName(hint.g)); }
     else text += G.twin ? t('Only one figure still fits here. Check its row, column and plot, and the cells that share its partner.') : t('Only one flower still fits in this cell. Check everything it sees.');
-    G.sel = hint.cell; G.armed = 0; G.lady = null; G.hint = hi;
-    save(); paint();
-    say(text, 'think');
+    return { hi: hi, text: text };
+  }
+  // In a tutorial Pua shows the next step without being asked: where to look, and in the first lesson which flower.
+  function coach(prefix) {
+    if (!G || !G.lesson || !G.lesson.coach || G.won || wrongCells().length) return;
+    var hint = E.hint(G.S, G.vals, 2);
+    if (hint.broken || hint.stuck) return;
+    var ex = explain(hint), text = ex.text;
+    if (G.lesson.coach > 1) { ex.hi.named = true; text += ' ' + t('Here goes {0}: tap it on the pad.', nameOf(hint.cell, hint.v)); }
+    G.sel = hint.cell; G.armed = 0; G.lady = null; G.hint = ex.hi;
+    paint();
+    flyBee(hint.cell);
+    say((prefix ? prefix + ' ' : '') + text, 'think');
   }
 
   function caterpillar() {
@@ -522,6 +550,14 @@
     }
     commit(op);
     Snd.soft(); save(); paint();
+    // the caterpillar crawls along the board and the notes appear behind it, column by column
+    Fx.caterpillar(els.board);
+    if (!Fx.reduced()) op.forEach(function (m) {
+      var el = cellEl(m[0]);
+      el.style.setProperty('--d', ((m[0] % G.h % G.pz.n) * 1.2 / G.pz.n).toFixed(2) + 's');
+      el.classList.add('noted');
+      setTimeout(function () { el.classList.remove('noted'); }, 2200);
+    });
     say(op.length ? t('Munch munch. The notes show what still fits in each cell.') : t('Your notes are already tidy.'), 'happy');
   }
 
@@ -532,8 +568,9 @@
     if (!Shop.use(BD.state, 'lady')) return;
     var cand = E.candidates(G.S, G.vals), slots = {}, n = 0;
     for (var c = 0; c < G.h; c++) if (!G.vals[layer + c] && (cand[layer + c] & (1 << (v - 1)))) { slots[layer + c] = 1; n++; }
-    G.hint = null; G.lady = { v: v, slots: slots };
+    G.hint = null; shooBee(); G.lady = { v: v, slots: slots };
     save(); paint();
+    Fx.ladybird(els.board, Object.keys(slots).map(function (x) { return cellEl(+x); }), els.friends);
     say(n ? t('{0} can still go in the dotted cells.', nameOf(layer, v)) : t('{0} has no free place left.', nameOf(layer, v)), 'happy');
   }
 
@@ -543,6 +580,8 @@
     G.owl = true;
     bad.forEach(function (c) { G.flagged[c] = 1; });
     save(); paint();
+    Fx.owl(els.board);
+    bad.forEach(function (c) { var el = cellEl(c); el.classList.add('shake'); setTimeout(function () { el.classList.remove('shake'); }, 1900); });
     say(bad.length === 0 ? t('Every flower you planted is right.') : bad.length === 1 ? t('One flower is wilted. I marked it.') : t('{0} flowers are wilted. I marked them.', bad.length), bad.length ? 'oops' : 'happy');
   }
 
@@ -559,6 +598,8 @@
     G.frog = true; G.sel = c; G.armed = 0;
     Snd.note(v);
     say(t('Ribbit. One flower planted.'), 'happy');
+    var landed = Fx.frog(cellEl(c), els.friends), pad = cellEl(c); // the flower shows when the frog lands
+    if (landed) { pad.style.setProperty('--d', landed + 'ms'); pad.classList.add('landing'); setTimeout(function () { pad.classList.remove('landing'); }, landed + 500); }
     afterRight(c);
   }
 
@@ -605,7 +646,7 @@
 
   /* ---------- winning ---------- */
   function win() {
-    G.won = true; G.sel = -1; G.armed = 0; G.hint = null; G.lady = null;
+    G.won = true; G.sel = -1; G.armed = 0; G.hint = null; G.lady = null; shooBee();
     var n = G.pz.n;
     paint();
     els.cells.forEach(function (el, c) {
@@ -613,6 +654,13 @@
       el.classList.add('bloom');
     });
     Snd.win();
+    if (G.lesson) { // a tutorial garden: no stars, on to the next lesson
+      var last = G.step + 1 >= W.TUTORIAL[G.key].length, lesson = G;
+      if (last) { BD.state.seen['tut-' + G.key] = 1; BD.save(); }
+      say(t('The whole garden is in bloom!'), 'happy');
+      setTimeout(function () { if (G === lesson) lessonSheet(last); }, 1100);
+      return;
+    }
     var result = { slips: G.slips, frog: G.frog || G.told, owl: G.owl, bees: G.bees, time: G.time };
     var before = W.player(BD.state), nuts = Shop.earned(BD.state);
     var out = G.mode === 'daily' ? W.finishDaily(BD.state, G.key, result) : W.finish(BD.state, G.key, G.pz.garden, result);
@@ -625,23 +673,52 @@
     setTimeout(function () { if (G === g) winSheet(result, out); }, 1100);
   }
 
-  // What falls when a garden blooms: petals, or the effect bought in the shop.
+  // What falls when a garden blooms: petals, or the effect chosen in the shop. ch: characters instead of petals;
+  // shape: 'sq' paper squares, 'bub' bubbles (they rise), 'fw' fireworks (they burst from three points).
   var EFFECTS = {
     petals: { colors: A.colors },
-    hearts: { ch: '♥', colors: ['#F2668B', '#FF8FA8', '#E0457B', '#D05FC2'] },
+    hearts: { ch: ['♥'], colors: ['#F2668B', '#FF8FA8', '#E0457B', '#D05FC2'] },
     leaves: { colors: ['#D9662B', '#E3A008', '#A8742A', '#C23A30', '#E8A417'] },
-    stars: { ch: '★', colors: ['#F2B807', '#FFD86B', '#F5C518'] },
-    snow: { ch: '❄', colors: ['#9CC4F2', '#C9DFF8', '#7FBCF7'] },
+    stars: { ch: ['★'], colors: ['#F2B807', '#FFD86B', '#F5C518'] },
+    snow: { ch: ['❄'], colors: ['#9CC4F2', '#C9DFF8', '#7FBCF7'] },
+    confetti: { shape: 'sq', colors: A.colors },
+    bubbles: { shape: 'bub', colors: ['#7FBCF7', '#5FD9CB', '#B5A2FA', '#9CC4F2'] },
+    notes: { ch: ['♪', '♫'], colors: ['#8C6FE0', '#F2668B', '#2FB5A6', '#F28A2E'] },
+    butterflies: { ch: ['🦋'], colors: ['#4D9DE8'] },
+    chestnuts: { ch: ['🌰'], colors: ['#8A5A2B'] },
+    fireworks: { shape: 'fw', colors: ['#F2668B', '#F5C518', '#4D9DE8', '#4FB06D', '#D05FC2', '#F28A2E'] },
   };
   P.EFFECTS = EFFECTS;
-  function petals() {
-    var fx = EFFECTS[Shop.wearing(BD.state, 'effect')] || EFFECTS.petals;
-    var box = h('div.petals', { 'aria-hidden': 'true' });
-    for (var i = 0; i < 26; i++) {
-      box.appendChild(h('i' + (fx.ch ? '.ch' : ''), { style: { left: (Math.random() * 100) + '%', '--c': fx.colors[i % fx.colors.length], '--t': (2.6 + Math.random() * 2.2) + 's', '--w': (Math.random() * 1.6) + 's', '--x': (Math.random() * 80 - 40) + 'px' } }, fx.ch || null));
+  function petals(name) {
+    var fx = EFFECTS[name || Shop.wearing(BD.state, 'effect')] || EFFECTS.petals;
+    var box = h('div.petals' + (fx.shape ? '.' + fx.shape : ''), { 'aria-hidden': 'true' }), n = fx.shape === 'fw' ? 42 : 26;
+    for (var i = 0; i < n; i++) {
+      var style = { left: (Math.random() * 100) + '%', '--c': fx.colors[i % fx.colors.length], '--t': (2.6 + Math.random() * 2.2) + 's', '--w': (Math.random() * 1.6) + 's', '--x': (Math.random() * 80 - 40) + 'px' };
+      if (fx.shape === 'fw') { // three bursts of fourteen sparks
+        var burst = Math.floor(i / 14);
+        style = { left: [24, 70, 46][burst] + '%', top: [26, 20, 44][burst] + '%', '--c': fx.colors[(i + burst) % fx.colors.length], '--a': (i % 14) * (360 / 14) + 'deg', '--w': (burst * 0.45) + 's', '--r': (70 + Math.random() * 50) + 'px' };
+      }
+      box.appendChild(h('i' + (fx.ch ? '.ch' : ''), { style: style }, fx.ch ? fx.ch[i % fx.ch.length] : null));
     }
     document.body.appendChild(box);
     setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 6500);
+  }
+  P.petals = petals;
+
+  function lessonSheet(last) {
+    petals();
+    var kind = G.key, step = G.step, view = document.getElementById('view'), first = kind === 'twin' ? '9-1' : '1-1';
+    var close = BD.sheet(h('div.win.lesson',
+      h('div.win-pua', { html: A.pua('happy', 88) }),
+      h('h2', last ? t('You know the rule!') : t('Well done!')),
+      h('p.muted', last ? (kind === 'twin' ? t('The real twin gardens are 9×9: 81 cells, 81 different couples.') : t('The real gardens are 9×9 and work exactly the same way: nine rows, nine columns, nine plots.')) : t('One more tiny garden, with a little less help.')),
+      last
+        ? [h('a.btn.primary', { href: '#/play/' + first, onclick: function () { close(); } }, kind === 'twin' ? t('Open the first twin garden') : t('Plant the first garden')),
+           h('a.btn.ghost', { href: '#/', onclick: function () { close(); } }, t('Back to the map'))]
+        : [h('button.btn.primary', { type: 'button', onclick: function () { close(); location.hash = '#/tutorial/' + kind + '/' + (step + 2); } }, t('Next lesson')),
+           h('a.btn.ghost', { href: '#/', onclick: function () { close(); } }, t('Back to the map'))]),
+      { modal: true });
+    void view;
   }
 
   function winSheet(result, out) {

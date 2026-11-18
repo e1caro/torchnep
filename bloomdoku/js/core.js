@@ -62,7 +62,7 @@
   BD.sanitize = function (raw) {
     var s = fresh(), r = obj(raw), k;
     if (r.lang === 'en' || r.lang === 'es') s.lang = r.lang;
-    if (['numbers', 'flowers', 'critters', 'fruits'].indexOf(r.skin) >= 0) s.skin = r.skin;
+    if (typeof r.skin === 'string' && /^[a-z]{3,12}$/.test(r.skin)) s.skin = r.skin; // shown only if owned (BD.skin)
     if (['auto', 'day', 'night'].indexOf(r.theme) >= 0) s.theme = r.theme;
     for (k in s.set) if (typeof obj(r.set)[k] === 'boolean') s.set[k] = r.set[k];
     Object.keys(obj(r.levels)).forEach(function (key) {
@@ -84,9 +84,9 @@
     Object.keys(obj(r.seen)).forEach(function (key) { if (r.seen[key]) s.seen[key] = 1; });
     Object.keys(obj(r.invites)).forEach(function (key) { if (r.invites[key] && /^\d+-\d+$/.test(key)) s.invites[key] = 1; });
     if (r.avatar >= 1 && r.avatar <= 9) s.avatar = r.avatar | 0;
-    Object.keys(obj(r.own)).forEach(function (id) { if (r.own[id] && /^[a-z]+-[a-z]+$/.test(id)) s.own[id] = 1; });
+    Object.keys(obj(r.own)).forEach(function (id) { if (r.own[id] && /^[a-z]+(-[a-z]+){1,2}$/.test(id)) s.own[id] = Math.max(1, Math.min(9999, +r.own[id] | 0)); });
     ['bought', 'used'].forEach(function (f) { Object.keys(obj(r[f])).forEach(function (id) { if (/^[a-z]+$/.test(id) && r[f][id] > 0) s[f][id] = Math.min(1e6, r[f][id] | 0); }); });
-    ['theme', 'hat', 'effect'].forEach(function (k) { if (typeof obj(r.wear)[k] === 'string' && /^[a-z]+$/.test(r.wear[k])) s.wear[k] = r.wear[k]; });
+    Object.keys(obj(r.wear)).forEach(function (k) { if (/^(h-)?[a-z]{2,10}$/.test(k) && typeof r.wear[k] === 'string' && /^[a-z]{2,12}$/.test(r.wear[k])) s.wear[k] = r.wear[k]; });
     return s;
   };
   BD.load = function () {
@@ -112,8 +112,10 @@
     var th = BD.state.theme, root = document.documentElement;
     if (th === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', th);
     root.setAttribute('lang', BD.state.lang);
-    var garden = BD.shop ? BD.shop.wearing(BD.state, 'theme') : 'meadow';
+    var garden = BD.shop ? BD.shop.wearing(BD.state, 'theme') : 'meadow', frame = BD.shop ? BD.shop.wearing(BD.state, 'frame') : 'classic';
     if (garden === 'meadow') root.removeAttribute('data-garden'); else root.setAttribute('data-garden', garden);
+    if (frame === 'classic') root.removeAttribute('data-frame'); else root.setAttribute('data-frame', frame);
+    root.setAttribute('data-air', (BD.shop && BD.shop.find('theme', garden).air) || '');
     var dark = th === 'night' || (th === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     var meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', dark ? '#1B1836' : (BD.shop && BD.shop.find('theme', garden).colors[0]) || '#DFF3EA');

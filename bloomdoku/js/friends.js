@@ -3,15 +3,17 @@
  * Settings. Everything a friend typed is shown as text, never as HTML. */
 (function () {
   'use strict';
-  var BD = window.BD, W = BD.worlds, A = BD.art, C = BD.cloud, h = BD.h, t = BD.t;
+  var BD = window.BD, W = BD.worlds, A = BD.art, C = BD.cloud, Shop = BD.shop, h = BD.h, t = BD.t;
   var F = (BD.friends = {});
   var poll = null, pending = '';   // the chat poll of the open friend page; a friend code that arrived by link
 
   function num(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, BD.state.lang === 'es' ? '.' : ','); }
   function err(e) { BD.toast(t(e && e.message ? e.message : String(e))); }
-  function avatarOf(name, av) {
+  // What another player wears comes from their profile: anything that is not a known thing falls back to the plain one.
+  function known(kind, value, plain) { return typeof value === 'string' && Shop.find(kind, value) ? value : plain; }
+  function avatarOf(name, av, ring) {
     var v = av >= 1 && av <= 9 ? av : (BD.engine.hash(String(name || '')) % 9) + 1;
-    return h('span.avatar', { style: { '--ac': A.colors[v - 1] }, html: A.token(v, 'critters') });
+    return h('span.avatar.ring-' + known('ring', ring, 'none'), { style: { '--ac': A.colors[v - 1] }, html: A.token(v, 'critters') });
   }
   function levelLine(pub) { return t('Level {0}', pub.lvl || 1) + ' · ' + t(W.title(pub.lvl || 1)); }
   F.stop = function () { clearInterval(poll); poll = null; };
@@ -76,7 +78,7 @@
       h('button.btn.small', { type: 'button', onclick: copyCode }, t('Copy')),
       h('button.btn.small.primary', { type: 'button', onclick: shareCode }, t('Invite')));
     page.appendChild(h('section.card.mecard',
-      h('button.avatar-btn', { type: 'button', 'aria-label': t('Change your critter'), onclick: function () { pickAvatar(redraw); } }, avatarOf(me.username, BD.state.avatar)),
+      h('button.avatar-btn', { type: 'button', 'aria-label': t('Change your critter'), onclick: function () { pickAvatar(redraw); } }, avatarOf(me.username, BD.state.avatar, Shop.wearing(BD.state, 'ring'))),
       h('div.grow', h('b.name', { translate: 'no' }, me.username), h('span.muted', levelLine(me.public)),
         h('div.xpbar', { role: 'img', 'aria-label': t('{0} of {1} XP', p.xp - p.from, p.to - p.from) }, h('span', { style: { width: Math.round(100 * (p.xp - p.from) / (p.to - p.from)) + '%' } }))),
       codeBox));
@@ -115,7 +117,7 @@
         var pub = f.public, day = pub.day && pub.day.d === today ? pub.day : null, unread = data.unread[f.id] || 0;
         return h((f.me ? 'div' : 'a') + '.frow.rank' + (f.me ? '.me' : ''), { href: f.me ? null : '#/friend/' + f.id, 'data-friend': f.me ? null : f.username },
           h('span.place' + (i < 3 ? '.p' + (i + 1) : ''), String(i + 1)),
-          avatarOf(f.username, pub.av),
+          avatarOf(f.username, pub.av, f.me ? Shop.wearing(BD.state, 'ring') : pub.ring),
           h('span.grow', h('b', { translate: 'no' }, f.username + (f.me ? ' (' + t('you') + ')' : '')), h('small.muted', levelLine(pub)),
             h('small.muted', '★ ' + (pub.stars || 0) + ' · 🌷 ' + num(pub.solved || 0) + (pub.streak ? ' · 🔥 ' + pub.streak : ''))),
           h('span.today' + (day ? '.got' : ''), { 'aria-label': t('Daily bouquet') + ': ' + (day ? t('{0} of 3 stars', day.stars) : t('not yet today')) }, '💐', h('small', day ? BD.stars(day.stars) : '···')),
@@ -228,7 +230,7 @@
         h('a.round', { href: '#/friends', 'aria-label': t('Back to friends') }, h('span', { html: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.500 5.500 8 12l6.500 6.500"/></svg>' })),
         h('div.play-title', h('b', { translate: 'no' }, f.username), h('span', levelLine(pub))),
         h('button.round', { type: 'button', 'aria-label': t('Friend menu'), onclick: function () { friendMenu(f); } }, h('span', { html: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5.500" cy="12" r="1.400"/><circle cx="12" cy="12" r="1.400"/><circle cx="18.500" cy="12" r="1.400"/></svg>' }))),
-      h('section.card.fhead', avatarOf(f.username, pub.av),
+      h('section.card.fhead', h('span.fpua', { 'aria-label': t('{0}\'s Pua', f.username), html: A.pua('happy', 66, known('hat', pub.hat, 'flower'), known('coat', pub.coat, 'classic')) }), avatarOf(f.username, pub.av, pub.ring),
         h('div.grow', h('p.compare', compare),
           h('div.fstats', h('span', h('b', num(pub.solved || 0)), t('gardens')), h('span', h('b', String(pub.stars || 0)), t('stars')), h('span', h('b', String(pub.streak || 0)), t('days in a row')), h('span', h('b', String(pub.stamps || 0)), t('stamps'))))),
       h('details.card.fgarden', h('summary', t('{0}\'s garden', f.username)),

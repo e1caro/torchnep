@@ -76,9 +76,10 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
     });
     await test(name + ': the whole play screen fits, the board is square, keys are 44 px or more', async () => {
       const p = await phone(w, h);
-      await unlock(p, ['1-1', '1-2', '2-1', '2-2', '4-1', '4-2', '4-3', '8-1', '8-2', '8-3', '9-1', '9-2']);
-      for (const lv of ['1-1', '4-1', '1-3', '4-3', '2-3', '8-4', '9-1', '9-3']) { // 4×4, 5×5, 6×6, 7×7, 9×9, 9×9 with three rules, twin 4×4 and 9×9
-        await open(p, '#/play/' + lv);
+      await unlock(p, ['2-1', '2-2', '4-1', '4-2', '4-3', '8-1', '8-2', '8-3', '9-1', '9-2']);
+      // 4×4 (tutorial), 5×5, 6×6, 7×7, 9×9, 9×9 with three rules, twin 4×4 (tutorial) and 9×9
+      for (const lv of ['tutorial', 'play/4-1', 'play/3-1', 'play/4-3', 'play/2-3', 'play/8-4', 'tutorial/twin', 'play/9-3']) {
+        await open(p, '#/' + lv);
         await noSideScroll(p, lv);
         const m = await p.evaluate(() => {
           const r = (s) => { const b = document.querySelector(s).getBoundingClientRect(); return { l: b.left, t: b.top, r: b.right, b: b.bottom, w: b.width, h: b.height }; };
@@ -107,14 +108,39 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
     eq(await p.locator('.stone.locked').count(), 33);
     eq(await p.locator('.stone:not(.locked)').count(), 11);
     ok(/Level 1/.test(await p.locator('.levelchip').innerText()) && /🌰 0/.test(await p.locator('.nutchip').innerText()));
+    ok(/New to sudoku/.test(await p.locator('.tutorial-card').innerText()), 'a newcomer is offered the tutorial');
     await p.locator('[data-level="1-2"]').click();
-    ok(/Four little seeds/.test(await p.locator('#toast').innerText()));
+    ok(/First seeds/.test(await p.locator('#toast').innerText()));
+  });
+  await test('the tutorial: three tiny 4×4 gardens with Pua showing the way, then the first real garden', async () => {
+    await p.locator('.tutorial-card').click();
+    await p.waitForSelector('.board');
+    eq(await p.locator('.cell').count(), 16);
+    ok(/Tutorial · 1\/3/.test(await p.locator('.play-title b').innerText()));
+    ok(/one rule/.test(await p.locator('.bubble').innerText()), 'the first lesson explains the rule');
+    eq(await p.locator('.cell.hint').count(), 1, 'the coach shows where to look');
+    await solve(p);
+    await p.waitForSelector('.sheet .lesson', { timeout: 4000 });
+    await p.locator('.sheet .btn.primary').click();
+    await p.waitForSelector('.board'); await p.waitForTimeout(150);
+    ok(/Tutorial · 2\/3/.test(await p.locator('.play-title b').innerText()));
+    await open(p, '#/tutorial/classic/3');
+    eq(await p.locator('.cell.hint').count(), 0, 'the last lesson is all yours');
+    await solve(p);
+    await p.waitForSelector('.sheet .lesson', { timeout: 4000 });
+    eq(await p.evaluate(() => [Object.keys(BD.state.levels).length, Object.keys(BD.state.games).length, BD.state.seen['tut-classic']]), [0, 0, 1], 'lessons are not saved as gardens');
+    ok(/Plant the first garden/.test(await p.locator('.sheet .btn.primary').innerText()));
+    await p.locator('.sheet .btn.primary').click();
+    await p.waitForSelector('.board'); await p.waitForTimeout(100);
+    eq([(await game(p)).n, await p.evaluate(() => BD.game.current.key)], [9, '1-1'], 'the map starts with a real 9×9 garden');
+    await p.goto(BASE + '#/'); await p.waitForSelector('.world');
+    eq(await p.locator('.tutorial-card').count(), 0, 'done: the card goes away');
   });
   await test('a level sheet shows what it teaches, the world intro and 100 numbered gardens', async () => {
     await p.locator('[data-level="1-1"]').click();
     await p.waitForSelector('.sheet .tiles');
     eq(await p.locator('.sheet .tile').count(), 100);
-    ok(/one rule of sudoku/.test(await p.locator('.sheet .intro').innerText()));
+    ok(/most of its flowers already planted/.test(await p.locator('.sheet .intro').innerText()));
     await p.locator('.sheet .btn.primary').click();
     await p.waitForSelector('.board');
     eq((await game(p)).garden, 0);
@@ -180,7 +206,7 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
     await solve(p);
     await p.waitForSelector('.sheet .win', { timeout: 4000 });
     eq(await p.locator('.win-stars .on').count(), 2, 'one slip earlier: two stars');
-    eq(await p.locator('.win-gain .nuts').innerText(), '+8 🌰');
+    eq(await p.locator('.win-gain .nuts').innerText(), '+3 🌰');
     ok(/^\+\d+ XP$/.test(await p.locator('.win-gain .xp').innerText()));
     eq(await p.evaluate(() => BD.state.levels['1-1']), { stars: 2, g: '2', extra: 0, at: 1 });
     eq(await p.evaluate(() => Object.keys(BD.state.games).length), 0, 'no game left in progress');
@@ -421,24 +447,25 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
     await open(tw, '#/play/9-1');
     ok(/Couples/.test(await tw.locator('.chips').innerText()));
     ok(/left half/.test(await tw.locator('.bubble').innerText()), 'the first twin garden explains the two halves');
-    eq(await tw.locator('.cell').count(), 16);
-    eq(await tw.locator('.cell .half').count(), 32);
-    const g = await game(tw), h = 16, cell = [...Array(h).keys()].find((c) => !g.giv[c] && !g.giv[h + c]);
-    ok(cell != null, 'a cell with both figures to find');
-    await tap(tw, cell);
-    eq((await game(tw)).sel, cell);
-    ok(await tw.locator('.cell').nth(cell).locator('.half.fa.on').count() === 1);
-    await key(tw, g.sol[cell]);
-    let now = await game(tw);
-    eq([now.vals[cell], now.sel], [g.sol[cell], h + cell], 'planted, and on to the second figure');
+    eq(await tw.locator('.cell').count(), 81);
+    eq(await tw.locator('.cell .half').count(), 162);
+    const g = await game(tw), h = 81, a = [...Array(h).keys()].find((c) => !g.giv[c]), b = [...Array(h).keys()].find((c) => !g.giv[h + c]);
+    ok(a != null && b != null, 'first and second figures to find');
+    await tap(tw, a);
+    eq((await game(tw)).sel, a);
+    ok(await tw.locator('.cell').nth(a).locator('.half.fa.on').count() === 1);
+    await key(tw, g.sol[a]);
+    eq((await game(tw)).vals[a], g.sol[a], 'the first figure is planted');
+    await tap(tw, h + b);
+    if ((await game(tw)).sel !== h + b) await tap(tw, h + b);
+    eq((await game(tw)).sel, h + b);
     ok((await tw.locator('.pad').getAttribute('class')).includes('second'));
-    await key(tw, g.sol[h + cell] % 4 + 1);
-    ok(await tw.locator('.cell').nth(cell).locator('.half.fb.wilt').count() === 1, 'a wrong second figure wilts on its own half');
+    await key(tw, g.sol[h + b] % 9 + 1);
+    ok(await tw.locator('.cell').nth(b).locator('.half.fb.wilt').count() === 1, 'a wrong second figure wilts on its own half');
     await tw.locator('.key.erase').click();
-    await tap(tw, h + cell); await tap(tw, h + cell);
-    await key(tw, g.sol[h + cell]);
-    now = await game(tw);
-    eq([now.vals[cell], now.vals[h + cell]], [g.sol[cell], g.sol[h + cell]]);
+    await key(tw, g.sol[h + b]);
+    const now = await game(tw);
+    eq([now.vals[a], now.vals[h + b]], [g.sol[a], g.sol[h + b]]);
   });
   await test('notes are coloured dots in each half; the hint says which figure to look at', async () => {
     await tw.locator('.tool.friends').click(); await tw.locator('.sheet .helper').nth(1).click();
@@ -446,6 +473,17 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
     await tw.locator('.tool.hintb').click();
     ok(/(first|second) figure of the glowing cell/.test(await tw.locator('.bubble').innerText()));
     eq(await tw.locator('.half.hinted').count(), 1);
+  });
+  await test('the twin tutorial: a tiny 4×4 pair of gardens first', async () => {
+    const q = await phone(390, 844);
+    await q.goto(BASE + '#/'); await q.waitForSelector('#twin');
+    await q.locator('#twin a', { hasText: 'Try two tiny ones first' }).click();
+    await q.waitForSelector('.board');
+    eq([await q.locator('.cell').count(), await q.locator('.cell .half').count()], [16, 32]);
+    await solve(q);
+    await q.waitForSelector('.sheet .lesson', { timeout: 4000 });
+    ok(/Next lesson/.test(await q.locator('.sheet .btn.primary').innerText()));
+    await q.context().close();
   });
   await test('finishing a twin garden: no couple twice, stars saved, the next level opens', async () => {
     await solve(tw);
@@ -479,31 +517,59 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
   await test('chestnuts are earned by playing and shown on the map; the shop sells helpers one by one', async () => {
     await open(sh, '#/play/1-1'); await solve(sh);
     await sh.waitForSelector('.sheet .win', { timeout: 4000 });
-    eq(await sh.locator('.win-gain .nuts').innerText(), '+10 🌰');
+    eq(await sh.locator('.win-gain .nuts').innerText(), '+4 🌰');
     await sh.locator('.sheet a.btn.ghost').click(); await sh.waitForSelector('.world');
-    ok(/🌰 10/.test(await sh.locator('.nutchip').innerText()));
+    const b = await sh.evaluate(() => BD.shop.balance(BD.state));
+    ok(b >= 4 && b < 12 && (await sh.locator('.nutchip').innerText()).includes('🌰 ' + b), 'balance ' + b);
     await sh.locator('.nutchip').click(); await sh.waitForSelector('.shopp');
     await sh.locator('button[data-item="frog"]').click();
-    await sh.waitForFunction(() => /You need 2 more chestnuts/.test(document.getElementById('toast').innerText));
+    await sh.waitForFunction((need) => new RegExp('You need ' + need + ' more chestnuts').test(document.getElementById('toast').innerText), 12 - b);
+    await sh.evaluate(() => { BD.state.levels['1-2'] = { stars: 3, g: '3', extra: 0, at: 1 }; BD.save(); });
+    await sh.reload(); await sh.waitForSelector('.shopp');
+    const b2 = await sh.evaluate(() => BD.shop.balance(BD.state));
     await sh.locator('button[data-item="lady"]').click();
-    eq(await sh.evaluate(() => [BD.shop.stock(BD.state, 'lady'), BD.shop.balance(BD.state)]), [6, 4]);
-    ok(/🌰 4/.test(await sh.locator('.purse').innerText()));
+    eq(await sh.evaluate(() => [BD.shop.stock(BD.state, 'lady'), BD.shop.balance(BD.state)]), [6, b2 - 6]);
+    eq(await sh.locator('.purse').innerText(), '🌰 ' + (b2 - 6));
+  });
+  await test('the shop has four aisles; a helper look is bought from its close-up and the helper wears it', async () => {
+    eq(await sh.locator('.aisles button').count(), 4);
+    await sh.evaluate(() => { BD.state.levels['1-3'] = { stars: 3, g: '3'.repeat(60), extra: 0, at: 60 }; BD.save(); });
+    await sh.reload(); await sh.waitForSelector('.shopp');
+    eq(await sh.locator('.items [data-item^="hskin-"]').count(), 20, 'four looks for each of the five helpers');
+    const before = await sh.evaluate(() => [BD.shop.balance(BD.state), BD.shop.price(BD.state, 'hskin-bee-bumble')]);
+    await sh.locator('[data-item="hskin-bee-bumble"]').click();
+    await sh.waitForSelector('.sheet .stage svg');
+    await sh.locator('.sheet .btn.primary').click(); await sh.waitForTimeout(260);
+    eq(await sh.evaluate(() => [BD.shop.wearing(BD.state, 'h-bee'), BD.shop.balance(BD.state)]), ['bumble', before[0] - before[1]]);
+    await open(sh, '#/play/2-1/7');
+    await sh.locator('.tool.hintb').click();
+    await sh.waitForSelector('#fx .fx-bee');
+    ok((await sh.locator('#fx .fx-bee').innerHTML()).length > 200, 'the bee flies in, in its new look');
+    await sh.locator('.tool.friends').click();
+    eq(await sh.locator('.sheet .helper .hicon svg').count(), 5, 'the helpers sheet shows each helper drawn');
+    await sh.locator('.sheet-x').click(); await sh.waitForTimeout(260);
+    await sh.goto(BASE + '#/settings'); await sh.waitForSelector('.version');
+    await sh.locator('.version .btn').click();
+    await sh.waitForFunction(() => /latest version/.test(document.querySelector('.version').innerText));
+    await sh.goto(BASE + '#/shop'); await sh.waitForSelector('.shopp');
   });
   await test('things to keep: a look for the garden, a hat for Pua, fruits for the cells; bought once, worn at will', async () => {
     await sh.evaluate(() => { ['1-2', '1-3', '1-4', '2-1'].forEach((k) => { BD.state.levels[k] = { stars: 3, g: '3'.repeat(40), extra: 0, at: 40 }; }); BD.save(); });
     await sh.reload(); await sh.waitForSelector('.shopp');
     const rich = await sh.evaluate(() => BD.shop.balance(BD.state));
-    ok(rich > 1000, 'chestnuts: ' + rich);
-    await sh.locator('[data-item="theme-autumn"]').click(); await sh.locator('.sheet .btn.primary').click(); await sh.waitForTimeout(260);
-    eq(await sh.evaluate(() => [document.documentElement.getAttribute('data-garden'), BD.shop.balance(BD.state)]), ['autumn', rich - 100]);
-    ok((await sh.locator('[data-item="theme-autumn"]').getAttribute('class')).includes('on'));
-    await sh.locator('[data-item="theme-meadow"]').click();
-    eq(await sh.evaluate(() => [document.documentElement.getAttribute('data-garden'), BD.shop.balance(BD.state)]), [null, rich - 100], 'wearing something owned is free');
-    await sh.locator('[data-item="hat-crown"]').click(); await sh.locator('.sheet .btn.primary').click(); await sh.waitForTimeout(260);
+    const cost = await sh.evaluate(() => ['theme-autumn', 'hat-crown', 'skin-fruits', 'effect-hearts'].map((id) => BD.shop.price(BD.state, id)));
+    ok(rich > cost.reduce((a, b) => a + b), 'chestnuts: ' + rich);
+    const buy = async (aisle, id) => { await sh.locator('[data-aisle="' + aisle + '"]').click(); await sh.locator('.items [data-item="' + id + '"]').click(); await sh.locator('.sheet .btn.primary').click(); await sh.waitForTimeout(260); };
+    await buy('looks', 'theme-autumn');
+    eq(await sh.evaluate(() => [document.documentElement.getAttribute('data-garden'), BD.shop.balance(BD.state)]), ['autumn', rich - cost[0]]);
+    ok((await sh.locator('.items [data-item="theme-autumn"]').getAttribute('class')).includes('on'));
+    await buy('looks', 'theme-meadow');
+    eq(await sh.evaluate(() => [document.documentElement.getAttribute('data-garden'), BD.shop.balance(BD.state)]), [null, rich - cost[0]], 'wearing something owned is free');
+    await buy('pua', 'hat-crown');
     eq(await sh.evaluate(() => BD.shop.wearing(BD.state, 'hat')), 'crown');
-    await sh.locator('[data-item="skin-fruits"]').click(); await sh.locator('.sheet .btn.primary').click(); await sh.waitForTimeout(260);
-    await sh.locator('[data-item="effect-hearts"]').click(); await sh.locator('.sheet .btn.primary').click(); await sh.waitForTimeout(260);
-    eq(await sh.evaluate(() => BD.shop.balance(BD.state)), rich - 100 - 300 - 120 - 50);
+    await buy('cells', 'skin-fruits');
+    await buy('looks', 'effect-hearts');
+    eq(await sh.evaluate(() => BD.shop.balance(BD.state)), rich - cost[0] - cost[1] - cost[2] - cost[3]);
     await open(sh, '#/play/2-1/50');
     ok(await sh.locator('.cell .tok use[href^="#bd-fruits-"]').count() > 20, 'fruits grow in the cells');
     await sh.reload(); await sh.waitForSelector('.board');
@@ -678,7 +744,7 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
     await q.reload();
     await q.waitForSelector('.world');
     await q.goto(BASE + '#/play/1-1'); await q.waitForSelector('.board');
-    eq(await q.locator('.cell').count(), 16);
+    eq(await q.locator('.cell').count(), 81);
     await ctx.close();
   });
 

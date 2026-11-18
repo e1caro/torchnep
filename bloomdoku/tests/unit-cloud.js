@@ -70,12 +70,12 @@ test('two devices that play apart end up with everything of both, and nothing is
 
 test('what was bought follows the account; chestnuts are never counted twice', async () => {
   const fake = makeFake(), a = device(fake), b = device(fake);
-  for (let g = 0; g < 8; g++) play(a, '1-1', g);
-  const earned = Shop.earned(a.state);
+  for (let g = 0; g < 14; g++) play(a, '1-1', g);
+  const earned = Shop.earned(a.state), bow = Shop.price(a.state, 'hat-bow');
   ok(Shop.buy(a.state, 'hat-bow') && Shop.buy(a.state, 'frog')); a.save();
   await a.cloud.signUp('ana', 'secret1');
   await b.cloud.signIn('ana', 'secret1');
-  eq([Shop.owns(b.state, 'hat-bow'), Shop.stock(b.state, 'frog'), Shop.earned(b.state), Shop.balance(b.state)], [true, 6, earned, earned - 30 - 12]);
+  eq([Shop.owns(b.state, 'hat-bow'), Shop.stock(b.state, 'frog'), Shop.earned(b.state), Shop.balance(b.state)], [true, 6, earned, earned - bow - 12]);
   Shop.use(b.state, 'frog'); b.save(); await b.cloud.sync(); await a.cloud.sync();
   eq(Shop.stock(a.state, 'frog'), 5, 'a charge used on one device is used on the other');
   eq(Shop.earned(a.state), earned, 'syncing back and forth earns nothing');
