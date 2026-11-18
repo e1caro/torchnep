@@ -28,7 +28,8 @@ jobs:
           ruff check .
 
   pytest:
-    runs-on: ubuntu-latest
+    # ubuntu-latest (26.04) has no Python 3.9 build: the oldest supported Python runs on the last image that has one
+    runs-on: ${{ matrix.python-version == '3.9' && 'ubuntu-24.04' || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
