@@ -134,10 +134,14 @@
       (r.slips ? '🥀 ' + r.slips : '🌸 ' + t('Not a petal out of place')) + (r.bees ? ' · 🐝 ' + r.bees : '') + (r.frog ? ' · 🐸' : '') + (r.owl ? ' · 🦉' : '') +
       '\n🔥 ' + W.streak(BD.state.daily, W.dayKey());
     var url = location.href.split('#')[0];
-    if (navigator.share) { navigator.share({ text: text, url: url }).catch(function () { /* closed the share sheet */ }); return; }
-    var done = function () { BD.toast(t('Copied. Paste it anywhere.')); };
-    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text + '\n' + url).then(done, function () { BD.toast(text); });
-    else BD.toast(text);
+    function copy() {
+      var done = function () { BD.toast(t('Copied. Paste it anywhere.')); };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text + '\n' + url).then(done, function () { BD.toast(text); });
+      else BD.toast(text);
+    }
+    // The share sheet where the phone has one; closing it is fine, a refusal falls back to copying.
+    if (navigator.share) navigator.share({ text: text, url: url }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); });
+    else copy();
   };
 
   /* ---------- my garden ---------- */
