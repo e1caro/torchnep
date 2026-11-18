@@ -57,6 +57,7 @@ jobs:
       - name: Add the Bloomdoku app (served at /bloomdoku/, without its tests and tools)
         run: |
           node bloomdoku/tests/unit.js
+          node bloomdoku/tests/unit-cloud.js
           cp -r bloomdoku site/bloomdoku
           rm -rf site/bloomdoku/tests site/bloomdoku/tools
 

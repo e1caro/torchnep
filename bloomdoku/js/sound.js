@@ -57,6 +57,7 @@
   S.tap = function () {
     if (!BD.state || !BD.state.set.haptic) return;
     try {
+      if (BD.native && BD.native.vibrate) { BD.native.vibrate(8); return; } // the Android app
       if (navigator.vibrate) { navigator.vibrate(8); return; }
       if (!swLabel) {
         sw = document.createElement('input');

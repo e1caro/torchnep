@@ -102,9 +102,53 @@ only add at the end.
   languages, dark mode, resume after reload, no sideways scrolling.
 - Publish it with the other apps (`docs.yml`, served at `/bloomdoku/`) and write its README.
 
+## 6. Added on request: levels, chestnuts and a shop
+
+- **Player level** and title, worked out from the progress (stars are worth more in bigger and harder levels), so
+  friends can compare.
+- **Chestnuts**, the game's money, earned by gardens, daily bouquets, world stamps and new levels; also worked out
+  from the progress, so two devices can never count a garden twice. Only what was bought and used is stored.
+- **A shop** with no real money: helper charges (frog, owl and a new ladybird that marks where a flower can still
+  go; five of each to start), skins (critters, fruits), garden looks that recolour the whole app by day and by
+  night, things for Pua to wear (friends see them) and effects for when a garden blooms.
+
+## 7. Added on request: friends, like FitQuest's but better
+
+- **An account** is a username and a password, no e-mail, in the Supabase project the other apps use, separate from
+  their accounts. With it the progress syncs between devices by merging, so nothing is ever lost.
+- **Friends:** a friend code and an invitation link, requests to accept or decline, a ranking of you and your
+  friends by level with today's bouquet, and each friend's page with their level, numbers and garden.
+- **Messages** between friends with flowers and critters as stickers, "seen" marks and taking a message back, and
+  **garden challenges**: send the garden you just finished, with your stars and time, and the friend plays the same
+  one (even in a level they have not opened yet).
+- **Better than FitQuest's:** nobody can list players (a friend is found only by code), a profile is visible only
+  to friends, only friends can write to each other, nothing can be forged or rewritten, there is a flood limit, a
+  report button and "remove friend" stops messages at once. All of it as database rules (`tools/supabase.sql`),
+  tested in a real PostgreSQL. Until that file is run in the project the app says friends are not switched on yet.
+
+## 8. Added on request: twin gardens, a two-figure sudoku
+
+- Every cell holds two figures. The first figures are a sudoku, the second figures are another, and **no couple
+  (first, second) appears twice**: on the 9×9 board the 81 cells hold the 81 possible couples exactly once.
+- Such pairs of sudokus exist for 4×4 and 9×9 and for no 6×6, so those are the sizes. Every garden is a shuffle of
+  a base pair that keeps the three rules (renaming figures, moving rows, columns, bands and stacks, flipping,
+  swapping the layers), with figures then removed while the logic solver still finishes it.
+- **About 1,000 gardens of its own:** 3 worlds × 4 levels × 100 = 1,200, from nearly full 4×4 boards to a 9×9 with
+  45 figures of 162, in their own part of the map.
+- On the board: the left half of a cell is the first figure and the right half the second; notes are coloured dots
+  in each half; hints say which half to look at and use the couples ("the cells that share a figure have different
+  partners").
+
+## 9. Added on request: an Android app
+
+- `android-bloomdoku/`: the same shell as `android-analyst/` (the web app packed in the APK, shown from a secure
+  local origin, self-updating from the releases' `web.zip`), with share, clipboard and vibration for the web side.
+- `.github/workflows/android-bloomdoku.yml`: tests, builds, and publishes `Bloomdoku-1.N.apk` as release
+  `bloomdoku-N`, signed with the repository's key.
+
 ## Later, in this order
 
-1. Sync between devices with the account the other apps use.
+1. A daily reminder and a notification for new messages in the Android app.
 2. Killer cages and "bigger than" signs as worlds 9 and 10.
 3. A weekly giant garden (a 12×12 or five overlapping boards).
 4. Seasonal skins (autumn leaves, snow animals).
