@@ -2,7 +2,7 @@
  *
  * A puzzle is a plain object that can be saved as JSON:
  *   { n, regions[cell] -> region index, diag, knight, vines: [[cell, cell, ...]], parity[cell] -> 0 | 1 odd | 2 even,
- *     givens[cell] -> 0 or value, solution[cell] -> value, tier }
+ *     givens[cell] -> 0 or value, solution[cell] -> value, tier, twin (two layers of cells: see buildTwin) }
  * E.build(puzzle) derives the structure the solvers use (groups, peers, vine arcs). Values are 1..n; candidate sets
  * are bit masks (bit v-1 for value v).
  */
@@ -62,6 +62,7 @@
   var KNIGHT = [[1, 2], [2, 1], [-1, 2], [-2, 1], [1, -2], [2, -1], [-1, -2], [-2, -1]];
 
   E.build = function (pz) {
+    if (pz.twin) return buildTwin(pz);
     var n = pz.n, N = n * n, c, i, j;
     var S = { n: n, N: N, full: (1 << n) - 1, pz: pz, groups: [], cellGroups: [], peers: [], arcsOut: [], arcsIn: [], arcs: [] };
     var rows = [], cols = [], regs = [];
@@ -111,6 +112,49 @@
     return S;
   };
 
+  /* Twin gardens: every cell holds two figures. The board is two layers of n*n slots: slot c (0 .. h-1) is the first
+   * figure of cell c and slot h + c its second figure (h = n*n = S.twin). Each layer is a sudoku of its own, and no
+   * couple (first, second) appears in two cells. pz.givens and pz.solution have 2h entries. */
+  function buildTwin(pz) {
+    var n = pz.n, h = n * n, base = E.build({ n: n, regions: pz.regions, diag: false, knight: false, vines: [], parity: null }), c, i, j;
+    var S = { n: n, N: 2 * h, twin: h, full: base.full, pz: pz, groups: [], cellGroups: [], peers: [], sees: [], hops: [], arcs: [], arcsOut: [], arcsIn: [], parityMask: null };
+    [0, h].forEach(function (off) {
+      base.groups.forEach(function (g) { S.groups.push({ kind: g.kind, i: g.i, layer: off ? 1 : 0, cells: g.cells.map(function (x) { return x + off; }), index: S.groups.length }); });
+    });
+    for (c = 0; c < 2 * h; c++) { S.cellGroups.push([]); S.sees.push(new Uint8Array(2 * h)); S.hops.push([]); S.arcsOut.push([]); S.arcsIn.push([]); }
+    S.groups.forEach(function (g, gi) {
+      for (i = 0; i < g.cells.length; i++) { S.cellGroups[g.cells[i]].push(gi); for (j = 0; j < g.cells.length; j++) if (i !== j) S.sees[g.cells[i]][g.cells[j]] = 1; }
+    });
+    for (c = 0; c < 2 * h; c++) { var p = []; for (j = 0; j < 2 * h; j++) if (S.sees[c][j]) p.push(j); S.peers.push(p); }
+    return S;
+  }
+  // Search solver: slot c just got its value. Two cells with the same figure in one layer cannot share the other one.
+  function coupleRule(S, cand, queue, c) {
+    var h = S.twin, x = c % h, L = c < h ? 0 : h, O = h - L, m = cand[c], y, nm;
+    for (y = 0; y < h; y++) {
+      if (y === x || cand[L + y] !== m) continue;
+      if (POP[cand[O + x]] === 1 && (cand[O + y] & cand[O + x])) { nm = cand[O + y] & ~cand[O + x]; cand[O + y] = nm; if (!nm) return false; queue.push(O + y); }
+      if (POP[cand[O + y]] === 1 && (cand[O + x] & cand[O + y])) { nm = cand[O + x] & ~cand[O + y]; cand[O + x] = nm; if (!nm) return false; queue.push(O + x); }
+    }
+    return true;
+  }
+  // Logic solver: the cells that hold figure v in one layer, by value (only planted slots count).
+  function buckets(S, vals, off) {
+    var out = [], c;
+    for (c = 0; c <= S.n; c++) out.push([]);
+    for (c = 0; c < S.twin; c++) if (vals[off + c]) out[vals[off + c]].push(c);
+    return out;
+  }
+  // Once all n cells with one figure are known, their other figures are n different ones: a group like a row.
+  function coupleGroups(S, vals) {
+    var out = [], h = S.twin;
+    [0, h].forEach(function (off) {
+      var bs = buckets(S, vals, off);
+      for (var v = 1; v <= S.n; v++) if (bs[v].length === S.n) out.push({ kind: 'couple', i: v, layer: off ? 0 : 1, cells: bs[v].map(function (x) { return x + (h - off); }), index: -1 });
+    });
+    return out;
+  }
+
   function startCand(S) {
     var cand = new Uint16Array(S.N), c;
     for (c = 0; c < S.N; c++) cand[c] = S.parityMask ? S.parityMask[S.pz.parity[c] || 0] : S.full;
@@ -129,6 +173,10 @@
         for (i = 0; i < ps.length; i++) {
           o = ps[i];
           if (cand[o] & m) { cand[o] &= ~m; if (!cand[o]) return false; queue.push(o); }
+        }
+        if (S.twin) {
+          var mate = c < S.twin ? c + S.twin : c - S.twin;
+          if (!coupleRule(S, cand, queue, c) || (POP[cand[mate]] === 1 && !coupleRule(S, cand, queue, mate))) return false;
         }
       }
       var out = S.arcsOut[c];
@@ -205,6 +253,19 @@
       cand[c] = bit;
       for (i = 0; i < ps.length; i++) if (!vals[ps[i]]) cand[ps[i]] &= ~bit;
     }
+    if (S.twin) { // two cells with the same planted figure in one layer cannot share the other figure
+      [0, S.twin].forEach(function (off) {
+        var bs = buckets(S, vals, off), O = S.twin - off;
+        for (var v = 1; v <= S.n; v++) {
+          var b = bs[v];
+          for (var a = 0; a < b.length; a++) {
+            if (!vals[O + b[a]]) continue;
+            var bit2 = 1 << (vals[O + b[a]] - 1);
+            for (var k = 0; k < b.length; k++) if (k !== a && !vals[O + b[k]]) cand[O + b[k]] &= ~bit2;
+          }
+        }
+      });
+    }
     while (changed) {
       changed = false;
       for (i = 0; i < S.arcs.length; i++) {
@@ -223,19 +284,19 @@
 
   var KIND_ORDER = { region: 0, row: 1, col: 2, diag: 3 };
 
-  // The next flower that can be planted with singles alone, or null.
+  // The next flower that can be planted with singles alone, or null. `g` is the group that explains it.
   function placement(S, vals, cand) {
-    var gi, g, i, c, v, bit;
+    var groups = S.twin ? S.groups.concat(coupleGroups(S, vals)) : S.groups, gi, g, i, c, v, bit;
     // 1. the last free cell of a plot, row or column
-    for (gi = 0; gi < S.groups.length; gi++) {
-      g = S.groups[gi];
+    for (gi = 0; gi < groups.length; gi++) {
+      g = groups[gi];
       var free = -1, count = 0;
       for (i = 0; i < g.cells.length; i++) if (!vals[g.cells[i]]) { free = g.cells[i]; count++; }
-      if (count === 1 && POP[cand[free]] === 1) return { type: 'last', cell: free, v: LOW[cand[free]] + 1, group: gi };
+      if (count === 1 && POP[cand[free]] === 1) return { type: 'last', cell: free, v: LOW[cand[free]] + 1, group: g.index, g: g };
     }
     // 2. a value with only one place left in a group
-    for (gi = 0; gi < S.groups.length; gi++) {
-      g = S.groups[gi];
+    for (gi = 0; gi < groups.length; gi++) {
+      g = groups[gi];
       for (v = 1; v <= S.n; v++) {
         bit = 1 << (v - 1);
         var where = -1, n = 0, placed = false;
@@ -244,11 +305,11 @@
           if (vals[c] === v) { placed = true; break; }
           if (!vals[c] && (cand[c] & bit)) { where = c; n++; }
         }
-        if (!placed && n === 1) return { type: 'hidden', cell: where, v: v, group: gi };
+        if (!placed && n === 1) return { type: 'hidden', cell: where, v: v, group: g.index, g: g };
       }
     }
     // 3. a cell where only one value fits
-    for (c = 0; c < S.N; c++) if (!vals[c] && POP[cand[c]] === 1) return { type: 'naked', cell: c, v: LOW[cand[c]] + 1, group: -1 };
+    for (c = 0; c < S.N; c++) if (!vals[c] && POP[cand[c]] === 1) return { type: 'naked', cell: c, v: LOW[cand[c]] + 1, group: -1, g: null };
     return null;
   }
 
@@ -352,6 +413,14 @@
       if (S.parityMask && !(S.parityMask[S.pz.parity[c] || 0] & (1 << (vals[c] - 1)))) bad[c] = 1;
     }
     S.arcs.forEach(function (a) { if (vals[a[0]] && vals[a[1]] && vals[a[0]] >= vals[a[1]]) { bad[a[0]] = 1; bad[a[1]] = 1; } });
+    if (S.twin) { // the same couple in two cells
+      var h = S.twin, where = {};
+      for (c = 0; c < h; c++) {
+        if (!vals[c] || !vals[h + c]) continue;
+        var key = vals[c] * 16 + vals[h + c];
+        if (where[key] != null) { bad[c] = bad[h + c] = bad[where[key]] = bad[h + where[key]] = 1; } else where[key] = c;
+      }
+    }
     return bad;
   };
   // Groups whose cells are all planted and right.
@@ -436,7 +505,8 @@
   };
 
   /* E.generate(p, seed): p = { n, jigsaw, diag, knight, vines (how many), parity (share of marked cells), givens
-   * (stop removing at this many), tier (1 singles only, 2 with locked candidates and pairs), hard (must need tier 2) }. */
+   * (stop removing at this many), tier (1 singles only, 2 with locked candidates and pairs), hard (must need tier 2),
+   * twin (two figures in every cell: n is 4 or 9, givens counts single figures out of 2*n*n) }. */
   E.generate = function (p, seed) {
     // `hard` levels promise a trick beyond singles: try a few seeds until the puzzle needs one.
     var pz = null;
@@ -447,7 +517,53 @@
     pz.seed = String(seed);
     return pz;
   };
+  // A pair of sudokus in which no couple repeats, for each board size that has one. (6 x 6 has none at all: that is
+  // Euler's "36 officers" problem.) Every twin garden is one of these, shuffled in ways that keep all three rules:
+  // renaming the figures of each layer, moving rows inside a band and columns inside a stack, moving whole bands
+  // and stacks, flipping over the diagonal and swapping the two layers.
+  E.TWIN = {
+    4: ['3421213412434312', '4312213434211243'],
+    9: ['159672834348591726267483915591726348483915267672834159915267483834159672726348591', '123564978456897312789231645645789231978123564312456897897312456231645789564978123'],
+  };
+  function shuffledLines(n, rng) { // bands (or stacks) in a new order, and the lines inside each in a new order
+    var b = E.BOX[n][0], bands = [], out = [], i, j;
+    for (i = 0; i < n / b; i++) bands.push(i);
+    rng.shuffle(bands);
+    bands.forEach(function (band) { var inner = []; for (j = 0; j < b; j++) inner.push(band * b + j); rng.shuffle(inner); out = out.concat(inner); });
+    return out;
+  }
+  function makeTwin(p, seed) {
+    var rng = E.rng(String(seed)), n = p.n, h = n * n, base = E.TWIN[n], L, c, i;
+    if (!base) throw new Error('No twin garden of size ' + n);
+    var rows = shuffledLines(n, rng), cols = shuffledLines(n, rng), flip = rng() < 0.5, swap = rng() < 0.5, sol = [];
+    for (L = 0; L < 2; L++) {
+      var names = [];
+      for (i = 1; i <= n; i++) names.push(i);
+      rng.shuffle(names);
+      var src = base[swap ? 1 - L : L];
+      for (c = 0; c < h; c++) {
+        var r = rows[Math.floor(c / n)], k = cols[c % n];
+        sol.push(names[+src.charAt(flip ? k * n + r : r * n + k) - 1]);
+      }
+    }
+    var pz = { n: n, twin: true, regions: E.boxRegions(n), diag: false, knight: false, vines: [], parity: null, solution: sol };
+    var S = E.build(pz), givens = sol.slice(), count = 2 * h, tier = p.tier || 1, order = [];
+    for (c = 0; c < 2 * h; c++) order.push(c);
+    rng.shuffle(order);
+    for (i = 0; i < order.length && count > (p.givens || 0); i++) {
+      var a = order[i], b = (a < h ? 0 : h) + (h - 1 - (a % h)); // its mirror image in the same layer
+      if (!givens[a]) continue;
+      var keepA = givens[a], keepB = givens[b];
+      givens[a] = 0; givens[b] = 0;
+      if (E.logic(S, givens, tier).solved) count -= a === b ? 1 : (keepB ? 2 : 1);
+      else { givens[a] = keepA; givens[b] = keepB; }
+    }
+    pz.givens = givens;
+    pz.tier = E.logic(S, givens, tier).tier;
+    return pz;
+  }
   function make(p, seed) {
+    if (p.twin) return makeTwin(p, seed);
     var rng = E.rng(String(seed)), n = p.n, N = n * n, pz, S, full = null, round = 0, c;
     while (!full) {
       if (++round > 200) throw new Error('No garden fits these rules: ' + JSON.stringify(p));

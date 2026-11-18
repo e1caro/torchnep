@@ -25,6 +25,7 @@ function catalog() {
     w.levels.forEach((lv) => { out.add(lv.name); out.add(lv.teaches); });
   });
   W.DAILY.forEach((d) => out.add(d.name));
+  W.TITLES.forEach((x) => out.add(x[1]));
   return out;
 }
 function spanish() {

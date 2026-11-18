@@ -1,4 +1,4 @@
-/* Bloomdoku drawings: nine flowers, nine critters and Pua the hedgehog, all SVG so they look the same on every phone.
+/* Bloomdoku drawings: nine flowers, nine critters, nine fruits, Pua the hedgehog and what Pua wears, all SVG so they look the same on every phone.
  * The flowers and critters are defined once as <symbol>s (A.install) and drawn with <use>, which keeps a 9×9 board of
  * tokens and pencil notes light. */
 (function () {
@@ -75,12 +75,53 @@
       '<circle cx="16.500" cy="10.500" r="1.800" fill="#fff"/><circle cx="23.500" cy="10.500" r="1.800" fill="#fff"/><circle cx="16.800" cy="10.800" r=".8" fill="' + INK + '"/><circle cx="23.800" cy="10.800" r=".8" fill="' + INK + '"/>',
   ];
 
+  var LEAF = '#4FB06D';
+  var FRUITS = [
+    // strawberry
+    '<path d="M20 37Q5 27 7.500 16Q10 9 20 12.500Q30 9 32.500 16Q35 27 20 37Z" fill="#F2668B"/><path d="M11 12Q20 3 29 12Q24 15.500 20 12.500Q16 15.500 11 12Z" fill="' + LEAF + '"/>' +
+      '<circle cx="14" cy="20" r="1.100" fill="#FFE08A"/><circle cx="20" cy="18.500" r="1.100" fill="#FFE08A"/><circle cx="26" cy="20" r="1.100" fill="#FFE08A"/><circle cx="17" cy="25.500" r="1.100" fill="#FFE08A"/><circle cx="23" cy="25.500" r="1.100" fill="#FFE08A"/><circle cx="20" cy="31" r="1.100" fill="#FFE08A"/>',
+    // orange
+    '<circle cx="20" cy="22.500" r="14.500" fill="#F59A3C"/><circle cx="14.500" cy="17" r="3.400" fill="#FBB668"/><path d="M20 9Q24 3 30 5Q27 11 20 9Z" fill="' + LEAF + '"/><circle cx="20" cy="9.500" r="1.400" fill="#7A4A21"/>',
+    // lemon
+    '<path d="M4 21Q11 7 24 9Q33 10 37 19Q31 34 17 32.500Q7 31 4 21Z" fill="#F5C518"/><path d="M11 18Q16 12 23 12.500" fill="none" stroke="#FFE98A" stroke-width="2.600" stroke-linecap="round"/>',
+    // pear
+    '<path d="M20 8.500Q26 8.500 26 15Q26 19 30 24.500Q33.500 35 20 36Q6.500 35 10 24.500Q14 19 14 15Q14 8.500 20 8.500Z" fill="#7CC76B"/><path d="M20 9L21 3" stroke="#7A4A21" stroke-width="2" stroke-linecap="round"/><path d="M21 5Q27 2 30 6Q25 9 21 5Z" fill="' + LEAF + '"/><circle cx="15.500" cy="26" r="2.800" fill="#A6DD98"/>',
+    // melon slice
+    '<path d="M4 15Q20 21 36 15Q34 35 20 35Q6 35 4 15Z" fill="#2FB5A6"/><path d="M7.500 17.500Q20 22 32.500 17.500Q31 31.500 20 31.500Q9 31.500 7.500 17.500Z" fill="#C8F3EA"/>' +
+      '<ellipse cx="15" cy="24.500" rx="1.100" ry="1.800" fill="#178A7E"/><ellipse cx="20" cy="26.500" rx="1.100" ry="1.800" fill="#178A7E"/><ellipse cx="25" cy="24.500" rx="1.100" ry="1.800" fill="#178A7E"/>',
+    // blueberry
+    '<circle cx="20" cy="21.500" r="14.500" fill="#4D9DE8"/><path d="M20 9L22 13L26.500 13L23 16L24.500 20.500L20 18L15.500 20.500L17 16L13.500 13L18 13Z" fill="#2B78C2"/><circle cx="13.500" cy="25" r="3" fill="#86BFF5"/>',
+    // grapes
+    '<path d="M20 9L20 3" stroke="#7A4A21" stroke-width="2" stroke-linecap="round"/><path d="M20 5Q27 1 31 6Q25 10 20 5Z" fill="' + LEAF + '"/>' +
+      '<circle cx="12.500" cy="14" r="6" fill="#8C6FE0"/><circle cx="27.500" cy="14" r="6" fill="#8C6FE0"/><circle cx="20" cy="13" r="6" fill="#9C82EA"/><circle cx="16" cy="23" r="6" fill="#8C6FE0"/><circle cx="24" cy="23" r="6" fill="#9C82EA"/><circle cx="20" cy="32" r="6" fill="#8C6FE0"/>',
+    // dragon fruit
+    '<ellipse cx="20" cy="22" rx="12.500" ry="15" fill="#D05FC2"/><path d="M8.500 17L3 12L10 12.500ZM31.500 17L37 12L30 12.500ZM9 28L3 29L8.500 23.500ZM31 28L37 29L31.500 23.500ZM16 8L20 1L24 8Z" fill="' + LEAF + '"/><ellipse cx="16" cy="18" rx="3" ry="4.500" fill="#E99BE0"/>',
+    // cherries
+    '<path d="M12.500 22Q13 9 26 4M28 22Q29 12 26 4" fill="none" stroke="#7A4A21" stroke-width="2" stroke-linecap="round"/><path d="M26 4Q33 2 36 7Q30 10 26 4Z" fill="' + LEAF + '"/>' +
+      '<circle cx="12.500" cy="27.500" r="8.500" fill="#E2574C"/><circle cx="28" cy="28.500" r="8" fill="#C23A30"/><circle cx="9.500" cy="24.500" r="2.200" fill="#F29A92"/>',
+  ];
+  A.fruitNames = [T('Strawberry'), T('Orange'), T('Lemon'), T('Pear'), T('Melon'), T('Blueberry'), T('Grapes'), T('Dragon fruit'), T('Cherries')];
+
+  // What Pua wears (js/shop.js, kind 'hat'). Drawn over the hedgehog in its 64 x 64 box.
+  var HATS = {
+    flower: '<g transform="translate(45 15) scale(.34)">' + FLOWERS[0] + '</g>',
+    bow: '<path d="M46 17L37.500 11.500L37.500 22.500ZM46 17L54.500 11.500L54.500 22.500Z" fill="#F2668B"/><circle cx="46" cy="17" r="3.200" fill="#D43B66"/>',
+    leaf: '<path d="M32 22L32 6" stroke="#2E8A4C" stroke-width="2.200" stroke-linecap="round"/><path d="M8 14Q32 -8 56 14Q44 9 32 12Q20 9 8 14Z" fill="#4FB06D"/><path d="M32 12L32 3M22 12Q26 6 32 3M42 12Q38 6 32 3" fill="none" stroke="#2E8A4C" stroke-width="1.200" stroke-linecap="round"/>',
+    straw: '<ellipse cx="32" cy="17" rx="25" ry="5.500" fill="#E3BC5C"/><path d="M19 17Q19 3 32 3Q45 3 45 17Q32 21 19 17Z" fill="#F2D488"/><path d="M19.300 13.500Q32 17.500 44.700 13.500L45 17Q32 21 19 17Z" fill="#E2574C"/>',
+    party: '<path d="M24 18L32 2L40 18Q32 21 24 18Z" fill="#8C6FE0"/><path d="M27 12Q32 14 37 12L38.500 15Q32 17.500 25.500 15ZM30 6Q32 7 34 6L35.500 9Q32 10.500 28.500 9Z" fill="#FFD86B"/><circle cx="32" cy="3" r="3" fill="#F2668B"/>',
+    glasses: '<rect x="17.500" y="35.500" width="13" height="9" rx="4" fill="#3B2A4A"/><rect x="33.500" y="35.500" width="13" height="9" rx="4" fill="#3B2A4A"/><path d="M30 38.500Q32 37 34 38.500" fill="none" stroke="#3B2A4A" stroke-width="1.800"/><path d="M20 38L24 37M36 38L40 37" stroke="#fff" stroke-width="1.300" stroke-linecap="round" opacity=".7"/>',
+    acorn: '<path d="M17 18Q17 3 32 3Q47 3 47 18Q32 23 17 18Z" fill="#7A4A21"/><path d="M19 12Q32 16 45 12M24 6.500Q32 9.500 40 6.500M26 4.500L24 17M38 4.500L40 17M32 3L32 20" fill="none" stroke="#5C3615" stroke-width="1"/><path d="M32 4L33 0" stroke="#5C3615" stroke-width="2.200" stroke-linecap="round"/>',
+    crown: '<path d="M19 18L18 5L25.500 11L32 2L38.500 11L46 5L45 18Q32 22 19 18Z" fill="#F5C518"/><circle cx="32" cy="13.500" r="2.400" fill="#E2574C"/><circle cx="24" cy="14.500" r="1.700" fill="#4D9DE8"/><circle cx="40" cy="14.500" r="1.700" fill="#4FB06D"/>',
+  };
+  A.hats = HATS;
+
   A.install = function () {
     if (document.getElementById('bd-defs')) return;
     var s = '<svg id="bd-defs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>';
     for (var i = 0; i < 9; i++) {
       s += '<symbol id="bd-flowers-' + (i + 1) + '" viewBox="0 0 40 40">' + FLOWERS[i] + '</symbol>';
       s += '<symbol id="bd-critters-' + (i + 1) + '" viewBox="0 0 40 40">' + CRITTERS[i] + '</symbol>';
+      s += '<symbol id="bd-fruits-' + (i + 1) + '" viewBox="0 0 40 40">' + FRUITS[i] + '</symbol>';
     }
     s += '</defs></svg>';
     document.body.insertAdjacentHTML('afterbegin', s);
@@ -91,10 +132,11 @@
     if (skin === 'numbers' || !skin) return '<span class="num v' + v + '">' + v + '</span>';
     return '<span class="tok"><svg viewBox="0 0 40 40" aria-hidden="true"><use href="#bd-' + skin + '-' + v + '"/></svg>' + (badge ? '<b class="badge v' + v + '">' + v + '</b>' : '') + '</span>';
   };
-  A.name = function (v, skin) { return skin === 'flowers' ? BD.t(A.flowerNames[v - 1]) : skin === 'critters' ? BD.t(A.critterNames[v - 1]) : String(v); };
+  A.name = function (v, skin) { return skin === 'flowers' ? BD.t(A.flowerNames[v - 1]) : skin === 'critters' ? BD.t(A.critterNames[v - 1]) : skin === 'fruits' ? BD.t(A.fruitNames[v - 1]) : String(v); };
 
-  // Pua the hedgehog. mood: 'hi' | 'happy' | 'think' | 'wow' | 'sleepy' | 'oops'
-  A.pua = function (mood, size) {
+  // Pua the hedgehog. mood: 'hi' | 'happy' | 'think' | 'wow' | 'sleepy' | 'oops'. hat: one of A.hats (default: the one worn).
+  A.pua = function (mood, size, hat) {
+    if (!hat) hat = BD.shop && BD.state ? BD.shop.wearing(BD.state, 'hat') : 'flower';
     var eyes, mouth;
     if (mood === 'happy') { eyes = '<path d="M21.500 41Q24.500 37 27.500 41M36.500 41Q39.500 37 42.500 41" fill="none" stroke="' + INK + '" stroke-width="2.200" stroke-linecap="round"/>'; mouth = '<path d="M27 48.500Q32 54.500 37 48.500Z" fill="' + INK + '"/>'; }
     else if (mood === 'think') { eyes = '<circle cx="25.500" cy="39" r="2.500" fill="' + INK + '"/><circle cx="40.500" cy="39" r="2.500" fill="' + INK + '"/>'; mouth = '<path d="M29 50.500L35 49.500" stroke="' + INK + '" stroke-width="1.800" stroke-linecap="round"/>'; }
@@ -109,7 +151,7 @@
       '<ellipse cx="32" cy="44" rx="19" ry="14" fill="#FBE3C4"/>' + eyes +
       '<circle cx="19.500" cy="47" r="3.200" fill="#FF8FA8" opacity=".55"/><circle cx="44.500" cy="47" r="3.200" fill="#FF8FA8" opacity=".55"/>' +
       '<ellipse cx="32" cy="45.500" rx="2.600" ry="2" fill="' + INK + '"/>' + mouth +
-      '<g transform="translate(45 15) scale(.34)">' + FLOWERS[0] + '</g></svg>';
+      (HATS[hat] || HATS.flower) + '</svg>';
   };
 
   // A plant for the garden page: 0 seed, 1 sprout, 2 bud, 3 in bloom (the flower of value v).

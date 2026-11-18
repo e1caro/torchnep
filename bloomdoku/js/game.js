@@ -1,8 +1,12 @@
-/* Bloomdoku play screen: the board, the pad, pencil notes, undo, the butterfly bookmark, the critter helpers,
- * blooming rows and the win sheet. The game in progress is saved after every move (state.games[key]). */
+/* Bloomdoku play screen: the board, the pad, pencil notes, undo, the butterfly bookmark, the hint and the helpers,
+ * blooming rows and the win sheet. The game in progress is saved after every move (state.games[key]).
+ *
+ * A "slot" is one figure to find. In a classic garden a cell is one slot. In a twin garden (pz.twin) a cell holds
+ * two: slot c is its first figure and slot h + c its second (h = n * n). G.sel, hints, notes and undo work on slots.
+ */
 (function () {
   'use strict';
-  var BD = window.BD, E = BD.engine, W = BD.worlds, A = BD.art, h = BD.h, t = BD.t, Snd = BD.sound;
+  var BD = window.BD, E = BD.engine, W = BD.worlds, A = BD.art, Shop = BD.shop, h = BD.h, t = BD.t, Snd = BD.sound;
   var P = (BD.game = {});
   var G = null;      // the game on screen
   var els = null;    // its DOM nodes
@@ -16,10 +20,12 @@
     vines: ['🌿', T('Vines grow'), T('Numbers grow along each vine, from the bulb to the tip.')],
     knight: ['🐇', T('Bunny hops'), T('The same flower is never one bunny hop away.')],
     parity: ['🌙', T('Even and odd'), T('Moon cells hold even numbers, sun cells odd ones.')],
+    twin: ['💃', T('Couples'), T('Two figures in every cell: the first ones make a sudoku, the second ones make another, and no couple appears twice.')],
   };
   P.RULES = RULES;
 
   function rulesOf(pz) {
+    if (pz.twin) return ['twin'];
     return W.rulesOf({ jigsaw: !E.BOX[pz.n] || pz.regions.join() !== E.boxRegions(pz.n).join(), diag: pz.diag, vines: pz.vines && pz.vines.length, knight: pz.knight, parity: !!pz.parity });
   }
 
@@ -56,7 +62,9 @@
       else g = fresh(mode === 'daily' ? W.dailyPuzzle(key) : W.puzzle(key, garden == null ? W.at(BD.state, key) : garden));
       g.id = id; g.mode = mode; g.key = key; g.level = lv;
       g.S = E.build(g.pz);
-      g.sel = -1; g.armed = 0; g.noteMode = false; g.undo = []; g.redo = []; g.hint = null; g.won = false;
+      g.twin = !!g.pz.twin;
+      g.h = g.pz.n * g.pz.n; // cells on the board
+      g.sel = -1; g.armed = 0; g.noteMode = false; g.undo = []; g.redo = []; g.hint = null; g.lady = null; g.won = false;
       g.bloomed = {};
       E.doneGroups(g.S, g.vals).forEach(function (gi) { g.bloomed[gi] = 1; });
       g.rules = rulesOf(g.pz);
@@ -82,10 +90,10 @@
   P.clock = clock;
 
   /* ---------- drawing the board ---------- */
+  function isBoxes(pz) { return !!E.BOX[pz.n] && pz.regions.join() === E.boxRegions(pz.n).join(); }
   function regionTints(pz) {
-    var n = pz.n, N = n * n, c, tint = [];
-    var d = E.BOX[n];
-    if (g_isBoxes(pz)) { // square plots: a checkerboard of two soils
+    var n = pz.n, N = n * n, c, tint = [], d = E.BOX[n];
+    if (isBoxes(pz)) { // square plots: a checkerboard of two soils
       for (c = 0; c < N; c++) tint.push((Math.floor(Math.floor(c / n) / d[0]) + Math.floor((c % n) / d[1])) % 2);
       return tint;
     }
@@ -96,7 +104,6 @@
     for (c = 0; c < N; c++) tint.push(col[pz.regions[c]] % 5);
     return tint;
   }
-  function g_isBoxes(pz) { return !!E.BOX[pz.n] && pz.regions.join() === E.boxRegions(pz.n).join(); }
 
   function underSvg(pz) {
     var n = pz.n, N = n * n, c, s = '', tint = regionTints(pz);
@@ -137,7 +144,7 @@
     els = {};
     els.cells = [];
     var grid = h('div.cells', { role: 'grid', 'aria-label': t('Garden') });
-    for (c = 0; c < n * n; c++) {
+    for (c = 0; c < G.h; c++) {
       var cell = h('button.cell', { type: 'button', 'data-c': c });
       els.cells.push(cell);
       grid.appendChild(cell);
@@ -147,14 +154,18 @@
       if (!b) return;
       e.preventDefault();
       Snd.unlock();
-      tapCell(+b.getAttribute('data-c'));
+      var cell = +b.getAttribute('data-c'), half = 0;
+      if (G.twin) { var r = b.getBoundingClientRect(); half = e.clientX - r.left > r.width / 2 ? 1 : 0; } // left half: first figure
+      tapCell(cell + half * G.h);
     });
     grid.addEventListener('click', function (e) { // keyboard and assistive taps (pointerdown did not fire)
       var b = e.target.closest ? e.target.closest('.cell') : null;
-      if (b && e.detail === 0) tapCell(+b.getAttribute('data-c'));
+      if (!b || e.detail !== 0) return;
+      var cell = +b.getAttribute('data-c');
+      tapCell(G.twin && G.sel === cell ? cell + G.h : cell); // a second press moves to the second figure
     });
 
-    els.board = h('div.board', { style: { '--n': n } });
+    els.board = h('div.board' + (G.twin ? '.twin' : ''), { style: { '--n': n } });
     els.board.insertAdjacentHTML('beforeend', underSvg(pz));
     els.board.appendChild(grid);
     els.board.insertAdjacentHTML('beforeend', linesSvg(pz));
@@ -168,7 +179,7 @@
     els.pad = h('div.pad.n' + n);
     els.keys = [];
     for (var v = 1; v <= n; v++) (function (v) {
-      var k = h('button.key', { type: 'button', 'aria-label': A.name(v, BD.state.skin), onclick: function () { Snd.unlock(); tapKey(v); } });
+      var k = h('button.key', { type: 'button', onclick: function () { Snd.unlock(); tapKey(v); } });
       els.keys.push(k);
       els.pad.appendChild(k);
     })(v);
@@ -197,8 +208,11 @@
     BD.clear(view).appendChild(root);
     document.addEventListener('keydown', onKey);
 
+    var tip = G.twin && !BD.state.seen.twinTip;
     var hello = G.vals.join() !== pz.givens.join() ? t('Welcome back. Your garden is as you left it.')
+      : tip ? t('Tap the left half of a cell for its first figure and the right half for the second.')
       : lv ? t(lv.teaches) + '.' : t('Today\'s garden is the same for everyone. Take your time.');
+    if (tip) { BD.state.seen.twinTip = 1; BD.save(); }
     say(hello, 'hi');
     paint();
   }
@@ -212,50 +226,82 @@
     els.bubble.classList.add('pop');
   }
 
+  // The name of a figure as shown: in a twin garden the second figure is always a number.
+  function nameOf(slot, v) {
+    var skin = BD.skin();
+    if (G.twin && slot >= G.h) return String(v);
+    return A.name(v, skin) + (skin !== 'numbers' && (G.badge || BD.state.set.badge) ? ' (' + v + ')' : '');
+  }
   function noteGrid(mask, n) {
     var s = '<span class="notes n' + n + '">';
-    for (var v = 1; v <= n; v++) s += '<i>' + (mask & (1 << (v - 1)) ? A.token(v, BD.state.skin) : '') + '</i>';
+    for (var v = 1; v <= n; v++) s += '<i>' + (mask & (1 << (v - 1)) ? A.token(v, BD.skin()) : '') + '</i>';
     return s + '</span>';
+  }
+  // Half of a twin cell: its figure, or its pencil notes as coloured dots (the place and the colour say which).
+  function halfHtml(slot, cls, skin) {
+    var v = G.vals[slot], n = G.pz.n, s;
+    if (v) s = A.token(v, slot < G.h ? skin : 'numbers');
+    else {
+      s = '<span class="dots n' + n + '">';
+      for (var k = 1; k <= n; k++) s += '<i' + (G.notes[slot] & (1 << (k - 1)) ? ' class="v' + k + '"' : '') + '></i>';
+      s += '</span>';
+    }
+    return '<span class="half ' + cls + '">' + s + '</span>';
   }
 
   function paint() {
     if (!G || !els) return;
-    var S = G.S, pz = G.pz, n = pz.n, c, skin = BD.state.skin, badge = skin !== 'numbers' && (G.badge || BD.state.set.badge);
+    var S = G.S, pz = G.pz, n = pz.n, H = G.h, c, skin = BD.skin(), badge = skin !== 'numbers' && (G.badge || BD.state.set.badge);
+    var selCell = G.sel >= 0 ? G.sel % H : -1, layer = G.sel >= H ? H : 0;
     var selVal = G.armed || (G.sel >= 0 ? G.vals[G.sel] : 0);
     var hop = {}, via = {}, hintGroup = {};
     if (G.sel >= 0) S.hops[G.sel].forEach(function (o) { hop[o] = 1; });
     if (G.hint) {
-      (G.hint.groupCells || []).forEach(function (o) { hintGroup[o] = 1; });
-      (G.hint.viaCells || []).forEach(function (o) { via[o] = 1; });
+      (G.hint.groupCells || []).forEach(function (o) { hintGroup[o % H] = 1; });
+      (G.hint.viaCells || []).forEach(function (o) { via[o % H] = 1; });
     }
-    for (c = 0; c < S.N; c++) {
-      var el = els.cells[c], v = G.vals[c], given = !!pz.givens[c];
-      var wrong = v && v !== pz.solution[c] && (BD.state.set.wilt || G.flagged[c]);
-      var key = skin + ':' + v + ':' + G.notes[c] + ':' + (badge ? 1 : 0);
-      if (el._key !== key) {
-        el._key = key;
-        el.innerHTML = v ? A.token(v, skin, badge) : G.notes[c] ? noteGrid(G.notes[c], n) : '';
+    function wrong(slot) { return G.vals[slot] && G.vals[slot] !== pz.solution[slot] && (BD.state.set.wilt || G.flagged[slot]); }
+    function marks(slot) {
+      return (pz.givens[slot] ? ' giv' : '') + (wrong(slot) ? ' wilt' : '') + (G.sel === slot ? ' on' : '') + (G.hint && G.hint.cell === slot ? ' hinted' : '') + (G.lady && G.lady.slots[slot] ? ' can' : '');
+    }
+    for (c = 0; c < H; c++) {
+      var el = els.cells[c], v = G.vals[c], cls = 'cell', key, bad, same, label;
+      if (G.twin) {
+        var b = G.vals[H + c], ca = marks(c), cb = marks(H + c);
+        key = skin + ':' + v + ':' + b + ':' + G.notes[c] + ':' + G.notes[H + c] + ':' + ca + ':' + cb;
+        if (el._key !== key) { el._key = key; el.innerHTML = '<span class="duo">' + halfHtml(c, 'fa' + ca, skin) + halfHtml(H + c, 'fb' + cb, skin) + '</span>'; }
+        if (pz.givens[c] && pz.givens[H + c]) cls += ' given';
+        bad = wrong(c) || wrong(H + c);
+        same = selVal && c !== selCell && (G.sel >= 0 ? G.vals[layer + c] === selVal : v === selVal || b === selVal);
+        label = (v ? nameOf(c, v) : t('empty')) + ', ' + (b ? String(b) : t('empty'));
+      } else {
+        key = skin + ':' + v + ':' + G.notes[c] + ':' + (badge ? 1 : 0);
+        if (el._key !== key) { el._key = key; el.innerHTML = v ? A.token(v, skin, badge) : G.notes[c] ? noteGrid(G.notes[c], n) : ''; }
+        if (pz.givens[c]) cls += ' given';
+        bad = wrong(c);
+        same = selVal && v === selVal && c !== selCell;
+        label = v ? A.name(v, skin) : t('empty');
+        if (G.lady && G.lady.slots[c]) cls += ' can';
+        if (G.hint && G.hint.cell === c) cls += ' hint';
       }
-      var cls = 'cell';
-      if (given) cls += ' given';
-      if (c === G.sel) cls += ' sel';
-      else if (G.sel >= 0 && S.sees[G.sel][c]) cls += ' peer';
-      if (selVal && v === selVal && c !== G.sel) cls += ' same';
-      if (wrong) cls += ' wilt';
+      if (c === selCell) cls += ' sel';
+      else if (G.sel >= 0 && S.sees[G.sel][layer + c]) cls += ' peer';
+      if (same) cls += ' same';
+      if (bad) cls += ' wilt';
       if (hop[c]) cls += ' hop';
       if (hintGroup[c]) cls += ' hintg';
       if (via[c]) cls += ' via';
-      if (G.hint && G.hint.cell === c) cls += ' hint';
       if (el._bloom) cls += ' bloom';
       if (el.className !== cls) el.className = cls;
-      el.setAttribute('aria-label', t('Row {0}, column {1}', Math.floor(c / n) + 1, (c % n) + 1) + ': ' + (v ? A.name(v, skin) : t('empty')));
+      el.setAttribute('aria-label', t('Row {0}, column {1}', Math.floor(c / n) + 1, (c % n) + 1) + ': ' + label);
     }
-    var count = [];
+    // the pad counts what is still missing, in the layer being worked on
+    var count = [], padSkin = G.twin && layer ? 'numbers' : skin;
     for (c = 0; c <= n; c++) count.push(0);
-    for (c = 0; c < S.N; c++) if (G.vals[c]) count[G.vals[c]]++;
+    for (c = 0; c < H; c++) if (G.vals[layer + c]) count[G.vals[layer + c]]++;
     els.keys.forEach(function (k, i) {
-      var v = i + 1, left = n - count[v], kk = skin + ':' + left + ':' + (badge ? 1 : 0);
-      if (k._key !== kk) { k._key = kk; k.innerHTML = A.token(v, skin, badge) + '<small class="left">' + (left > 0 ? left : '✓') + '</small>'; }
+      var v = i + 1, left = n - count[v], kk = padSkin + ':' + left + ':' + (badge ? 1 : 0);
+      if (k._key !== kk) { k._key = kk; k.innerHTML = A.token(v, padSkin, badge && !G.twin) + '<small class="left">' + (left > 0 ? left : '✓') + '</small>'; k.setAttribute('aria-label', A.name(v, padSkin)); }
       k.className = 'key' + (G.armed === v ? ' armed' : '') + (left <= 0 ? ' full' : '');
       k.setAttribute('aria-pressed', G.armed === v ? 'true' : 'false');
     });
@@ -265,6 +311,7 @@
     els.notes.setAttribute('aria-pressed', G.noteMode ? 'true' : 'false');
     els.fly.classList.toggle('on', !!G.mark);
     els.pad.classList.toggle('noting', G.noteMode);
+    els.pad.classList.toggle('second', !!(G.twin && layer));
   }
   P.repaint = function () { if (els) { els.cells.forEach(function (c) { c._key = null; }); els.keys.forEach(function (k) { k._key = null; }); paint(); } };
 
@@ -273,26 +320,26 @@
     op.forEach(function (m) { G.vals[m[0]] = forward ? m[3] : m[1]; G.notes[m[0]] = forward ? m[4] : m[2]; delete G.flagged[m[0]]; });
   }
   function commit(op) {
+    G.hint = null; G.lady = null;
     if (!op.length) return;
     apply(op, true);
     G.undo.push(op);
     if (G.undo.length > 400) G.undo.shift();
     G.redo = [];
-    G.hint = null;
   }
   function resync() { // after undo, redo or a flight back: which groups are complete now
     G.bloomed = {};
     E.doneGroups(G.S, G.vals).forEach(function (gi) { G.bloomed[gi] = 1; });
-    G.hint = null;
+    G.hint = null; G.lady = null;
     save(); paint();
   }
   function undo() { if (!G.undo.length || G.won) return; var op = G.undo.pop(); apply(op, false); G.redo.push(op); Snd.soft(); resync(); }
   function redo() { if (!G.redo.length || G.won) return; var op = G.redo.pop(); apply(op, true); G.undo.push(op); Snd.soft(); resync(); }
 
-  function tapCell(c) {
+  function tapCell(slot) {
     if (!G || G.won) return;
-    if (G.armed) { G.sel = c; put(c, G.armed); return; }
-    G.sel = G.sel === c ? -1 : c;
+    if (G.armed) { G.sel = slot; put(slot, G.armed); return; }
+    G.sel = G.sel === slot ? -1 : slot;
     Snd.tap();
     paint();
   }
@@ -309,9 +356,15 @@
     commit([[c, G.vals[c], G.notes[c], 0, 0]]);
     Snd.soft(); resync();
   }
+  // A right figure leaves the notes of everything it sees.
+  function tidy(c, v, op) {
+    var bit = 1 << (v - 1);
+    if (BD.state.set.tidy) G.S.peers[c].forEach(function (o) { if (!G.vals[o] && (G.notes[o] & bit)) op.push([o, 0, G.notes[o], 0, G.notes[o] & ~bit]); });
+    return op;
+  }
 
   function put(c, v) {
-    var pz = G.pz, S = G.S;
+    var pz = G.pz;
     if (pz.givens[c]) { paint(); return; }
     var bit = 1 << (v - 1);
     if (G.noteMode) {
@@ -321,10 +374,8 @@
       return;
     }
     if (G.vals[c] === v) { erase(c); return; }
-    var op = [[c, G.vals[c], G.notes[c], v, 0]];
-    var right = v === pz.solution[c];
-    if (right && BD.state.set.tidy) S.peers[c].forEach(function (o) { if (!G.vals[o] && (G.notes[o] & bit)) op.push([o, 0, G.notes[o], 0, G.notes[o] & ~bit]); });
-    commit(op);
+    var right = v === pz.solution[c], op = [[c, G.vals[c], G.notes[c], v, 0]];
+    commit(right ? tidy(c, v, op) : op);
     Snd.tap();
     if (!right) {
       G.slips++;
@@ -335,6 +386,10 @@
       return;
     }
     Snd.note(v);
+    if (G.twin && !G.armed) { // on to the other half of the couple, if it is still empty
+      var mate = c < G.h ? c + G.h : c - G.h;
+      if (!G.vals[mate] && !pz.givens[mate]) G.sel = mate;
+    }
     afterRight(c);
   }
 
@@ -357,9 +412,9 @@
     }
     save(); paint();
   }
-  function bloom(cells, delay) {
-    cells.forEach(function (c, i) {
-      var el = els.cells[c];
+  function bloom(slots, delay) {
+    slots.forEach(function (slot, i) {
+      var el = els.cells[slot % G.h];
       el._bloom = true;
       el.style.setProperty('--d', ((delay || 0) + i * 0.045) + 's');
       el.classList.add('bloom');
@@ -392,7 +447,7 @@
     say(t('Back where the butterfly was. Undo takes you forward again.'), 'hi');
   }
 
-  /* ---------- helpers ---------- */
+  /* ---------- hint and helpers ---------- */
   function wrongCells() { var out = []; for (var c = 0; c < G.S.N; c++) if (G.vals[c] && G.vals[c] !== G.pz.solution[c]) out.push(c); return out; }
   function groupName(g) {
     if (g.kind === 'row') return t('row');
@@ -403,17 +458,21 @@
 
   function helpers() {
     if (G.won) return;
-    function row(icon, name, what, note, fn, off) {
-      return h('button.helper', { type: 'button', disabled: off, onclick: function () { close(); fn(); } },
-        h('span.emo', icon), h('span.grow', h('b', name), h('span', what)), note ? h('small', note) : null);
+    function row(icon, name, what, note, fn, id) {
+      var none = id && Shop.stock(BD.state, id) < 1;
+      return h('button.helper' + (none ? '.none' : ''), { type: 'button', 'data-helper': id || name, onclick: function () { close(); if (none) location.hash = '#/shop'; else fn(); } },
+        h('span.emo', icon), h('span.grow', h('b', name), h('span', none ? t('None left. Get more in the shop.') : what)),
+        h('small', id ? '×' + Shop.stock(BD.state, id) + (note ? ' · ' + note : '') : note));
     }
     var close = BD.sheet(h('div.menu',
       h('h2', t('Helpers')),
       row('🐝', t('Bee'), t('A hint: flies to a cell you can solve now and says why. Ask again and it names the flower.'), t('free'), bee),
       row('🐛', t('Caterpillar'), t('Writes the pencil notes, or tidies the ones you have.'), t('free'), caterpillar),
-      row('🦉', t('Owl'), t('Shows which flowers are wilted.'), t('costs ★'), owl),
-      row('🐸', t('Frog'), t('Plants one flower for you.'), t('costs ★'), frog),
-      h('p.muted.small', t('The second star is for a garden finished with nothing revealed: no owl, no frog, no flower named by the bee.'))));
+      row('🐞', t('Ladybird'), t('Shows every cell where one flower can still go.'), '', ladybird, 'lady'),
+      row('🦉', t('Owl'), t('Shows which flowers are wilted.'), t('costs ★'), owl, 'owl'),
+      row('🐸', t('Frog'), t('Plants one flower for you.'), t('costs ★'), frog, 'frog'),
+      h('p.muted.small', t('The second star is for a garden finished with nothing revealed: no owl, no frog, no flower named by the bee.')),
+      h('a.btn.ghost', { href: '#/shop', onclick: function () { close(); } }, '🌰 ' + t('More helpers in the shop'))));
   }
 
   // The hint. First it shows where to look and why; asked again about the same cell, it names the flower.
@@ -422,8 +481,7 @@
     if (G.hint && G.hint.v && !G.hint.named && G.vals[G.hint.cell] !== G.hint.v) {
       G.hint.named = true; G.told = true; G.sel = G.hint.cell; G.armed = 0;
       save(); paint();
-      var skin = BD.state.skin, shown = skin !== 'numbers' && (G.badge || BD.state.set.badge);
-      say(t('It is {0}. Plant it in the glowing cell.', A.name(G.hint.v, skin) + (shown ? ' (' + G.hint.v + ')' : '')), 'happy');
+      say(t('It is {0}. Plant it in the glowing cell.', nameOf(G.hint.cell, G.hint.v)), 'happy');
       return;
     }
     if (wrongCells().length) { say(t('A flower is in the wrong place, so I cannot see the next step. The owl can find it.'), 'think'); return; }
@@ -439,13 +497,18 @@
       var e = hint.via[hint.via.length - 1], g = S.groups[e.group];
       hi.viaCells = e.cells;
       text = e.type === 'locked'
-        ? t('A trick first: in this {0}, {1} fits only in the marked cells, so no cell that sees all of them can hold it. ', groupName(g), A.name(e.v, BD.state.skin))
+        ? t('A trick first: in this {0}, {1} fits only in the marked cells, so no cell that sees all of them can hold it. ', groupName(g), nameOf(e.cells[0], e.v))
         : t('A trick first: the two marked cells of this {0} share the same two flowers, so no other cell of it can hold them. ', groupName(g));
     }
-    if (hint.type === 'last') { hi.groupCells = S.groups[hint.group].cells; text += t('This is the last free cell of its {0}.', groupName(S.groups[hint.group])); }
-    else if (hint.type === 'hidden') { hi.groupCells = S.groups[hint.group].cells; text += t('One flower has no other place left in this {0}. Which one?', groupName(S.groups[hint.group])); }
-    else text += t('Only one flower still fits in this cell. Check everything it sees.');
-    G.sel = hint.cell; G.armed = 0; G.hint = hi;
+    if (G.twin) text += hint.cell < G.h ? t('Look at the first figure of the glowing cell. ') : t('Look at the second figure of the glowing cell. ');
+    if (hint.g && hint.g.kind === 'couple') {
+      hi.groupCells = hint.g.cells;
+      text += hint.type === 'last' ? t('The marked cells share a figure, so their partners are all different: this is the last one missing.')
+        : t('The marked cells share a figure, so their partners are all different. One partner has only this place left.');
+    } else if (hint.type === 'last') { hi.groupCells = hint.g.cells; text += t('This is the last free cell of its {0}.', groupName(hint.g)); }
+    else if (hint.type === 'hidden') { hi.groupCells = hint.g.cells; text += t('One flower has no other place left in this {0}. Which one?', groupName(hint.g)); }
+    else text += G.twin ? t('Only one figure still fits here. Check its row, column and plot, and the cells that share its partner.') : t('Only one flower still fits in this cell. Check everything it sees.');
+    G.sel = hint.cell; G.armed = 0; G.lady = null; G.hint = hi;
     save(); paint();
     say(text, 'think');
   }
@@ -462,7 +525,20 @@
     say(op.length ? t('Munch munch. The notes show what still fits in each cell.') : t('Your notes are already tidy.'), 'happy');
   }
 
+  // Marks every empty cell where one flower can still go: the one held on the pad, or the one in the chosen cell.
+  function ladybird() {
+    var v = G.armed || (G.sel >= 0 ? G.vals[G.sel] : 0), layer = G.twin && G.sel >= G.h ? G.h : 0;
+    if (!v) { say(t('Choose a flower first: hold one on the pad or tap a cell that has it. Then call me.'), 'think'); return; }
+    if (!Shop.use(BD.state, 'lady')) return;
+    var cand = E.candidates(G.S, G.vals), slots = {}, n = 0;
+    for (var c = 0; c < G.h; c++) if (!G.vals[layer + c] && (cand[layer + c] & (1 << (v - 1)))) { slots[layer + c] = 1; n++; }
+    G.hint = null; G.lady = { v: v, slots: slots };
+    save(); paint();
+    say(n ? t('{0} can still go in the dotted cells.', nameOf(layer, v)) : t('{0} has no free place left.', nameOf(layer, v)), 'happy');
+  }
+
   function owl() {
+    if (!Shop.use(BD.state, 'owl')) return;
     var bad = wrongCells();
     G.owl = true;
     bad.forEach(function (c) { G.flagged[c] = 1; });
@@ -477,10 +553,9 @@
       if (hint && !hint.broken && hint.cell >= 0) c = hint.cell;
       else for (var i = 0; i < G.S.N; i++) if (G.vals[i] !== G.pz.solution[i]) { c = i; break; }
     }
-    if (c < 0) return;
-    var v = G.pz.solution[c], bit = 1 << (v - 1), op = [[c, G.vals[c], G.notes[c], v, 0]];
-    if (BD.state.set.tidy) G.S.peers[c].forEach(function (o) { if (!G.vals[o] && (G.notes[o] & bit)) op.push([o, 0, G.notes[o], 0, G.notes[o] & ~bit]); });
-    commit(op);
+    if (c < 0 || !Shop.use(BD.state, 'frog')) return;
+    var v = G.pz.solution[c];
+    commit(tidy(c, v, [[c, G.vals[c], G.notes[c], v, 0]]));
     G.frog = true; G.sel = c; G.armed = 0;
     Snd.note(v);
     say(t('Ribbit. One flower planted.'), 'happy');
@@ -489,25 +564,26 @@
 
   /* ---------- menu, rules ---------- */
   function showRules() {
-    var list = ['base'].concat(G.rules.filter(function (r) { return r !== 'base'; }));
+    var list = G.twin ? ['twin'] : ['base'].concat(G.rules.filter(function (r) { return r !== 'base'; }));
     BD.sheet(h('div.menu',
       h('h2', t('How this garden works')),
       list.map(function (r) {
         if (r === 'base' && G.rules.indexOf('pads') >= 0) return null;
         return h('div.rule', h('span.emo', RULES[r][0]), h('p', t(RULES[r][2])));
       }),
+      G.twin ? h('div.rule', h('span.emo', '👆'), h('p', t('Tap the left half of a cell for its first figure and the right half for the second.'))) : null,
       G.rules.indexOf('parity') >= 0 ? h('div.rule', h('span.legend', { html: '<svg viewBox="0 0 2.400 1" aria-hidden="true"><circle class="moon" cx=".5" cy=".5" r=".4"/><rect class="sun" x="1.610" y=".21" width=".58" height=".58" rx=".08" transform="rotate(45 1.900 .5)"/></svg>' }), h('p', t('The round mark is a moon cell (even). The diamond is a sun cell (odd).'))) : null,
       h('p.muted.small', t('Every garden has exactly one answer and never needs a guess.'))));
   }
 
   function menu() {
-    function skinBtn(id, label) {
-      return h('button.seg' + (BD.state.skin === id ? '.on' : ''), { type: 'button', onclick: function () { BD.state.skin = id; BD.save(); close(); P.repaint(); } },
-        h('span', { html: A.token(id === 'numbers' ? 5 : 1, id) }), label);
-    }
+    var skins = Shop.of('skin').filter(function (it) { return Shop.owns(BD.state, it.id); });
     var close = BD.sheet(h('div.menu',
       h('h2', t('Garden menu')),
-      h('div.segs', skinBtn('numbers', t('Numbers')), skinBtn('flowers', t('Flowers')), skinBtn('critters', t('Critters'))),
+      h('div.segs', skins.map(function (it) {
+        return h('button.seg' + (BD.skin() === it.value ? '.on' : ''), { type: 'button', 'data-skin': it.value, onclick: function () { Shop.wear(BD.state, it.id); BD.save(); close(); P.repaint(); } },
+          h('span', { html: A.token(it.value === 'numbers' ? 5 : 1, it.value) }), t(it.name));
+      })),
       h('button.btn', { type: 'button', onclick: function () { close(); showRules(); } }, t('How this garden works')),
       G.mode === 'level' ? h('button.btn', { type: 'button', onclick: function () { close(); BD.confirm(t('New seeds?'), t('This garden is swapped for another one of the same level. Nothing is lost.'), t('New seeds'), newSeeds); } }, t('New seeds')) : null,
       h('button.btn.ghost', { type: 'button', onclick: function () { close(); BD.confirm(t('Start over?'), t('Everything you planted in this garden is cleared.'), t('Start over'), startOver); } }, t('Start over'))));
@@ -529,18 +605,19 @@
 
   /* ---------- winning ---------- */
   function win() {
-    G.won = true; G.sel = -1; G.armed = 0; G.hint = null;
-    var S = G.S, n = G.pz.n, order = [];
-    for (var c = 0; c < S.N; c++) order.push(c);
+    G.won = true; G.sel = -1; G.armed = 0; G.hint = null; G.lady = null;
+    var n = G.pz.n;
     paint();
-    order.forEach(function (c) {
-      var el = els.cells[c];
+    els.cells.forEach(function (el, c) {
       el.style.setProperty('--d', ((Math.floor(c / n) + (c % n)) * 0.05) + 's');
       el.classList.add('bloom');
     });
     Snd.win();
     var result = { slips: G.slips, frog: G.frog || G.told, owl: G.owl, bees: G.bees, time: G.time };
+    var before = W.player(BD.state), nuts = Shop.earned(BD.state);
     var out = G.mode === 'daily' ? W.finishDaily(BD.state, G.key, result) : W.finish(BD.state, G.key, G.pz.garden, result);
+    var after = W.player(BD.state);
+    out.xp = after.xp - before.xp; out.nuts = Shop.earned(BD.state) - nuts; out.level = after.level > before.level ? after : null;
     delete BD.state.games[G.id];
     BD.save();
     say(t('The whole garden is in bloom!'), 'happy');
@@ -548,10 +625,20 @@
     setTimeout(function () { if (G === g) winSheet(result, out); }, 1100);
   }
 
+  // What falls when a garden blooms: petals, or the effect bought in the shop.
+  var EFFECTS = {
+    petals: { colors: A.colors },
+    hearts: { ch: '♥', colors: ['#F2668B', '#FF8FA8', '#E0457B', '#D05FC2'] },
+    leaves: { colors: ['#D9662B', '#E3A008', '#A8742A', '#C23A30', '#E8A417'] },
+    stars: { ch: '★', colors: ['#F2B807', '#FFD86B', '#F5C518'] },
+    snow: { ch: '❄', colors: ['#9CC4F2', '#C9DFF8', '#7FBCF7'] },
+  };
+  P.EFFECTS = EFFECTS;
   function petals() {
+    var fx = EFFECTS[Shop.wearing(BD.state, 'effect')] || EFFECTS.petals;
     var box = h('div.petals', { 'aria-hidden': 'true' });
     for (var i = 0; i < 26; i++) {
-      box.appendChild(h('i', { style: { left: (Math.random() * 100) + '%', '--c': A.colors[i % 9], '--t': (2.6 + Math.random() * 2.2) + 's', '--w': (Math.random() * 1.6) + 's', '--x': (Math.random() * 80 - 40) + 'px' } }));
+      box.appendChild(h('i' + (fx.ch ? '.ch' : ''), { style: { left: (Math.random() * 100) + '%', '--c': fx.colors[i % fx.colors.length], '--t': (2.6 + Math.random() * 2.2) + 's', '--w': (Math.random() * 1.6) + 's', '--x': (Math.random() * 80 - 40) + 'px' } }, fx.ch || null));
     }
     document.body.appendChild(box);
     setTimeout(function () { if (box.parentNode) box.parentNode.removeChild(box); }, 6500);
@@ -559,7 +646,7 @@
 
   function winSheet(result, out) {
     petals();
-    var lv = G.level, next = null, mode = G.mode, key = G.key;
+    var lv = G.level, next = null, mode = G.mode, key = G.key, garden = G.pz.garden;
     if (lv) { var nx = W.levels[lv.index + 1]; if (nx && W.open(BD.state, nx)) next = nx; }
     function line(ok, text) { return h('li' + (ok ? '.ok' : ''), h('span', ok ? '★' : '☆'), text); }
     var view = document.getElementById('view');
@@ -571,6 +658,8 @@
         line(true, t('The garden bloomed')),
         line(!result.frog && !result.owl, t('On your own: nothing revealed')),
         line(!result.slips, result.slips ? (result.slips === 1 ? t('One flower wilted on the way') : t('{0} flowers wilted on the way', result.slips)) : t('Not a petal out of place'))),
+      h('div.win-gain', out.nuts ? h('span.nuts', '+' + out.nuts + ' 🌰') : null, out.xp ? h('span.xp', '+' + out.xp + ' XP') : null),
+      out.level ? h('p.stamp-new.levelup', '🎉 ' + t('Level {0}! You are now: {1}', out.level.level, t(out.level.title))) : null,
       BD.state.set.sundial ? h('p.muted', '⏱ ' + clock(result.time)) : null,
       lv ? h('p.muted', t('{0} of {1} gardens in bloom in this level', W.solved(BD.state, key), W.GARDENS)) : null,
       out.stamp ? h('p.stamp-new', lv.world.stamp + ' ' + t('New stamp: {0} is complete!', t(lv.world.name))) : null,
@@ -579,6 +668,7 @@
            h('a.btn', { href: '#/daily', onclick: function () { close(); } }, t('Back to the daily bouquet'))]
         : [h('button.btn' + (next && out.first ? '' : '.primary'), { type: 'button', onclick: function () { close(); P.open(view, 'level', key); } }, t('Next garden: {0}', out.next + 1)),
            next ? h('a.btn' + (out.first ? '.primary' : ''), { href: '#/play/' + next.key, onclick: function () { close(); } }, t('Next level: {0}', t(next.name))) : null,
+           BD.friends && BD.friends.canChallenge() ? h('button.btn.challenge-btn', { type: 'button', onclick: function () { BD.friends.challenge(key, garden, result); } }, '💌 ' + t('Challenge a friend')) : null,
            h('a.btn.ghost', { href: '#/', onclick: function () { close(); } }, t('Back to the map'))]),
       { modal: true });
   }
@@ -592,13 +682,14 @@
     else if (k === 'n' || k === 'N') { G.noteMode = !G.noteMode; paint(); }
     else if (k === 'z' || k === 'Z') undo();
     else if (k === 'y' || k === 'Y') redo();
+    else if (k === ' ' && G.twin && G.sel >= 0) { G.sel = G.sel < G.h ? G.sel + G.h : G.sel - G.h; paint(); } // the other half
     else if (k.indexOf('Arrow') === 0) {
-      var c = G.sel < 0 ? 0 : G.sel, r = Math.floor(c / n), col = c % n;
+      var layer = G.sel >= G.h ? G.h : 0, c = G.sel < 0 ? 0 : G.sel % G.h, r = Math.floor(c / n), col = c % n;
       if (k === 'ArrowUp') r = (r + n - 1) % n;
       if (k === 'ArrowDown') r = (r + 1) % n;
       if (k === 'ArrowLeft') col = (col + n - 1) % n;
       if (k === 'ArrowRight') col = (col + 1) % n;
-      G.sel = r * n + col; G.armed = 0; paint();
+      G.sel = layer + r * n + col; G.armed = 0; paint();
     } else return;
     e.preventDefault();
   }

@@ -2,7 +2,7 @@
   "id": "./index.html",
   "name": "Bloomdoku",
   "short_name": "Bloomdoku",
-  "description": "A sudoku garden: 3,200 gardens in 8 worlds of rules, flowers and critters instead of numbers, hints that explain, a daily bouquet. Works offline.",
+  "description": "A sudoku garden: 4,400 gardens in 11 worlds of rules, two-figure twin gardens, flowers and critters instead of numbers, hints that explain, friends, a daily bouquet. Works offline.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

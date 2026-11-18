@@ -1,4 +1,5 @@
-/* Bloomdoku worlds: a map of 8 worlds x 4 levels. Each world introduces one new rule and its levels get harder;
+/* Bloomdoku worlds: a map of 11 worlds x 4 levels (8 classic worlds, then 3 of twin gardens with two figures in
+ * every cell). Each world introduces one new rule and its levels get harder;
  * every level makes new puzzles from a seed, so no level ever runs out. Pure logic, no DOM.
  *
  * World: { icon, name, color, rule, intro, concepts: [...], stamp, levels: [{ name, teaches, p }] }
@@ -80,7 +81,33 @@
         L('Bunnies on the paths', 'Bunny hops and bee paths', { n: 9, knight: true, diag: true, givens: 22, tier: 2 }),
         L('The grand bouquet', 'Lily pads, vines and fireflies', { n: 9, jigsaw: true, vines: 8, parity: 0.4, givens: 18, tier: 2 }),
       ]),
+    // Twin gardens: two figures in every cell (engine.js, buildTwin). 12 levels x 100 gardens = 1,200 of them.
+    world('🐥', 'Twin Sprouts', '#F28A2E', 'Two figures in every cell, and no couple appears twice.',
+      'Each cell holds a couple, like 4 and 7. The first figures follow the sudoku rule, the second figures follow it too, and the same couple never appears in two cells.',
+      ['Couples', 'Two sudokus at once', 'No couple twice'], '🐥', [
+        L('First couples', 'A 4×4 garden of couples, most of them planted', { n: 4, twin: true, givens: 20, tier: 1 }),
+        L('Shy couples', 'A 4×4 garden with few figures planted', { n: 4, twin: true, givens: 12, tier: 1 }),
+        L('Opening dance', 'The 9×9 ballroom, nearly full', { n: 9, twin: true, givens: 130, tier: 1 }),
+        L('Find your partner', 'Many half couples to finish', { n: 9, twin: true, givens: 112, tier: 1 }),
+      ]),
+    world('💃', 'Garden Ball', '#E0457B', 'Two figures in every cell, and no couple appears twice.',
+      'The full ballroom: 81 cells and 81 different couples, each exactly once. When you know every cell of one figure, its nine partners are all different.',
+      ['81 couples, once each', 'Nine different partners'], '🦩', [
+        L('Polka', 'Fewer figures: use both sudokus', { n: 9, twin: true, givens: 100, tier: 1 }),
+        L('Foxtrot', 'A figure with only one place left in its layer', { n: 9, twin: true, givens: 90, tier: 1 }),
+        L('Tango', 'The nine partners of one figure are all different', { n: 9, twin: true, givens: 80, tier: 1 }),
+        L('Grand ball', 'More than half of the figures are yours to find', { n: 9, twin: true, givens: 70, tier: 1 }),
+      ]),
+    world('🎩', 'Midnight Waltz', '#5B7FD6', 'Two figures in every cell, and no couple appears twice.',
+      'Few figures are planted, and often only half of a couple. Use both sudokus and the couples together.',
+      ['Half couples', 'Tricks in two layers'], '🦚', [
+        L('Moonlight', 'Sixty figures of 162', { n: 9, twin: true, givens: 62, tier: 2 }),
+        L('Masquerade', 'Notes in both halves help', { n: 9, twin: true, givens: 56, tier: 2 }),
+        L('Last dance', 'Fifty figures to start', { n: 9, twin: true, givens: 50, tier: 2 }),
+        L('The great waltz', 'The emptiest ballroom', { n: 9, twin: true, givens: 45, tier: 2 }),
+      ]),
   ];
+  W.CLASSIC = 8; // worlds 1 to 8 are one figure a cell; the rest are twin gardens
 
   W.levels = [];
   W.worlds.forEach(function (w, wi) {
@@ -92,6 +119,7 @@
   // The rules of a board, for the chips above it.
   W.rulesOf = function (p) {
     var out = [];
+    if (p.twin) out.push('twin');
     if (p.jigsaw) out.push('pads');
     if (p.diag) out.push('diag');
     if (p.vines) out.push('vines');
@@ -115,6 +143,7 @@
     return pz;
   };
   W.total = function () { return W.levels.length * W.GARDENS; };
+  W.twinTotal = function () { return W.levels.filter(function (lv) { return lv.p.twin; }).length * W.GARDENS; };
 
   /* ---------- the daily bouquet ---------- */
   // One puzzle a day, the same for everyone. The rule follows the weekday (0 = Sunday).
@@ -173,7 +202,8 @@
     return W.GARDENS + (r ? r.extra || 0 : 0);
   };
   // Every world is open; inside a world a level opens when the one before has a star.
-  W.open = function (state, lv) { return lv.n === 1 || W.stars(state, lv.world.n + '-' + (lv.n - 1)) > 0; };
+  // A level a friend challenged you in (state.invites) is open too.
+  W.open = function (state, lv) { return lv.n === 1 || W.stars(state, lv.world.n + '-' + (lv.n - 1)) > 0 || !!(state.invites && state.invites[lv.key]); };
   W.worldState = function (state, w) {
     var stars = 0, done = 0, solved = 0;
     w.levels.forEach(function (lv) { var s = W.stars(state, lv.key); stars += s; if (s) done++; solved += W.solved(state, lv.key); });
@@ -222,6 +252,79 @@
     var stars = W.starsFor(result), had = state.daily[dayKey];
     if (!had || stars > had.stars) state.daily[dayKey] = { stars: stars, slips: result.slips || 0, bees: result.bees || 0, frog: !!result.frog, owl: !!result.owl, time: result.time || 0 };
     return { stars: stars, best: state.daily[dayKey].stars, first: !had };
+  };
+
+  /* ---------- player level ---------- */
+  // Experience is worked out from the progress itself (nothing extra is saved, so it can never drift): every star of
+  // every garden is worth more in bigger and harder levels, a world stamp is 100 and a daily bouquet 15 a star.
+  W.worth = function (lv) { return 4 + lv.n * 2 + (lv.p.n === 9 ? 5 : lv.p.n >= 6 ? 2 : 0) + (lv.p.tier === 2 ? 3 : 0); };
+  W.xp = function (state) {
+    var xp = 0;
+    W.levels.forEach(function (lv) {
+      var r = rec(state, lv.key), w = W.worth(lv);
+      if (!r) return;
+      for (var i = 0; i < (r.g || '').length; i++) xp += w * (+r.g.charAt(i) || 0);
+      xp += (r.extra || 0) * w * 2;
+    });
+    W.worlds.forEach(function (w) { if (W.worldState(state, w).complete) xp += 100; });
+    Object.keys(state.daily || {}).forEach(function (d) { xp += 15 * (state.daily[d].stars || 1); });
+    return xp;
+  };
+  W.levelAt = function (L) { return 15 * (L - 1) * (L + 2); }; // XP to reach level L: 0, 60, 150, 270, 420...
+  W.TITLES = [[1, 'Seed'], [3, 'Sprout'], [6, 'Seedling'], [10, 'Bud'], [15, 'Blossom'], [20, 'Gardener'], [30, 'Master gardener'], [40, 'Garden keeper'], [50, 'Meadow legend']];
+  W.title = function (L) { var t = W.TITLES[0][1]; W.TITLES.forEach(function (x) { if (L >= x[0]) t = x[1]; }); return t; };
+  W.levelOf = function (xp) { var L = 1; while (W.levelAt(L + 1) <= xp) L++; return L; };
+  W.player = function (state) {
+    var xp = W.xp(state), L = W.levelOf(xp);
+    return { xp: xp, level: L, from: W.levelAt(L), to: W.levelAt(L + 1), title: W.title(L) };
+  };
+
+  /* ---------- sharing progress: devices and friends ---------- */
+  // What an account keeps online: the progress, never the settings or the garden in progress of one device.
+  W.progress = function (state) {
+    return { v: 1, levels: state.levels || {}, daily: state.daily || {}, seen: state.seen || {}, invites: state.invites || {}, avatar: state.avatar || 0,
+      own: state.own || {}, bought: state.bought || {}, used: state.used || {} };
+  };
+  // Two copies of the progress become one that has everything of both. The order does not matter and merging
+  // twice changes nothing, so two devices can play offline and nothing is ever lost.
+  W.merge = function (a, b) {
+    a = a || {}; b = b || {};
+    var out = { v: 1, levels: {}, daily: {}, seen: {}, invites: {}, avatar: Math.max(a.avatar || 0, b.avatar || 0), own: {}, bought: {}, used: {} }, k;
+    [a.levels || {}, b.levels || {}].forEach(function (src) {
+      Object.keys(src).forEach(function (key) {
+        var r = src[key], o = out.levels[key] || (out.levels[key] = { stars: 0, g: '', extra: 0, at: 0 }), g = '';
+        for (var i = 0; i < Math.max(o.g.length, (r.g || '').length); i++) g += Math.max(+o.g.charAt(i) || 0, +(r.g || '').charAt(i) || 0);
+        o.g = g; o.stars = Math.max(o.stars, r.stars || 0); o.extra = Math.max(o.extra, r.extra || 0); o.at = Math.max(o.at, r.at || 0);
+      });
+    });
+    [a.daily || {}, b.daily || {}].forEach(function (src) {
+      Object.keys(src).forEach(function (day) {
+        var r = src[day], o = out.daily[day];
+        if (!o || r.stars > o.stars || (r.stars === o.stars && (r.slips < o.slips || (r.slips === o.slips && JSON.stringify(r) < JSON.stringify(o))))) out.daily[day] = r;
+      });
+    });
+    for (k in a.seen || {}) out.seen[k] = 1;
+    for (k in b.seen || {}) out.seen[k] = 1;
+    for (k in a.invites || {}) out.invites[k] = 1;
+    for (k in b.invites || {}) out.invites[k] = 1;
+    // the shop (js/shop.js): things owned are kept by both; helper charges bought and used only ever count up
+    for (k in a.own || {}) out.own[k] = 1;
+    for (k in b.own || {}) out.own[k] = 1;
+    ['bought', 'used'].forEach(function (f) {
+      [a[f] || {}, b[f] || {}].forEach(function (src) { for (var id in src) out[f][id] = Math.max(out[f][id] || 0, src[id] | 0); });
+    });
+    return out;
+  };
+  // What friends see of a player: level, totals, the best stars of each level (their garden) and today's bouquet.
+  // Never the settings, the gardens in progress or anything typed.
+  W.publicProfile = function (state, today) {
+    var p = W.player(state), tot = W.totals(state), day = today || W.dayKey(), d = (state.daily || {})[day];
+    return {
+      v: 1, lvl: p.level, xp: p.xp, stars: tot.stars, solved: tot.solved, stamps: tot.stamps, dailies: tot.dailies,
+      streak: W.streak(state.daily, day), av: state.avatar || 0, hat: (state.wear && state.wear.hat) || 'flower',
+      lv: W.levels.map(function (lv) { return W.stars(state, lv.key); }).join(''),
+      day: d ? { d: day, stars: d.stars, slips: d.slips, time: d.time || 0 } : null,
+    };
   };
 
   root.BD = root.BD || {};

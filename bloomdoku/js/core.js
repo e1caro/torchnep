@@ -53,7 +53,8 @@
     return {
       v: 1, lang: null, skin: 'numbers', theme: 'auto',
       set: { wilt: true, sound: true, haptic: true, sundial: false, tidy: true, badge: false },
-      levels: {}, daily: {}, games: {}, seen: {},
+      levels: {}, daily: {}, games: {}, seen: {}, invites: {}, avatar: 0,
+      own: {}, bought: {}, used: {}, wear: {},   // the shop: js/shop.js
     };
   }
   function obj(x) { return x && typeof x === 'object' && !Array.isArray(x) ? x : {}; }
@@ -61,7 +62,7 @@
   BD.sanitize = function (raw) {
     var s = fresh(), r = obj(raw), k;
     if (r.lang === 'en' || r.lang === 'es') s.lang = r.lang;
-    if (['numbers', 'flowers', 'critters'].indexOf(r.skin) >= 0) s.skin = r.skin;
+    if (['numbers', 'flowers', 'critters', 'fruits'].indexOf(r.skin) >= 0) s.skin = r.skin;
     if (['auto', 'day', 'night'].indexOf(r.theme) >= 0) s.theme = r.theme;
     for (k in s.set) if (typeof obj(r.set)[k] === 'boolean') s.set[k] = r.set[k];
     Object.keys(obj(r.levels)).forEach(function (key) {
@@ -76,10 +77,16 @@
     });
     Object.keys(obj(r.games)).forEach(function (key) {
       var g = obj(r.games[key]), pz = obj(g.pz), N = pz.n * pz.n;
-      var ok = pz.n >= 4 && pz.n <= 9 && [pz.regions, pz.givens, pz.solution, g.vals, g.notes].every(function (a) { return Array.isArray(a) && a.length === N; });
+      var M = pz.twin ? 2 * N : N; // a twin garden has two figures in every cell
+      var ok = pz.n >= 4 && pz.n <= 9 && Array.isArray(pz.regions) && pz.regions.length === N && [pz.givens, pz.solution, g.vals, g.notes].every(function (a) { return Array.isArray(a) && a.length === M; });
       if (ok) s.games[key] = g;
     });
     Object.keys(obj(r.seen)).forEach(function (key) { if (r.seen[key]) s.seen[key] = 1; });
+    Object.keys(obj(r.invites)).forEach(function (key) { if (r.invites[key] && /^\d+-\d+$/.test(key)) s.invites[key] = 1; });
+    if (r.avatar >= 1 && r.avatar <= 9) s.avatar = r.avatar | 0;
+    Object.keys(obj(r.own)).forEach(function (id) { if (r.own[id] && /^[a-z]+-[a-z]+$/.test(id)) s.own[id] = 1; });
+    ['bought', 'used'].forEach(function (f) { Object.keys(obj(r[f])).forEach(function (id) { if (/^[a-z]+$/.test(id) && r[f][id] > 0) s[f][id] = Math.min(1e6, r[f][id] | 0); }); });
+    ['theme', 'hat', 'effect'].forEach(function (k) { if (typeof obj(r.wear)[k] === 'string' && /^[a-z]+$/.test(r.wear[k])) s.wear[k] = r.wear[k]; });
     return s;
   };
   BD.load = function () {
@@ -91,9 +98,12 @@
   };
   BD.save = function () {
     try { localStorage.setItem(KEY, JSON.stringify(BD.state)); } catch (e) { /* storage full or blocked: keep playing */ }
+    if (BD.cloud) BD.cloud.touch(); // with an account, a change of progress syncs a little later
   };
+  // What grows in the cells now: the chosen skin if it is owned (js/shop.js), else numbers.
+  BD.skin = function () { return BD.shop ? BD.shop.wearing(BD.state, 'skin') : BD.state.skin; };
   BD.reset = function () {
-    var keep = { lang: BD.state.lang, skin: BD.state.skin, theme: BD.state.theme, set: BD.state.set };
+    var keep = { lang: BD.state.lang, skin: BD.state.skin, theme: BD.state.theme, set: BD.state.set, avatar: BD.state.avatar };
     BD.state = BD.sanitize(keep);
     BD.save();
   };
@@ -102,9 +112,11 @@
     var th = BD.state.theme, root = document.documentElement;
     if (th === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', th);
     root.setAttribute('lang', BD.state.lang);
+    var garden = BD.shop ? BD.shop.wearing(BD.state, 'theme') : 'meadow';
+    if (garden === 'meadow') root.removeAttribute('data-garden'); else root.setAttribute('data-garden', garden);
     var dark = th === 'night' || (th === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', dark ? '#1B1836' : '#DFF3EA');
+    if (meta) meta.setAttribute('content', dark ? '#1B1836' : (BD.shop && BD.shop.find('theme', garden).colors[0]) || '#DFF3EA');
   };
 
   /* ---------- toast and sheets ---------- */
