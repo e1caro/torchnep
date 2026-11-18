@@ -54,6 +54,12 @@ jobs:
           npm run build
           cp -r dist ../site/bizsim
 
+      - name: Add the Bloomdoku app (served at /bloomdoku/, without its tests and tools)
+        run: |
+          node bloomdoku/tests/unit.js
+          cp -r bloomdoku site/bloomdoku
+          rm -rf site/bloomdoku/tests site/bloomdoku/tools
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
