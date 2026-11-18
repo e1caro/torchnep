@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command Room, direction E: overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090c; --panel: #0c0f14; --panel-2: #131720; --line: #1d222c; --line-2: #2b323f;
+  --ink: #e8ebf1; --ink-2: #a3abb9; --muted: #6b7484; --track: #2b323f;
+  --done: #3ddc97; --sent: #9a86ff; --failed: #ff4d5e; --attention: #ffb224; --on: #07090c;
+  --sans: "IBM Plex Sans", "Segoe UI", sans-serif; --cond: "IBM Plex Sans Condensed", "IBM Plex Sans", "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", "Cascadia Mono", Consolas, monospace;
+}
+[data-theme="light"] {
+  --bg: #f4f5f7; --panel: #ffffff; --panel-2: #eef0f4; --line: #dfe3ea; --line-2: #c5ccd8;
+  --ink: #10141b; --ink-2: #434b5a; --muted: #6c7585; --track: #c5ccd8;
+  --done: #0e9f6e; --sent: #5b45d6; --failed: #d32f45; --attention: #b97700; --on: #ffffff;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 13.5px/1.45 var(--sans); }
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 1px solid var(--ink); outline-offset: 3px; }
+.mono { font-family: var(--mono); font-size: 12px; }
+.app { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100vh; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 18px; padding: 0 18px; min-height: 46px; border-bottom: 1px solid var(--line); background: var(--panel); }
+.name { font: 600 15px var(--cond); letter-spacing: .02em; padding-right: 6px; }
+.tabs { display: flex; align-self: stretch; overflow-x: auto; }
+.tabs a { display: flex; align-items: center; padding: 0 11px; color: var(--ink-2); text-decoration: none; font: 500 13.5px var(--cond); border-bottom: 2px solid transparent; white-space: nowrap; min-height: 46px; }
+.tabs a:hover { color: var(--ink); }
+.tabs a[aria-current] { color: var(--ink); border-bottom-color: var(--done); }
+.cmd { flex: 1; min-width: 200px; max-width: 380px; margin-left: auto; background: var(--bg); border: 1px solid var(--line); border-radius: 3px; padding: 6px 10px; font-family: var(--mono); font-size: 12px; }
+.cmd::placeholder { color: var(--muted); }
+.live { display: inline-flex; align-items: center; gap: 7px; color: var(--ink-2); font: 400 12px var(--mono); white-space: nowrap; }
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--done); }
+.live.beat i { animation: beat .7s ease-out 1; }
+.live.lost i { background: var(--attention); border-radius: 1px; }
+.plain { background: none; border: 1px solid var(--line-2); border-radius: 3px; padding: 4px 9px; font-size: 12.5px; white-space: nowrap; }
+.plain:hover { border-color: var(--ink-2); }
+main { overflow: auto; padding: 16px 22px 18px; min-height: 0; }
+.head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; margin-bottom: 14px; }
+h2 { margin: 0; font: 600 13px/1.2 var(--cond); color: var(--ink-2); }
+.status { margin: 0; font: 600 20px/1.2 var(--cond); }
+.key { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-left: auto; font-size: 12px; color: var(--ink-2); }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.key .lamp { width: 13px; height: 13px; pointer-events: none; animation: none; border-width: 1.5px; }
+.key .lamp svg { width: 9px; height: 9px; } .key .lamp.attention svg { width: 13px; height: 13px; }
+.key .lamp.todo::before { width: 4px; height: 4px; }
+.wallbox { overflow-x: auto; scrollbar-color: var(--line-2) transparent; }
+.wallwrap { position: relative; min-width: min-content; }
+#tracks { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; z-index: 1; }
+.seg { fill: none; stroke-linecap: round; stroke-width: 2; stroke: var(--track); }
+.seg.lit { stroke: var(--done); }
+.seg.dim { stroke-width: 1.5; stroke-dasharray: 1 6; }
+.seg.next { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 4 8; animation: flow .9s linear infinite; }
+.origin { fill: var(--bg); stroke: var(--ink-2); stroke-width: 1.3; }
+.otext { fill: var(--muted); font: 400 11px var(--mono); }
+.wall { display: grid; position: relative; }
+.corner, .stagehead { border-bottom: 1px solid var(--line-2); }
+.corner { align-self: stretch; display: flex; align-items: end; color: var(--muted); font: 500 12px var(--cond); padding: 0 0 7px 2px; }
+.stagehead { display: flex; align-items: end; justify-content: center; gap: 4px; padding-bottom: 7px; min-width: 120px; min-height: 30px; position: relative; }
+.stagehead b { font: 600 13px var(--cond); text-align: center; overflow-wrap: anywhere; }
+.stagehead .tools { position: absolute; right: 2px; bottom: 5px; background: var(--bg); }
+.tools { display: inline-flex; gap: 1px; opacity: 0; }
+.stagehead:hover .tools, .lanehead:hover .tools, .tools:focus-within { opacity: 1; }
+.icon { background: none; border: 0; border-radius: 2px; width: 18px; height: 18px; padding: 0; color: var(--ink-2); display: inline-grid; place-items: center; }
+.icon:hover { background: var(--panel-2); color: var(--ink); }
+.icon svg { width: 10px; height: 10px; }
+.lanehead, .cell { height: 38px; border-bottom: 1px solid var(--line); }
+.lanehead { display: flex; align-items: center; gap: 7px; padding: 0 6px 0 2px; font: 600 14.5px var(--cond); white-space: nowrap; }
+.lanehead.variant { padding-left: 20px; font-weight: 500; font-size: 13.5px; color: var(--ink-2); }
+.lanehead small { font: 400 11px var(--mono); color: var(--muted); }
+.lanehead .tools { margin-left: auto; }
+.cell { display: grid; place-items: center; }
+.lamp { width: 22px; height: 22px; border-radius: 50%; border: 0; padding: 0; display: grid; place-items: center; position: relative; z-index: 2; background: var(--bg); color: var(--on); }
+.lamp svg { width: 12px; height: 12px; }
+.lamp.done { background: var(--done); }
+.lamp.failed { background: var(--failed); }
+.lamp.sent { border: 2px solid var(--sent); color: var(--sent); animation: pulse 1.8s ease-in-out infinite; }
+.lamp.todo { border: 2px solid var(--ink); }
+.lamp.todo::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ink); }
+.lamp.waiting { border: 1.5px dashed var(--muted); }
+.lamp.attention { background: none; color: var(--attention); border-radius: 3px; }
+.lamp.attention svg { width: 22px; height: 22px; }
+.lamp[aria-pressed="true"]::after { content: ""; position: absolute; inset: -6px; border: 1px solid var(--ink); border-radius: 50%; }
+.lamp.changed { animation: ring 1.4s ease-out 1; }
+.add { width: 22px; height: 22px; border-radius: 50%; border: 1px dashed transparent; background: none; color: transparent; font-size: 14px; line-height: 1; padding: 0; position: relative; z-index: 2; }
+.cell:hover .add, .add:focus-visible { border-color: var(--muted); color: var(--ink-2); background: var(--bg); }
+@keyframes flow { to { stroke-dashoffset: -12; } }
+@keyframes pulse { 50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--sent) 30%, transparent); } }
+@keyframes ring { from { box-shadow: 0 0 0 0 var(--ink); } to { box-shadow: 0 0 0 12px transparent; } }
+@keyframes beat { from { box-shadow: 0 0 0 0 var(--done); } to { box-shadow: 0 0 0 7px transparent; } }
+@media (prefers-reduced-motion: reduce) { .seg.next, .lamp.sent, .lamp.changed, .live.beat i { animation: none; } }
+.notice { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 6px 12px; min-height: 18px; }
+.link { background: none; border: 0; padding: 0; text-decoration: underline; color: var(--ink); font-size: 12.5px; }
+details.edit { margin-top: 4px; }
+details.edit summary { cursor: pointer; font: 500 13px var(--cond); color: var(--ink-2); width: max-content; }
+.forms { display: flex; flex-wrap: wrap; gap: 12px 28px; margin-top: 10px; }
+.forms form { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.forms label { display: grid; gap: 3px; font-size: 12px; color: var(--ink-2); }
+.forms input, .forms select { background: var(--panel); border: 1px solid var(--line-2); border-radius: 3px; padding: 5px 8px; min-width: 130px; }
+.solid { background: var(--ink); color: var(--bg); border: 0; border-radius: 3px; padding: 6px 12px; font: 600 13px var(--cond); }
+.fine { margin: 8px 0 0; font-size: 12px; color: var(--muted); }
+.inspector { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.25fr) minmax(0, 1fr); border-top: 1px solid var(--line-2); background: var(--panel); max-height: 42vh; }
+.inspector > section { padding: 12px 18px 14px; border-right: 1px solid var(--line); overflow: auto; min-width: 0; }
+.inspector > section:last-child { border-right: 0; }
+.inspector h2 { margin-bottom: 8px; }
+#selected h2 { font: 600 16px/1.2 var(--cond); color: var(--ink); }
+dl { margin: 0; display: grid; grid-template-columns: 84px 1fr; gap: 4px 10px; font-size: 13px; }
+dt { color: var(--muted); } dd { margin: 0; }
+pre { margin: 10px 0 0; padding: 7px 9px; background: var(--bg); border: 1px solid var(--line); border-radius: 3px; font: 400 12px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; }
+.acts { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.acts .plain[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.next { list-style: none; margin: 0; padding: 0; }
+.next li { border-top: 1px solid var(--line); } .next li:first-child { border-top: 0; }
+.next button { width: 100%; text-align: left; background: none; border: 0; padding: 7px 4px; border-radius: 2px; }
+.next button:hover { background: var(--panel-2); }
+.next b { display: flex; justify-content: space-between; gap: 8px; font: 600 14px var(--cond); }
+.next b span { font: 400 11.5px var(--mono); color: var(--ink-2); white-space: nowrap; }
+.next p { margin: 2px 0 0; font-size: 12.5px; color: var(--ink-2); }
+.src .row { padding: 7px 0; border-top: 1px solid var(--line); } .src .row:first-child { border-top: 0; padding-top: 0; }
+.src h3 { margin: 0 0 2px; font: 600 14px var(--cond); display: flex; align-items: center; gap: 8px; }
+.src h3 i { width: 7px; height: 7px; border-radius: 50%; border: 1px dashed var(--muted); }
+.src h3 i.on { border: 0; background: var(--sent); }
+.src p { margin: 0; color: var(--ink-2); font-size: 12.5px; }
+.prog { height: 3px; background: var(--panel-2); margin: 5px 0 2px; overflow: hidden; }
+.prog i { display: block; height: 100%; background: var(--sent); }
+@media (max-width: 900px) {
+  .app { height: auto; min-height: 100vh; } main { overflow: visible; }
+  .inspector { grid-template-columns: minmax(0, 1fr); max-height: none; }
+  .inspector > section { border-right: 0; border-top: 1px solid var(--line); }
+  .cmd { margin-left: 0; max-width: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="name">Command Room</div>
+    <nav class="tabs" aria-label="Areas">
+      <a href="#" aria-current="page">Overview</a><a href="#">Board</a><a href="#">Material</a><a href="#">Jobs</a><a href="#">Launch</a>
+      <a href="#">Results</a><a href="#">Elements</a><a href="#">Library</a><a href="#">Reports</a>
+    </nav>
+    <input class="cmd" type="text" aria-label="Command bar" placeholder="Go to, find, or ask   Ctrl+K">
+    <span class="live" id="live" role="status"><i></i><span>connecting</span></span>
+    <button class="plain" id="theme" type="button"></button>
+  </header>
+  <main>
+    <section aria-label="Pipeline">
+      <div class="head"><h2>Pipeline</h2><p class="status" id="status">Reading the board</p><div class="key" id="key"></div></div>
+      <div class="wallbox"><div class="wallwrap"><svg id="tracks" aria-hidden="true"></svg><div class="wall" id="wall"></div></div></div>
+      <p class="notice" id="notice" role="status"></p>
+      <details class="edit"><summary>Edit the pipeline</summary><div class="forms">
+        <form id="addStage"><label>New process<input name="label" required maxlength="24" placeholder="Relaxation"></label>
+          <label>Place it<select name="after"></select></label><button class="solid">Add process</button></form>
+        <form id="addLane"><label>New material or variant<input name="name" required maxlength="24" placeholder="GaN"></label>
+          <label>Variant of<select name="parent"></select></label><button class="solid">Add row</button></form>
+      </div><p class="fine">In the diagram: hover a process or a row to move or remove it, and use the + in an empty place to add a step.</p></details>
+    </section>
+  </main>
+  <footer class="inspector" aria-label="Details">
+    <section id="selected"></section>
+    <section><h2>What to launch now</h2><ul class="next" id="next"></ul></section>
+    <section><h2>Running</h2><div class="src" id="src"></div></section>
+  </footer>
+</div>
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const BOARD_STATE = { faltan: "todo", enviado: "sent", terminado: "done" };
+  const WORD = { todo: "ready to launch", sent: "sent", done: "done", failed: "failed", attention: "check first", waiting: "waiting" };
+  const PLAIN = { todo: "to do", sent: "sent", done: "done", failed: "failed" };
+  const COMMAND = { vasp: "python <tools>/hipipe.py pre --n N --dry-run", training: "python <tools>/hipipe.py fit --dry-run", shengbte: "python <tools>/hipipe.py bte --dry-run" };
+  const GLYPH = {
+    done: '<svg viewBox="0 0 16 16"><path d="M3.6 8.4l2.9 2.9 5.9-6.4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    failed: '<svg viewBox="0 0 16 16"><path d="M4.2 4.2l7.6 7.6M11.8 4.2l-7.6 7.6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>',
+    sent: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="4" fill="currentColor"/></svg>',
+    attention: '<svg viewBox="0 0 30 30"><path d="M15 3.5l12.5 22h-25z" fill="currentColor"/><path d="M15 12v7M15 22v.6" stroke="var(--on)" stroke-width="2.6" stroke-linecap="round"/></svg>',
+    todo: "", waiting: "",
+  };
+  const ICON = {
+    x: '<svg viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+    left: '<svg viewBox="0 0 12 12"><path d="M7.5 2L3.5 6l4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    right: '<svg viewBox="0 0 12 12"><path d="M4.5 2l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  };
+  let ST = null, store = null, lastKey = "", selected = null, undo = null, note = "", seen = {}, M = null;
+
+  const root = document.documentElement, themeBtn = $("theme");
+  const setTheme = (t) => { root.dataset.theme = t; themeBtn.textContent = t === "dark" ? "Light theme" : "Dark theme"; };
+  setTheme("dark"); themeBtn.addEventListener("click", () => setTheme(root.dataset.theme === "dark" ? "light" : "dark"));
+  $("key").innerHTML = ["done", "sent", "todo", "attention", "waiting", "failed"].map((k) => `<span><i class="lamp ${k}">${GLYPH[k]}</i>${WORD[k]}</span>`).join("");
+  const clock = (t) => new Date(t * 1000).toLocaleTimeString("en-GB");
+  const when = (t) => { if (!t) return "unknown"; const d = typeof t === "number" ? new Date(t * 1000) : new Date(t);
+    return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + " " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
+
+  function steps() {
+    const hs = new Set(store.hidden.steps), hl = new Set(store.hidden.lanes), ok = new Set(store.stages.map((s) => s.id)), out = [];
+    if (ST.board) for (const it of ST.board.items) out.push({ id: it.id, stage: it.stage, name: it.name, state: BOARD_STATE[it.status] || "todo", updated: it.updated, note: it.note, source: "board" });
+    for (const it of store.steps) out.push(Object.assign({ source: "room" }, it));
+    return out.filter((it) => !hs.has(it.id) && !hl.has(it.name) && ok.has(it.stage));
+  }
+  function parentOf(name, names) {
+    if (name in store.parents) return names.includes(store.parents[name]) ? store.parents[name] : null;
+    let best = null;
+    for (const m of names) if (m !== name && name.startsWith(m) && /[\sA-Z]/.test(name[m.length] || "") && (!best || m.length > best.length)) best = m;
+    return best;
+  }
+  function model() {
+    const all = steps(), hl = new Set(store.hidden.lanes), names = [], lanes = [];
+    for (const n of all.map((s) => s.name).concat(store.lanes)) if (!names.includes(n) && !hl.has(n)) names.push(n);
+    const par = {}; names.forEach((n) => { par[n] = parentOf(n, names); });
+    names.filter((n) => !par[n]).forEach((n) => { lanes.push({ name: n, parent: null }); names.filter((v) => par[v] === n).forEach((v) => lanes.push({ name: v, parent: n })); });
+    const at = (lane, stage) => all.find((s) => s.name === lane && s.stage === stage);
+    const order = store.stages.map((s) => s.id), label = Object.fromEntries(store.stages.map((s) => [s.id, s.label]));
+    const polar = (n) => (store.polar || []).includes(par[n] || n), potential = (n) => (store.potential || []).includes(n);
+    for (const s of all) {
+      s.view = s.state; s.rule = ""; s.kind = null; s.prev = null;
+      const i = order.indexOf(s.stage); let prev = null, viaParent = false;
+      for (let j = i - 1; j >= 0 && !prev; j--) { prev = at(s.name, order[j]); if (!prev && par[s.name] && !potential(s.name)) { prev = at(par[s.name], order[j]); viaParent = !!prev; } }
+      s.prev = prev; s.viaParent = viaParent;
+      if (s.state !== "todo") continue;
+      if (!prev) { s.kind = "ready"; s.rule = "First step of this row: nothing has to finish before it."; }
+      else if (prev.state !== "done") { s.kind = "waiting"; s.view = "waiting"; s.rule = `Waits for ${label[prev.stage]} of ${prev.name} (${PLAIN[prev.state]}).`; }
+      else if (viaParent) { s.kind = "attention"; s.view = "attention"; s.rule = `${label[prev.stage]} of ${prev.name} is done, but this row has no ${label[prev.stage]} step of its own. Check that this variant's ${label[prev.stage]} exists before launching.`; }
+      else { s.kind = "ready"; s.rule = `${label[prev.stage]} of ${prev.name} is done.`; }
+      if (polar(s.name) && s.stage === "training") s.rule += " Polar: needs the Born-charge run and --lr in the fit.";
+      if (polar(s.name) && s.stage === "shengbte") s.rule += " Polar: needs polar = yes and Born charges in CONTROL.";
+    }
+    return { all, lanes, at, label, polar, potential };
+  }
+
+  function draw() {
+    if (!M) return;
+    const svg = $("tracks"), pos = {};
+    $("wall").querySelectorAll(".lamp").forEach((b) => { pos[b.dataset.id] = { x: b.offsetLeft + b.offsetWidth / 2, y: b.offsetTop + b.offsetHeight / 2 }; });
+    const R = 15; let h = "";
+    for (const s of M.all) {
+      const b = pos[s.id]; if (!b) continue;
+      if (!s.prev) { if (M.potential(s.name)) { const ox = b.x - 62; h += `<path class="seg lit" d="M${ox + 9} ${b.y}H${b.x - R}"/><path class="origin" d="M${ox} ${b.y - 7}l7 7-7 7-7-7z"/><text class="otext" x="${ox - 12}" y="${b.y + 4}" text-anchor="end">from a potential</text>`; } continue; }
+      const a = pos[s.prev.id]; if (!a) continue;
+      const cls = s.prev.state === "done" && s.state === "done" ? "lit" : s.prev.state === "done" && (s.kind === "ready" || s.kind === "attention") ? "next" : "dim";
+      if (Math.abs(a.y - b.y) < 1) h += `<path class="seg ${cls}" d="M${a.x + R} ${a.y}H${b.x - R}"/>`;
+      else { const x1 = a.x + R, x2 = b.x - R, mx = (x1 + x2) / 2; h += `<path class="seg ${cls}" d="M${x1} ${a.y}C${mx} ${a.y} ${mx} ${b.y} ${x2} ${b.y}"/>`; }
+    }
+    svg.innerHTML = h;
+  }
+
+  function render() {
+    M = model(); const n = store.stages.length, wall = $("wall");
+    wall.style.gridTemplateColumns = `minmax(170px, 210px) repeat(${n}, minmax(120px, 300px))`;
+    let h = '<div class="corner">Material</div>';
+    store.stages.forEach((s, i) => { h += `<div class="stagehead"><b>${esc(s.label)}</b><span class="tools">
+      <button class="icon" data-act="left" data-id="${s.id}" aria-label="Move ${esc(s.label)} left" ${i ? "" : "disabled hidden"}>${ICON.left}</button>
+      <button class="icon" data-act="right" data-id="${s.id}" aria-label="Move ${esc(s.label)} right" ${i < n - 1 ? "" : "disabled hidden"}>${ICON.right}</button>
+      <button class="icon" data-act="dropstage" data-id="${s.id}" aria-label="Remove the process ${esc(s.label)}">${ICON.x}</button></span></div>`; });
+    for (const l of M.lanes) {
+      h += `<div class="lanehead ${l.parent ? "variant" : ""}"><span>${esc(l.name)}</span>${!l.parent && M.polar(l.name) ? "<small>polar</small>" : ""}<span class="tools"><button class="icon" data-act="droplane" data-id="${esc(l.name)}" aria-label="Remove the row ${esc(l.name)}">${ICON.x}</button></span></div>`;
+      for (const s of store.stages) {
+        const it = M.at(l.name, s.id);
+        if (!it) { h += `<div class="cell"><button class="add" data-act="addstep" data-lane="${esc(l.name)}" data-stage="${s.id}" aria-label="Add ${esc(s.label)} to ${esc(l.name)}">+</button></div>`; continue; }
+        const changed = seen[it.id] && seen[it.id] !== it.view ? " changed" : "";
+        h += `<div class="cell"><button class="lamp ${it.view}${changed}" data-act="select" data-id="${esc(it.id)}" aria-pressed="${selected === it.id}" title="${esc(s.label)} of ${esc(l.name)}: ${WORD[it.view]}" aria-label="${esc(s.label)} of ${esc(l.name)}: ${WORD[it.view]}">${GLYPH[it.view]}</button></div>`;
+      }
+    }
+    wall.innerHTML = h;
+    seen = Object.fromEntries(M.all.map((s) => [s.id, s.view]));
+
+    const todo = M.all.filter((s) => s.kind), c = (k) => todo.filter((s) => s.kind === k).length;
+    const jobs = ST.localJobs, running = jobs ? jobs.filter((j) => j.state === "running") : [];
+    const parts = [c("ready") ? `${c("ready")} ready to launch` : "", c("attention") ? `${c("attention")} to check first` : "", c("waiting") ? `${c("waiting")} waiting` : ""].filter(Boolean);
+    $("status").textContent = parts.length ? parts.join(", ") : "Nothing is waiting for you";
+
+    const rank = { ready: 0, attention: 1, waiting: 2 };
+    $("next").innerHTML = todo.slice().sort((a, b) => rank[a.kind] - rank[b.kind]).map((s) =>
+      `<li><button data-act="select" data-id="${esc(s.id)}"><b>${esc(M.label[s.stage])} of ${esc(s.name)}<span>${WORD[s.view]}</span></b><p>${esc(s.rule)}</p></button></li>`).join("") || "<li>Nothing is waiting for you.</li>";
+
+    const sel = M.all.find((s) => s.id === selected) || todo.sort((a, b) => rank[a.kind] - rank[b.kind])[0] || M.all[0];
+    selected = sel ? sel.id : null;
+    wall.querySelectorAll(".lamp").forEach((t) => t.setAttribute("aria-pressed", t.dataset.id === selected));
+    $("selected").innerHTML = !sel ? "<h2>Nothing selected</h2><p class='fine'>The pipeline is empty. Add a row and a step.</p>" : `<h2>${esc(M.label[sel.stage])} of ${esc(sel.name)}</h2>
+      <dl><dt>State</dt><dd>${WORD[sel.view]}</dd><dt>Comes from</dt><dd>${sel.source === "board" ? "the work board" : "added in Command Room"}</dd>
+      <dt>Last change</dt><dd>${when(sel.updated)}</dd>${sel.note ? `<dt>Note</dt><dd>${esc(sel.note)}</dd>` : ""}<dt>Rule</dt><dd>${esc(sel.rule || "Nothing to do here.")}</dd></dl>
+      ${sel.kind && sel.kind !== "waiting" && COMMAND[sel.stage] ? `<pre>${esc(COMMAND[sel.stage])}</pre><p class="fine">Runs as a dry run first. Nothing is sent without your click.</p>` : ""}
+      ${sel.source === "room" ? `<div class="acts">${["todo", "sent", "done", "failed"].map((k) => `<button class="plain" data-act="state" data-id="${esc(sel.id)}" data-state="${k}" aria-pressed="${sel.state === k}">${PLAIN[k]}</button>`).join("")}</div>
+        <div class="acts"><button class="plain" data-act="dropstep" data-id="${esc(sel.id)}">Remove this step</button></div>`
+        : `<div class="acts"><button class="plain" data-act="dropstep" data-id="${esc(sel.id)}">Hide this step here</button></div><p class="fine">Its state is read from the work board and changes there. Hiding it here leaves the board as it is.</p>`}`;
+
+    $("src").innerHTML = ST.clusters.map((cl) => `<div class="row"><h3><i></i>${esc(cl.label)}</h3><p>Not connected. Command Room has not been allowed to read this queue yet.</p></div>`).join("") +
+      `<div class="row"><h3><i class="${running.length ? "on" : ""}"></i>This computer</h3>${jobs === null ? "<p>The jobs folder was not given to the server.</p>" : running.length ? running.map((j) => `<p class="mono">${esc(j.name)}  ${j.step}/${j.total}  ${esc(j.phase || "")}  ${esc(j.metric || "")}</p><div class="prog"><i style="width:${Math.round(100 * j.step / (j.total || 1))}%"></i></div>`).join("") : "<p>Nothing is running.</p>"}
+      ${jobs && jobs.length && !running.length ? `<p>Last to finish: <span class="mono">${esc(jobs[jobs.length - 1].name)}</span>, ${when(jobs[jobs.length - 1].updated)}.</p>` : ""}</div>`;
+
+    const fill = (el, html) => { if (document.activeElement !== el) { const v = el.value; el.innerHTML = html; if ([...el.options].some((o) => o.value === v)) el.value = v; } };
+    fill($("addStage").after, `<option value="__end">at the end</option><option value="__start">at the start</option>` + store.stages.map((s) => `<option value="${s.id}">after ${esc(s.label)}</option>`).join(""));
+    fill($("addLane").parent, `<option value="">nothing, it is a material</option>` + M.lanes.filter((l) => !l.parent).map((l) => `<option>${esc(l.name)}</option>`).join(""));
+    const hidden = store.hidden.lanes.map((l) => `<button class="link" data-act="showlane" data-id="${esc(l)}">bring back ${esc(l)}</button>`)
+      .concat(store.hidden.steps.length ? [`<button class="link" data-act="showsteps">bring back ${store.hidden.steps.length} hidden step${store.hidden.steps.length === 1 ? "" : "s"}</button>`] : []);
+    $("notice").innerHTML = (note ? `<span>${esc(note)}</span>${undo ? '<button class="link" data-act="undo">Undo</button>' : ""}` : "") +
+      (ST.board ? "" : "<span>The work board file was not given to the server, so its steps are missing.</span>") + hidden.join("");
+    requestAnimationFrame(draw);
+  }
+
+  async function load() {
+    try {
+      const s = await (await fetch("/api/state", { cache: "no-store" })).json();
+      const key = JSON.stringify([s.board, s.localJobs, s.pipeline]), live = $("live");
+      live.className = "live"; void live.offsetWidth; live.className = "live beat"; live.lastElementChild.textContent = "live " + clock(s.generated);
+      if (key !== lastKey) { lastKey = key; ST = s; store = s.pipeline; render(); }
+    } catch (e) { $("live").className = "live lost"; $("live").lastElementChild.textContent = "no contact with the local server"; }
+  }
+  async function change(text, fn) {
+    undo = JSON.stringify(store); fn(); note = text; render();
+    await fetch("/api/pipeline", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(store) });
+    lastKey = ""; load();
+  }
+  const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "x";
+
+  document.addEventListener("click", (e) => {
+    const b = e.target.closest("[data-act]"); if (!b || !store) return;
+    const id = b.dataset.id, act = b.dataset.act;
+    if (act === "select") { selected = id; render(); }
+    else if (act === "undo" && undo) { const back = JSON.parse(undo); change("Undone.", () => { store = back; }).then(() => { undo = null; }); }
+    else if (act === "dropstage") { const s = store.stages.find((x) => x.id === id); change(`Removed the process ${s.label}. Its steps are kept and return if you add it again.`, () => { store.removed = (store.removed || []).filter((x) => x.id !== id).concat([s]); store.stages = store.stages.filter((x) => x.id !== id); }); }
+    else if (act === "left" || act === "right") change("Moved the process.", () => { const i = store.stages.findIndex((x) => x.id === id), j = i + (act === "left" ? -1 : 1), t = store.stages[i]; store.stages[i] = store.stages[j]; store.stages[j] = t; });
+    else if (act === "droplane") change(`Removed the row ${id}. The work board is not changed.`, () => { store.hidden.lanes.push(id); store.lanes = store.lanes.filter((x) => x !== id); });
+    else if (act === "showlane") change(`Brought back ${id}.`, () => { store.hidden.lanes = store.hidden.lanes.filter((x) => x !== id); });
+    else if (act === "showsteps") change("Brought back the hidden steps.", () => { store.hidden.steps = []; });
+    else if (act === "addstep") { const sid = "room__" + slug(b.dataset.stage) + "__" + slug(b.dataset.lane) + "__" + Date.now().toString(36); selected = sid;
+      change("Added a step.", () => { store.steps.push({ id: sid, stage: b.dataset.stage, name: b.dataset.lane, state: "todo", updated: new Date().toISOString() }); }); }
+    else if (act === "state") change("State changed.", () => { const s = store.steps.find((x) => x.id === id); s.state = b.dataset.state; s.updated = new Date().toISOString(); });
+    else if (act === "dropstep") change("Removed the step.", () => { if (store.steps.some((x) => x.id === id)) store.steps = store.steps.filter((x) => x.id !== id); else store.hidden.steps.push(id); selected = null; });
+  });
+  $("addStage").addEventListener("submit", (e) => {
+    e.preventDefault(); const f = e.target, label = f.label.value.trim(), after = f.after.value; if (!label || !store) return;
+    if (store.stages.some((x) => x.label.toLowerCase() === label.toLowerCase())) { note = `There is already a process called ${label}.`; undo = null; return render(); }
+    const old = (store.removed || []).find((x) => x.label.toLowerCase() === label.toLowerCase());
+    change(`Added the process ${label}.`, () => { const s = old || { id: "x-" + slug(label) + "-" + Date.now().toString(36), label };
+      store.removed = (store.removed || []).filter((x) => x !== old);
+      const i = after === "__end" ? store.stages.length : after === "__start" ? 0 : store.stages.findIndex((x) => x.id === after) + 1; store.stages.splice(i, 0, s); });
+    f.label.value = "";
+  });
+  $("addLane").addEventListener("submit", (e) => {
+    e.preventDefault(); const f = e.target, name = f.name.value.trim(), parent = f.parent.value; if (!name || !store) return;
+    change(`Added the row ${name}. Use the + in its row to add steps.`, () => { store.hidden.lanes = store.hidden.lanes.filter((x) => x !== name);
+      if (!store.lanes.includes(name)) store.lanes.push(name); store.parents[name] = parent; });
+    f.name.value = "";
+  });
+  new ResizeObserver(draw).observe($("wall"));
+  load(); setInterval(load, 3000);
+})();
+</script>
+</body>
+</html>
