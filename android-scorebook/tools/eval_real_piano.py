@@ -24,7 +24,6 @@ pieces from make_fixtures.py), and what feeding the audio at concert pitch (core
 """
 import argparse
 import csv
-import gzip
 import io
 import json
 import os
