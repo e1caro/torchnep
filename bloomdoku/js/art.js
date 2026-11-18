@@ -115,28 +115,46 @@
   };
   A.hats = HATS;
 
+  // Every set of nine drawings that can grow in the cells, by skin name. js/packs.js adds more (A.addSet).
+  A.sets = { flowers: FLOWERS, critters: CRITTERS, fruits: FRUITS };
+  A.setNames = { flowers: A.flowerNames, critters: A.critterNames, fruits: A.fruitNames };
+  A.addSet = function (skin, drawings, names) { A.sets[skin] = drawings; A.setNames[skin] = names; };
+
   A.install = function () {
     if (document.getElementById('bd-defs')) return;
     var s = '<svg id="bd-defs" xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true"><defs>';
-    for (var i = 0; i < 9; i++) {
-      s += '<symbol id="bd-flowers-' + (i + 1) + '" viewBox="0 0 40 40">' + FLOWERS[i] + '</symbol>';
-      s += '<symbol id="bd-critters-' + (i + 1) + '" viewBox="0 0 40 40">' + CRITTERS[i] + '</symbol>';
-      s += '<symbol id="bd-fruits-' + (i + 1) + '" viewBox="0 0 40 40">' + FRUITS[i] + '</symbol>';
-    }
+    Object.keys(A.sets).forEach(function (skin) {
+      for (var i = 0; i < 9; i++) s += '<symbol id="bd-' + skin + '-' + (i + 1) + '" viewBox="0 0 40 40">' + A.sets[skin][i] + '</symbol>';
+    });
     s += '</defs></svg>';
     document.body.insertAdjacentHTML('afterbegin', s);
   };
 
+  // A helper (bee, caterpillar, ladybird, owl, frog) in one of its looks: an SVG whose wings, eyes and legs carry
+  // the classes the stylesheet animates (.hw, .he, .hp, .hs, .hl). The drawings come from js/packs.js.
+  A.helpers = {};
+  var HELPER_EMOJI = { bee: '🐝', caterpillar: '🐛', ladybird: '🐞', owl: '🦉', frog: '🐸' };
+  A.helper = function (art, look, size, cls) {
+    var set = A.helpers[art], inner = set && (set[look] || set.classic);
+    if (!inner) return '<span class="emo">' + (HELPER_EMOJI[art] || '') + '</span>';
+    return '<svg class="hsprite h-' + art + (cls ? ' ' + cls : '') + '" viewBox="0 0 64 64" width="' + (size || 44) + '" height="' + (size || 44) + '" aria-hidden="true">' + inner + '</svg>';
+  };
+
   // A value drawn in a skin ('numbers', 'flowers' or 'critters'). `badge` adds the small number to a drawing.
   A.token = function (v, skin, badge) {
-    if (skin === 'numbers' || !skin) return '<span class="num v' + v + '">' + v + '</span>';
+    if (skin === 'numbers' || !skin || !A.sets[skin]) return '<span class="num v' + v + '">' + v + '</span>';
     return '<span class="tok"><svg viewBox="0 0 40 40" aria-hidden="true"><use href="#bd-' + skin + '-' + v + '"/></svg>' + (badge ? '<b class="badge v' + v + '">' + v + '</b>' : '') + '</span>';
   };
-  A.name = function (v, skin) { return skin === 'flowers' ? BD.t(A.flowerNames[v - 1]) : skin === 'critters' ? BD.t(A.critterNames[v - 1]) : skin === 'fruits' ? BD.t(A.fruitNames[v - 1]) : String(v); };
+  A.name = function (v, skin) { return A.setNames[skin] ? BD.t(A.setNames[skin][v - 1]) : String(v); };
 
-  // Pua the hedgehog. mood: 'hi' | 'happy' | 'think' | 'wow' | 'sleepy' | 'oops'. hat: one of A.hats (default: the one worn).
-  A.pua = function (mood, size, hat) {
-    if (!hat) hat = BD.shop && BD.state ? BD.shop.wearing(BD.state, 'hat') : 'flower';
+  // Pua the hedgehog. mood: 'hi' | 'happy' | 'think' | 'wow' | 'sleepy' | 'oops'. hat: one of A.hats; coat: one of
+  // the shop's coats (both default to what is worn).
+  A.pua = function (mood, size, hat, coat) {
+    var worn = BD.shop && BD.state;
+    if (!hat) hat = worn ? BD.shop.wearing(BD.state, 'hat') : 'flower';
+    if (!coat) coat = worn ? BD.shop.wearing(BD.state, 'coat') : 'classic';
+    var fur = (BD.shop && BD.shop.find('coat', coat)) || { colors: ['#9A6B45', '#B98558', '#FBE3C4'] }, C = fur.colors;
+    var sky = fur.stars ? '<circle cx="14" cy="28" r="1.200" fill="#FFE98A"/><circle cx="24" cy="12" r="1" fill="#fff"/><circle cx="40" cy="10" r="1.300" fill="#FFE98A"/><circle cx="50" cy="24" r="1" fill="#fff"/><circle cx="32" cy="18" r=".9" fill="#fff"/>' : '';
     var eyes, mouth;
     if (mood === 'happy') { eyes = '<path d="M21.500 41Q24.500 37 27.500 41M36.500 41Q39.500 37 42.500 41" fill="none" stroke="' + INK + '" stroke-width="2.200" stroke-linecap="round"/>'; mouth = '<path d="M27 48.500Q32 54.500 37 48.500Z" fill="' + INK + '"/>'; }
     else if (mood === 'think') { eyes = '<circle cx="25.500" cy="39" r="2.500" fill="' + INK + '"/><circle cx="40.500" cy="39" r="2.500" fill="' + INK + '"/>'; mouth = '<path d="M29 50.500L35 49.500" stroke="' + INK + '" stroke-width="1.800" stroke-linecap="round"/>'; }
@@ -145,10 +163,10 @@
     else if (mood === 'oops') { eyes = '<circle cx="24.500" cy="40" r="2.500" fill="' + INK + '"/><circle cx="39.500" cy="40" r="2.500" fill="' + INK + '"/><path d="M20.500 35.500L27 37M43.500 35.500L37 37" stroke="' + INK + '" stroke-width="1.500" stroke-linecap="round"/>'; mouth = '<path d="M28.500 51.500Q32 48.500 35.500 51.500" fill="none" stroke="' + INK + '" stroke-width="1.800" stroke-linecap="round"/>'; }
     else { eyes = '<circle cx="24.500" cy="40" r="2.500" fill="' + INK + '"/><circle cx="39.500" cy="40" r="2.500" fill="' + INK + '"/><circle cx="25.300" cy="39.200" r=".9" fill="#fff"/><circle cx="40.300" cy="39.200" r=".9" fill="#fff"/>'; mouth = '<path d="M28 49Q32 53.500 36 49" fill="none" stroke="' + INK + '" stroke-width="1.800" stroke-linecap="round"/>'; }
     return '<svg class="pua" viewBox="0 0 64 64" width="' + (size || 56) + '" height="' + (size || 56) + '" aria-hidden="true">' +
-      '<path d="M8 42L3.500 31L11 31.500L8 20.500L16 23L15 12L23 16.500L25 6L32 12.500L39 6L41 16.500L49 12L48 23L56 20.500L53 31.500L60.500 31L56 42Q56 58 32 58Q8 58 8 42Z" fill="#9A6B45"/>' +
-      '<path d="M14 40L11 33L16.500 34L15 27L21 30L21.500 23L27 27L32 21L37 27L42.500 23L43 30L49 27L47.500 34L53 33L50 40Z" fill="#B98558"/>' +
-      '<circle cx="15" cy="33" r="4.200" fill="#FBE3C4"/><circle cx="49" cy="33" r="4.200" fill="#FBE3C4"/><circle cx="15" cy="33" r="2" fill="#FFB3C4"/><circle cx="49" cy="33" r="2" fill="#FFB3C4"/>' +
-      '<ellipse cx="32" cy="44" rx="19" ry="14" fill="#FBE3C4"/>' + eyes +
+      '<path d="M8 42L3.500 31L11 31.500L8 20.500L16 23L15 12L23 16.500L25 6L32 12.500L39 6L41 16.500L49 12L48 23L56 20.500L53 31.500L60.500 31L56 42Q56 58 32 58Q8 58 8 42Z" fill="' + C[0] + '"/>' +
+      '<path d="M14 40L11 33L16.500 34L15 27L21 30L21.500 23L27 27L32 21L37 27L42.500 23L43 30L49 27L47.500 34L53 33L50 40Z" fill="' + C[1] + '"/>' + sky +
+      '<circle cx="15" cy="33" r="4.200" fill="' + C[2] + '"/><circle cx="49" cy="33" r="4.200" fill="' + C[2] + '"/><circle cx="15" cy="33" r="2" fill="#FFB3C4"/><circle cx="49" cy="33" r="2" fill="#FFB3C4"/>' +
+      '<ellipse cx="32" cy="44" rx="19" ry="14" fill="' + C[2] + '"/>' + eyes +
       '<circle cx="19.500" cy="47" r="3.200" fill="#FF8FA8" opacity=".55"/><circle cx="44.500" cy="47" r="3.200" fill="#FF8FA8" opacity=".55"/>' +
       '<ellipse cx="32" cy="45.500" rx="2.600" ry="2" fill="' + INK + '"/>' + mouth +
       (HATS[hat] || HATS.flower) + '</svg>';

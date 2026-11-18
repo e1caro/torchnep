@@ -46,7 +46,9 @@ import java.util.zip.ZipInputStream;
  * like on the web and the game needs no network. Links to other sites open in the browser.
  *
  * A WebView lacks a few things a browser has, so the app adds them as window.BloomNative (used by BD.native in
- * js/app.js): the share sheet (the daily bouquet, the friend code), the clipboard, and a short vibration.
+ * js/app.js): the share sheet (the daily bouquet, the friend code), the clipboard, a short vibration, and the
+ * update controls of Settings (js/update.js): which version is shown, "Check now", and switching to a downloaded
+ * version without leaving the app.
  *
  * Updates itself, like Analyst Path (android-analyst/): each release (tag bloomdoku-N) carries web.zip, the whole web
  * app. When one is newer than what the app shows, it is downloaded in the background into the app's own storage and
@@ -62,7 +64,11 @@ public class MainActivity extends Activity {
     private String home; // the app's own page: packed in the APK, or a newer downloaded copy
     private int shown; // the web version on screen (the APK's own one is its versionCode)
     private volatile boolean ready; // a newer web version is downloaded and waits for the next resume
-    private long lastCheck;
+    private volatile int readyVersion;
+    private volatile int apkVersion; // a newer release that this shell cannot show: it needs a new APK
+    private volatile String apkUrl = "";
+    private volatile long lastCheck;
+    private volatile boolean checking; // one check at a time: two would unpack into the same folder
 
     private SharedPreferences webPrefs() { return getSharedPreferences("web", MODE_PRIVATE); }
     private File webDir(int v) { return new File(getFilesDir(), "web/" + v); }
@@ -88,7 +94,9 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setAllowContentAccess(false);
         s.setMediaPlaybackRequiresUserGesture(false); // the notes of the musical garden play from taps anyway
-        s.setUserAgentString(s.getUserAgentString() + " BloomdokuApp/1 BloomdokuWeb/" + shown);
+        // the web app reads these: which web version it shows, which native shell and which APK it runs in
+        s.setUserAgentString(s.getUserAgentString() + " BloomdokuApp/1 BloomdokuWeb/" + shown
+                + " BloomdokuShell/" + BuildConfig.SHELL + " BloomdokuApk/" + BuildConfig.VERSION_CODE);
         web.setOverScrollMode(View.OVER_SCROLL_NEVER); // no stretch or glow when you swipe past the top or bottom
         web.addJavascriptInterface(new Bridge(), "BloomNative");
 
@@ -133,7 +141,7 @@ public class MainActivity extends Activity {
         // a saved page is only restored when it belongs to the web version now shown
         if (state == null || state.getInt("webVer", 0) != shown || web.restoreState(state) == null) web.loadUrl(home);
         cleanOld(shown);
-        new Thread(this::checkUpdate).start();
+        new Thread(() -> checkUpdate(false)).start();
     }
 
     private void goBackOrFinish() {
@@ -180,13 +188,15 @@ public class MainActivity extends Activity {
         web.onResume();
         // switch to a downloaded version, else look for one
         if (ready) { ready = false; recreate(); }
-        else new Thread(this::checkUpdate).start();
+        else new Thread(() -> checkUpdate(false)).start();
     }
 
     // ---------- updates (the same scheme as Analyst Path's MainActivity) ----------
 
-    private void checkUpdate() {
-        if (System.currentTimeMillis() - lastCheck < 10 * 60e3) return;
+    /** Looks for a newer release and downloads its web app. force: skip the ten-minute pause (the "Check now" button). */
+    private void checkUpdate(boolean force) {
+        if (checking || (!force && System.currentTimeMillis() - lastCheck < 10 * 60e3)) return;
+        checking = true;
         lastCheck = System.currentTimeMillis();
         try {
             JSONArray rs = new JSONArray(read(RELEASES));
@@ -200,29 +210,51 @@ public class MainActivity extends Activity {
                 int n = Integer.parseInt(m.group(1));
                 if (n <= best) continue;
                 JSONArray as = r.getJSONArray("assets");
-                String url = null;
+                String url = null, apk = null;
                 int needs = 1;
                 for (int j = 0; j < as.length(); j++) {
                     JSONObject a = as.getJSONObject(j);
                     String name = a.optString("name");
                     if (name.equals("web.zip")) url = a.optString("browser_download_url");
+                    if (name.endsWith(".apk")) apk = a.optString("browser_download_url");
                     Matcher sm = shell.matcher(name);
                     if (sm.find()) needs = Integer.parseInt(sm.group(1));
                 }
-                if (url != null && needs <= BuildConfig.SHELL) { best = n; zip = url; }
+                if (url == null) continue;
+                if (needs <= BuildConfig.SHELL) { best = n; zip = url; }
+                else if (n > apkVersion) { apkVersion = n; apkUrl = apk != null ? apk : r.optString("html_url"); } // this shell is too old for it
             }
-            if (zip == null) return;
+            if (zip == null) { tell(ready ? "ready" : apkVersion > shown ? "needsApk" : "current"); return; }
             File dir = webDir(best), tmp = new File(getFilesDir(), "web/tmp");
             deleteAll(tmp);
             unzip(zip, tmp);
-            if (!new File(tmp, "index.html").exists() || !new File(tmp, "js/app.js").exists()) { deleteAll(tmp); return; }
+            if (!new File(tmp, "index.html").exists() || !new File(tmp, "js/app.js").exists()) { deleteAll(tmp); tell("error"); return; }
             deleteAll(dir);
-            if (!tmp.renameTo(dir)) return;
+            if (!tmp.renameTo(dir)) { tell("error"); return; }
             webPrefs().edit().putInt("ver", best).commit();
+            readyVersion = best;
             ready = true;
+            tell("ready");
         } catch (Exception ignored) {
-            // offline or GitHub busy: try again later
+            if (force) tell("error"); // offline or GitHub busy: the next check tries again (said only when asked)
+        } finally {
+            checking = false;
         }
+    }
+
+    /** Tells the web app (js/update.js) how the last check went. Older web versions have no such function: then nothing happens. */
+    private void tell(final String status) {
+        final JSONObject o = new JSONObject();
+        try {
+            o.put("status", status);
+            o.put("version", "ready".equals(status) ? readyVersion : "needsApk".equals(status) ? apkVersion : shown);
+            o.put("apk", "needsApk".equals(status) ? apkUrl : "");
+        } catch (Exception ignored) {
+            return;
+        }
+        runOnUiThread(() -> {
+            if (web != null) web.evaluateJavascript("window.BD&&BD.update&&BD.update.fromNative&&BD.update.fromNative(" + o + ")", null);
+        });
     }
 
     private static HttpURLConnection open(String url) throws Exception {
@@ -302,6 +334,20 @@ public class MainActivity extends Activity {
                 } catch (Exception ignored) {
                     // no app can share text
                 }
+            });
+        }
+
+        /** "Check for updates" in Settings: looks now, and answers through BD.update.fromNative. */
+        @JavascriptInterface
+        public void checkUpdate() {
+            new Thread(() -> MainActivity.this.checkUpdate(true)).start();
+        }
+
+        /** "Update now": shows the downloaded web version at once (the page is rebuilt; progress is saved). */
+        @JavascriptInterface
+        public void restart() {
+            runOnUiThread(() -> {
+                if (ready) { ready = false; recreate(); }
             });
         }
 

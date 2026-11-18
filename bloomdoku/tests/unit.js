@@ -10,6 +10,7 @@ const E = require(path.join(root, 'js', 'engine.js'));
 const W = require(path.join(root, 'js', 'worlds.js'));
 const Shop = require(path.join(root, 'js', 'shop.js'));
 const ALL = process.argv.includes('--all');
+const read2 = (f) => fs.readFileSync(path.join(root, f), 'utf8');
 
 let passed = 0, failed = 0;
 function test(name, fn) {
@@ -99,7 +100,7 @@ test('11 worlds × 4 levels, keys 1-1 … 11-4 in order: 8 classic worlds, then 
   eq(W.levels.map((l) => l.key), keys);
 });
 test('level names are saved progress: none renamed or moved', () => {
-  eq(W.levels.map((l) => l.name), ['Four little seeds', 'Fewer seeds', 'Six in a row', 'Nursery graduate', 'First bed', 'Morning rows', 'Hidden bulbs', 'Meadow master',
+  eq(W.levels.map((l) => l.name), ['First seeds', 'Fewer seeds', 'Morning dew', 'Nursery graduate', 'First bed', 'Morning rows', 'Hidden bulbs', 'Meadow master',
     'Two bee paths', 'Crossing', 'Busy hive', 'Queen bee', 'Five pads', 'Six pads', 'Seven pads', 'The big pond', 'First tendrils', 'Climbers', 'Tangle', 'Overgrown',
     'First hops', 'Burrow', 'Warren', 'Moon hop', 'Dusk', 'First lights', 'Glow', 'Midnight', 'Bees on the trellis', 'Fireflies on the pond', 'Bunnies on the paths', 'The grand bouquet',
     'First couples', 'Shy couples', 'Opening dance', 'Find your partner', 'Polka', 'Foxtrot', 'Tango', 'Grand ball', 'Moonlight', 'Masquerade', 'Last dance', 'The great waltz']);
@@ -118,10 +119,26 @@ test('levels of a world get harder: no more flowers to start than the level befo
   }));
 });
 test('at least 3,000 classic gardens (32 levels × 100) and about 1,000 twin gardens (12 × 100)', () => { eq([W.total() - W.twinTotal(), W.twinTotal(), W.total()], [3200, 1200, 4400]); });
+test('the map starts with normal 9×9 gardens: no level is a 4×4 board, and worlds 1, 2 and the twin worlds are 9×9 throughout', () => {
+  W.levels.forEach((lv) => ok(lv.p.n >= 5, lv.key + ' is ' + lv.p.n + '×' + lv.p.n));
+  [1, 2, 9, 10, 11].forEach((w) => W.worlds[w - 1].levels.forEach((lv) => eq(lv.p.n, 9, lv.key)));
+  eq(W.next({ levels: {} }).key, '1-1');
+});
+test('4×4 boards live only in the tutorials: three classic lessons and two twin ones, each a valid garden', () => {
+  eq([W.TUTORIAL.classic.length, W.TUTORIAL.twin.length], [3, 2]);
+  eq(W.TUTORIAL.classic.map((l) => l.coach), [2, 1, 0], 'less help each time');
+  Object.keys(W.TUTORIAL).forEach((kind) => W.TUTORIAL[kind].forEach((lesson, step) => {
+    const pz = W.tutorialPuzzle(kind, step);
+    eq([pz.n, pz.kind, pz.step, !!pz.twin], [4, kind, step, kind === 'twin']);
+    checkPuzzle(pz, lesson.p, 'tutorial ' + kind + ' ' + (step + 1));
+    eq(pz, W.tutorialPuzzle(kind, step), 'the same lesson every time');
+    ok(lesson.intro.length > 20);
+  }));
+});
 
 console.log('Generator');
 const sample = ALL ? W.GARDENS : 6;
-const smallSpace = { '1-1': 1, '1-2': 1, '1-3': 1, '4-1': 1, '9-1': 1, '9-2': 1 }; // small boards: check all 100 are different even in the quick run
+const smallSpace = { '4-1': 1 }; // the smallest board of the map // small boards: check all 100 are different even in the quick run
 let made = 0;
 const t0 = Date.now();
 W.levels.forEach((lv) => {
@@ -185,7 +202,7 @@ test('a wrong flower is a conflict; a board with a contradiction gives no false 
   eq(E.conflicts(S, pz.givens).some(Boolean), false);
 });
 test('finished rows, columns and plots are reported, and only when right', () => {
-  const pz = W.puzzle('1-1', 0), S = E.build(pz);
+  const pz = W.tutorialPuzzle('classic', 0), S = E.build(pz);
   eq(E.doneGroups(S, pz.solution).length, 12);
   const vals = pz.solution.slice();
   vals[0] = 0;
@@ -298,7 +315,7 @@ test('a base pair of sudokus with no couple twice exists for 4×4 and 9×9, and 
   ok(threw, 'a 6×6 twin garden is refused (it cannot exist)');
 });
 test('a couple repeated on the board is a conflict, in both cells', () => {
-  const pz = W.puzzle('9-1', 0), S = E.build(pz), h = 16, vals = pz.solution.slice();
+  const pz = W.tutorialPuzzle('twin', 0), S = E.build(pz), h = 16, vals = pz.solution.slice();
   eq(E.conflicts(S, vals).some(Boolean), false);
   const a = 0, b = [...Array(h).keys()].find((c) => c !== a && !S.sees[a][c] && !S.sees[h + a][h + c]); // a cell that sees neither half of cell 0
   vals[b] = vals[a]; vals[h + b] = vals[h + a];
@@ -321,7 +338,7 @@ console.log('Levels, chestnuts and the shop');
 test('experience comes from the progress itself: harder levels are worth more, and levels need more and more', () => {
   const s = { levels: {}, daily: {} };
   eq(W.player(s), { xp: 0, level: 1, from: 0, to: 60, title: 'Seed' });
-  ok(W.worth(W.level('1-1')) < W.worth(W.level('2-1')) && W.worth(W.level('2-1')) < W.worth(W.level('2-4')) && W.worth(W.level('11-4')) >= W.worth(W.level('2-4')));
+  ok(W.worth(W.level('4-1')) < W.worth(W.level('1-1')) && W.worth(W.level('1-1')) < W.worth(W.level('1-2')) && W.worth(W.level('2-1')) < W.worth(W.level('2-4')) && W.worth(W.level('11-4')) >= W.worth(W.level('2-4')));
   W.finish(s, '1-1', 0, { slips: 0 });
   eq(W.xp(s), 3 * W.worth(W.level('1-1')));
   W.finish(s, '1-1', 0, { slips: 3, frog: true });
@@ -336,43 +353,86 @@ test('experience comes from the progress itself: harder levels are worth more, a
   ok(W.player(full).level > 60 && W.player(full).level < 150, 'everything with three stars is level ' + W.player(full).level);
 });
 test('chestnuts: earned by gardens, dailies, stamps and levels; spent on helpers and things to keep', () => {
-  const s = { levels: {}, daily: {} };
+  const s = { levels: {}, daily: {} }, day = '2026-11-18', G = Shop.forGarden;
   eq([Shop.earned(s), Shop.balance(s)], [0, 0]);
+  eq([G(0), G(1), G(2), G(3), Shop.forDaily(1), Shop.forDaily(3)], [0, 2, 3, 4, 6, 10], 'a garden gives 2 to 4, a daily 6 to 10');
   W.finish(s, '1-1', 0, { slips: 0 }); W.finish(s, '1-1', 1, { slips: 1 }); W.finish(s, '1-1', 2, { slips: 1, owl: true });
-  eq(Shop.earned(s), 10 + 8 + 6 + (W.player(s).level - 1) * Shop.LEVEL);
-  W.finishDaily(s, '2026-11-18', { slips: 0 });
-  ['1-2', '1-3', '1-4'].forEach((k) => W.finish(s, k, 0, { slips: 0 }));
-  const earned = 10 + 8 + 6 + 30 + 25 + Shop.STAMP + (W.player(s).level - 1) * Shop.LEVEL;
+  eq(Shop.earned(s), G(3) + G(2) + G(1) + (W.player(s).level - 1) * Shop.LEVEL);
+  W.finishDaily(s, day, { slips: 0 });
+  ['1-2', '1-3', '1-4'].forEach((k) => { for (let g = 0; g < 6; g++) W.finish(s, k, g, { slips: 0 }); });
+  const earned = G(3) + G(2) + G(1) + 18 * G(3) + Shop.forDaily(3) + Shop.STAMP + (W.player(s).level - 1) * Shop.LEVEL;
   eq(Shop.earned(s), earned);
   eq([Shop.stock(s, 'frog'), Shop.stock(s, 'owl'), Shop.stock(s, 'lady')], [5, 5, 5], 'everyone starts with five of each helper');
-  ok(Shop.buy(s, 'frog') && Shop.use(s, 'frog') && Shop.use(s, 'frog'));
+  ok(Shop.buy(s, 'frog', day) && Shop.use(s, 'frog') && Shop.use(s, 'frog'));
   eq([Shop.stock(s, 'frog'), Shop.balance(s)], [4, earned - 12]);
   for (let i = 0; i < 4; i++) ok(Shop.use(s, 'frog'));
   ok(!Shop.use(s, 'frog'), 'no frogs left');
   eq(Shop.stock(s, 'frog'), 0);
   ok(!Shop.owns(s, 'hat-bow') && Shop.owns(s, 'hat-flower') && Shop.owns(s, 'skin-flowers') && !Shop.owns(s, 'skin-critters'));
-  ok(Shop.buy(s, 'hat-bow') && !Shop.buy(s, 'hat-bow'), 'a thing is bought once');
-  eq([Shop.wearing(s, 'hat'), Shop.balance(s)], ['bow', earned - 12 - 30], 'and put on at once');
-  ok(!Shop.buy(s, 'hat-crown'), 'not enough chestnuts for the crown');
+  const bow = Shop.price(s, 'hat-bow', day);
+  ok(Shop.buy(s, 'hat-bow', day) && !Shop.buy(s, 'hat-bow', day), 'a thing is bought once');
+  eq([Shop.wearing(s, 'hat'), Shop.balance(s), Shop.isOn(s, 'hat-bow')], ['bow', earned - 12 - bow, true], 'and put on at once');
+  ok(!Shop.buy(s, 'hat-crown', day), 'not enough chestnuts for the crown');
   ok(Shop.wear(s, 'hat-flower') && !Shop.wear(s, 'hat-crown'));
-  eq(Shop.wearing(s, 'hat'), 'flower');
+  eq([Shop.wearing(s, 'hat'), Shop.isOn(s, 'hat-bow')], ['flower', false]);
   s.skin = 'fruits';
   eq(Shop.wearing(s, 'skin'), 'numbers', 'a skin that is not owned is never shown');
-  s.wear = { theme: 'nonsense' };
-  eq(Shop.wearing(s, 'theme'), 'meadow');
+  s.wear = { theme: 'nonsense', 'h-bee': 'queen' };
+  eq([Shop.wearing(s, 'theme'), Shop.wearing(s, 'h-bee'), Shop.wearing(s, 'h-frog')], ['meadow', 'classic', 'classic'], 'nor a look that is not owned');
+  s.own['hskin-bee-queen'] = 1;
+  eq([Shop.wearing(s, 'h-bee'), Shop.isOn(s, 'hskin-bee-queen'), Shop.isOn(s, 'hskin-bee-classic')], ['queen', true, false]);
 });
-test('the shop catalog: unique ids, a free first choice of every kind, prices that can be reached', () => {
+test('today\'s offer: one thing a day at 40 % off, the same day for everyone, never something already owned', () => {
+  const s = { levels: {}, daily: {}, own: {} };
+  W.levels.slice(0, 12).forEach((lv) => { s.levels[lv.key] = { stars: 3, g: '3'.repeat(100), extra: 0, at: 100 }; });
+  const d1 = Shop.deal(s, '2026-11-18'), d2 = Shop.deal(s, '2026-11-19');
+  eq(Shop.deal({ levels: {} }, '2026-11-18').item.id, d1.item.id, 'the same for a new player');
+  const days = new Set();
+  for (let d = 1; d <= 28; d++) days.add(Shop.deal(s, '2026-02-' + ('0' + d).slice(-2)).item.id);
+  ok(days.size > 15, 'it changes from day to day (' + days.size + ' different things in 28 days)');
+  ok(d1.item.price > 0 && d1.item.kind !== 'helper' && d1.price < d1.item.price && d1.price >= d1.item.price * 0.55 && d1.price % 5 === 0, JSON.stringify(d1));
+  eq([Shop.price(s, d1.item.id, '2026-11-18'), Shop.price(s, d1.item.id, d2.item.id === d1.item.id ? '2026-11-20' : '2026-11-19')], [d1.price, d1.item.price]);
+  const before = Shop.balance(s);
+  ok(Shop.buy(s, d1.item.id, '2026-11-18'));
+  eq(Shop.balance(s), before - d1.price, 'the price paid is what is spent, on any later day too');
+  ok(Shop.deal(s, '2026-11-18').item.id !== d1.item.id, 'once bought, the offer moves on');
+  Shop.items.forEach((it) => { if (it.kind !== 'helper') s.own[it.id] = 1; });
+  eq(Shop.deal(s, '2026-11-18'), null, 'nothing left to offer');
+  eq(Shop.collected(s)[0], Shop.collected(s)[1]);
+});
+test('the shop catalog: unique ids, a free first choice of every kind, and every thing really exists', () => {
   eq(new Set(Shop.items.map((it) => it.id)).size, Shop.items.length);
-  ['skin', 'theme', 'hat', 'effect'].forEach((kind) => { eq(Shop.of(kind)[0].price, 0, kind); ok(Shop.of(kind).length >= 4, kind); Shop.of(kind).forEach((it) => eq(it.id, kind + '-' + it.value)); });
-  Shop.of('helper').forEach((it) => ok(it.price > 0 && it.start > 0 && it.icon && it.what, it.id));
+  ok(Shop.items.length >= 90, Shop.items.length + ' things');
+  const kept = ['skin', 'theme', 'frame', 'hat', 'coat', 'ring', 'effect', 'sound'];
+  kept.forEach((kind) => { eq(Shop.of(kind)[0].price, 0, kind); ok(Shop.of(kind).length >= 6, kind); Shop.of(kind).forEach((it) => eq(it.id, kind + '-' + it.value)); });
+  eq(Shop.KINDS.slice().sort(), ['helper', 'hskin'].concat(kept).sort());
+  Shop.of('helper').forEach((it) => ok(it.price > 0 && it.start > 0 && it.icon && it.what && Shop.HELPERS.some((h) => h.id === it.id), it.id));
+  Shop.HELPERS.forEach((h) => { const looks = Shop.looksOf(h.id); eq([looks.length, looks[0].price, looks[0].look], [4, 0, 'classic'], h.id); looks.forEach((it) => eq(it.id, 'hskin-' + h.id + '-' + it.look)); });
   Shop.of('theme').forEach((it) => ok(it.colors.length === 3 && it.colors.every((c) => /^#[0-9A-F]{6}$/i.test(c)), it.id));
-  const css = fs.readFileSync(path.join(root, 'css', 'style.css'), 'utf8'), art = fs.readFileSync(path.join(root, 'js', 'art.js'), 'utf8'), game = fs.readFileSync(path.join(root, 'js', 'game.js'), 'utf8');
+  Shop.of('coat').forEach((it) => ok(it.colors.length === 3, it.id));
+  const read = (f) => fs.readFileSync(path.join(root, f), 'utf8');
+  const css = read('css/style.css'), game = read('js/game.js'), sound = read('js/sound.js');
+  // the drawings: what js/art.js and the generated js/packs.js define
+  const art = { helpers: {}, hats: {}, sets: {}, addSet(name, items, names) { this.sets[name] = [items, names]; } };
+  const win = { BD: { art, t: (x) => x } };
+  new Function('window', 'document', read('js/art.js'))(win, {});
+  Object.assign(win.BD.art.helpers, art.helpers);
+  new Function('window', read('js/packs.js'))(win);
+  const A = win.BD.art;
+  Shop.of('skin').slice(1).forEach((it) => { ok(A.sets[it.value] && A.sets[it.value].length === 9 && A.setNames[it.value].length === 9, 'the nine drawings of "' + it.value + '"'); });
+  Shop.of('hat').forEach((it) => ok(typeof A.hats[it.value] === 'string' && A.hats[it.value].length > 40, 'the hat "' + it.value + '" is drawn'));
+  Shop.HELPERS.forEach((h) => Shop.looksOf(h.id).forEach((it) => ok(A.helpers[h.art] && typeof A.helpers[h.art][it.look] === 'string' && A.helpers[h.art][it.look].length > 200, 'the look "' + it.id + '" is drawn')));
+  Shop.HELPERS.forEach((h) => ok(/class="h[wslep]/.test(A.helpers[h.art].classic), h.art + ' has parts to animate'));
   Shop.of('theme').slice(1).forEach((it) => ok(css.includes('[data-garden="' + it.value + '"]') && css.includes('--th-sky: ' + it.colors[0]), 'the look "' + it.value + '" is styled with its sky colour'));
-  Shop.of('hat').forEach((it) => ok(new RegExp('\\n    ' + it.value + ': ').test(art), 'the hat "' + it.value + '" is drawn'));
+  Shop.of('theme').forEach((it) => ok(it.air === '' || css.includes('[data-air="' + it.air + '"]'), 'the sky of "' + it.value + '"'));
+  Shop.of('frame').slice(1).forEach((it) => ok(css.includes('.fr-' + it.value + ', :root[data-frame="' + it.value + '"] .board'), 'the edge "' + it.value + '" is styled'));
+  Shop.of('ring').slice(1).forEach((it) => ok(css.includes('.avatar.ring-' + it.value + ' '), 'the ring "' + it.value + '" is styled'));
   Shop.of('effect').forEach((it) => ok(new RegExp('\\n    ' + it.value + ': ').test(game), 'the effect "' + it.value + '" exists'));
+  Shop.of('sound').forEach((it) => ok(new RegExp('\\n    ' + it.value + ': ').test(sound), 'the instrument "' + it.value + '" exists'));
   const total = Shop.items.filter((it) => it.kind !== 'helper').reduce((a, it) => a + it.price, 0), full = { levels: {}, daily: {} };
   W.levels.forEach((lv) => { full.levels[lv.key] = { stars: 3, g: '3'.repeat(100), extra: 0, at: 100 }; });
-  ok(Shop.earned(full) > 5 * total, 'everything can be bought well before the end (' + total + ' of ' + Shop.earned(full) + ')');
+  ok(Shop.earned(full) > 1.4 * total && Shop.earned(full) < 3 * total, 'the whole shop takes a good part of the game, but not all of it (' + total + ' of ' + Shop.earned(full) + ')');
+  eq(['basic', 'common', 'rare', 'epic', 'legendary'].map((r) => Shop.items.some((it) => it.kind !== 'helper' && Shop.rarity(it) === r)), [true, true, true, true, true]);
 });
 test('merging two copies of the progress: nothing lost, any order, twice is the same', () => {
   const a = { levels: {}, daily: {}, own: { 'hat-bow': 1 }, bought: { frog: 2 }, used: { frog: 1, owl: 3 }, avatar: 4, seen: { w1: 1 }, invites: {} };
@@ -392,8 +452,8 @@ test('what friends see is a summary: level, totals, the garden, today, the hat; 
   const s = { levels: {}, daily: {}, games: { '2-1': {} }, set: { sound: true }, wear: { hat: 'crown' }, avatar: 7 };
   W.finish(s, '1-1', 0, { slips: 0 }); W.finishDaily(s, '2026-11-18', { slips: 1 });
   const pub = W.publicProfile(s, '2026-11-18');
-  eq(Object.keys(pub).sort(), ['av', 'dailies', 'day', 'hat', 'lv', 'lvl', 'solved', 'stamps', 'stars', 'streak', 'v', 'xp']);
-  eq([pub.lvl, pub.av, pub.hat, pub.lv.length, pub.lv[0], pub.day, pub.streak], [W.player(s).level, 7, 'crown', 44, '3', { d: '2026-11-18', stars: 2, slips: 1, time: 0 }, 1]);
+  eq(Object.keys(pub).sort(), ['av', 'coat', 'dailies', 'day', 'hat', 'lv', 'lvl', 'ring', 'solved', 'stamps', 'stars', 'streak', 'v', 'xp']);
+  eq([pub.lvl, pub.av, pub.hat, pub.coat, pub.ring, pub.lv.length, pub.lv[0], pub.day, pub.streak], [W.player(s).level, 7, 'crown', 'classic', 'none', 44, '3', { d: '2026-11-18', stars: 2, slips: 1, time: 0 }, 1]);
   eq(W.publicProfile(s, '2026-11-19').day, null, 'yesterday\'s bouquet is not today\'s');
   ok(JSON.stringify(pub).length < 600, 'small enough for the profile row');
   ok(!W.open(s, W.level('4-2')));
@@ -430,10 +490,12 @@ test('valid progress survives, invalid pieces are dropped', () => {
   eq(Object.keys(s.games), ['1-1']);
   eq(s.seen, { w1: 1 });
   eq([s.invites, s.avatar, s.own, s.bought, s.used, s.wear], [{ '4-2': 1 }, 0, { 'hat-bow': 1 }, { frog: 2 }, { owl: 1 }, { hat: 'bow', effect: 'stars' }]);
+  eq(BD.sanitize({ own: { 'hskin-bee-queen': 110, 'theme-snow': 1, 'x': 5 }, wear: { 'h-bee': 'queen', 'h-': 'x', frame: 'gold', 'bad key': 'a' } }), Object.assign(BD.sanitize({}), { own: { 'hskin-bee-queen': 110, 'theme-snow': 1 }, wear: { 'h-bee': 'queen', frame: 'gold' } }));
 });
 test('a twin garden in progress is kept, a damaged one is dropped', () => {
   const pz = W.puzzle('9-1', 0), zeros = pz.givens.map(() => 0);
-  const s = BD.sanitize({ games: { '9-1': { pz, vals: pz.givens, notes: zeros }, '9-2': { pz, vals: pz.givens.slice(0, 16), notes: zeros } } });
+  eq(pz.givens.length, 162);
+  const s = BD.sanitize({ games: { '9-1': { pz, vals: pz.givens, notes: zeros }, '9-2': { pz, vals: pz.givens.slice(0, 81), notes: zeros } } });
   eq(Object.keys(s.games), ['9-1']);
 });
 test('load follows the phone language the first time; save and load round-trip; reset keeps settings', () => {
@@ -468,6 +530,33 @@ test('t() fills placeholders and falls back to English', () => {
   eq(BD.t('Not in the dictionary {0}', 'x'), 'Not in the dictionary x');
   BD.state.lang = 'en';
   eq(BD.t('{0} of {1} gardens', 2, 100), '2 of 100 gardens');
+});
+
+console.log('Updates');
+test('the newest release is found among GitHub\'s list; versions are read from the app\'s browser name', () => {
+  const doc = { body: { classList: { contains: () => false } }, querySelector: () => null, activeElement: null };
+  const nav = { userAgent: 'Mozilla/5.0 (Linux; Android 15) Chrome/130 Mobile BloomdokuApp/1 BloomdokuWeb/7 BloomdokuShell/1 BloomdokuApk/5' };
+  const win = { BD: { h: () => ({}), t: (x) => x, native: { checkUpdate() {}, restart() {} } } };
+  new Function('window', 'navigator', 'document', 'location', read2('js/update.js'))(win, nav, doc, { hash: '' });
+  const U = win.BD.update;
+  eq(U.info(), { native: true, bridge: true, web: 7, apk: 5, shell: 1 });
+  const rel = (tag, assets, draft) => ({ tag_name: tag, draft: !!draft, assets: assets.map((n) => ({ name: n, browser_download_url: 'https://x/' + tag + '/' + n })) });
+  eq(U.newest([rel('analyst-99', ['web.zip']), rel('bloomdoku-8', ['web.zip', 'Bloomdoku-1.8.apk', 'shell-1']), rel('bloomdoku-12', ['web.zip'], true), rel('bloomdoku-9', ['web.zip', 'Bloomdoku-1.9.apk'])]),
+    { version: 9, apk: 'https://x/bloomdoku-9/Bloomdoku-1.9.apk' }, 'other apps\' releases and drafts are ignored');
+  eq(U.newest('not a list'), { version: 0, apk: '' });
+  U.fromNative({ status: 'needsApk', version: 12, apk: 'https://x/a.apk' });
+  eq(U.state(), { status: 'needsApk', version: 12, apk: 'https://x/a.apk' });
+  U.fromNative(null); U.fromNative({ nope: 1 });
+  eq(U.state().status, 'needsApk', 'a malformed report changes nothing');
+  let restarted = 0;
+  win.BD.native.restart = () => { restarted++; }; win.BD.save = () => {};
+  U.fromNative({ status: 'ready', version: 13 });
+  eq(restarted, 1, 'a version that is ready is applied at a calm moment');
+  doc.body.classList.contains = (c) => c === 'playing';
+  U.fromNative({ status: 'ready', version: 14 });
+  eq([restarted, U.applyIfQuiet()], [1, false], 'but never in the middle of a garden');
+  doc.body.classList.contains = () => false;
+  eq([U.applyIfQuiet(), restarted], [true, 2], 'it waits for the map');
 });
 
 console.log('Offline cache');

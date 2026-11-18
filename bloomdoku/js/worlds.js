@@ -1,5 +1,5 @@
 /* Bloomdoku worlds: a map of 11 worlds x 4 levels (8 classic worlds, then 3 of twin gardens with two figures in
- * every cell). Each world introduces one new rule and its levels get harder;
+ * every cell). The map starts with normal 9×9 gardens; 4×4 boards exist only in the tutorials (W.TUTORIAL). Each world introduces one new rule and its levels get harder;
  * every level makes new puzzles from a seed, so no level ever runs out. Pure logic, no DOM.
  *
  * World: { icon, name, color, rule, intro, concepts: [...], stamp, levels: [{ name, teaches, p }] }
@@ -18,18 +18,18 @@
 
   W.worlds = [
     world('🌱', 'Sprout Nursery', '#4FB06D', 'Every row, column and plot holds each flower once.',
-      'Small gardens to learn the one rule of sudoku: no flower twice in a row, a column or a plot.',
+      'The 9×9 garden with most of its flowers already planted. No flower twice in a row, a column or a plot: start with the rows and plots that have one or two free cells.',
       ['Rows and columns', 'Plots', 'The last free cell'], '🐛', [
-        L('Four little seeds', 'A 4×4 garden with plenty of flowers planted', { n: 4, givens: 9, tier: 1 }),
-        L('Fewer seeds', 'A 4×4 garden with more to plant', { n: 4, givens: 6, tier: 1 }),
-        L('Six in a row', 'A 6×6 garden: plots are two rows tall', { n: 6, givens: 20, tier: 1 }),
-        L('Nursery graduate', 'A 6×6 garden with few flowers to start', { n: 6, givens: 14, tier: 1 }),
+        L('First seeds', 'A 9×9 garden with most flowers planted', { n: 9, givens: 56, tier: 1 }),
+        L('Fewer seeds', 'A few more to plant in every plot', { n: 9, givens: 52, tier: 1 }),
+        L('Morning dew', 'Look along rows and columns too', { n: 9, givens: 48, tier: 1 }),
+        L('Nursery graduate', 'Nearly half of the garden is yours', { n: 9, givens: 45, tier: 1 }),
       ]),
     world('🌷', 'Tulip Meadow', '#F2668B', 'The classic garden: nine rows, nine columns, nine plots.',
-      'The full 9×9 garden. Look for a flower with only one place left, or a cell where only one flower fits.',
+      'The classic garden with fewer flowers planted. Look for a flower with only one place left, or a cell where only one flower fits.',
       ['Only one place', 'Only one fits', 'Pencil notes'], '🐞', [
-        L('First bed', 'Many flowers planted: finish rows and plots', { n: 9, givens: 44, tier: 1 }),
-        L('Morning rows', 'Scan rows and columns for the missing flower', { n: 9, givens: 38, tier: 1 }),
+        L('First bed', 'Half of the flowers are yours to plant', { n: 9, givens: 41, tier: 1 }),
+        L('Morning rows', 'Scan rows and columns for the missing flower', { n: 9, givens: 37, tier: 1 }),
         L('Hidden bulbs', 'A flower with only one place left in its plot', { n: 9, givens: 32, tier: 1 }),
         L('Meadow master', 'Pairs and locked flowers: notes help', { n: 9, givens: 25, tier: 2, hard: true }),
       ]),
@@ -85,26 +85,26 @@
     world('🐥', 'Twin Sprouts', '#F28A2E', 'Two figures in every cell, and no couple appears twice.',
       'Each cell holds a couple, like 4 and 7. The first figures follow the sudoku rule, the second figures follow it too, and the same couple never appears in two cells.',
       ['Couples', 'Two sudokus at once', 'No couple twice'], '🐥', [
-        L('First couples', 'A 4×4 garden of couples, most of them planted', { n: 4, twin: true, givens: 20, tier: 1 }),
-        L('Shy couples', 'A 4×4 garden with few figures planted', { n: 4, twin: true, givens: 12, tier: 1 }),
-        L('Opening dance', 'The 9×9 ballroom, nearly full', { n: 9, twin: true, givens: 130, tier: 1 }),
-        L('Find your partner', 'Many half couples to finish', { n: 9, twin: true, givens: 112, tier: 1 }),
+        L('First couples', 'The 9×9 ballroom with nearly every couple planted', { n: 9, twin: true, givens: 146, tier: 1 }),
+        L('Shy couples', 'A few more half couples to finish', { n: 9, twin: true, givens: 138, tier: 1 }),
+        L('Opening dance', 'Whole couples to find', { n: 9, twin: true, givens: 130, tier: 1 }),
+        L('Find your partner', 'Many half couples to finish', { n: 9, twin: true, givens: 120, tier: 1 }),
       ]),
     world('💃', 'Garden Ball', '#E0457B', 'Two figures in every cell, and no couple appears twice.',
       'The full ballroom: 81 cells and 81 different couples, each exactly once. When you know every cell of one figure, its nine partners are all different.',
       ['81 couples, once each', 'Nine different partners'], '🦩', [
-        L('Polka', 'Fewer figures: use both sudokus', { n: 9, twin: true, givens: 100, tier: 1 }),
-        L('Foxtrot', 'A figure with only one place left in its layer', { n: 9, twin: true, givens: 90, tier: 1 }),
-        L('Tango', 'The nine partners of one figure are all different', { n: 9, twin: true, givens: 80, tier: 1 }),
-        L('Grand ball', 'More than half of the figures are yours to find', { n: 9, twin: true, givens: 70, tier: 1 }),
+        L('Polka', 'Fewer figures: use both sudokus', { n: 9, twin: true, givens: 110, tier: 1 }),
+        L('Foxtrot', 'A figure with only one place left in its layer', { n: 9, twin: true, givens: 100, tier: 1 }),
+        L('Tango', 'The nine partners of one figure are all different', { n: 9, twin: true, givens: 90, tier: 1 }),
+        L('Grand ball', 'Half of the figures are yours to find', { n: 9, twin: true, givens: 80, tier: 1 }),
       ]),
     world('🎩', 'Midnight Waltz', '#5B7FD6', 'Two figures in every cell, and no couple appears twice.',
       'Few figures are planted, and often only half of a couple. Use both sudokus and the couples together.',
       ['Half couples', 'Tricks in two layers'], '🦚', [
-        L('Moonlight', 'Sixty figures of 162', { n: 9, twin: true, givens: 62, tier: 2 }),
-        L('Masquerade', 'Notes in both halves help', { n: 9, twin: true, givens: 56, tier: 2 }),
-        L('Last dance', 'Fifty figures to start', { n: 9, twin: true, givens: 50, tier: 2 }),
-        L('The great waltz', 'The emptiest ballroom', { n: 9, twin: true, givens: 45, tier: 2 }),
+        L('Moonlight', 'Seventy figures of 162', { n: 9, twin: true, givens: 70, tier: 2 }),
+        L('Masquerade', 'Notes in both halves help', { n: 9, twin: true, givens: 62, tier: 2 }),
+        L('Last dance', 'A third of the figures to start', { n: 9, twin: true, givens: 54, tier: 2 }),
+        L('The great waltz', 'The emptiest ballroom', { n: 9, twin: true, givens: 46, tier: 2 }),
       ]),
   ];
   W.CLASSIC = 8; // worlds 1 to 8 are one figure a cell; the rest are twin gardens
@@ -143,6 +143,27 @@
     return pz;
   };
   W.total = function () { return W.levels.length * W.GARDENS; };
+
+  /* ---------- tutorials ---------- */
+  // The only 4×4 gardens of the game: three tiny classic ones to learn the rule and two tiny twin ones to learn the
+  // couples. They give no stars and are not part of the map. coach: 2 = Pua shows each step and names the flower,
+  // 1 = Pua shows where to look, 0 = on your own.
+  W.TUTORIAL = {
+    classic: [
+      { p: { n: 4, givens: 11, tier: 1 }, coach: 2, intro: 'A tiny garden to learn the one rule: every row, every column and every plot holds each flower once.' },
+      { p: { n: 4, givens: 8, tier: 1 }, coach: 1, intro: 'Now I only show you where to look. Which flower is missing there?' },
+      { p: { n: 4, givens: 6, tier: 1 }, coach: 0, intro: 'This one is yours. The Hint button is there if you want me.' },
+    ],
+    twin: [
+      { p: { n: 4, twin: true, givens: 24, tier: 1 }, coach: 2, intro: 'Every cell holds a couple. The first figures make a sudoku, the second figures make another, and no couple appears twice.' },
+      { p: { n: 4, twin: true, givens: 16, tier: 1 }, coach: 0, intro: 'This one is yours. Tap the left half for the first figure and the right half for the second.' },
+    ],
+  };
+  W.tutorialPuzzle = function (kind, step) {
+    var pz = E.generate(W.TUTORIAL[kind][step].p, 'bloom:tutorial:' + kind + ':' + step);
+    pz.key = 'tutorial'; pz.kind = kind; pz.step = step;
+    return pz;
+  };
   W.twinTotal = function () { return W.levels.filter(function (lv) { return lv.p.twin; }).length * W.GARDENS; };
 
   /* ---------- the daily bouquet ---------- */
@@ -308,8 +329,8 @@
     for (k in a.invites || {}) out.invites[k] = 1;
     for (k in b.invites || {}) out.invites[k] = 1;
     // the shop (js/shop.js): things owned are kept by both; helper charges bought and used only ever count up
-    for (k in a.own || {}) out.own[k] = 1;
-    for (k in b.own || {}) out.own[k] = 1;
+    for (k in a.own || {}) out.own[k] = Math.max(out.own[k] || 0, +a.own[k] || 1); // the value is the price paid
+    for (k in b.own || {}) out.own[k] = Math.max(out.own[k] || 0, +b.own[k] || 1);
     ['bought', 'used'].forEach(function (f) {
       [a[f] || {}, b[f] || {}].forEach(function (src) { for (var id in src) out[f][id] = Math.max(out[f][id] || 0, src[id] | 0); });
     });
@@ -321,7 +342,8 @@
     var p = W.player(state), tot = W.totals(state), day = today || W.dayKey(), d = (state.daily || {})[day];
     return {
       v: 1, lvl: p.level, xp: p.xp, stars: tot.stars, solved: tot.solved, stamps: tot.stamps, dailies: tot.dailies,
-      streak: W.streak(state.daily, day), av: state.avatar || 0, hat: (state.wear && state.wear.hat) || 'flower',
+      streak: W.streak(state.daily, day), av: state.avatar || 0,
+      hat: (state.wear && state.wear.hat) || 'flower', coat: (state.wear && state.wear.coat) || 'classic', ring: (state.wear && state.wear.ring) || 'none',
       lv: W.levels.map(function (lv) { return W.stars(state, lv.key); }).join(''),
       day: d ? { d: day, stars: d.stars, slips: d.slips, time: d.time || 0 } : null,
     };

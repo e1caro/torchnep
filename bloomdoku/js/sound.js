@@ -1,5 +1,5 @@
 /* Bloomdoku sound and touch feedback. Each value is a note of a pentatonic scale, so any row, column or plot is a
- * little melody. Web Audio starts suspended on iPhone until the first tap: BD.sound.unlock() is called from one. */
+ * little melody, played on the instrument chosen in the shop. Web Audio starts suspended on iPhone until the first tap: BD.sound.unlock() is called from one. */
 (function () {
   'use strict';
   var BD = (window.BD = window.BD || {});
@@ -21,20 +21,38 @@
     if (a && a.state === 'suspended') a.resume().catch(function () { /* stays silent */ });
   };
 
-  // A soft plucked tone, like a kalimba.
-  function pluck(freq, when, gain, len) {
+  // The instruments of the musical garden (the shop's kind 'sound'). Each is a few partials (wave, multiple of the
+  // note's frequency, share of the loudness), how sharply it starts, how long it rings, and an octave shift.
+  var INSTRUMENTS = {
+    kalimba: { parts: [['sine', 1, 1], ['triangle', 2, 0.18]], attack: 0.012, ring: 1, octave: 0, gain: 1 },
+    marimba: { parts: [['sine', 1, 1], ['sine', 4, 0.22]], attack: 0.006, ring: 0.55, octave: 0, gain: 1.15 },
+    musicbox: { parts: [['sine', 1, 1], ['sine', 3, 0.14], ['sine', 5.4, 0.05]], attack: 0.004, ring: 1.7, octave: 1, gain: 0.8 },
+    harp: { parts: [['triangle', 1, 1], ['sine', 2, 0.3], ['sine', 3, 0.1]], attack: 0.018, ring: 2.2, octave: 0, gain: 0.9 },
+    bells: { parts: [['sine', 1, 1], ['sine', 2.76, 0.35], ['sine', 5.4, 0.18]], attack: 0.003, ring: 2.6, octave: 1, gain: 0.6 },
+    chiptune: { parts: [['square', 1, 1]], attack: 0.002, ring: 0.4, octave: 0, gain: 0.33 },
+  };
+  S.instruments = INSTRUMENTS;
+  function instrument(name) { return INSTRUMENTS[name || (BD.shop && BD.state ? BD.shop.wearing(BD.state, 'sound') : 'kalimba')] || INSTRUMENTS.kalimba; }
+
+  // One note: a short tone that starts at once and dies away.
+  function pluck(freq, when, gain, len, name) {
     var a = audio();
     if (!a) return; // while the context is still waking up its clock stands still, so the note sounds as soon as it runs
-    var t0 = a.currentTime + (when || 0), o = a.createOscillator(), o2 = a.createOscillator(), g = a.createGain();
-    o.type = 'sine'; o.frequency.value = freq;
-    o2.type = 'triangle'; o2.frequency.value = freq * 2;
-    var g2 = a.createGain(); g2.gain.value = 0.18;
+    var ins = instrument(name), t0 = a.currentTime + (when || 0), dur = (len || 0.5) * ins.ring, g = a.createGain();
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(gain || 0.16, t0 + 0.012);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + (len || 0.5));
-    o.connect(g); o2.connect(g2); g2.connect(g); g.connect(a.destination);
-    o.start(t0); o2.start(t0); o.stop(t0 + (len || 0.5) + 0.05); o2.stop(t0 + (len || 0.5) + 0.05);
+    g.gain.exponentialRampToValueAtTime((gain || 0.16) * ins.gain, t0 + ins.attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    g.connect(a.destination);
+    ins.parts.forEach(function (p) {
+      var o = a.createOscillator(), pg = a.createGain();
+      o.type = p[0]; o.frequency.value = freq * p[1] * Math.pow(2, ins.octave);
+      pg.gain.value = p[2];
+      o.connect(pg); pg.connect(g);
+      o.start(t0); o.stop(t0 + dur + 0.05);
+    });
   }
+  // A few notes of an instrument, to hear it in the shop.
+  S.sample = function (name) { if (on()) [0, 2, 4, 5, 7].forEach(function (i, k) { pluck(NOTES[i], k * 0.13, 0.15, 0.6, name); }); };
 
   S.note = function (v) { if (on()) pluck(NOTES[v - 1], 0, 0.16, 0.5); };
   S.soft = function () { if (on()) pluck(196, 0, 0.06, 0.18); };            // a pencil note, undo
