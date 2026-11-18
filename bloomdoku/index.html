@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bloomdoku</title>
+  <meta name="description" content="A sudoku garden for your phone: 4,400 gardens in 11 worlds of rules, two-figure twin gardens, flowers and critters instead of numbers, hints that explain, friends, a daily bouquet. Works offline.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#DFF3EA">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bloomdoku">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="icon" href="icons/favicon.png" type="image/png" sizes="32x32">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <script>
+    /* Apply a saved day/night choice before the first paint, so there is no flash. */
+    (function () {
+      try {
+        var s = JSON.parse(localStorage.getItem('bloomdoku.v1') || 'null'), t = s && s.theme;
+        if (t === 'day' || t === 'night') document.documentElement.setAttribute('data-theme', t);
+      } catch (e) { /* no saved theme */ }
+    })();
+  </script>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="sky" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <div id="update" class="update" role="status"></div>
+  <main id="view"></main>
+  <nav id="tabs" class="tabs" aria-label="Bloomdoku"></nav>
+  <div id="sheets"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <noscript><p style="padding:24px">Bloomdoku needs JavaScript to grow its gardens.</p></noscript>
+
+  <script src="js/engine.js"></script>
+  <script src="js/worlds.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/es.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/cloud.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/friends.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
