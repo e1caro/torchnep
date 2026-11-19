@@ -305,6 +305,122 @@ function eq(a, b, msg) { if (JSON.stringify(a) !== JSON.stringify(b)) throw new 
     eq(g.garden, 5);
   });
 
+  section('Right flowers stay');
+  const st = await phone(390, 844);
+  const erase = (q) => q.locator('.key.erase').click();
+  const helper = async (q, name) => { await q.locator('.tool.friends').click(); await q.locator('.sheet .helper[data-helper="' + name + '"]').click(); };
+  await test('a flower that is right is not replaced or erased: another key, its own key, Erase, a held flower, the keyboard', async () => {
+    await open(st, '#/play/1-1');
+    const g = await game(st), c = g.vals.indexOf(0), v = g.sol[c], other = v % g.n + 1;
+    const kept = async (what) => { const now = await game(st); eq([now.vals[c], now.slips], [v, 0], what); };
+    await tap(st, c); await key(st, v);
+    await key(st, v);
+    await kept('its own key a second time');
+    eq(await st.evaluate(() => BD.game.current.armed), 0, 'and that second tap does not hold the flower either');
+    await key(st, other);
+    await kept('another key while the cell is still chosen');
+    ok((await st.locator('.key').nth(other - 1).getAttribute('class')).includes('armed'), 'the other flower is held instead, as on a flower from the start');
+    await tap(st, c);
+    await kept('a held flower tapped on it');
+    ok(/It stays where it is/.test(await st.locator('.bubble').innerText()), 'Pua says why nothing happened');
+    await key(st, other);
+    eq(await st.evaluate(() => BD.game.current.armed), 0);
+    await tap(st, c);
+    if ((await game(st)).sel !== c) await tap(st, c);
+    await erase(st);
+    await kept('Erase');
+    await st.keyboard.press(String(other)); await st.keyboard.press('Backspace');
+    await kept('a digit and Backspace on the keyboard');
+    await key(st, v);
+    ok((await st.locator('.key').nth(v - 1).getAttribute('class')).includes('armed'), 'chosen again later, its own key holds that flower');
+    await key(st, v);
+    await st.locator('.tool.undo').click();
+    eq((await game(st)).vals[c], 0, 'Undo still takes back the last move');
+    await st.locator('.tool.redo').click();
+    await kept('and Redo brings it back');
+  });
+  await test('a flower from the start and a wrong one behave as before', async () => {
+    const g = await game(st), giv = g.giv.findIndex((x) => x), c = g.vals.indexOf(0), wrong = g.sol[c] % g.n + 1;
+    await tap(st, giv); await erase(st);
+    eq((await game(st)).vals[giv], g.giv[giv]);
+    await tap(st, c); await key(st, wrong);
+    eq((await game(st)).vals[c], wrong);
+    await key(st, g.sol[c]);
+    eq((await game(st)).vals[c], g.sol[c], 'a wilted flower is replaced by tapping another');
+    await tap(st, c); await tap(st, c); await key(st, wrong);
+    eq((await game(st)).vals[c], g.sol[c], 'and once it is right it stays');
+  });
+  await test('with wilting off a flower can change until the garden shows it is right: a bloom, the bee, the owl, the frog', async () => {
+    await st.evaluate(() => { BD.state.set.wilt = false; BD.save(); });
+    await open(st, '#/play/1-1/7');
+    const g = await game(st);
+    // a row with two cells to plant, and a cell outside it that completes nothing on its own
+    const plan = await st.evaluate(() => {
+      const G = BD.game.current, S = G.S, free = (gr) => gr.cells.filter((x) => !G.vals[x]);
+      const row = S.groups.find((gr) => gr.kind === 'row' && free(gr).length === 2);
+      const lone = [...Array(S.N).keys()].find((x) => !G.vals[x] && row.cells.indexOf(x) < 0 && S.cellGroups[x].every((gi) => free(S.groups[gi]).length > 2 && !S.groups[gi].cells.some((y) => row.cells.indexOf(y) >= 0 && !G.vals[y])));
+      return { row: free(row), lone: lone };
+    });
+    ok(plan.row.length === 2 && plan.lone != null, 'a garden with such cells: ' + JSON.stringify(plan));
+    const c = plan.lone, other = g.sol[c] % g.n + 1, val = async (x) => (await game(st)).vals[x];
+    const choose = async (x) => { if ((await game(st)).sel !== x) await tap(st, x); };
+    await tap(st, c); await key(st, g.sol[c]); await key(st, other);
+    eq(await val(c), other, 'nothing was checked yet: it can be changed');
+    await key(st, g.sol[c]);
+    eq(await val(c), g.sol[c]);
+    // the first cell of the row can still be erased; the second one makes the row bloom and both stay
+    await choose(plan.row[0]); await key(st, g.sol[plan.row[0]]); await erase(st);
+    eq(await val(plan.row[0]), 0);
+    await key(st, g.sol[plan.row[0]]);
+    await choose(plan.row[1]); await key(st, g.sol[plan.row[1]]);
+    ok(/in bloom/.test(await st.locator('.bubble').innerText()));
+    for (const x of plan.row) { await choose(x); await erase(st); eq(await val(x), g.sol[x], 'a flower of a row in bloom stays'); }
+    await choose(c); await erase(st);
+    eq(await val(c), 0, 'the one outside the row is still not checked');
+    await key(st, g.sol[c]);
+    // a flower named by the bee
+    await st.locator('.tool.hintb').click(); await st.locator('.tool.hintb').click();
+    const b = await st.evaluate(() => BD.game.current.hint.cell);
+    await key(st, g.sol[b]); await choose(b); await erase(st);
+    eq(await val(b), g.sol[b], 'the flower the bee named stays');
+    // the owl looks at everything planted
+    await helper(st, 'owl');
+    ok(/Every flower you planted is right/.test(await st.locator('.bubble').innerText()));
+    await choose(c); await erase(st);
+    eq(await val(c), g.sol[c], 'after the owl it stays');
+    // the frog plants one
+    const before = (await game(st)).vals;
+    await helper(st, 'frog');
+    const f = (await game(st)).vals.findIndex((x, i) => x !== before[i]);
+    await choose(f); await erase(st);
+    eq(await val(f), g.sol[f], 'the flower the frog planted stays');
+    // and all of it is remembered
+    await st.reload(); await st.waitForSelector('.board'); await st.waitForTimeout(80);
+    for (const x of [c, b, f, plan.row[0]]) { await choose(x); await erase(st); eq(await val(x), g.sol[x], 'still there after a reload: cell ' + x); }
+    eq((await game(st)).slips, 1, 'only the wrong flower planted on purpose counted');
+    await st.evaluate(() => { BD.state.set.wilt = true; BD.save(); });
+  });
+  await test('in a twin garden each figure of a cell stays on its own', async () => {
+    await open(st, '#/play/9-1');
+    const g = await game(st), h = 81, cells = [...Array(h).keys()];
+    const a = cells.find((x) => !g.giv[x]), b = h + cells.find((x) => !g.giv[h + x] && x !== a); // a first figure and a second one
+    const choose = async (x) => {
+      const held = await st.evaluate(() => BD.game.current.armed);
+      if (held) await key(st, held);
+      for (let i = 0; i < 2 && (await game(st)).sel !== x; i++) await tap(st, x);
+    };
+    for (const x of [a, b]) {
+      await choose(x); await key(st, g.sol[x]);
+      await choose(x); await key(st, g.sol[x] % 9 + 1); // another key: it is held, not planted
+      await tap(st, x);                                 // and tapped on that half
+      await choose(x); await erase(st);
+      eq((await game(st)).vals[x], g.sol[x], (x < h ? 'the first' : 'the second') + ' figure stays');
+    }
+    const now = await game(st);
+    eq([now.vals.map((v, i) => (v !== g.vals[i] ? i : -1)).filter((i) => i >= 0), now.slips], [[a, b], 0], 'nothing else on the board moved');
+  });
+  await st.context().close();
+
   section('Worlds');
   await test('every rule draws on the board: lily pads, bee paths, vines, moons and suns, bunny hops', async () => {
     await unlock(p, ['4-1', '4-2', '4-3', '5-1', '5-2', '6-1', '7-1', '8-1', '8-2', '8-3', '3-1', '2-2']);

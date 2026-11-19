@@ -122,6 +122,7 @@
     'Row {0}, column {1}': 'Fila {0}, columna {1}',
     'empty': 'vacía',
     'That one wilted. Something it sees already has it, or it belongs elsewhere.': 'Esa se ha marchitado. Algo que ve ya la tiene, o va en otro sitio.',
+    'That one is right. It stays where it is.': 'Esa está bien. Se queda donde está.',
     'The garden is full but something is off. The owl can find it.': 'El jardín está lleno pero algo falla. El búho puede encontrarlo.',
     'A whole row in bloom!': '¡Una fila entera en flor!',
     'A whole column in bloom!': '¡Una columna entera en flor!',

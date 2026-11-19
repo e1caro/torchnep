@@ -44,6 +44,11 @@ garden you grow is your progress. Built from
 **Not the usual sudoku**
 - **Numbers, flowers, critters or fruits**, each value with its own colour and drawing. What was planted from the
   start is in plain ink and what you plant comes up in colour, so the board blooms as you solve.
+- **A right flower stays.** Once the garden has shown that a flower is right (it did not wilt, its row, column or
+  plot bloomed, the owl looked at it, or the frog or a flower named by the bee put it there), the pad, a held flower,
+  Erase and the keyboard no longer change it: a stray tap cannot swap it for another or count as a wilted one.
+  Undo, the butterfly and *Start over* still go back. With "Wrong flowers wilt at once" off, a flower can be changed
+  until one of those checks has shown it is right.
 - **Hint** (🐝 the bee): shows a cell you can solve now and says why, without planting it. Free and unlimited.
   Ask again and it names the flower.
 - **Every helper is animated:** the bee flies from the Hint button and hovers over its cell, the caterpillar crawls
@@ -121,7 +126,7 @@ node tests/unit.js                                   # 83 tests, Node only, a fe
 node tests/unit.js --all                             # the same, over every one of the 4,400 gardens (about a minute)
 node tests/unit-cloud.js                             # 10 tests: accounts, sync, friends and messages against a fake service
 bash tests/sql.sh                                    # 51 checks of tools/supabase.sql in a throwaway local PostgreSQL
-BASE=http://localhost:8000 node tests/e2e.js          # 49 tests in a real browser at iPhone sizes (needs Playwright)
+BASE=http://localhost:8000 node tests/e2e.js          # 53 tests in a real browser at iPhone sizes (needs Playwright)
 ```
 
 - `tests/unit.js`: the catalog (11 × 4, keys and names that never move); for every level, gardens with exactly one
@@ -137,11 +142,11 @@ BASE=http://localhost:8000 node tests/e2e.js          # 49 tests in a real brows
 - `tests/sql.sh`: who can read and write what, in real PostgreSQL: profiles nobody can list, requests, friends-only
   messages nobody can forge or rewrite, read marks, the flood limit, reports, ending a friendship, deleting an account.
 - `tests/e2e.js`: layout at three iPhone sizes for every board (twin included), a whole level through the pad,
-  notes, undo, butterfly, resume, the hint and every helper, every rule drawn, twin gardens (halves, dots, hints,
-  win), the shop (earning, buying, wearing, effects), skins, the daily, my garden, Spanish, night mode, settings,
-  the keyboard, friends between two phones (account, code, request, ranking, a friend's garden, messages, a
-  challenge played by the friend, a third device, removing), and opening with no network. No test reaches the real
-  account service.
+  notes, undo, butterfly, resume, the hint and every helper, right flowers that no tap can change (and when they
+  count as right with wilting off), every rule drawn, twin gardens (halves, dots, hints, win), the shop (earning,
+  buying, wearing, effects), skins, the daily, my garden, Spanish, night mode, settings, the keyboard, friends
+  between two phones (account, code, request, ranking, a friend's garden, messages, a challenge played by the
+  friend, a third device, removing), and opening with no network. No test reaches the real account service.
 
 Sound, the tap feedback, *Add to Home Screen* and the Android app itself cannot be checked in this test browser:
 they need real phones.
