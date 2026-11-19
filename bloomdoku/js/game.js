@@ -34,17 +34,18 @@
     return {
       pz: saved.pz, vals: saved.vals.slice(), notes: saved.notes.slice(), slips: saved.slips | 0, frog: !!saved.frog, owl: !!saved.owl,
       bees: saved.bees | 0, told: !!saved.told, time: saved.time | 0, mark: saved.mark || null, flagged: saved.flagged || {},
+      sure: saved.sure && typeof saved.sure === 'object' ? saved.sure : {},
     };
   }
   function fresh(pz) {
     var notes = [];
     for (var i = 0; i < pz.givens.length; i++) notes.push(0);
-    return { pz: pz, vals: pz.givens.slice(), notes: notes, slips: 0, frog: false, owl: false, bees: 0, told: false, time: 0, mark: null, flagged: {} };
+    return { pz: pz, vals: pz.givens.slice(), notes: notes, slips: 0, frog: false, owl: false, bees: 0, told: false, time: 0, mark: null, flagged: {}, sure: {} };
   }
   function save() {
     if (!G || G.won) return;
     if (G.mode === 'tutorial') { BD.save(); return; } // a tutorial garden is short: it is not kept between visits
-    BD.state.games[G.id] = { pz: G.pz, vals: G.vals, notes: G.notes, slips: G.slips, frog: G.frog, owl: G.owl, bees: G.bees, told: G.told, time: G.time, mark: G.mark, flagged: G.flagged };
+    BD.state.games[G.id] = { pz: G.pz, vals: G.vals, notes: G.notes, slips: G.slips, frog: G.frog, owl: G.owl, bees: G.bees, told: G.told, time: G.time, mark: G.mark, flagged: G.flagged, sure: G.sure };
     BD.save();
   }
 
@@ -67,8 +68,10 @@
       g.twin = !!g.pz.twin;
       g.h = g.pz.n * g.pz.n; // cells on the board
       g.sel = -1; g.armed = 0; g.noteMode = false; g.undo = []; g.redo = []; g.hint = null; g.lady = null; g.won = false;
+      g.planted = -1; // the slot whose right figure was planted last, until another cell is tapped
       g.bloomed = {};
-      E.doneGroups(g.S, g.vals).forEach(function (gi) { g.bloomed[gi] = 1; });
+      E.doneGroups(g.S, g.vals).forEach(function (gi) { g.bloomed[gi] = 1; g.S.groups[gi].cells.forEach(function (x) { g.sure[x] = 1; }); });
+      if (BD.state.set.wilt) g.vals.forEach(function (v, x) { if (v && v === g.pz.solution[x]) g.sure[x] = 1; });
       g.rules = rulesOf(g.pz);
       g.badge = W.needsNumbers({ vines: g.pz.vines && g.pz.vines.length, parity: !!g.pz.parity });
       G = g; P.current = g;
@@ -321,6 +324,14 @@
   P.repaint = function () { if (els) { els.cells.forEach(function (c) { c._key = null; }); els.keys.forEach(function (k) { k._key = null; }); paint(); } };
 
   /* ---------- moves ---------- */
+  // A settled figure is one the garden has shown to be right: what was there from the start, and what you planted
+  // once it did not wilt (with "Wrong flowers wilt at once" on), its row, column or plot bloomed, the owl checked it,
+  // or the frog or a flower named by the bee put it there (G.sure). The pad, a held flower, Erase and the keyboard
+  // leave it as it is; Undo, the butterfly and Start over still go back, because those are asked for.
+  function settled(slot) {
+    return !!G.pz.givens[slot] || (!!G.vals[slot] && G.vals[slot] === G.pz.solution[slot] && !!(BD.state.set.wilt || G.sure[slot]));
+  }
+  function stays() { if (!G.lesson) say(t('That one is right. It stays where it is.'), 'hi'); }
   function apply(op, forward) {
     op.forEach(function (m) { G.vals[m[0]] = forward ? m[3] : m[1]; G.notes[m[0]] = forward ? m[4] : m[2]; delete G.flagged[m[0]]; });
   }
@@ -345,6 +356,7 @@
 
   function tapCell(slot) {
     if (!G || G.won) return;
+    G.planted = -1;
     if (G.armed) { G.sel = slot; put(slot, G.armed); return; }
     G.sel = G.sel === slot ? -1 : slot;
     Snd.tap();
@@ -352,14 +364,18 @@
   }
   function tapKey(v) {
     if (!G || G.won) return;
-    if (G.sel >= 0 && !G.armed && !G.pz.givens[G.sel]) { put(G.sel, v); return; }
-    G.armed = G.armed === v ? 0 : v; // no cell chosen: hold this flower and tap the cells where it goes
+    if (G.sel >= 0 && !G.armed) {
+      if (!settled(G.sel)) { put(G.sel, v); return; }
+      if (G.sel === G.planted && G.vals[G.sel] === v) return; // the key of the flower just planted, tapped twice: nothing to do
+    }
+    G.armed = G.armed === v ? 0 : v; // no cell to fill: hold this flower and tap the cells where it goes
     if (G.armed) G.sel = -1;
     Snd.tap();
     paint();
   }
   function erase(c) {
     if (!G || G.won || c < 0 || G.pz.givens[c] || (!G.vals[c] && !G.notes[c])) return;
+    if (settled(c)) { stays(); return; }
     commit([[c, G.vals[c], G.notes[c], 0, 0]]);
     Snd.soft(); resync();
   }
@@ -372,7 +388,10 @@
 
   function put(c, v) {
     var pz = G.pz;
-    if (pz.givens[c]) { paint(); return; }
+    if (settled(c)) { // nothing is planted over a right flower
+      if (!pz.givens[c] && !G.noteMode && G.vals[c] !== v) stays();
+      paint(); return;
+    }
     var bit = 1 << (v - 1);
     if (G.noteMode) {
       if (G.vals[c]) { paint(); return; }
@@ -382,6 +401,7 @@
     }
     if (G.vals[c] === v) { erase(c); return; }
     var right = v === pz.solution[c], op = [[c, G.vals[c], G.notes[c], v, 0]];
+    if (right && (BD.state.set.wilt || (G.hint && G.hint.named && G.hint.cell === c && G.hint.v === v))) G.sure[c] = 1; // it did not wilt, or the bee named it
     commit(right ? tidy(c, v, op) : op);
     Snd.tap();
     if (!right) {
@@ -393,6 +413,7 @@
       return;
     }
     Snd.note(v);
+    G.planted = c;
     if (G.twin && !G.armed) { // on to the other half of the couple, if it is still empty
       var mate = c < G.h ? c + G.h : c - G.h;
       if (!G.vals[mate] && !pz.givens[mate]) G.sel = mate;
@@ -408,6 +429,7 @@
       var g = S.groups[gi];
       for (var i = 0; i < g.cells.length; i++) if (G.vals[g.cells[i]] !== G.pz.solution[g.cells[i]]) return;
       G.bloomed[gi] = 1; done.push(g);
+      g.cells.forEach(function (x) { G.sure[x] = 1; }); // a bloom shows that all of it is right
     });
     var all = true;
     for (var i = 0; i < S.N; i++) if (G.vals[i] !== G.pz.solution[i]) { all = false; break; }
@@ -579,6 +601,7 @@
     var bad = wrongCells();
     G.owl = true;
     bad.forEach(function (c) { G.flagged[c] = 1; });
+    for (var x = 0; x < G.S.N; x++) if (G.vals[x] && G.vals[x] === G.pz.solution[x]) G.sure[x] = 1; // the owl looked: what it did not mark is right
     save(); paint();
     Fx.owl(els.board);
     bad.forEach(function (c) { var el = cellEl(c); el.classList.add('shake'); setTimeout(function () { el.classList.remove('shake'); }, 1900); });
@@ -595,7 +618,7 @@
     if (c < 0 || !Shop.use(BD.state, 'frog')) return;
     var v = G.pz.solution[c];
     commit(tidy(c, v, [[c, G.vals[c], G.notes[c], v, 0]]));
-    G.frog = true; G.sel = c; G.armed = 0;
+    G.frog = true; G.sel = c; G.armed = 0; G.sure[c] = 1;
     Snd.note(v);
     say(t('Ribbit. One flower planted.'), 'happy');
     var landed = Fx.frog(cellEl(c), els.friends), pad = cellEl(c); // the flower shows when the frog lands
