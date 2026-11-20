@@ -26,7 +26,7 @@
         '<button class="btn ghost sm block" style="margin-top:6px" data-act="leaveCrew">Salir de la tripulación en este móvil</button></div>';
     } else {
       html += '<h2 class="sec">☁️ Tripulación online</h2><div class="card"><b>Cada uno registra desde su móvil</b><div class="small muted" style="margin:4px 0 12px">Sube la tripulación online con un nombre y una contraseña que compartes con tus amigos. Cada móvil sigue funcionando sin conexión y se sincroniza en cuanto pilla cobertura.</div>' +
-        '<div class="row"><button class="btn primary sm grow" data-act="createCrew">Crear tripulación</button><button class="btn sm grow" data-act="joinCrew">Unirse</button></div></div>';
+        '<div class="row"><button class="btn primary sm grow" style="flex:1.7" data-act="createCrew">Crear tripulación</button><button class="btn sm grow" data-act="joinCrew">Unirse</button></div></div>';
     }
     // pirates
     html += '<h2 class="sec">🏴‍☠️ Piratas <span class="more">' + ms.length + '</span></h2><div class="card">' + ms.map(function (m) {
@@ -40,7 +40,7 @@
     // events
     html += '<h2 class="sec">🏯 Evento</h2><div class="card"><button class="list-btn" data-act="events"><span style="font-size:26px">🌉</span><span class="grow"><b>' + esc(ev.name) + '</b><div class="small muted">' + esc(U.dateLabel(ev.date)) + (ev.city ? ' · ' + esc(ev.city) : '') + ' · rondas de ' + ev.mins + ' min</div></span><span class="chev">›</span></button></div>';
     // links
-    html += '<h2 class="sec">🔗 ¿Sin cobertura? Compártelo por enlace</h2><div class="card"><div class="small muted" style="margin-bottom:10px">Manda toda la tripulación (piratas, rondas y reacciones) como enlace por el grupo. Al abrirlo en otro móvil se fusiona todo: no se pierde nada.</div>' +
+    html += '<h2 class="sec">🔗 ¿Sin cobertura? Por enlace</h2><div class="card"><div class="small muted" style="margin-bottom:10px">Manda toda la tripulación (piratas, rondas y reacciones) como enlace por el grupo. Al abrirlo en otro móvil se fusiona todo: no se pierde nada.</div>' +
       '<div class="row"><button class="btn sm grow" data-act="sendLink">📤 Enviar enlace</button><button class="btn sm grow" data-act="importLink">📥 Abrir un enlace</button></div></div>';
     // settings
     html += '<h2 class="sec">⚙️ Este móvil</h2><div class="card">' +
@@ -81,7 +81,7 @@
     function paint() {
       q('#mb-av').innerHTML = U.av({ emoji: f.emoji, color: f.color, name: f.name }, 'lg');
       q('#mb-emoji').innerHTML = C.EMOJIS.map(function (e) { return '<button class="chip emoji' + (f.emoji === e ? ' on' : '') + '" data-e="' + e + '">' + e + '</button>'; }).join('');
-      q('#mb-color').innerHTML = C.MEMBER_COLORS.map(function (c) { return '<button class="chip swatch' + (f.color === c ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="' + c + '"></button>'; }).join('');
+      q('#mb-color').innerHTML = C.MEMBER_COLORS.map(function (c, i) { return '<button class="chip swatch' + (f.color === c ? ' on' : '') + '" data-c="' + c + '" style="background:' + c + '" aria-label="Color ' + (i + 1) + '"></button>'; }).join('');
       q('#mb-lcolors').innerHTML = C.COLORS.map(function (c) { return '<button class="chip color' + (f.leader.colors.indexOf(c.id) >= 0 ? ' on' : '') + '" data-lc="' + c.id + '" style="background:' + c.hex + '" aria-label="' + c.name + '"></button>'; }).join('');
       q('#mb-me').querySelector('.switch').classList.toggle('on', isMe);
     }
@@ -194,7 +194,7 @@
     });
   };
   U.importSheet = function () {
-    var sh = U.sheet(U.head('Abrir un enlace de tripulación') + '<p class="small muted">Pega el enlace (o el código) que te ha mandado un amigo. Se fusiona con este móvil: gana lo más reciente y no se pierde nada.</p><textarea class="inp" id="im-code" placeholder="https://…#crew=…"></textarea><div id="im-err"></div><div class="save-bar"><button class="btn primary" data-go>Fusionar</button></div>');
+    var sh = U.sheet(U.head('Abrir un enlace') + '<p class="small muted">Pega el enlace (o el código) que te ha mandado un amigo. Se fusiona con este móvil: gana lo más reciente y no se pierde nada.</p><textarea class="inp" id="im-code" placeholder="https://…#crew=…"></textarea><div id="im-err"></div><div class="save-bar"><button class="btn primary" data-go>Fusionar</button></div>');
     sh.querySelector('[data-go]').onclick = function () {
       C.unpack(sh.querySelector('#im-code').value).then(function (b) { U.close(); setTimeout(function () { confirmMerge(b); }, 80); }, function (e) {
         sh.querySelector('#im-err').innerHTML = '<div class="warn-box">' + esc(e.message || 'Ese enlace no se ha podido abrir.') + '</div>';

@@ -148,7 +148,7 @@
   /* ---------- tabs ---------- */
   var TABS = [
     { id: 'home', icon: '🏯', label: 'Cuartel' },
-    { id: 'board', icon: '💰', label: 'Recompensas' },
+    { id: 'board', icon: '💰', label: 'Tablón de recompensas' },
     { id: 'log', label: 'Registrar ronda' },
     { id: 'meta', icon: '📊', label: 'El meta' },
     { id: 'crew', icon: '🏴‍☠️', label: 'Tripulación' },
@@ -189,13 +189,13 @@
     var sync = cloud.signedIn()
       ? '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Sincronización de la tripulación"><span class="sync-dot ' + st + '" id="sync-dot"></span>' + esc(cloud.crew()) + '</button>'
       : '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Sin sincronizar: solo en este móvil"><span class="sync-dot"></span>Solo</button>';
-    return '<div class="brand">' + (A.badge ? A.icon(true, 1).replace('<svg ', '<svg class="crest" aria-hidden="true" ') : A.crest('', false)) + '<b>Kaidoneta</b></div>' + timer + sync;
+    return '<div class="brand">' + '<img class="crest" src="icons/badge.jpg" alt="" aria-hidden="true">' + '<b>Kaidoneta</b></div>' + timer + sync;
   }
   U.updateHeader = function () { var h = $('#top'); if (h && !h.hidden) { h.innerHTML = header(); h.classList.toggle('timing', U.timerLeft() !== null && root.innerWidth < 420); } };
 
   /* ---------- HQ ---------- */
   // Kaido: one of the rendered styles (js/kaido-*.js), chosen in Crew → Kaido style; 'dragon' shows the dragon instead.
-  U.KAIDO_ORDER = ['backlit', 'bust', 'ukiyoe'];
+  U.KAIDO_ORDER = ['bust', 'backlit', 'ukiyoe']; // the first that exists is the default: the crew chose the close-up
   U.kaidoId = function () {
     var v = A.kaidoVariants || {}, id = U.local.kaido;
     if (id === 'dragon') return '';
@@ -248,7 +248,7 @@
 
     html += '<div class="page" style="padding-top:4px">';
     html += '<div class="tools">' +
-      '<button class="tool" data-act="timer"><span class="t-ico">⏱</span>Reloj</button>' +
+      '<button class="tool" data-act="timer"><span class="t-ico">⏱</span>Tempori&shy;zador</button>' +
       '<button class="tool" data-act="dice"><span class="t-ico">🎲</span>¿Quién empieza?</button>' +
       '<button class="tool" data-act="kit"><span class="t-ico">🎒</span>Mochila</button>' +
       '<button class="tool" data-act="bristol"><span class="t-ico">🌉</span>Bristol</button>' +
@@ -338,7 +338,7 @@
     if (!rows.length) return html + '<div class="card empty" style="margin-top:14px"><div class="big">🏴‍☠️</div>Aún no hay piratas. Añade a tu tripulación en la pestaña Tripulación.</div></div>';
     if (!rows.some(function (r) { return r.rec.n; })) html += '<div class="card empty" style="margin-top:14px"><div class="big">💰</div><b>Aún no hay recompensas.</b><div class="small">Cada victoria sube tu recompensa: ir segundo, las rachas, el top cut y ganar a un compañero dan extra.</div></div>';
     html += '<div class="posters">' + rows.map(function (r, i) { return U.poster(r, i === 0 && r.rec.n > 0); }).join('') + '</div>';
-    html += '<h2 class="sec">📜 Cómo funcionan las recompensas</h2><div class="card small muted">' +
+    html += '<h2 class="sec">📜 Las reglas</h2><div class="card small muted">' +
       'Victoria <b>+฿80M</b> · yendo segundo <b>+฿20M</b> · cada victoria seguida en racha <b>+฿20M</b> más que la anterior · victoria en el top cut <b>+฿100M</b> · ganar a un compañero <b>+฿50M</b> · empate <b>+฿20M</b>. La recompensa nunca baja. ' +
       'Clasificación: puntos (victoria 3, empate 1), luego % victorias y luego recompensa.<div style="margin-top:10px" class="chips">' +
       C.RANKS.map(function (r) { return '<span class="rank-chip">' + r.icon + ' ' + r.name + ' ' + (r.min ? '฿' + U.short(r.min) : '') + '</span>'; }).join('') +
@@ -362,7 +362,7 @@
       if (m.first === true) first[k]++; else if (m.first === false) second[k]++;
     });
     var rate = function (x) { var n = x.w + x.l + x.d; return n ? U.pct(x.w / n) + ' <span class="dim small">(' + U.recText(x) + ')</span>' : '<span class="dim">—</span>'; };
-    html += '<h2 class="sec">🏴‍☠️ La tripulación contra el resto</h2><div class="card"><div class="big-stat"><div><b style="color:var(--gold)">' + r.w + '</b><span>Victorias</span></div><div><b style="color:#fb7185">' + r.l + '</b><span>Derrotas</span></div><div><b>' + U.pct(r.rate) + '</b><span>% victorias</span></div></div>' +
+    html += '<h2 class="sec">🏴‍☠️ Nosotros contra el resto</h2><div class="card"><div class="big-stat"><div><b style="color:var(--gold)">' + r.w + '</b><span>Victorias</span></div><div><b style="color:#fb7185">' + r.l + '</b><span>Derrotas</span></div><div><b>' + U.pct(r.rate) + '</b><span>% victorias</span></div></div>' +
       '<div class="duo" style="margin-top:10px"><div class="card"><div class="lab">Yendo primero</div>' + rate(first) + '</div><div class="card"><div class="lab">Yendo segundo</div>' + rate(second) + '</div></div></div>';
     var maxC = Math.max.apply(null, M.colors.map(function (c) { return c.n; }).concat([1]));
     html += '<h2 class="sec">🎨 Colores rivales</h2><div class="card bars">' + M.colors.map(function (c) {
@@ -387,10 +387,10 @@
 
   /* ---------- onboarding ---------- */
   function onboard() {
-    return '<div class="onboard">' + (A.badge ? A.badge({ cls: 'onboard-badge' }) : U.dragonArt()) +
-      '<h1>Kaidoneta</h1>' +
+    return '<div class="onboard"><img class="onboard-badge" src="icons/badge.jpg" alt="Road to Bristol · Kaidoneta">' +
+      '<h1 class="sr">Kaidoneta</h1>' +
       '<p>La bitácora de los Beasts Pirates para el <b>Regional de Bristol</b>. Registra cada ronda, sube tu recompensa y escala en el Tablón de recompensas de la tripulación.</p>' +
-      '<button class="btn primary" data-act="start">' + A.bolt() + ' Montar nuestra tripulación</button>' +
+      '<button class="btn primary" data-act="start">' + A.bolt() + ' Montar la tripulación</button>' +
       '<button class="btn" data-act="joinOnline">☁️ Unirme a mi tripulación online</button>' +
       '<button class="btn ghost" data-act="importLink">🔗 Abrir un enlace de tripulación</button>' +
       '<p class="small dim" style="margin-top:20px">Hecho por fans para los amigos. Sin relación con Bandai, Shueisha ni Toei Animation.</p>' +
@@ -418,7 +418,7 @@
   /* ---------- who am I ---------- */
   U.whoSheet = function () {
     var ms = C.members(U.book);
-    var sh = U.sheet(U.head('¿Quién eres?') + '<p class="muted small">Este móvil registra las rondas a tu nombre y enseña tu récord en el Cuartel. Puedes cambiarlo cuando quieras en Tripulación.</p>' +
+    var sh = U.sheet(U.head('¿Quién eres?') + '<p class="muted small">Este móvil registra las rondas a tu nombre y enseña tu balance en el Cuartel. Puedes cambiarlo cuando quieras en Tripulación.</p>' +
       '<div>' + ms.map(function (m) { return '<button class="list-btn" data-pick="' + m.id + '">' + U.av(m) + '<span class="grow"><b>' + esc(m.name) + '</b><div class="small muted">' + U.lchip(m.leader) + '</div></span>' + (m.id === U.local.me ? '<span class="me-tag">YO</span>' : '') + '</button>'; }).join('') + '</div>' +
       '<button class="btn block" style="margin-top:12px" data-new>＋ No estoy en la lista</button>');
     Array.prototype.forEach.call(sh.querySelectorAll('[data-pick]'), function (b) {

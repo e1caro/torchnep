@@ -14,7 +14,7 @@
     var presets = [30, 35, 40, 50].concat(ev.mins && [30, 35, 40, 50].indexOf(ev.mins) < 0 ? [ev.mins] : []).sort(function (a, b) { return a - b; });
     var sh = U.sheet(U.head('Temporizador') +
       '<div class="timer-big" id="tm-big" aria-live="off"></div>' +
-      '<div class="row" style="justify-content:center;gap:10px"><button class="btn" data-tm="-1">−1 min</button><button class="btn primary" data-tm="go" id="tm-go" style="min-width:130px"></button><button class="btn" data-tm="1">+1 min</button></div>' +
+      '<div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap"><button class="btn" data-tm="-1" style="white-space:nowrap">−1 min</button><button class="btn primary" data-tm="go" id="tm-go" style="min-width:130px"></button><button class="btn" data-tm="1" style="white-space:nowrap">+1 min</button></div>' +
       '<div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost sm" data-tm="reset">↺ Reiniciar</button></div>' +
       '<div class="field"><span class="lab">Duración de la ronda</span><div class="chips" id="tm-presets">' + presets.map(function (p) { return '<button class="chip' + (preset() === p ? ' on' : '') + '" data-tm-p="' + p + '">' + p + ' min</button>'; }).join('') + '</div></div>' +
       '<p class="small muted">Comprueba la duración que anuncien los jueces. El móvil vibra cuando quedan 5 minutos y al acabar el tiempo, y el temporizador sigue aunque cierres la app (lo verás en la barra de arriba).</p>');
@@ -62,7 +62,7 @@
   /* ---------- the dragon dice ---------- */
   var PIPS = { 1: [[50, 50]], 2: [[28, 28], [72, 72]], 3: [[26, 26], [50, 50], [74, 74]], 4: [[28, 28], [72, 28], [28, 72], [72, 72]], 5: [[26, 26], [74, 26], [50, 50], [26, 74], [74, 74]], 6: [[28, 24], [72, 24], [28, 50], [72, 50], [28, 76], [72, 76]] };
   function die(n, cls) {
-    return '<svg class="die ' + (cls || '') + '" viewBox="0 0 100 100" aria-label="' + n + '"><defs><linearGradient id="dg-' + cls + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#4c1d95"/></linearGradient></defs>' +
+    return '<svg class="die ' + (cls || '') + '" viewBox="0 0 100 100" role="img" aria-label="Dado: ' + n + '"><defs><linearGradient id="dg-' + cls + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a855f7"/><stop offset="1" stop-color="#4c1d95"/></linearGradient></defs>' +
       '<rect x="4" y="4" width="92" height="92" rx="20" fill="url(#dg-' + cls + ')" stroke="#fde68a" stroke-width="3"/>' +
       PIPS[n].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="9" fill="#fde68a"/>'; }).join('') + '</svg>';
   }
@@ -71,7 +71,7 @@
       '<p class="small muted" style="margin-top:0">A los dados. Quien saque más elige si va primero o segundo. Si empatáis, se tira otra vez.</p>' +
       '<div class="dice-row"><div class="die-box" id="db-a"><b>Tú</b><div id="d-a">' + die(6, 'a') + '</div></div><div class="die-box" id="db-b"><b>Rival</b><div id="d-b">' + die(6, 'b') + '</div></div></div>' +
       '<div id="d-out" class="empty" style="padding:8px;min-height:44px"></div>' +
-      '<button class="btn primary block" data-roll>🎲 Tira los dados del dragón</button>');
+      '<button class="btn primary block" data-roll style="font-size:16px">🎲 Tira los dados del dragón</button>');
     var busy = false;
     sh.querySelector('[data-roll]').onclick = function () {
       if (busy) return;

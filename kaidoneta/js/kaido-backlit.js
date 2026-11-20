@@ -62,17 +62,22 @@
     for (var i = 0; i < n; i++) { var t = i / (n - 1); pts.push([x, y, Math.max(0.25, w * (1 - Math.pow(t, 1.3) * 0.96))]); x += Math.cos(a) * st; y += Math.sin(a) * st; a += bend; }
     return rib(pts, 3);
   }
-  // Closed outline turned into shaggy fur: every other sample is pushed out (and down) into a spike.
+  // Closed outline turned into shaggy fur: curved tufts bulging out and hanging down (lean) between base points.
   function furry(pts, amp, seed, lean) {
-    var r = seeded(seed), c = cr(pts.concat([pts[0]]), 3), n = c.length - 1, area = 0, out = [];
-    for (var i = 0; i < n; i++) area += c[i][0] * c[i + 1][1] - c[i + 1][0] * c[i][1];
-    var sg = area > 0 ? 1 : -1;
-    for (var k = 0; k < n; k++) {
-      var p = c[(k - 1 + n) % n], q = c[(k + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], l = Math.sqrt(dx * dx + dy * dy) || 1;
-      if (k % 2) { var a = amp * (0.45 + r() * 0.9); out.push([c[k][0] + sg * dy / l * a, c[k][1] - sg * dx / l * a + (lean || 0) * a]); }
-      else out.push([c[k][0], c[k][1]]);
+    var r = seeded(seed), c = cr(pts.concat([pts[0]]), 3), n = c.length - 1, area = 0, i;
+    for (i = 0; i < n; i++) area += c[i][0] * c[i + 1][1] - c[i + 1][0] * c[i][1];
+    var sg = area > 0 ? 1 : -1, O = [];
+    for (i = 0; i < n; i++) {
+      var p = c[(i - 1 + n) % n], q = c[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], l = Math.sqrt(dx * dx + dy * dy) || 1;
+      O.push([sg * dy / l, -sg * dx / l]);
     }
-    return poly(out);
+    var d = 'M' + P(c[0][0], c[0][1]);
+    for (i = 0; i < n - 1; i += 2) {
+      var b0 = c[i], t = c[i + 1], b1 = c[(i + 2) % n], o = O[i + 1], a = amp * (0.5 + r() * 0.9);
+      var tx = t[0] + o[0] * a, ty = t[1] + o[1] * a + (lean || 0) * a;
+      d += 'Q' + P(b0[0] + o[0] * a * 0.75, b0[1] + o[1] * a * 0.75) + ' ' + P(tx, ty) + 'Q' + P((tx + b1[0]) / 2 - o[0] * a * 0.12, (ty + b1[1]) / 2 - o[1] * a * 0.12) + ' ' + P(b1[0], b1[1]);
+    }
+    return d + 'Z';
   }
   // A jagged lightning bolt as a tapered strip.
   function bolt(pts, w) {
@@ -121,7 +126,7 @@
     return '<defs>' +
       '<radialGradient id="' + p + 'sky" gradientUnits="userSpaceOnUse" cx="200" cy="135" r="420"><stop offset="0" stop-color="#46177a"/><stop offset=".3" stop-color="#26103f"/><stop offset=".65" stop-color="#160a28"/><stop offset="1" stop-color="#0f0719"/></radialGradient>' +
       '<radialGradient id="' + p + 'cloud" gradientUnits="userSpaceOnUse" cx="200" cy="130" r="300"><stop offset="0" stop-color="#ff9cf2"/><stop offset=".22" stop-color="#b357e6"/><stop offset=".5" stop-color="#4c2389"/><stop offset="1" stop-color="#1d0e36"/></radialGradient>' +
-      '<radialGradient id="' + p + 'halo" gradientUnits="userSpaceOnUse" cx="200" cy="128" r="175"><stop offset="0" stop-color="#fff6ff"/><stop offset=".07" stop-color="#ffd2f8"/><stop offset=".18" stop-color="#ff7ae8" stop-opacity=".85"/><stop offset=".38" stop-color="#9a3ad6" stop-opacity=".45"/><stop offset=".68" stop-color="#4a1a86" stop-opacity=".16"/><stop offset="1" stop-color="#2a0f52" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="' + p + 'halo" gradientUnits="userSpaceOnUse" cx="200" cy="128" r="210"><stop offset="0" stop-color="#ffffff"/><stop offset=".16" stop-color="#ffe0fb"/><stop offset=".3" stop-color="#ff86ec" stop-opacity=".92"/><stop offset=".48" stop-color="#a63ee0" stop-opacity=".5"/><stop offset=".72" stop-color="#4a1a86" stop-opacity=".18"/><stop offset="1" stop-color="#2a0f52" stop-opacity="0"/></radialGradient>' +
       '<linearGradient id="' + p + 'PL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#33255c"/><stop offset=".55" stop-color="#21173e"/><stop offset="1" stop-color="#170f2b" stop-opacity="0"/></linearGradient>' +
       '<linearGradient id="' + p + 'LIT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#cbb9ff"/><stop offset=".5" stop-color="#8a6fe0"/><stop offset="1" stop-color="#4b3596"/></linearGradient>' +
       '<linearGradient id="' + p + 'gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3b0"/><stop offset=".45" stop-color="#f5bf3a"/><stop offset="1" stop-color="#8d5a0b"/></linearGradient>' +
@@ -129,25 +134,25 @@
       '<linearGradient id="' + p + 'torso" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b1232"/><stop offset="1" stop-color="#110a20"/></linearGradient>' +
       '<radialGradient id="' + p + 'knot" cx=".62" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff"/><stop offset=".35" stop-color="#e2d9ff"/><stop offset=".75" stop-color="#8f80c2"/><stop offset="1" stop-color="#4a3d78"/></radialGradient>' +
       '<linearGradient id="' + p + 'rope" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f1ebff"/><stop offset=".6" stop-color="#a99bd6"/><stop offset="1" stop-color="#4d4080"/></linearGradient>' +
-      '<radialGradient id="' + p + 'ember" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff7a2a" stop-opacity=".55"/><stop offset="1" stop-color="#ff3a10" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="' + p + 'ember" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ff7a2a" stop-opacity=".35"/><stop offset="1" stop-color="#ff3a10" stop-opacity="0"/></radialGradient>' +
       '<radialGradient id="' + p + 'eye" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffe680"/><stop offset=".4" stop-color="#ffae1a" stop-opacity=".8"/><stop offset="1" stop-color="#ff6a00" stop-opacity="0"/></radialGradient>' +
       '<linearGradient id="' + p + 'flash" x1="0" y1="0" x2=".6" y2="1"><stop offset="0" stop-color="#f4e8ff"/><stop offset=".5" stop-color="#b48cff" stop-opacity=".6"/><stop offset="1" stop-color="#6a3cc0" stop-opacity="0"/></linearGradient>' +
       '<linearGradient id="' + p + 'fade" x1="0" y1="0" x2="0" y2="1"><stop offset=".76" stop-color="#fff"/><stop offset=".97" stop-color="#000"/></linearGradient>' +
       '<mask id="' + p + 'mask" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="560"><rect width="400" height="560" fill="url(#' + p + 'fade)"/></mask>' +
       '<pattern id="' + p + 'rain" patternUnits="userSpaceOnUse" width="25" height="40"><path d="M6 0l-4 13M19 17l-5 16M12 29l-2 6" stroke="#d6c8ff" stroke-width=".7" stroke-linecap="round"/></pattern>' +
       '<pattern id="' + p + 'furtex" patternUnits="userSpaceOnUse" width="16" height="13"><path d="M2 1q3 5 0 11M9 4q3 4 1 9M14 0q2 3 0 6" fill="none" stroke="#3a2d73" stroke-width="1.1" stroke-linecap="round"/></pattern>' +
-      '<pattern id="' + p + 'scl" patternUnits="userSpaceOnUse" width="12" height="10"><g fill="#3a1006" stroke="#ff6a2a" stroke-width=".9">' +
+      '<pattern id="' + p + 'scl" patternUnits="userSpaceOnUse" width="12" height="10"><g fill="#2e0c06" stroke="#f0582a" stroke-width=".85">' +
       '<path d="M-6 10a6 6 0 0 0 12 0zM6 10a6 6 0 0 0 12 0z"/><path d="M0 5a6 6 0 0 0 12 0z"/><path d="M-6 0a6 6 0 0 0 12 0zM6 0a6 6 0 0 0 12 0z"/><path d="M0 -5a6 6 0 0 0 12 0z"/></g></pattern>' +
       // Rim light: hot magenta on the left/top edges, cold lilac on the right edges of whatever it is applied to.
       '<filter id="' + p + 'rim" x="-8%" y="-8%" width="116%" height="116%" color-interpolation-filters="sRGB">' +
-      '<feOffset in="SourceAlpha" dx="2.3" dy="1.3" result="a"/><feComposite in="SourceAlpha" in2="a" operator="out" result="ea"/>' +
+      '<feOffset in="SourceAlpha" dx="1.7" dy="1.3" result="a"/><feComposite in="SourceAlpha" in2="a" operator="out" result="ea"/>' +
       '<feFlood flood-color="' + MAG + '"/><feComposite in2="ea" operator="in" result="ma"/>' +
-      '<feOffset in="SourceAlpha" dx="6" dy="2.5" result="b"/><feComposite in="SourceAlpha" in2="b" operator="out" result="eb"/>' +
-      '<feFlood flood-color="#b832d6" flood-opacity=".42"/><feComposite in2="eb" operator="in" result="mb"/>' +
-      '<feOffset in="SourceAlpha" dx="-2" dy=".8" result="c"/><feComposite in="SourceAlpha" in2="c" operator="out" result="ec"/>' +
+      '<feOffset in="SourceAlpha" dx="4.2" dy="2.4" result="b"/><feComposite in="SourceAlpha" in2="b" operator="out" result="eb"/>' +
+      '<feFlood flood-color="#b832d6" flood-opacity=".3"/><feComposite in2="eb" operator="in" result="mb"/>' +
+      '<feOffset in="SourceAlpha" dx="-1.5" dy=".7" result="c"/><feComposite in="SourceAlpha" in2="c" operator="out" result="ec"/>' +
       '<feFlood flood-color="' + LIL + '"/><feComposite in2="ec" operator="in" result="lc"/>' +
-      '<feOffset in="SourceAlpha" dx="-5" dy="1.5" result="d"/><feComposite in="SourceAlpha" in2="d" operator="out" result="ed"/>' +
-      '<feFlood flood-color="#8f84ff" flood-opacity=".38"/><feComposite in2="ed" operator="in" result="ld"/>' +
+      '<feOffset in="SourceAlpha" dx="-3.6" dy="1.4" result="d"/><feComposite in="SourceAlpha" in2="d" operator="out" result="ed"/>' +
+      '<feFlood flood-color="#8f84ff" flood-opacity=".26"/><feComposite in2="ed" operator="in" result="ld"/>' +
       '<feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="mb"/><feMergeNode in="ld"/><feMergeNode in="ma"/><feMergeNode in="lc"/></feMerge></filter>' +
       '<filter id="' + p + 'glow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="1.8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>' +
       '<filter id="' + p + 'gbig" x="-40%" y="-20%" width="180%" height="140%"><feGaussianBlur stdDeviation="4.5"/></filter>' +
@@ -176,10 +181,10 @@
     for (i = 0; i < 6; i++) far.push([110 + i * 36 + r() * 10, 40 + r() * 14, 18 + r() * 14]);
     for (i = 0; i < 6; i++) left.push([-10 + r() * 70, 120 + i * 30 + r() * 10, 26 + r() * 16]);
     for (i = 0; i < 6; i++) right.push([340 + r() * 70, 110 + i * 30 + r() * 10, 26 + r() * 16]);
-    s += '<g opacity=".75">' + bank(far, 0, 5) + '</g>';
-    s += '<circle cx="200" cy="128" r="175" fill="url(#' + p + 'halo)"/>';
+    s += '<g opacity=".6">' + bank(far, 0, 9) + '</g>';
+    s += '<circle cx="200" cy="128" r="210" fill="url(#' + p + 'halo)"/>';
     s += '<g fill="none" stroke="#ffc8f6"><circle cx="200" cy="126" r="66" stroke-width="1.4" opacity=".35"/><circle cx="200" cy="126" r="90" stroke-width=".8" opacity=".22"/><circle cx="200" cy="126" r="128" stroke-width=".6" opacity=".12"/></g>';
-    s += bank(top, 0, 6) + bank(left, 7, 0) + bank(right, -7, 0);
+    s += bank(top, 0, 11) + bank(left, 11, 3) + bank(right, -11, 3);
     // rain behind
     s += '<rect x="-20" y="-20" width="440" height="600" fill="url(#' + p + 'rain)" opacity=".38"/>';
     // lightning
@@ -190,18 +195,18 @@
       [[324, 76], [350, 68], [348, 77], [392, 56]]
     ];
     var glow = '', core = '';
-    bolts.forEach(function (b, k) { glow += path(bolt(b, k % 2 ? 4 : 7), '#d86cff'); core += path(bolt(b, k % 2 ? 1.1 : 2), '#fff'); });
-    s += '<g class="kb-bolt" opacity=".8"><g filter="url(#' + p + 'gbig)" opacity=".9">' + glow + '</g>' + core + '</g>';
+    bolts.forEach(function (b, k) { glow += path(bolt(b, k % 2 ? 6 : 11), '#e07aff'); core += path(bolt(b, k % 2 ? 1.6 : 2.8), '#fff'); });
+    s += '<g class="kb-bolt" opacity=".85"><g filter="url(#' + p + 'gbig)">' + glow + '</g>' + core + '</g>';
     return s;
   }
 
   function cloak(p) {
     var out = [[200, 172], [245, 176], [290, 186], [332, 203], [364, 232], [386, 272], [398, 322], [406, 390], [412, 470], [416, 590], [-16, 590], [-12, 470], [-6, 392], [2, 324], [16, 270], [40, 228], [74, 200], [116, 184], [158, 175]];
     var inner = [[200, 186], [262, 192], [318, 214], [350, 250], [370, 300], [380, 380], [388, 470], [392, 590], [8, 590], [12, 470], [20, 380], [30, 304], [50, 252], [84, 216], [138, 194]];
-    return '<g>' + path(furry(out, 13, 11, 0.45), '#1a1338', 'filter="url(#RIM)"') +
-      path(furry(out, 13, 11, 0.45), 'url(#' + p + 'furtex)', 'opacity=".9"') +
-      path(furry(inner, 11, 23, 0.5), '#241a4c', 'opacity=".9"') +
-      path(furry(inner, 11, 23, 0.5), 'url(#' + p + 'furtex)', 'opacity=".7"') +
+    return '<g>' + path(furry(out, 17, 11, 0.55), '#1a1338', 'filter="url(#RIM)"') +
+      path(furry(out, 17, 11, 0.55), 'url(#' + p + 'furtex)', 'opacity=".55"') +
+      path(furry(inner, 14, 23, 0.6), '#22194a', 'opacity=".9"') +
+      path(furry(inner, 14, 23, 0.6), 'url(#' + p + 'furtex)', 'opacity=".45"') +
       // lavender tips of a few big tufts
       '<g fill="#9a8ae6" opacity=".55">' + path(lock(30, 300, 200, 26, 3, 0.1), '#9a8ae6') + path(lock(20, 380, 190, 22, 3, 0.1), '#9a8ae6') +
       path(lock(370, 300, -20, 26, 3, -0.1), '#9a8ae6') + path(lock(382, 390, -10, 22, 3, -0.1), '#9a8ae6') + '</g>' +
@@ -217,13 +222,14 @@
       [168, 130, 205, 70, 13, -0.12], [166, 150, 180, 90, 15, -0.16], [164, 170, 160, 100, 15, -0.14], [170, 190, 130, 110, 14, -0.08],
       [178, 196, 115, 120, 13, -0.05], [232, 130, -25, 80, 13, 0.14], [236, 150, 0, 105, 15, 0.16], [238, 170, 18, 120, 15, 0.13],
       [232, 190, 45, 125, 14, 0.08], [222, 196, 65, 130, 13, 0.05], [176, 112, 235, 50, 10, -0.1], [224, 112, -55, 54, 10, 0.12],
-      [160, 160, 195, 60, 10, -0.25], [240, 160, -15, 66, 10, 0.25], [244, 178, 30, 95, 11, 0.2], [158, 178, 150, 80, 11, -0.2]
+      [160, 160, 195, 60, 10, -0.25], [240, 160, -15, 66, 10, 0.25], [244, 178, 30, 95, 11, 0.2], [158, 178, 150, 80, 11, -0.2],
+      [246, 140, -8, 120, 12, 0.2], [154, 140, 188, 96, 12, -0.2], [250, 196, 50, 120, 12, 0.1], [150, 196, 128, 104, 12, -0.1], [246, 120, -35, 70, 10, 0.2]
     ];
-    L.forEach(function (l) { s += path(lock.apply(null, l), '#0d0718'); });
+    L.forEach(function (l) { l = l.slice(); l[4] *= 1.45; s += path(lock.apply(null, l), '#0d0718'); });
     s = path(smooth([[150, 106], [200, 86], [252, 104], [272, 146], [266, 196], [236, 214], [164, 214], [132, 196], [126, 148]], true), '#0d0718') + s;
     var hi = '';
     [[164, 150, 180, 84, 2, -0.16], [166, 170, 160, 92, 2, -0.14], [236, 150, 0, 98, 2, 0.16], [238, 170, 18, 110, 2, 0.13], [244, 178, 30, 88, 1.6, 0.2]].forEach(function (l, i) {
-      hi += path(lock.apply(null, l), i < 2 ? MAG : LIL, 'opacity=".35"');
+      if (i % 2 === 0) hi += path(lock.apply(null, l), i < 2 ? MAG : LIL, 'opacity=".22"');
     });
     return '<g filter="url(#RIM)">' + s + '</g>' + hi;
   }
@@ -300,7 +306,7 @@
     s += plane(smooth([[340, 330], [356, 334], [354, 356], [336, 380], [324, 384], [334, 356]], true), PLANE, 'url(#LIT)', 0.8);
     // smouldering scale tattoo on shoulder and upper arm
     var tat = smooth([[244, 212], [282, 207], [310, 218], [332, 242], [350, 274], [356, 300], [338, 300], [316, 284], [296, 266], [270, 254], [252, 246], [246, 228]], true);
-    s += '<g class="kb-tat" opacity=".8">' + path(tat, 'url(#' + p + 'scl)') + path(tat, 'url(#' + p + 'ember)', 'opacity=".9"') + '</g>';
+    s += '<g class="kb-tat" opacity=".7">' + path(tat, 'url(#' + p + 'scl)') + path(tat, 'url(#' + p + 'ember)', 'opacity=".9"') + '</g>';
     s += path(band([[300, 214, 4], [334, 244, 5], [356, 292, 4]], -1, 0.1), BASE, 'opacity=".55"');
     s += path(rib([[322, 300, .3], [336, 320, 1.8], [346, 336, .3]]), DEEP);
     // skull tattoo near the wrist
@@ -343,7 +349,7 @@
     var s = '';
     // front dreadlocks between the horns
     var dl = '';
-    [[190, 120, -104, 48, 5.5, -0.12], [200, 116, -90, 60, 6, 0.04], [210, 120, -74, 50, 5.5, 0.14], [181, 124, -122, 40, 5, -0.2], [219, 124, -58, 42, 5, 0.2], [195, 118, -96, 34, 4, -0.3], [206, 118, -84, 36, 4, 0.3]].forEach(function (l) { dl += path(lock.apply(null, l), '#0d0718'); });
+    [[190, 120, -104, 48, 5.5, -0.12], [200, 116, -97, 46, 6.5, -0.1], [210, 120, -74, 50, 5.5, 0.14], [181, 124, -122, 40, 5, -0.2], [219, 124, -58, 42, 5, 0.2], [195, 118, -100, 34, 4.5, -0.3], [206, 118, -80, 38, 4.5, 0.3]].forEach(function (l) { dl += path(lock.apply(null, l), '#0d0718'); });
     s += '<g filter="url(#RIM)">' + dl + '</g>';
     // face
     var face = [[178, 122], [200, 114], [222, 122], [228, 140], [227, 158], [222, 176], [212, 190], [200, 196], [188, 190], [178, 176], [173, 158], [172, 140]];
@@ -422,7 +428,10 @@
     // shide paper streamers
     [[160, 420], [232, 422], [190, 428]].forEach(function (q, i) {
       var x = q[0], y = q[1], z = '';
-      for (var k = 0; k < 5; k++) { var ox = x + (k % 2) * 7, oy = y + k * 12; z += '<path d="M' + ox + ' ' + oy + 'h9v13h-9z" fill="#f3eeff"/><path d="M' + (ox + 4.5) + ' ' + oy + 'h4.5v13h-4.5z" fill="#a497d4"/>'; }
+      var Lp = [], Rp = [];
+      for (var k = 0; k <= 5; k++) { var ox = x + (k % 2 ? 7 : 0), oy = y + k * 12; Lp.push([ox, oy + (k % 2 ? 3 : 0)]); Rp.unshift([ox + 8, oy + (k % 2 ? 0 : 3)]); }
+      z = path(poly(Lp.concat(Rp)), '#f3eeff');
+      for (k = 0; k < 5; k++) { var sx = x + (k % 2 ? 7 : 0), sy = y + k * 12; z += path(poly([[sx + 4, sy + 1.5], [sx + 8, sy + (k % 2 ? 0 : 3)], [sx + (k % 2 ? 1 : 15), sy + 12 + (k % 2 ? 3 : 0)], [sx + (k % 2 ? -3 : 11), sy + 12]]), '#9d90d0', 'opacity=".75"'); }
       s += '<g opacity="' + (i === 2 ? '.85' : '1') + '">' + z + '</g>';
     });
     // shimenawa: twisted rope + big knots catching the light
@@ -462,7 +471,7 @@
     '.kaido-backlit .kb-ember{animation:kbEmber 7s linear infinite}' +
     '@keyframes kbLit{0%,62%{opacity:0}63.5%{opacity:calc(var(--o,1)*.95)}65%{opacity:calc(var(--o,1)*.25)}66.5%{opacity:calc(var(--o,1)*.9)}80%,100%{opacity:0}}' +
     '@keyframes kbFlash{0%,62%{opacity:0}63.5%{opacity:.55}65%{opacity:.1}66.5%{opacity:.45}76%,100%{opacity:0}}' +
-    '@keyframes kbBolt{0%,61%{opacity:.25}63%{opacity:1}65%{opacity:.4}66.5%{opacity:1}78%,100%{opacity:.25}}' +
+    '@keyframes kbBolt{0%,61%{opacity:.55}63%{opacity:1}65%{opacity:.4}66.5%{opacity:1}78%,100%{opacity:.55}}' +
     '@keyframes kbEye{0%,100%{opacity:.75}50%{opacity:1}}' +
     '@keyframes kbTat{0%,100%{opacity:.7}40%{opacity:.95}70%{opacity:.78}}' +
     '@keyframes kbGlint{0%,70%,100%{opacity:.2;transform:scale(.4)}85%{opacity:1;transform:scale(1.15)}}' +

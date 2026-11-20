@@ -19,9 +19,9 @@
     var nem = C.nemesis(games), prey = C.prey(games), mu = C.matchups(games);
     var poster = U.poster(row, true).replace('<button class="poster top"', '<div class="poster top" style="margin-top:22px"').replace(/<\/button>$/, '</div>').replace(/ data-act="player" data-id="[^"]*"/, '');
     var html = U.head(esc(m.name), '<button class="btn sm" data-edit>Editar</button>') +
-      '<div class="seg full" style="margin-bottom:16px"><button class="' + (!all ? 'on' : '') + '" data-scope="event">' + esc(ev.name) + '</button><button class="' + (all ? 'on' : '') + '" data-scope="all">Todo el historial</button></div>' +
+      '<div class="seg full" style="margin-bottom:16px"><button class="' + (!all ? 'on' : '') + '" data-scope="event">' + esc(ev.name) + '</button><button class="' + (all ? 'on' : '') + '" data-scope="all">Histórico</button></div>' +
       poster +
-      '<div class="row" style="margin-top:16px"><button class="btn gold grow" data-share>📸 Compartir cartel</button><button class="btn primary grow" data-log>' + A.bolt() + ' Registrar</button></div>' +
+      '<div class="row" style="margin-top:16px"><button class="btn gold grow" data-share>📸 Compartir</button><button class="btn primary grow" data-log>' + A.bolt() + ' Registrar</button></div>' +
       '<div class="small muted" style="margin-top:12px;text-align:center">Juega con ' + U.lchip(m.leader) + (m.deck ? ' · “' + esc(m.deck) + '”' : '') + '</div>' +
       '<h2 class="sec">📈 Balance</h2><div class="stat-grid">' +
         stat(U.recText(rec), 'Balance') + stat(rec.pts, 'Puntos') + stat(rec.n ? U.pct(rec.rate) : '—', '% victorias') +
@@ -111,7 +111,7 @@
     glow.addColorStop(0, 'rgba(168,85,247,.55)'); glow.addColorStop(1, 'rgba(168,85,247,0)');
     g.fillStyle = glow; g.fillRect(0, 0, W, H);
     var kid = U.kaidoId(), art = svgImage(kid ? U.kaidoArt({ still: true }) : A.dragon());
-    return Promise.all([art, svgImage(A.horns()), svgImage(A.crest('', true))]).then(function (imgs) {
+    return Promise.all([art, svgImage(A.horns()), picImage('icons/badge.jpg')]).then(function (imgs) {
       if (imgs[0]) {
         // the picture fills the right side, cropped like "cover", fading into the purple on the left
         var im = imgs[0], bw = 640, bh = 980, bx = 460, by = 80, iw = im.naturalWidth || im.width || bw, ih = im.naturalHeight || im.height || bh;
@@ -162,8 +162,8 @@
       if (badges.length) {
         center(g, badges.slice(0, 9).map(function (x) { return x.badge.icon; }).join(' '), 540, 1262, '54px "Apple Color Emoji", "Noto Color Emoji", sans-serif', '#fff');
       }
-      center(g, (m.leader.name || 'Kaido') + (m.leader.set ? ' ' + m.leader.set : '') + '  ·  ' + (all ? 'Todo el historial' : ev.name + ' ' + ev.date.slice(0, 4)), 540, 1320, '800 32px ' + DISPLAY, '#c4b5fd', 2);
-      if (imgs[2]) g.drawImage(imgs[2], 880, 1150, 160, 168);
+      center(g, (m.leader.name || 'Kaido') + (m.leader.set ? ' ' + m.leader.set : '') + '  ·  ' + (all ? 'Histórico' : ev.name + ' ' + ev.date.slice(0, 4)), 540, 1320, '800 32px ' + DISPLAY, '#c4b5fd', 2);
+      if (imgs[2]) { g.save(); g.beginPath(); g.arc(960, 1230, 86, 0, Math.PI * 2); g.clip(); g.drawImage(imgs[2], 874, 1144, 172, 172); g.restore(); }
       return new Promise(function (res) { cv.toBlob(function (b) { res({ blob: b, url: cv.toDataURL('image/png') }); }, 'image/png'); });
     });
   };

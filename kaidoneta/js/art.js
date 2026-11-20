@@ -100,7 +100,7 @@
         '<text x="100" y="186" text-anchor="middle" font-size="17" font-weight="900" fill="#2e1065" font-family="Avenir Next Condensed, Futura, Impact, Roboto Condensed, Arial Narrow, sans-serif" letter-spacing="2.5">KAIDONETA</text>' : '');
   }
   A.crest = function (cls, withText) {
-    return '<svg class="crest ' + (cls || '') + '" viewBox="0 0 200 210" role="img" aria-label="Kaidoneta crest">' + crestArt(u(), withText !== false) + '</svg>';
+    return '<svg class="crest ' + (cls || '') + '" viewBox="0 0 200 210" role="img" aria-label="Escudo de Kaidoneta">' + crestArt(u(), withText !== false) + '</svg>';
   };
   // The app icon: the crest without its banner on a night-purple tile. scale < 1 keeps it inside the maskable zone.
   A.icon = function (rounded, scale) {

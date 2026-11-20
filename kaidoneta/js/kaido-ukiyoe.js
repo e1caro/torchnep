@@ -101,7 +101,7 @@
   var INK = '#110a18';
   var C = {
     ink: INK, indigo: '#1f2466', indigoD: '#141848', violet: '#3b2a7a', paper: '#f1e4c2', paperD: '#d9c393',
-    verm: '#d2452b', vermD: '#94281c', gold: '#d9a23a', goldD: '#9c6b1c', skin: '#dda46c', skinS: '#ad6b40', skinD: '#7c4426',
+    verm: '#d2452b', vermD: '#94281c', gold: '#d9a23a', goldD: '#9c6b1c', skin: '#d29a62', skinS: '#9c5c36', skinD: '#6e3a20',
     dragon: '#2e3b93', dragonD: '#1a2163', dragonL: '#5566c4', fur: '#2a2272', furL: '#b7a3ee', furM: '#4b3fa6', iron: '#3a3550'
   };
   function sk(w) { return ' stroke="' + INK + '" stroke-width="' + w + '" stroke-linejoin="round" stroke-linecap="round"'; }
@@ -120,6 +120,7 @@
     defs += '<radialGradient id="' + id('vig') + '" cx="200" cy="220" r="330" gradientUnits="userSpaceOnUse"><stop offset=".55" stop-color="#12081f" stop-opacity="0"/><stop offset="1" stop-color="#12081f" stop-opacity=".85"/></radialGradient>';
     defs += '<linearGradient id="' + id('cl') + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e6dbf2"/><stop offset=".55" stop-color="#ad9bd9"/><stop offset="1" stop-color="#7461b4"/></linearGradient>';
     defs += '<linearGradient id="' + id('wv') + '" x1="0" y1="390" x2="0" y2="560" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#34409a"/><stop offset=".5" stop-color="#1f2466"/><stop offset="1" stop-color="#121540"/></linearGradient>';
+    defs += '<linearGradient id="' + id('low') + '" x1="0" y1="330" x2="0" y2="520" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#1a1046" stop-opacity="0"/><stop offset="1" stop-color="#1a1046" stop-opacity=".7"/></linearGradient>';
     defs += '<linearGradient id="' + id('fade') + '" x1="0" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse"><stop offset=".74" stop-color="#fff"/><stop offset=".97" stop-color="#000"/></linearGradient>';
     defs += '<mask id="' + id('m') + '" maskUnits="userSpaceOnUse" x="-20" y="-20" width="440" height="600"><rect x="-20" y="-20" width="440" height="600" fill="' + url('fade') + '"/></mask>';
     // dragon scales (U arcs, staggered rows)
@@ -134,7 +135,7 @@
     defs += '<pattern id="' + id('sei') + '" width="20" height="10" patternUnits="userSpaceOnUse"><path d="M0,10A10,10 0 0 1 20,10M4,10A6,6 0 0 1 16,10M8,10A2,2 0 0 1 12,10" fill="none" stroke="#6d7bd6" stroke-width="1" opacity=".55"/></pattern>';
     // paper grain
     defs += '<pattern id="' + id('gr') + '" width="9" height="9" patternUnits="userSpaceOnUse"><rect x="1" y="2" width="1" height="1" fill="#f3e6c4" opacity=".1"/><rect x="6" y="1" width="2" height=".6" fill="#f3e6c4" opacity=".08"/><rect x="4" y="6" width="1" height="1" fill="#000" opacity=".16"/><rect x="0" y="7" width="3" height=".6" fill="#000" opacity=".1"/><rect x="7" y="4" width=".8" height="2" fill="#f3e6c4" opacity=".06"/></pattern>';
-    defs += '<filter id="' + id('glow') + '" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="4"/></filter>';
+    defs += '<filter id="' + id('glow') + '" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="5"/></filter>';
     defs += '<filter id="' + id('eg') + '" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="2.2"/></filter>';
 
     /* ---------------- sky, moon ---------------- */
@@ -177,11 +178,11 @@
     o += '</g>';
 
     /* ---------------- lightning (flash) ---------------- */
-    var b1 = bolt([[104, -10], [74, 44], [94, 50], [52, 108], [72, 114], [24, 182]], [8, 7, 7, 5.5, 5, 0]);
-    var b2 = bolt([[412, 282], [382, 318], [398, 324], [358, 368], [374, 373], [334, 418]], [7, 6, 6, 5, 4, 0]);
+    var b1 = bolt([[112, -12], [80, 44], [102, 51], [56, 112], [80, 119], [26, 196]], [11, 10, 9.5, 8, 7, 0]) + bolt([[62, 104], [40, 128], [50, 132], [30, 160]], [4, 3.5, 3, 0]);
+    var b2 = bolt([[414, 278], [382, 318], [400, 325], [358, 370], [376, 376], [332, 424]], [10, 9, 8.5, 7, 6, 0]) + bolt([[352, -10], [334, 20], [348, 25], [326, 60]], [6, 5.5, 5, 0]);
     var b3 = bolt([[8, 92], [-4, 64], [6, 60], [-8, 30]], [3, 3, 2.5, 0]);
-    o += '<g class="kuk-flash"><path d="' + b1 + b2 + '" fill="#ffd36a" filter="' + url('glow') + '" opacity=".9"/>';
-    o += pth(b1 + b2 + b3, '#fbe7a0', sk(2.4)) + '</g>';
+    o += '<g class="kuk-flash"><path d="' + b1 + b2 + '" fill="#ffc94a" filter="' + url('glow') + '"/>';
+    o += pth(b1 + b2 + b3, '#ffe27a', sk(2.6)) + '</g>';
 
     /* ---------------- back mane ---------------- */
     var mane = [[175, 120], [160, 86, 0], [180, 104], [196, 66, 0], [207, 100], [224, 70, 0], [234, 104], [258, 82, 0], [252, 118],
@@ -240,7 +241,9 @@
     for (k = 0; k < 3; k++) { t = 334 + k * 13; o += pth(poly([[t - 4, 458], [t, 451], [t + 4, 458], [t, 465]]), C.gold, sk(1)); }
 
     /* ---------------- torso ---------------- */
-    o += pth(smooth([[172, 266], [140, 282], [112, 300], [100, 330], [106, 380], [124, 430], [138, 480], [144, 530], [266, 530], [272, 480], [286, 430], [302, 380], [310, 330], [300, 300], [272, 282], [238, 266]], true), C.skin, sk(3));
+    var torsoD = smooth([[172, 266], [140, 282], [112, 300], [100, 330], [106, 380], [124, 430], [138, 480], [144, 530], [266, 530], [272, 480], [286, 430], [302, 380], [310, 330], [300, 300], [272, 282], [238, 266]], true);
+    defs += '<clipPath id="' + id('tc') + '"><path d="' + torsoD + '"/></clipPath>';
+    o += pth(torsoD, C.skin, sk(3));
     o += pth(smooth([[272, 284], [300, 300], [310, 330], [302, 380], [286, 430], [272, 480], [266, 530], [252, 530], [262, 470], [276, 420], [288, 370], [292, 320]], true), C.skinS);
     o += pth(poly([[178, 236], [232, 236], [240, 280], [205, 292], [170, 280]]), C.skin);
     o += pth(smooth([[178, 256], [232, 256], [238, 276], [205, 288], [172, 276]], true), C.skinS);
@@ -276,6 +279,7 @@
     var ft = [];
     var sl = [[178, 268]].concat(jag([178, 268], [104, 262], 3, -7, 0.1, rnd, ft), jag([104, 262], [44, 324], 4, -13, 0.18, rnd, ft), jag([44, 328], [176, 300], 6, -14, 0.1, rnd, ft));
     var sr = [[232, 268]].concat(jag([232, 268], [306, 262], 3, 7, 0.1, rnd, ft), jag([306, 262], [366, 324], 4, 13, 0.18, rnd, ft), jag([366, 328], [234, 300], 6, 14, 0.1, rnd, ft));
+    o += '<g clip-path="' + url('tc') + '"><path d="' + smooth(sl, true) + smooth(sr, true) + '" transform="translate(5,11)" fill="' + C.skinD + '" opacity=".75"/></g>';
     o += pth(smooth(sl, true), C.fur, sk(2.8)) + pth(smooth(sr, true), C.fur, sk(2.8));
     tips = tips.concat(ft);
     var td = '';
@@ -331,8 +335,8 @@
     // dreadlocks between the horns
     var dreads = [[[184, 140, 7], [174, 112, 6], [164, 88, 4], [166, 70, 0.4]], [[200, 136, 7], [197, 104, 6], [190, 80, 4], [196, 60, 0.4]], [[214, 136, 7], [220, 104, 6], [228, 82, 4], [224, 62, 0.4]], [[228, 140, 7], [240, 114, 6], [252, 96, 4], [264, 88, 0.4]]];
     for (k = 0; k < dreads.length; k++) {
-      o += pth(rib(dreads[k], 4), '#150e20', sk(2.2));
-      o += pth(rib(dreads[k].map(function (p) { return [p[0] - 2, p[1], p[2] * 0.3]; }), 4), '#5a48a8', ' opacity=".8"');
+      o += pth(rib(dreads[k], 3), '#150e20', sk(2.2));
+      o += pth(rib(dreads[k].map(function (p) { return [p[0] - 2, p[1], p[2] * 0.3]; }), 3), '#5a48a8', ' opacity=".8"');
     }
     // face
     o += pth(smooth([[170, 142], [163, 165], [162, 192], [166, 218], [175, 240], [190, 256], [205, 262], [221, 256], [236, 240], [245, 218], [249, 192], [248, 165], [241, 142], [222, 133], [205, 131], [188, 133]], true), C.skin, sk(3));
@@ -342,7 +346,7 @@
     // kumadori (red kabuki make-up lines)
     var kum = [[[196, 186, 0.6], [182, 170, 2.4], [172, 156, 1.2], [174, 145, 0.2]], [[170, 200, 0.5], [164, 186, 1.9], [164, 168, 0.2]], [[173, 204, 0.5], [178, 214, 1.7], [176, 228, 0.2]],
       [[214, 186, 0.6], [230, 170, 2.4], [240, 156, 1.2], [238, 145, 0.2]], [[240, 200, 0.5], [246, 186, 1.9], [246, 168, 0.2]], [[237, 204, 0.5], [232, 214, 1.7], [234, 228, 0.2]]];
-    for (k = 0; k < kum.length; k++) o += pth(rib(kum[k], 3), C.verm);
+    for (k = 0; k < kum.length; k++) o += pth(rib(kum[k].map(function (p) { return [p[0], p[1], p[2] * 1.35]; }), 3), C.verm);
     // bangs
     o += pth(smooth([[172, 146], [186, 130], [205, 127], [224, 130], [240, 146], [230, 150, 0], [222, 140], [214, 156, 0], [206, 140], [197, 154, 0], [189, 140], [180, 152, 0]], true), '#140d1e', sk(2));
     // forehead furrows
@@ -388,9 +392,10 @@
       [[[258, 166, 0.3], [256, 154, 1.2], [252, 141, 0.3]], [[278, 160, 0.3], [276, 146, 1.1], [270, 132, 0.3]]]);
     o += '<path d="' + rib([[134, 128, 0.3], [118, 104, 1.6], [112, 76, 0.3]], 3) + rib([[278, 128, 0.3], [292, 104, 1.6], [298, 76, 0.3]], 3) + '" fill="#fff" filter="' + url('eg') + '" opacity=".8"/>';
     // mustache: long strands to the waist
-    o += pth(rib([[196, 232, 1.2], [184, 235, 2.8], [172, 243, 3], [166, 264, 2.6], [163, 300, 2.3], [156, 350, 1.9], [150, 410, 1.5], [142, 470, 0.4]], 4), '#140d1e');
-    o += pth(rib([[214, 232, 1.2], [226, 235, 2.8], [238, 243, 3], [244, 264, 2.6], [248, 300, 2.3], [258, 350, 1.9], [268, 410, 1.5], [282, 470, 0.4]], 4), '#140d1e');
+    o += pth(rib([[196, 232, 1.2], [184, 235, 2.8], [172, 243, 3], [166, 264, 2.6], [163, 300, 2.3], [156, 350, 1.9], [150, 410, 1.5], [142, 470, 0.4]], 3), '#140d1e');
+    o += pth(rib([[214, 232, 1.2], [226, 235, 2.8], [238, 243, 3], [244, 264, 2.6], [248, 300, 2.3], [258, 350, 1.9], [268, 410, 1.5], [282, 470, 0.4]], 3), '#140d1e');
 
+    o += '<rect x="-20" y="330" width="440" height="250" fill="' + url('low') + '"/>';
     /* ---------------- great waves with claw foam ---------------- */
     function wave(body, crest, inner, dir) {
       var s = pth(smooth(body, true), url('wv'), sk(3));
@@ -428,7 +433,7 @@
     '.kaido-ukiyoe .kuk-eye{animation:kukEye 3.2s ease-in-out infinite alternate}' +
     '@keyframes kukDrift{from{transform:translateX(-7px)}to{transform:translateX(9px)}}' +
     '@keyframes kukDrift2{from{transform:translateX(8px)}to{transform:translateX(-8px)}}' +
-    '@keyframes kukFlash{0%,62%,100%{opacity:.55}64%{opacity:1}66%{opacity:.25}68%{opacity:1}74%{opacity:.75}}' +
+    '@keyframes kukFlash{0%,60%,100%{opacity:.8}62%{opacity:1}64%{opacity:.2}66%{opacity:1}70%{opacity:.35}73%{opacity:1}}' +
     '@keyframes kukEye{from{opacity:.55}to{opacity:1}}}';
 
   A.kaidoVariants['ukiyoe'] = {

@@ -29,7 +29,8 @@
     if (!old) f.round = C.nextRound(U.book, f.mem, evId);
     var faced = facedLeaders(evId);
 
-    var html = U.head(old ? 'Editar ronda' : 'Registrar ronda', '<span class="small muted ellip" style="max-width:34%">' + esc(ev ? ev.name : '') + '</span>') +
+    // the event goes under the title: "Registrar ronda" next to "Regional de Bristol" does not fit on a phone
+    var html = U.head((old ? 'Editar ronda' : 'Registrar ronda') + '<span class="ellip" style="display:block;margin-top:4px;font:600 13px var(--body);letter-spacing:0;text-transform:none;color:var(--muted)">' + esc(ev ? ev.name : '') + '</span>') +
       '<div class="field"><span class="lab">¿Quién ha jugado?</span><div class="chips" id="lg-mem"></div></div>' +
       '<div class="field"><span class="lab">Ronda</span><div id="lg-round"></div></div>' +
       '<div class="field"><span class="lab">Contra</span><div id="lg-kind" style="margin-bottom:12px"></div>' +
@@ -43,7 +44,7 @@
       '</div>' +
       '<div class="field"><span class="lab">Resultado</span><div class="result-btns" id="lg-res"></div></div>' +
       '<div class="field"><span class="lab">Turno</span><div id="lg-first"></div></div>' +
-      '<details class="more"' + (old && (old.bo === 3 || old.mvp || old.notes || old.oppName || old.opp.set) ? ' open' : '') + '><summary>Más: nombre del rival, Bo3, carta MVP, notas</summary>' +
+      '<details class="more"' + (old && (old.bo === 3 || old.mvp || old.notes || old.oppName || old.opp.set) ? ' open' : '') + '><summary>Más: rival, Bo3, carta MVP, notas</summary>' +
         '<div class="row"><div class="field grow"><label for="lg-oppname">Nombre del rival</label><input class="inp" id="lg-oppname" maxlength="30" value="' + esc(old ? old.oppName : '') + '" placeholder="Opcional"></div>' +
         '<div class="field" style="width:30%"><label for="lg-set">Set</label><input class="inp" id="lg-set" maxlength="12" value="' + esc(old && !old.oppMem ? old.opp.set : '') + '" placeholder="OP17"></div></div>' +
         '<div class="field"><span class="lab">Formato</span><div id="lg-bo"></div></div>' +
