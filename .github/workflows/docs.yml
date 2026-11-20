@@ -61,6 +61,12 @@ jobs:
           cp -r bloomdoku site/bloomdoku
           rm -rf site/bloomdoku/tests site/bloomdoku/tools
 
+      - name: Add the Kaidoneta app (served at /kaidoneta/, without its tests and tools)
+        run: |
+          node kaidoneta/tests/unit.js
+          cp -r kaidoneta site/kaidoneta
+          rm -rf site/kaidoneta/tests site/kaidoneta/tools
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3

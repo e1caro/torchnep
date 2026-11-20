@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#12081f">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Kaidoneta: the crew's One Piece Card Game tracker for the Bristol Regional. Log rounds, bounties, rankings and the meta. Works offline.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Kaidoneta">
+  <title>Kaidoneta</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="stars" aria-hidden="true"></div>
+  <div id="app">
+    <header class="top" id="top"></header>
+    <main id="view" tabindex="-1"></main>
+    <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  </div>
+  <div id="sheets"></div>
+  <div id="moment" class="moment" aria-live="polite"></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
+
+  <script src="js/core.js"></script>
+  <script src="js/art.js"></script>
+  <script src="js/art-kaido.js"></script>
+  <script src="js/art-dragon.js"></script>
+  <script src="js/cloud.js"></script>
+  <script src="js/fx.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/log.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/tools.js"></script>
+  <script src="js/crew.js"></script>
+  <script>K.ui.boot();</script>
+</body>
+</html>
