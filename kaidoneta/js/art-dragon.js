@@ -103,8 +103,8 @@
     [172, 46, 19, .16, 28], [248, 48, 20, 0, 28], [312, 70, 22, 0, 26], [350, 114, 25, 0, 22], [358, 170, 27, 0, 17], [338, 226, 27, .04, 12], [285, 260, 26, .2, 8]];
   // The neck, from its base behind the lower coil up behind the head: [x, y, half width].
   var NECK = [[244, 278, 34], [246, 236, 33], [238, 190, 31], [224, 144, 28], [206, 106, 24], [190, 80, 20]];
-  var ARM_R = [[252, 182, 17], [288, 178, 16.5], [318, 192, 15], [328, 218, 13], [322, 244, 12]];
-  var ARM_L = [[238, 226, 15], [210, 230, 14.5], [184, 232, 13.5], [162, 234, 12.5], [146, 240, 12]];
+  var ARM_R = [[252, 176, 17], [290, 170, 16.5], [322, 182, 15], [336, 208, 13.5], [333, 234, 12.5], [327, 250, 12]];
+  var ARM_L = [[238, 212, 15], [212, 218, 14.5], [188, 224, 13.5], [166, 232, 12.5], [150, 242, 12]];
   var TAIL = [[214, 280, 14, .4], [231, 298, 12.5, .4], [226, 320, 11, .4], [205, 331, 9.5, .4], [189, 345, 8, .4], [190, 362, 6.5, .4], [202, 373, 5, .4], [210, 381, 3.6, .4]];
   var HEAD = [165, 112];
   var FLAME = {
@@ -113,14 +113,14 @@
     C: 'M0,4C-13,4-18,-8-13,-22C-9,-34-17,-48-8,-74C-3,-58 8,-50 9,-36C10,-28 15,-22 13,-10C11,0 6,4 0,4Z',
   };
   // Flames: [x, y, rotation, scale, shape, mirrored, drawn in front of the body]
-  var FLAMES = [[100, 74, -20, .44, 'A', 0, 1], [84, 46, -30, .32, 'C', 0, 0], [114, 106, -8, .3, 'B', 1, 1],
-    [40, 150, -40, .4, 'A', 1, 1], [28, 192, -62, .32, 'C', 1, 0], [50, 216, -30, .3, 'B', 0, 1],
-    [76, 258, -18, .38, 'A', 0, 1], [104, 288, -8, .26, 'C', 1, 0],
-    [184, 214, 6, .4, 'A', 0, 1], [196, 236, 16, .26, 'C', 0, 1],
-    [268, 186, -2, .62, 'A', 0, 1], [294, 176, 18, .5, 'B', 0, 1], [320, 192, 30, .36, 'C', 0, 1],
-    [374, 128, 40, .38, 'A', 1, 0], [378, 202, 64, .32, 'B', 1, 0], [352, 244, 30, .32, 'C', 0, 1],
-    [298, 50, 10, .34, 'A', 0, 0], [256, 36, -6, .26, 'C', 1, 0], [338, 76, 26, .32, 'B', 0, 1],
-    [262, 278, 4, .32, 'B', 1, 1], [150, 288, -6, .3, 'A', 0, 1], [238, 338, 22, .26, 'C', 0, 1], [176, 322, -22, .24, 'B', 1, 1]];
+  var FLAMES = [
+    // behind the coils, licking out past their outer edge
+    [80, 62, -38, .46, 'A', 0, 0], [34, 128, -62, .42, 'B', 1, 0], [34, 206, -78, .38, 'C', 1, 0], [216, 30, -4, .3, 'C', 0, 0],
+    [320, 44, 22, .44, 'A', 0, 0], [372, 116, 50, .42, 'B', 0, 0], [380, 196, 70, .36, 'C', 0, 0], [118, 278, -14, .32, 'B', 1, 0],
+    // over the body
+    [104, 84, -14, .4, 'A', 0, 1], [56, 178, -24, .34, 'B', 1, 1], [90, 270, -8, .36, 'A', 0, 1], [356, 214, 24, .34, 'C', 0, 1],
+    [264, 286, 6, .3, 'B', 1, 1], [270, 176, -2, .62, 'A', 0, 1], [296, 168, 18, .48, 'B', 0, 1], [326, 184, 32, .34, 'C', 0, 1],
+    [186, 236, 8, .3, 'C', 0, 1], [224, 318, 18, .24, 'C', 0, 1], [194, 346, -20, .2, 'B', 1, 1]];
 
   /* ---------- parts ---------- */
   // The roaring head in its own coordinates: (0,0) between the eyes, about 84 wide.
@@ -184,10 +184,12 @@
       '<path d="' + d + '" fill="' + url('lb') + '" stroke="#0b0820" stroke-width="1"/>' +
       '<path d="' + knuck + '" stroke="#a8b4ff" stroke-width=".8" opacity=".6"/>' +
       '<path d="' + claws + '" fill="#fbf8ff" stroke="#5d5a78" stroke-width=".6"/>' +
-      '<path d="M-16,-19L-29,-15.5L-16,-12ZM16,-19L29,-15.5L16,-12Z" fill="' + url('sv') + '" stroke="#3a3d4a" stroke-width=".7"/>' +
-      '<path d="M-16,-21L16,-21Q20,-15.5 16,-10L-16,-10Q-20,-15.5-16,-21Z" fill="#0d0a14" stroke="#6a6480" stroke-width="1"/>' +
-      '<path d="M-10,-18.5L-7,-26L-4,-18.5ZM-1.5,-18.5L1.5,-27L4.5,-18.5ZM7,-18.5L10,-25L13,-18.5Z" fill="' + url('sv') + '" stroke="#3a3d4a" stroke-width=".6"/>' +
-      '<path d="M-14,-13H14" stroke="#4a4560" stroke-width="1"/>';
+      // the bracelet: a black ring round the wrist, seen a little from above, spikes all round it
+      '<path d="M-12,-23L-10,-31L-6,-24ZM-3,-25L0,-34L3,-25ZM6,-24L10,-31L12,-23Z" fill="' + url('sv') + '" stroke="#2a2c38" stroke-width=".6"/>' +
+      '<path d="M-15,-21L-30,-19L-16,-13ZM15,-21L30,-19L16,-13Z" fill="' + url('sv') + '" stroke="#2a2c38" stroke-width=".7"/>' +
+      '<path d="M-16,-23Q0,-18 16,-23L16,-12Q0,-6-16,-12Z" fill="#0d0a14" stroke="#6a6480" stroke-width="1"/>' +
+      '<path d="M-14,-19.5Q0,-14.5 14,-19.5" stroke="#4a4560" stroke-width="1.2" fill="none"/>' +
+      '<path d="M-13,-11L-11,-1L-7,-9ZM-4,-8L0,3L4,-8ZM7,-9L11,-1L13,-11Z" fill="' + url('sv') + '" stroke="#2a2c38" stroke-width=".6"/>';
   }
   function skull(x, y, s) {
     return '<g transform="translate(' + x + ' ' + y + ') scale(' + s + ')">' +
@@ -221,18 +223,21 @@
 
     Q = 1;
     var ring = spine(RING, 7, true), neck = spine(NECK, 9, false), armR = spine(ARM_R, 6, false), armL = spine(ARM_L, 6, false), tail = spine(TAIL, 6, false);
-    var front = ring.slice(78).concat(ring.slice(0, 10));
+    var front = ring.slice(81).concat(ring.slice(0, 3)); // the stretch of the lower coil in front of the neck
     var gRing = geo('rb', band(ring, -1, 1, true), true), gFront = geo('fb', band(front, -1, 1)), gNeck = geo('nb', band(neck, -1, 1));
     var gArmR = geo('ar', band(armR, -1, 1)), gArmL = geo('al', band(armL, -1, 1)), gTail = geo('tb', band(tail, -1, 1));
     var gTat = geo('tp', band(armR.slice(3, 16), -0.85, 0.85));
-    var crestBack = tufts(ring, -1, 3, function (s) { return s.v[4] * 1.3; }, -0.55, 3), crestFront = tufts(ring, -1, 3, function (s) { return s.v[4]; }, -0.6, 5);
-    var neckCrest = tufts(neck, 1, 3, 18, 0.35, 8, 4, 44);
-    var maneBack = fan(HEAD[0], HEAD[1] - 10, 30, -216, 36, 22, function (a, r) { var up = Math.max(0, -Math.sin(a * Math.PI / 180)); return 46 + up * 62 + r * 26; }, 8, function (a) { return a < -90 ? -16 : 16; }, 9);
-    var maneFront = fan(HEAD[0], HEAD[1] - 10, 30, -210, 30, 20, function (a, r) { var up = Math.max(0, -Math.sin(a * Math.PI / 180)); return 36 + up * 50 + r * 24; }, 7, function (a) { return a < -90 ? -14 : 14; }, 13);
-    var maneHi = fan(HEAD[0], HEAD[1] - 10, 14, -205, 25, 30, function (a, r) { var up = Math.max(0, -Math.sin(a * Math.PI / 180)); return 22 + up * 40 + r * 16; }, 1.6, function (a) { return a < -90 ? -12 : 12; }, 17);
-    var beardD = fan(HEAD[0], HEAD[1] + 70, 11, 42, 138, 6, function (a, r) { return 18 + r * 12 + (1 - Math.abs(a - 90) / 48) * 12; }, 9, function (a) { return a < 90 ? 8 : -8; }, 4);
+    var crest = tufts(ring, -1, 2, function (s) { return s.v[4] * 1.15; }, -0.55, 3);
+    var neckCrest = tufts(neck, 1, 3, function (s) { return 14 + Math.max(0, s.i - 22) * 1.6; }, 0.5, 8, 4, 46);
+    var up = function (a) { return Math.max(0, -Math.sin(a * Math.PI / 180)); };
+    var mx = HEAD[0], my = HEAD[1] - 12;
+    var ur = function (a) { return a > -70 && a < 10 ? 1 : 0; }; // the upper right, where the mane streams off along the coil
+    var maneCore = fan(mx, my, 16, -220, 40, 10, function (a, r) { return 46 + up(a) * 16 + r * 8; }, 13, 6, 2);
+    var mane = fan(mx, my, 30, -218, 38, 30, function (a, r) { return 34 + up(a) * 62 + ur(a) * 22 + r * 28; }, 10, function (a) { return a < -90 ? -18 : 18 + ur(a) * 10; }, 13);
+    var maneHi = fan(mx, my, 11, -205, 25, 40, function (a, r) { return 18 + up(a) * 40 + ur(a) * 12 + r * 14; }, 1.8, function (a) { return a < -90 ? -14 : 14; }, 17);
+    var beardD = fan(HEAD[0], HEAD[1] + 64, 11, 40, 140, 6, function (a, r) { return 12 + r * 8 + (1 - Math.abs(a - 90) / 50) * 10; }, 9, function (a) { return a < 90 ? 10 : -10; }, 4);
     var tip = tail[tail.length - 1], tipA = Math.atan2(tip.ty, tip.tx) * 180 / Math.PI;
-    var tuft = fan(tip.x, tip.y, 9, tipA - 80, tipA + 80, 1, function (a, r) { return 13 + r * 10; }, 10, function (a) { return a < tipA ? -10 : 10; }, 21);
+    var tuft = fan(tip.x - tip.tx * 3, tip.y - tip.ty * 3, 11, tipA - 75, tipA + 75, 2, function (a, r) { return 18 + r * 12 - Math.abs(a - tipA) / 12; }, 9, function (a) { return a < tipA ? -12 : 12; }, 21);
     Q = 10;
 
     defs += '<radialGradient id="' + id('rg') + '" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(204 160) scale(178 130)">' +
@@ -271,6 +276,8 @@
     function tube(ref, fill, shade) {
       return use(ref, 'fill="' + fill + '"') + use(ref, 'fill="' + url('sc') + '" opacity=".85"') + (shade ? use(ref, 'fill="' + shade + '"') : '');
     }
+    // black hair with a violet rim round its outline only: the path stroked wide, then filled black over the stroke
+    function rimmed(name, d, w) { var g = geo(name, d); return use(g, 'fill="#3f356a" stroke="#4a3f78" stroke-width="' + w + '" stroke-linejoin="round"') + use(g, 'fill="#0d0a14"'); }
     function edges(S, closed, w) { Q = 1; var d = line(S, -1, closed) + line(S, 1, closed); Q = 10; return '<path d="' + d + '" stroke="#0b0820" stroke-width="' + (w || 1.3) + '" fill="none"/>'; }
     function ringDetail(S, closed) {
       Q = 1;
@@ -284,14 +291,14 @@
     out += '<ellipse cx="200" cy="196" rx="200" ry="200" fill="' + url('au') + '" opacity=".6"/>';
     out += flames(false);
     // the crest along the spine, then the ring
-    out += '<g class="dg-crest"><path d="' + crestBack + '" fill="#3a3060"/><path d="' + crestFront + '" fill="#0d0a14"/></g>';
+    out += rimmed('cr', crest, 2.6);
     out += tube(gRing, url('rg'), url('rs')) + ringDetail(ring, true);
     // left forelimb (its shoulder behind the neck), hand and bracelet
     var wl = armL[armL.length - 1], al = Math.atan2(wl.ty, wl.tx) * 180 / Math.PI - 90;
     out += tube(gArmL, url('lb'), url('ls')) + edges(armL);
     out += '<g transform="translate(' + f(wl.x + wl.tx * 4) + ' ' + f(wl.y + wl.ty * 4) + ') rotate(' + f(al + 10) + ') scale(1.25)">' + hand(url) + '</g>';
     // neck: crest, scaly back, ribbed belly, the X scar
-    out += '<path d="' + neckCrest + '" fill="#0d0a14" stroke="#3a3060" stroke-width="1"/>';
+    out += rimmed('nc', neckCrest, 2.4);
     out += tube(gNeck, '#3b2a9c', null);
     Q = 1;
     out += '<path d="' + band(neck, -1, 0.55) + '" fill="' + url('nk') + '"/>' +
@@ -305,9 +312,9 @@
     // right forelimb: tattoo, skull
     out += tube(gArmR, url('lb'), url('ls'));
     out += use(gTat, 'fill="#d2401a"') + use(gTat, 'fill="' + url('tt') + '"') + edges(armR);
-    out += skull(322, 206, 1);
+    out += skull(343, 200, 1.05);
     // tail with its tuft, then the front of the lower coil over the neck's base and the tail's root
-    out += '<path d="' + tuft + '" fill="#0d0a14" stroke="#4a3f78" stroke-width="1"/>';
+    out += rimmed('tf', tuft, 2.4);
     Q = 1;
     out += tube(gTail, url('lb'), url('ls')) + '<path d="' + band(tail, function (s) { return 1 - 2 * s.v[3]; }, 1) + '" fill="' + url('bl') + '"/>' +
       '<path d="' + ribs(tail, function (s) { return 1 - 2 * s.v[3]; }, 1, 2, 1) + '" stroke="#6b4f2a" stroke-width=".9" fill="none"/>';
@@ -318,10 +325,10 @@
     out += '<g transform="translate(' + f(wr.x + wr.tx * 4) + ' ' + f(wr.y + wr.ty * 4) + ') rotate(' + f(ar) + ') scale(1.25)">' + hand(url) + '</g>';
     // the mane behind the head, the head, the beard
     out += '<ellipse cx="' + HEAD[0] + '" cy="' + (HEAD[1] - 20) + '" rx="120" ry="110" fill="' + url('au') + '"/>';
-    out += '<g class="dg-mane"><path d="' + maneBack + '" fill="#3a3060"/><path d="' + maneFront + '" fill="#0d0a14"/>' +
-      '<path d="' + maneHi + '" fill="#7d72a8" opacity=".75"/></g>';
+    out += '<g class="dg-mane">' + rimmed('mn', maneCore + mane, 3) +
+      '<path d="' + maneHi + '" fill="#8a80b8" opacity=".55"/></g>';
     out += '<g transform="translate(' + HEAD[0] + ' ' + HEAD[1] + ')"><g class="dg-head">' + head(url) + '</g></g>';
-    out += '<path d="' + beardD + '" fill="#0d0a14" stroke="#4a3f78" stroke-width="1"/>';
+    out += rimmed('bd', beardD, 2.4);
     out += flames(true);
     injectStyle();
     return '<svg xmlns="http://www.w3.org/2000/svg" class="dragon ' + (cls || '') + '" viewBox="0 0 400 400" role="img" aria-label="Kaido\'s dragon form">' +
@@ -336,7 +343,6 @@
       '.dragon .dg-fl{transform-box:fill-box;transform-origin:50% 100%;animation:dgFlick 1.3s ease-in-out infinite alternate}' +
       '.dragon .dg-fl.f1{animation-duration:1.7s;animation-delay:-.6s}.dragon .dg-fl.f2{animation-duration:1.1s;animation-delay:-.3s}' +
       '.dragon .dg-mane{transform-box:fill-box;transform-origin:50% 80%;animation:dgSway 5s ease-in-out infinite alternate}' +
-      '.dragon .dg-crest{transform-box:fill-box;transform-origin:50% 50%;animation:dgSway 7s ease-in-out infinite alternate-reverse}' +
       '.dragon .dg-eye{animation:dgGlow 2.2s ease-in-out infinite alternate}' +
       '.dragon .dg-head{transform-box:fill-box;transform-origin:50% 75%;animation:dgBreath 4.6s ease-in-out infinite}' +
     '}';

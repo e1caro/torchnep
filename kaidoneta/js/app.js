@@ -229,17 +229,16 @@
     } else {
       meBox = '<div class="hero-me"><div style="font-size:30px">🏴‍☠️</div><div class="who"><div class="name">Who are you?</div><div class="muted small">Pick your pirate so the app knows this phone is yours.</div></div><button class="btn primary block" data-act="who">Choose my pirate</button></div>';
     }
-    var html = '<section class="hero' + (U.local.hero === 'photo' && U.heroPhoto ? ' photo' : '') + '">' +
+    var html = '<section class="hero-title">' +
+        '<button class="kicker" data-act="events">¡Vamos Kaidoneta! · ' + esc(U.dateLabel(ev.date)) + ' ▾</button>' +
+        '<div class="row" style="align-items:flex-end;gap:10px"><h1 class="grow">' + esc(ev.name) + '</h1><span class="count">' + countdown(ev) + '</span></div>' +
+      '</section>' +
+      '<section class="hero' + (U.local.hero === 'photo' && U.heroPhoto ? ' photo' : '') + '">' +
+      A.balloon('#f472b6', '#fde68a', 'b1') + A.balloon('#a78bfa', '#fff', 'b2') + A.balloon('#fbbf24', '#7c3aed', 'b3') +
       heroArt() +
       '<div class="hero-skyline">' + A.skyline() + '</div>' +
-      A.balloon('#f472b6', '#fde68a', 'b1') + A.balloon('#a78bfa', '#fff', 'b2') + A.balloon('#fbbf24', '#7c3aed', 'b3') +
       '<div class="hero-shade"></div>' +
-      '<div class="hero-text">' +
-        '<button class="kicker" data-act="events">¡Vamos Kaidoneta! · ' + esc(U.dateLabel(ev.date)) + ' ▾</button>' +
-        '<h1>' + esc(ev.name) + '</h1>' +
-        '<span class="count">' + countdown(ev) + '</span>' +
-      '</div>' + meBox +
-    '</section>';
+    '</section><div class="hero-me-wrap">' + meBox + '</div>';
 
     html += '<div class="page" style="padding-top:4px">';
     html += '<div class="tools">' +
