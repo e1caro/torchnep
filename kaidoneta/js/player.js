@@ -93,7 +93,7 @@
     return weight + ' ' + size + 'px ' + family;
   }
   var DISPLAY = '"Avenir Next Condensed", "Futura", Impact, "Roboto Condensed", "Arial Narrow", sans-serif';
-  var SERIF = 'Rockwell, Georgia, "Noto Serif", serif';
+  var SERIF = '"Kaido Poster", Georgia, "Noto Serif", serif'; // the wanted-poster serif (fonts/playfair-900.woff2)
 
   U.posterImage = function (id) {
     var m = U.member(id), ev = U.ev(), all = U.local.scope === 'all';
@@ -111,7 +111,8 @@
     glow.addColorStop(0, 'rgba(168,85,247,.55)'); glow.addColorStop(1, 'rgba(168,85,247,0)');
     g.fillStyle = glow; g.fillRect(0, 0, W, H);
     var kid = U.kaidoId(), art = svgImage(kid ? U.kaidoArt({ still: true }) : A.dragon());
-    return Promise.all([art, svgImage(A.horns()), picImage('icons/badge.jpg')]).then(function (imgs) {
+    var font = root.document.fonts && root.document.fonts.load ? root.document.fonts.load('900 100px "Kaido Poster"').then(null, function () {}) : null;
+    return Promise.all([art, svgImage(A.horns()), picImage('icons/badge.jpg'), font]).then(function (imgs) {
       if (imgs[0]) {
         // the picture fills the right side, cropped like "cover", fading into the purple on the left
         var im = imgs[0], bw = 640, bh = 980, bx = 460, by = 80, iw = im.naturalWidth || im.width || bw, ih = im.naturalHeight || im.height || bh;
@@ -148,9 +149,9 @@
       center(g, m.emoji, 400, 600, '230px "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", sans-serif', '#000');
       center(g, 'VIVO O MUERTO', 400, 745, fit(g, 'VIVO O MUERTO', '900', 40, SERIF, 560, 24, 10), '#2a1206', 10);
       var name = m.name.toUpperCase(), size = 104;
-      g.font = '900 ' + size + 'px ' + DISPLAY;
-      while (g.measureText(name).width > 560 && size > 50) { size -= 4; g.font = '900 ' + size + 'px ' + DISPLAY; }
-      center(g, name, 400, 850, '900 ' + size + 'px ' + DISPLAY, '#2a1206', 2);
+      g.font = '900 ' + size + 'px ' + SERIF;
+      while (g.measureText(name).width > 560 && size > 50) { size -= 4; g.font = '900 ' + size + 'px ' + SERIF; }
+      center(g, name, 400, 850, '900 ' + size + 'px ' + SERIF, '#2a1206', 2);
       center(g, '฿ ' + U.berries(row.bounty) + '-', 400, 945, '900 66px ' + SERIF, '#2a1206');
       var line = U.recText(row.rec) + '  ·  ' + row.rec.pts + ' pts  ·  #' + row.pos + ' de la tripulación';
       center(g, line, 400, 1012, fit(g, line, '800', 34, DISPLAY, 560, 22), '#5b2a1a');
