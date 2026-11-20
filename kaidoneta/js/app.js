@@ -16,7 +16,7 @@
   U.local = Object.assign({ me: '', ev: C.BRISTOL.id, sound: true, buzz: true, scope: 'event', kit: {}, timer: { mins: 0, end: 0, left: 0 }, welcomed: false }, read(LOCAL_KEY) || {});
   // After every change to the crew's data: keep it, sync it, show it.
   U.save = function () {
-    if (!write(BOOK_KEY, U.book)) X.toast('This phone could not save. Free some space or leave private browsing.', 'bad');
+    if (!write(BOOK_KEY, U.book)) X.toast('Este móvil no ha podido guardar. Libera espacio o sal del modo incógnito.', 'bad');
     cloud.touch();
     U.render();
   };
@@ -41,30 +41,32 @@
   };
   U.lchip = function (l) {
     l = l || {};
-    return '<span class="lchip">' + U.dots(l.colors) + '<span class="ellip">' + esc(l.name || 'Unknown leader') + '</span>' + (l.set ? '<span class="set">' + esc(l.set) + '</span>' : '') + '</span>';
+    return '<span class="lchip">' + U.dots(l.colors) + '<span class="ellip">' + esc(l.name || 'Líder desconocido') + '</span>' + (l.set ? '<span class="set">' + esc(l.set) + '</span>' : '') + '</span>';
   };
   U.leaderText = function (l) {
     l = l || {};
     var cols = (l.colors || []).map(function (c) { var x = U.color(c); return x ? x.name : ''; }).join('/');
-    return (l.name || 'Unknown') + (cols ? ' (' + cols + ')' : '');
+    return (l.name || 'Desconocido') + (cols ? ' (' + cols + ')' : '');
   };
   U.roundLabel = function (m) { return m.top ? m.top : m.round ? 'R' + m.round : '—'; };
   U.ago = function (t) {
     var s = Math.max(0, (Date.now() - t) / 1000);
-    if (s < 60) return 'just now';
-    if (s < 3600) return Math.floor(s / 60) + ' min ago';
-    if (s < 86400) return Math.floor(s / 3600) + ' h ago';
-    return new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    if (s < 60) return 'ahora mismo';
+    if (s < 3600) return 'hace ' + Math.floor(s / 60) + ' min';
+    if (s < 86400) return 'hace ' + Math.floor(s / 3600) + ' h';
+    return new Date(t).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
   };
   U.dateLabel = function (d) {
-    try { return new Date(d + 'T12:00:00').toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return d; }
+    try { return new Date(d + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' }); } catch (e) { return d; }
   };
   U.today = function () { var n = new Date(); return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0'); };
   U.daysTo = function (d) { return Math.round((new Date(d + 'T12:00:00') - new Date(U.today() + 'T12:00:00')) / 86400000); };
   U.berries = function (n) { return C.berries(n); };
-  U.short = function (n) { return n >= 1e9 ? (n / 1e9).toFixed(2).replace(/\.?0+$/, '') + 'B' : n >= 1e6 ? Math.round(n / 1e6) + 'M' : C.berries(n); };
+  U.short = function (n) { return n >= 1e9 ? (n / 1e9).toFixed(2).replace(/\.?0+$/, '').replace('.', ',') + ' mil M' : n >= 1e6 ? Math.round(n / 1e6) + 'M' : C.berries(n); };
   U.pct = function (x) { return Math.round(x * 100) + '%'; };
   U.recText = function (r) { return r.w + '-' + r.l + (r.d ? '-' + r.d : ''); };
+  // The letter shown for a result (the stored value stays W/L/D): V(ictoria), D(errota), E(mpate).
+  U.resLetter = function (res) { return { W: 'V', L: 'D', D: 'E' }[res] || res; };
   U.move = function (n) { return n > 0 ? '<span class="move up">▲' + n + '</span>' : n < 0 ? '<span class="move down">▼' + (-n) + '</span>' : ''; };
 
   /* ---------- sheets (bottom panels); the phone's back button closes them ---------- */
@@ -109,10 +111,10 @@
   U.topSheet = function () { var t = stack[stack.length - 1]; return t ? t.wrap.querySelector('.sheet') : null; };
   root.addEventListener('popstate', function () { if (skip) { skip--; return; } drop(); });
   U.head = function (title, extra) {
-    return '<div class="sheet-head"><h3>' + title + '</h3>' + (extra || '') + '<button class="x" data-act="close" aria-label="Close">✕</button></div>';
+    return '<div class="sheet-head"><h3>' + title + '</h3>' + (extra || '') + '<button class="x" data-act="close" aria-label="Cerrar">✕</button></div>';
   };
   U.confirm = function (title, text, yes, fn, danger) {
-    var sh = U.sheet(U.head(esc(title)) + '<p class="muted">' + text + '</p><div class="row" style="margin-top:16px"><button class="btn grow" data-act="close">Cancel</button><button class="btn grow ' + (danger ? 'danger' : 'primary') + '" data-ok>' + esc(yes) + '</button></div>');
+    var sh = U.sheet(U.head(esc(title)) + '<p class="muted">' + text + '</p><div class="row" style="margin-top:16px"><button class="btn grow" data-act="close">Cancelar</button><button class="btn grow ' + (danger ? 'danger' : 'primary') + '" data-ok>' + esc(yes) + '</button></div>');
     sh.querySelector('[data-ok]').onclick = function () { U.close(); fn(); };
   };
 
@@ -145,11 +147,11 @@
 
   /* ---------- tabs ---------- */
   var TABS = [
-    { id: 'home', icon: '🏯', label: 'HQ' },
-    { id: 'board', icon: '💰', label: 'Bounties' },
-    { id: 'log', label: 'Log' },
-    { id: 'meta', icon: '📊', label: 'Meta' },
-    { id: 'crew', icon: '🏴‍☠️', label: 'Crew' },
+    { id: 'home', icon: '🏯', label: 'Cuartel' },
+    { id: 'board', icon: '💰', label: 'Recompensas' },
+    { id: 'log', label: 'Registrar ronda' },
+    { id: 'meta', icon: '📊', label: 'El meta' },
+    { id: 'crew', icon: '🏴‍☠️', label: 'Tripulación' },
   ];
   U.tab = (function () { var h = (root.location.hash.match(/^#\/(\w+)/) || [])[1]; return ['home', 'board', 'meta', 'crew'].indexOf(h) >= 0 ? h : 'home'; })();
   U.go = function (tab) {
@@ -162,7 +164,7 @@
   function tabs() {
     return TABS.map(function (t) {
       if (t.id === 'log') {
-        return '<button class="tab tab-log" data-act="tab" data-tab="log" aria-label="Log a round"><span class="fab">' + A.bolt() + '</span></button>';
+        return '<button class="tab tab-log" data-act="tab" data-tab="log" aria-label="Registrar ronda"><span class="fab">' + A.bolt() + '</span></button>';
       }
       return '<button class="tab' + (U.tab === t.id ? ' on' : '') + '" data-act="tab" data-tab="' + t.id + '" aria-label="' + t.label + '"' + (U.tab === t.id ? ' aria-current="page"' : '') + '><span class="t-ico" aria-hidden="true">' + t.icon + '</span></button>';
     }).join('');
@@ -185,8 +187,8 @@
     var timer = t !== null ? '<button class="chip-btn timer-pill' + (t < 5 * 60000 ? ' warn' : '') + '" data-act="timer" id="timer-pill">⏱ <span>' + U.fmtTime(t) + '</span>' + (running ? '' : ' ⏸') + '</button>' : '';
     var st = cloud.signedIn() ? (cloud.lastError() ? 'err' : 'ok') : '';
     var sync = cloud.signedIn()
-      ? '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Crew sync"><span class="sync-dot ' + st + '" id="sync-dot"></span>' + esc(cloud.crew()) + '</button>'
-      : '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Not synced: this phone only"><span class="sync-dot"></span>Solo</button>';
+      ? '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Sincronización de la tripulación"><span class="sync-dot ' + st + '" id="sync-dot"></span>' + esc(cloud.crew()) + '</button>'
+      : '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Sin sincronizar: solo en este móvil"><span class="sync-dot"></span>Solo</button>';
     return '<div class="brand">' + A.crest('', false) + '<b>Kaidoneta</b></div>' + timer + sync;
   }
   U.updateHeader = function () { var h = $('#top'); if (h && !h.hidden) { h.innerHTML = header(); h.classList.toggle('timing', U.timerLeft() !== null && root.innerWidth < 420); } };
@@ -214,10 +216,10 @@
   }
   function countdown(ev) {
     var d = U.daysTo(ev.date);
-    if (d > 1) return '⏳ In ' + d + ' days';
-    if (d === 1) return '🔥 Tomorrow!';
-    if (d === 0) return '⚔️ Today · ¡Vamos!';
-    return '🏁 Done';
+    if (d > 1) return '⏳ Faltan ' + d + ' días';
+    if (d === 1) return '🔥 ¡Mañana!';
+    if (d === 0) return '⚔️ ¡Hoy! ¡Vamos!';
+    return '🏁 Terminado';
   }
   function home() {
     var ev = U.ev(), me = U.me(), book = U.book, members = C.members(book);
@@ -225,13 +227,13 @@
     if (me) {
       var games = C.games(book, me.id, ev.id), rec = C.record(games), b = C.bounty(games), rk = C.rankOf(b).rank, next = C.nextRound(book, me.id, ev.id);
       meBox = '<div class="hero-me">' +
-        '<button data-act="player" data-id="' + me.id + '" aria-label="My stats">' + U.av(me, 'lg') + '</button>' +
+        '<button data-act="player" data-id="' + me.id + '" aria-label="Mis estadísticas">' + U.av(me, 'lg') + '</button>' +
         '<div class="who"><div class="row" style="gap:8px"><span class="name ellip">' + esc(me.name) + '</span><span class="rank-chip">' + rk.icon + ' ' + rk.name + '</span></div>' +
         '<div class="row" style="gap:12px;margin-top:4px"><span class="rec">' + U.recText(rec) + ' <small>' + rec.pts + ' pts</small></span><span class="bounty">฿' + U.berries(b) + '</span></div></div>' +
-        '<button class="btn primary block" data-act="log" data-mem="' + me.id + '">' + A.bolt() + ' Log round ' + next + '</button>' +
+        '<button class="btn primary block" data-act="log" data-mem="' + me.id + '">' + A.bolt() + ' Registrar ronda ' + next + '</button>' +
       '</div>';
     } else {
-      meBox = '<div class="hero-me"><div style="font-size:30px">🏴‍☠️</div><div class="who"><div class="name">Who are you?</div><div class="muted small">Pick your pirate so the app knows this phone is yours.</div></div><button class="btn primary block" data-act="who">Choose my pirate</button></div>';
+      meBox = '<div class="hero-me"><div style="font-size:30px">🏴‍☠️</div><div class="who"><div class="name">¿Quién eres?</div><div class="muted small">Elige tu pirata para que la app sepa que este móvil es tuyo.</div></div><button class="btn primary block" data-act="who">Elegir mi pirata</button></div>';
     }
     var html = '<section class="hero-title">' +
         '<button class="kicker" data-act="events">¡Vamos Kaidoneta! · ' + esc(U.dateLabel(ev.date)) + ' ▾</button>' +
@@ -246,20 +248,20 @@
 
     html += '<div class="page" style="padding-top:4px">';
     html += '<div class="tools">' +
-      '<button class="tool" data-act="timer"><span class="t-ico">⏱</span>Timer</button>' +
-      '<button class="tool" data-act="dice"><span class="t-ico">🎲</span>Who first?</button>' +
-      '<button class="tool" data-act="kit"><span class="t-ico">🎒</span>Kit</button>' +
+      '<button class="tool" data-act="timer"><span class="t-ico">⏱</span>Reloj</button>' +
+      '<button class="tool" data-act="dice"><span class="t-ico">🎲</span>¿Quién empieza?</button>' +
+      '<button class="tool" data-act="kit"><span class="t-ico">🎒</span>Mochila</button>' +
       '<button class="tool" data-act="bristol"><span class="t-ico">🌉</span>Bristol</button>' +
     '</div>';
 
     if (members.length < 2) {
-      html += '<div class="card" style="margin-top:14px"><div class="row"><div style="font-size:32px">🏴‍☠️</div><div class="grow"><b>Add your crew</b><div class="muted small">Add your friends so you can log their rounds and fight for the top bounty. Or put the crew online so everyone logs from their own phone.</div></div></div>' +
-        '<div class="row" style="margin-top:12px"><button class="btn sm grow" data-act="addMember">＋ Add a friend</button><button class="btn sm grow" data-act="tab" data-tab="crew">☁️ Crew online</button></div></div>';
+      html += '<div class="card" style="margin-top:14px"><div class="row"><div style="font-size:32px">🏴‍☠️</div><div class="grow"><b>Monta tu tripulación</b><div class="muted small">Añade a tus amigos para registrar sus rondas y pelear por la recompensa más alta. O pon la tripulación online y que cada uno registre desde su móvil.</div></div></div>' +
+        '<div class="row" style="margin-top:12px"><button class="btn sm grow" data-act="addMember">＋ Añadir amigo</button><button class="btn sm grow" data-act="tab" data-tab="crew">☁️ Tripulación online</button></div></div>';
     }
 
     var rows = C.board(book, ev.id);
     if (rows.some(function (r) { return r.rec.n; })) {
-      html += '<h2 class="sec">🏆 The crew right now <button class="more" data-act="tab" data-tab="board">Bounty Board ›</button></h2><div class="card">';
+      html += '<h2 class="sec">🏆 Cómo vamos <button class="more" data-act="tab" data-tab="board">Tablón de recompensas ›</button></h2><div class="card">';
       rows.slice(0, 5).forEach(function (r) {
         html += '<button class="mini-row" style="width:100%;text-align:left" data-act="player" data-id="' + r.mem.id + '">' +
           '<span class="pos' + (r.pos === 1 ? ' p1' : '') + '">' + r.pos + '</span>' + U.av(r.mem, 'sm') +
@@ -271,12 +273,12 @@
 
     var feed = C.live(book, 'matches').filter(function (m) { return m.ev === ev.id && U.member(m.mem); })
       .sort(function (a, b) { return (b.t || b.at) - (a.t || a.at); });
-    html += '<h2 class="sec">⚡ Live feed</h2>';
+    html += '<h2 class="sec">⚡ En directo</h2>';
     if (!feed.length) {
-      html += '<div class="card empty"><div class="big">🐉</div><b>No rounds yet.</b><div class="small">Log the first one with the purple button. ¡Vamos!</div></div>';
+      html += '<div class="card empty"><div class="big">🐉</div><b>Aún no hay rondas.</b><div class="small">Registra la primera con el botón morado. ¡Vamos!</div></div>';
     } else {
       html += feed.slice(0, U._feedAll ? 500 : 25).map(feedItem).join('');
-      if (feed.length > 25 && !U._feedAll) html += '<button class="btn block ghost" style="margin-top:8px" data-act="feedAll">Show all ' + feed.length + ' rounds</button>';
+      if (feed.length > 25 && !U._feedAll) html += '<button class="btn block ghost" style="margin-top:8px" data-act="feedAll">Ver las ' + feed.length + ' rondas</button>';
     }
     html += '</div>';
     return html;
@@ -285,7 +287,7 @@
 
   function feedItem(m) {
     var mem = U.member(m.mem), opp = m.oppMem ? U.member(m.oppMem) : null, me = U.me();
-    var verb = m.res === 'W' ? 'beat' : m.res === 'L' ? 'lost to' : 'drew with';
+    var verb = m.res === 'W' ? 'ganó a' : m.res === 'L' ? 'perdió contra' : 'empató con';
     var oppHtml = opp ? '<b>🗡️ ' + esc(opp.name) + '</b>' : U.lchip(m.opp);
     var gain = '';
     if (m.res !== 'L') {
@@ -296,29 +298,29 @@
     var rx = C.reactionsFor(U.book, m.id);
     var reacts = C.REACTIONS.map(function (e) {
       var who = rx[e] || [], mine = me && who.indexOf(me.id) >= 0;
-      return '<button class="react' + (mine ? ' mine' : '') + '" data-act="react" data-id="' + m.id + '" data-emoji="' + e + '" aria-label="React ' + e + '">' + e + (who.length ? '<b>' + who.length + '</b>' : '') + '</button>';
+      return '<button class="react' + (mine ? ' mine' : '') + '" data-act="react" data-id="' + m.id + '" data-emoji="' + e + '" aria-label="Reaccionar con ' + e + '">' + e + (who.length ? '<b>' + who.length + '</b>' : '') + '</button>';
     }).join('');
-    var by = m.by && m.by !== m.mem && U.member(m.by) ? ' · by ' + esc(U.member(m.by).name) : '';
-    var turn = m.first === true ? 'went 1st' : m.first === false ? 'went 2nd' : '';
+    var by = m.by && m.by !== m.mem && U.member(m.by) ? ' · por ' + esc(U.member(m.by).name) : '';
+    var turn = m.first === true ? 'fue 1º' : m.first === false ? 'fue 2º' : '';
     return '<article class="feed-item r-' + m.res + '">' +
       '<button data-act="player" data-id="' + m.mem + '" aria-label="' + esc(mem.name) + '">' + U.av(mem, 'sm') + '</button>' +
       '<div style="min-width:0;padding-right:30px"><div class="line"><b>' + esc(mem.name) + '</b> ' + verb + ' ' + oppHtml + (m.oppName && !opp ? ' <span class="muted">(' + esc(m.oppName) + ')</span>' : '') + '</div>' +
-      '<div class="meta"><span class="res ' + m.res + '">' + m.res + '</span><b>' + U.roundLabel(m) + '</b>' + (turn ? '<span>' + turn + '</span>' : '') + (m.bo === 3 && m.score ? '<span>Bo3 ' + esc(m.score) + '</span>' : '') + gain + '<span>' + U.ago(m.t || m.at) + by + '</span></div></div>' +
+      '<div class="meta"><span class="res ' + m.res + '">' + U.resLetter(m.res) + '</span><b>' + U.roundLabel(m) + '</b>' + (turn ? '<span>' + turn + '</span>' : '') + (m.bo === 3 && m.score ? '<span>Bo3 ' + esc(m.score) + '</span>' : '') + gain + '<span>' + U.ago(m.t || m.at) + by + '</span></div></div>' +
       (m.mvp || m.notes ? '<div class="note">' + (m.mvp ? '⭐ MVP: ' + esc(m.mvp) + (m.notes ? ' · ' : '') : '') + esc(m.notes) + '</div>' : '') +
       '<div class="reacts">' + reacts + '</div>' +
-      '<button class="edit-link" data-act="log" data-id="' + m.id + '" aria-label="Edit this round">✎</button>' +
+      '<button class="edit-link" data-act="log" data-id="' + m.id + '" aria-label="Editar esta ronda">✎</button>' +
     '</article>';
   }
 
   /* ---------- Bounty Board ---------- */
   U.poster = function (r, top, scopeName) {
     var rk = C.rankOf(r.bounty).rank;
-    return '<button class="poster' + (top ? ' top' : '') + '" data-act="player" data-id="' + r.mem.id + '" aria-label="' + esc(r.mem.name) + ', position ' + r.pos + '">' +
+    return '<button class="poster' + (top ? ' top' : '') + '" data-act="player" data-id="' + r.mem.id + '" aria-label="' + esc(r.mem.name) + ', puesto ' + r.pos + '">' +
       (top ? '<span class="crown" aria-hidden="true">👑</span>' : '') +
       '<span class="badge-pos">' + r.pos + '</span>' + (r.move ? '<span class="pmove">' + U.move(r.move) + '</span>' : '') +
-      '<span class="wanted">WANTED</span>' +
+      '<span class="wanted">SE BUSCA</span>' +
       '<span class="pic" style="--c:' + esc(r.mem.color) + '">' + A.horns() + '<span class="emo">' + esc(r.mem.emoji) + '</span></span>' +
-      '<span class="doa">DEAD OR ALIVE</span>' +
+      '<span class="doa">VIVO O MUERTO</span>' +
       '<span class="pname">' + esc(r.mem.name) + '</span>' +
       '<span class="pb">' + U.berries(r.bounty) + '-</span>' +
       '<span class="pstats"><span>' + U.recText(r.rec) + '</span><span>' + r.rec.pts + ' pts</span>' + (r.rec.n ? '<span>' + U.pct(r.rec.rate) + '</span>' : '') + (r.streak.cur === 'W' && r.streak.len >= 2 ? '<span>🔥' + r.streak.len + '</span>' : '') + '</span>' +
@@ -328,19 +330,19 @@
   };
   function scopeSeg(ev) {
     var s = U.local.scope === 'all' ? 'all' : 'event';
-    return '<div class="seg full" role="tablist"><button class="' + (s === 'event' ? 'on' : '') + '" data-act="scope" data-scope="event">' + esc(ev.name) + '</button><button class="' + (s === 'all' ? 'on' : '') + '" data-act="scope" data-scope="all">All time</button></div>';
+    return '<div class="seg full" role="tablist"><button class="' + (s === 'event' ? 'on' : '') + '" data-act="scope" data-scope="event">' + esc(ev.name) + '</button><button class="' + (s === 'all' ? 'on' : '') + '" data-act="scope" data-scope="all">Histórico</button></div>';
   }
   function board() {
     var ev = U.ev(), all = U.local.scope === 'all', rows = C.board(U.book, all ? null : ev.id);
-    var html = '<div class="page"><div class="board-head"><h1><span>Beasts Pirates</span>Bounty<br>Board</h1>' + U.dragonArt() + '</div>' + scopeSeg(ev);
-    if (!rows.length) return html + '<div class="card empty" style="margin-top:14px"><div class="big">🏴‍☠️</div>No pirates yet. Add your crew in the Crew tab.</div></div>';
-    if (!rows.some(function (r) { return r.rec.n; })) html += '<div class="card empty" style="margin-top:14px"><div class="big">💰</div><b>No bounties yet.</b><div class="small">Every win raises your bounty: going second, streaks, top cut and beating a crewmate pay extra.</div></div>';
+    var html = '<div class="page"><div class="board-head"><h1><span>Beasts Pirates</span>Tablón de<br>recompensas</h1>' + U.dragonArt() + '</div>' + scopeSeg(ev);
+    if (!rows.length) return html + '<div class="card empty" style="margin-top:14px"><div class="big">🏴‍☠️</div>Aún no hay piratas. Añade a tu tripulación en la pestaña Tripulación.</div></div>';
+    if (!rows.some(function (r) { return r.rec.n; })) html += '<div class="card empty" style="margin-top:14px"><div class="big">💰</div><b>Aún no hay recompensas.</b><div class="small">Cada victoria sube tu recompensa: ir segundo, las rachas, el top cut y ganar a un compañero dan extra.</div></div>';
     html += '<div class="posters">' + rows.map(function (r, i) { return U.poster(r, i === 0 && r.rec.n > 0); }).join('') + '</div>';
-    html += '<h2 class="sec">📜 How bounties work</h2><div class="card small muted">' +
-      'Win <b>+฿80M</b> · going second <b>+฿20M</b> · each extra win in a row <b>+฿20M</b> more · top-cut win <b>+฿100M</b> · beating a crewmate <b>+฿50M</b> · draw <b>+฿20M</b>. A bounty never goes down. ' +
-      'Ranking: points (win 3, draw 1), then win rate, then bounty.<div style="margin-top:10px" class="chips">' +
+    html += '<h2 class="sec">📜 Cómo funcionan las recompensas</h2><div class="card small muted">' +
+      'Victoria <b>+฿80M</b> · yendo segundo <b>+฿20M</b> · cada victoria seguida en racha <b>+฿20M</b> más que la anterior · victoria en el top cut <b>+฿100M</b> · ganar a un compañero <b>+฿50M</b> · empate <b>+฿20M</b>. La recompensa nunca baja. ' +
+      'Clasificación: puntos (victoria 3, empate 1), luego % victorias y luego recompensa.<div style="margin-top:10px" class="chips">' +
       C.RANKS.map(function (r) { return '<span class="rank-chip">' + r.icon + ' ' + r.name + ' ' + (r.min ? '฿' + U.short(r.min) : '') + '</span>'; }).join('') +
-      '</div><div style="margin-top:10px">Kaido himself: ฿' + U.berries(C.KAIDO_BOUNTY) + '. Keep climbing.</div></div>';
+      '</div><div style="margin-top:10px">El mismísimo Kaido: ฿' + U.berries(C.KAIDO_BOUNTY) + '. Sigue subiendo.</div></div>';
     return html + '</div>';
   }
 
@@ -351,8 +353,8 @@
   }
   function meta() {
     var ev = U.ev(), all = U.local.scope === 'all', M = C.meta(U.book, all ? null : ev.id);
-    var html = '<div class="page"><div class="board-head"><h1><span>' + (all ? 'Every event' : esc(ev.city || ev.name)) + '</span>The<br>Meta</h1></div>' + scopeSeg(ev);
-    if (!M.n) return html + '<div class="card empty" style="margin-top:14px"><div class="big">📊</div><b>Nothing to read yet.</b><div class="small">Log rounds and this page shows which leaders and colours the crew met, and how we did against each.</div></div></div>';
+    var html = '<div class="page"><div class="board-head"><h1><span>' + (all ? 'Todos los eventos' : esc(ev.city || ev.name)) + '</span>El<br>meta</h1></div>' + scopeSeg(ev);
+    if (!M.n) return html + '<div class="card empty" style="margin-top:14px"><div class="big">📊</div><b>Aún no hay nada que ver.</b><div class="small">Registra rondas y aquí verás contra qué líderes y colores ha jugado la tripulación, y cómo nos ha ido contra cada uno.</div></div></div>';
     var r = M.rec, first = { w: 0, l: 0, d: 0 }, second = { w: 0, l: 0, d: 0 };
     C.live(U.book, 'matches').forEach(function (m) {
       if (m.oppMem || (!all && m.ev !== ev.id) || !U.member(m.mem) || !C.get(U.book, 'events', m.ev)) return;
@@ -360,25 +362,25 @@
       if (m.first === true) first[k]++; else if (m.first === false) second[k]++;
     });
     var rate = function (x) { var n = x.w + x.l + x.d; return n ? U.pct(x.w / n) + ' <span class="dim small">(' + U.recText(x) + ')</span>' : '<span class="dim">—</span>'; };
-    html += '<h2 class="sec">🏴‍☠️ The crew vs the room</h2><div class="card"><div class="big-stat"><div><b style="color:var(--gold)">' + r.w + '</b><span>Wins</span></div><div><b style="color:#fb7185">' + r.l + '</b><span>Losses</span></div><div><b>' + U.pct(r.rate) + '</b><span>Win rate</span></div></div>' +
-      '<div class="duo" style="margin-top:10px"><div class="card"><div class="lab">Going 1st</div>' + rate(first) + '</div><div class="card"><div class="lab">Going 2nd</div>' + rate(second) + '</div></div></div>';
+    html += '<h2 class="sec">🏴‍☠️ La tripulación contra el resto</h2><div class="card"><div class="big-stat"><div><b style="color:var(--gold)">' + r.w + '</b><span>Victorias</span></div><div><b style="color:#fb7185">' + r.l + '</b><span>Derrotas</span></div><div><b>' + U.pct(r.rate) + '</b><span>% victorias</span></div></div>' +
+      '<div class="duo" style="margin-top:10px"><div class="card"><div class="lab">Yendo primero</div>' + rate(first) + '</div><div class="card"><div class="lab">Yendo segundo</div>' + rate(second) + '</div></div></div>';
     var maxC = Math.max.apply(null, M.colors.map(function (c) { return c.n; }).concat([1]));
-    html += '<h2 class="sec">🎨 Colours we faced</h2><div class="card bars">' + M.colors.map(function (c) {
+    html += '<h2 class="sec">🎨 Colores rivales</h2><div class="card bars">' + M.colors.map(function (c) {
       return '<div class="bar-row"><span class="row" style="gap:8px"><i class="cdot" style="background:' + c.color.hex + ';width:14px;height:14px"></i><b>' + c.color.name + '</b></span>' +
         '<span>' + bar(c, c.n || 1, Math.max(4, c.n / maxC * 100)) + '</span>' +
         '<span class="small">' + (c.n ? c.n + ' · ' + U.recText(c) : '<span class="dim">0</span>') + '</span></div>';
-    }).join('') + '<div class="small dim" style="margin-top:6px">Gold: our wins · red: losses · two-colour leaders count for both.</div></div>';
+    }).join('') + '<div class="small dim" style="margin-top:6px">Dorado: nuestras victorias · rojo: derrotas · los líderes bicolor cuentan para los dos colores.</div></div>';
     var maxL = M.leaders.length ? M.leaders[0].n : 1;
-    html += '<h2 class="sec">👑 Leaders we faced</h2><div class="card">' + M.leaders.map(function (x) {
-      return '<div class="lead-row"><span style="min-width:0">' + U.lchip(x.leader) + '</span><span class="small"><b>×' + x.n + '</b> · <span style="color:var(--gold)">' + x.w + 'W</span> <span style="color:#fb7185">' + x.l + 'L</span>' + (x.d ? ' ' + x.d + 'D' : '') + '</span>' +
+    html += '<h2 class="sec">👑 Líderes rivales</h2><div class="card">' + M.leaders.map(function (x) {
+      return '<div class="lead-row"><span style="min-width:0">' + U.lchip(x.leader) + '</span><span class="small"><b>×' + x.n + '</b> · <span style="color:var(--gold)">' + x.w + 'V</span> <span style="color:#fb7185">' + x.l + 'D</span>' + (x.d ? ' ' + x.d + 'E' : '') + '</span>' +
         bar(x, x.n, Math.max(6, x.n / maxL * 100)) + '</div>';
     }).join('') + '</div>';
     var tough = M.leaders.filter(function (x) { return x.l; }).sort(function (a, b) { return b.l - a.l || a.w - b.w; })[0];
     var prey = M.leaders.filter(function (x) { return x.w; }).sort(function (a, b) { return b.w - a.w || a.l - b.l; })[0];
     if (tough || prey) {
       html += '<div class="duo" style="margin-top:12px">' +
-        '<div class="card"><div class="lab">😤 Crew nemesis</div>' + (tough ? U.lchip(tough.leader) + '<div class="small muted">' + U.recText(tough) + '</div>' : '<span class="dim">None!</span>') + '</div>' +
-        '<div class="card"><div class="lab">🍖 Crew favourite prey</div>' + (prey ? U.lchip(prey.leader) + '<div class="small muted">' + U.recText(prey) + '</div>' : '<span class="dim">—</span>') + '</div></div>';
+        '<div class="card"><div class="lab">😤 Némesis</div>' + (tough ? U.lchip(tough.leader) + '<div class="small muted">' + U.recText(tough) + '</div>' : '<span class="dim">¡Ninguno!</span>') + '</div>' +
+        '<div class="card"><div class="lab">🍖 Presa favorita</div>' + (prey ? U.lchip(prey.leader) + '<div class="small muted">' + U.recText(prey) + '</div>' : '<span class="dim">—</span>') + '</div></div>';
     }
     return html + '</div>';
   }
@@ -387,11 +389,11 @@
   function onboard() {
     return '<div class="onboard">' + U.dragonArt() +
       '<h1>Kaidoneta</h1>' +
-      '<p>The Beasts Pirates\' tracker for the <b>Bristol Regional</b>. Log every round, raise your bounty, climb the crew\'s Bounty Board.</p>' +
-      '<button class="btn primary" data-act="start">' + A.bolt() + ' Start our crew</button>' +
-      '<button class="btn" data-act="joinOnline">☁️ Join my crew online</button>' +
-      '<button class="btn ghost" data-act="importLink">🔗 Open a crew link</button>' +
-      '<p class="small dim" style="margin-top:20px">Fan-made for friends. Not affiliated with Bandai, Shueisha or Toei Animation.</p>' +
+      '<p>La bitácora de los Beasts Pirates para el <b>Regional de Bristol</b>. Registra cada ronda, sube tu recompensa y escala en el Tablón de recompensas de la tripulación.</p>' +
+      '<button class="btn primary" data-act="start">' + A.bolt() + ' Montar nuestra tripulación</button>' +
+      '<button class="btn" data-act="joinOnline">☁️ Unirme a mi tripulación online</button>' +
+      '<button class="btn ghost" data-act="importLink">🔗 Abrir un enlace de tripulación</button>' +
+      '<p class="small dim" style="margin-top:20px">Hecho por fans para los amigos. Sin relación con Bandai, Shueisha ni Toei Animation.</p>' +
     '</div>';
   }
   U.acts.start = function () { U.memberSheet(null, { me: true }); };
@@ -416,9 +418,9 @@
   /* ---------- who am I ---------- */
   U.whoSheet = function () {
     var ms = C.members(U.book);
-    var sh = U.sheet(U.head('Who are you?') + '<p class="muted small">This phone logs rounds as you by default and shows your record on the home screen. You can change it any time in Crew.</p>' +
-      '<div>' + ms.map(function (m) { return '<button class="list-btn" data-pick="' + m.id + '">' + U.av(m) + '<span class="grow"><b>' + esc(m.name) + '</b><div class="small muted">' + U.lchip(m.leader) + '</div></span>' + (m.id === U.local.me ? '<span class="me-tag">ME</span>' : '') + '</button>'; }).join('') + '</div>' +
-      '<button class="btn block" style="margin-top:12px" data-new>＋ I\'m not on the list</button>');
+    var sh = U.sheet(U.head('¿Quién eres?') + '<p class="muted small">Este móvil registra las rondas a tu nombre y enseña tu récord en el Cuartel. Puedes cambiarlo cuando quieras en Tripulación.</p>' +
+      '<div>' + ms.map(function (m) { return '<button class="list-btn" data-pick="' + m.id + '">' + U.av(m) + '<span class="grow"><b>' + esc(m.name) + '</b><div class="small muted">' + U.lchip(m.leader) + '</div></span>' + (m.id === U.local.me ? '<span class="me-tag">YO</span>' : '') + '</button>'; }).join('') + '</div>' +
+      '<button class="btn block" style="margin-top:12px" data-new>＋ No estoy en la lista</button>');
     Array.prototype.forEach.call(sh.querySelectorAll('[data-pick]'), function (b) {
       b.onclick = function () { U.local.me = b.getAttribute('data-pick'); U.saveLocal(); U.close(); U.render(); X.toast('¡Vamos, ' + U.me().name + '!', 'good'); };
     });
@@ -428,9 +430,9 @@
   /* ---------- events ---------- */
   U.eventsSheet = function () {
     var evs = C.events(U.book);
-    var sh = U.sheet(U.head('Events') + '<div>' + evs.map(function (e) {
-      return '<div class="row list-btn"><button class="grow row" style="text-align:left" data-pick="' + e.id + '"><span style="font-size:24px">' + (e.id === C.BRISTOL.id ? '🌉' : '🏯') + '</span><span class="grow"><b>' + esc(e.name) + '</b><div class="small muted">' + esc(U.dateLabel(e.date)) + (e.city ? ' · ' + esc(e.city) : '') + '</div></span>' + (e.id === U.ev().id ? '<span class="me-tag">NOW</span>' : '') + '</button><button class="btn sm" data-edit="' + e.id + '">Edit</button></div>';
-    }).join('') + '</div><button class="btn block" style="margin-top:12px" data-new>＋ New event</button>');
+    var sh = U.sheet(U.head('Eventos') + '<div>' + evs.map(function (e) {
+      return '<div class="row list-btn"><button class="grow row" style="text-align:left" data-pick="' + e.id + '"><span style="font-size:24px">' + (e.id === C.BRISTOL.id ? '🌉' : '🏯') + '</span><span class="grow"><b>' + esc(e.name) + '</b><div class="small muted">' + esc(U.dateLabel(e.date)) + (e.city ? ' · ' + esc(e.city) : '') + '</div></span>' + (e.id === U.ev().id ? '<span class="me-tag">AHORA</span>' : '') + '</button><button class="btn sm" data-edit="' + e.id + '">Editar</button></div>';
+    }).join('') + '</div><button class="btn block" style="margin-top:12px" data-new>＋ Nuevo evento</button>');
     Array.prototype.forEach.call(sh.querySelectorAll('[data-pick]'), function (b) {
       b.onclick = function () { U.local.ev = b.getAttribute('data-pick'); U.saveLocal(); U.close(); U.render(); };
     });
@@ -439,22 +441,22 @@
   };
   U.eventForm = function (id) {
     var e = id ? C.get(U.book, 'events', id) : { name: '', date: U.today(), city: '', rounds: 0, mins: 35 };
-    var sh = U.swap(U.head(id ? 'Edit event' : 'New event') +
-      '<div class="field"><label for="ev-name">Name</label><input class="inp" id="ev-name" maxlength="40" value="' + esc(e.name) + '" placeholder="Store Championship"></div>' +
-      '<div class="row"><div class="field grow"><label for="ev-date">Date</label><input class="inp" id="ev-date" type="date" value="' + esc(e.date) + '"></div><div class="field grow"><label for="ev-city">City</label><input class="inp" id="ev-city" maxlength="30" value="' + esc(e.city) + '"></div></div>' +
-      '<div class="row"><div class="field grow"><label for="ev-rounds">Swiss rounds</label><input class="inp" id="ev-rounds" type="number" min="0" max="15" inputmode="numeric" value="' + (e.rounds || '') + '" placeholder="?"></div><div class="field grow"><label for="ev-mins">Round (min)</label><input class="inp" id="ev-mins" type="number" min="5" max="120" inputmode="numeric" value="' + e.mins + '"></div></div>' +
-      '<div class="save-bar">' + (id && id !== C.BRISTOL.id ? '<button class="btn danger" data-del>Delete</button>' : '') + '<button class="btn primary" data-ok>Save</button></div>');
+    var sh = U.swap(U.head(id ? 'Editar evento' : 'Nuevo evento') +
+      '<div class="field"><label for="ev-name">Nombre</label><input class="inp" id="ev-name" maxlength="40" value="' + esc(e.name) + '" placeholder="Campeonato de tienda"></div>' +
+      '<div class="row"><div class="field grow"><label for="ev-date">Fecha</label><input class="inp" id="ev-date" type="date" value="' + esc(e.date) + '"></div><div class="field grow"><label for="ev-city">Ciudad</label><input class="inp" id="ev-city" maxlength="30" value="' + esc(e.city) + '"></div></div>' +
+      '<div class="row"><div class="field grow"><label for="ev-rounds">Rondas suizas</label><input class="inp" id="ev-rounds" type="number" min="0" max="15" inputmode="numeric" value="' + (e.rounds || '') + '" placeholder="?"></div><div class="field grow"><label for="ev-mins">Ronda (min)</label><input class="inp" id="ev-mins" type="number" min="5" max="120" inputmode="numeric" value="' + e.mins + '"></div></div>' +
+      '<div class="save-bar">' + (id && id !== C.BRISTOL.id ? '<button class="btn danger" data-del>Borrar</button>' : '') + '<button class="btn primary" data-ok>Guardar</button></div>');
     sh.querySelector('[data-ok]').onclick = function () {
-      var rec = { id: id || C.newId('ev'), name: $('#ev-name').value.trim() || 'Event', date: $('#ev-date').value || U.today(), city: $('#ev-city').value, rounds: Number($('#ev-rounds').value) || 0, mins: Number($('#ev-mins').value) || 35 };
+      var rec = { id: id || C.newId('ev'), name: $('#ev-name').value.trim() || 'Evento', date: $('#ev-date').value || U.today(), city: $('#ev-city').value, rounds: Number($('#ev-rounds').value) || 0, mins: Number($('#ev-mins').value) || 35 };
       C.put(U.book, 'events', rec);
       if (!id) U.local.ev = rec.id;
       U.saveLocal(); U.save(); U.close();
-      X.toast(id ? 'Event saved' : 'Event created and selected', 'good');
+      X.toast(id ? 'Evento guardado' : 'Evento creado y seleccionado', 'good');
     };
     var del = sh.querySelector('[data-del]');
     if (del) del.onclick = function () {
       var n = C.live(U.book, 'matches').filter(function (m) { return m.ev === id; }).length;
-      U.confirm('Delete ' + e.name + '?', n ? 'Its ' + n + ' logged rounds will disappear from every ranking.' : 'It has no rounds.', 'Delete', function () {
+      U.confirm('¿Borrar ' + e.name + '?', n === 1 ? 'Su ronda registrada desaparecerá de todas las clasificaciones.' : n ? 'Sus ' + n + ' rondas registradas desaparecerán de todas las clasificaciones.' : 'No tiene rondas.', 'Borrar', function () {
         C.remove(U.book, 'events', id);
         if (U.local.ev === id) U.local.ev = C.BRISTOL.id;
         U.saveLocal(); U.close(); U.save();

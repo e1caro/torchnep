@@ -17,7 +17,7 @@
     var members = C.members(U.book);
     if (!members.length) { U.memberSheet(null, { me: true }); return; }
     var old = matchId ? C.get(U.book, 'matches', matchId) : null;
-    if (matchId && !old) { X.toast('That round was deleted.'); return; }
+    if (matchId && !old) { X.toast('Esa ronda ya se ha borrado.'); return; }
     var evId = old ? old.ev : U.ev().id, ev = C.get(U.book, 'events', evId);
     var me = U.me();
     var f = old ? {
@@ -29,29 +29,29 @@
     if (!old) f.round = C.nextRound(U.book, f.mem, evId);
     var faced = facedLeaders(evId);
 
-    var html = U.head(old ? 'Edit round' : 'Log a round', '<span class="small muted ellip" style="max-width:34%">' + esc(ev ? ev.name : '') + '</span>') +
-      '<div class="field"><span class="lab">Who played</span><div class="chips" id="lg-mem"></div></div>' +
-      '<div class="field"><span class="lab">Round</span><div id="lg-round"></div></div>' +
-      '<div class="field"><span class="lab">Against</span><div id="lg-kind" style="margin-bottom:12px"></div>' +
+    var html = U.head(old ? 'Editar ronda' : 'Registrar ronda', '<span class="small muted ellip" style="max-width:34%">' + esc(ev ? ev.name : '') + '</span>') +
+      '<div class="field"><span class="lab">¿Quién ha jugado?</span><div class="chips" id="lg-mem"></div></div>' +
+      '<div class="field"><span class="lab">Ronda</span><div id="lg-round"></div></div>' +
+      '<div class="field"><span class="lab">Contra</span><div id="lg-kind" style="margin-bottom:12px"></div>' +
         '<div id="lg-leader">' +
-          '<div class="chips" id="lg-colors" aria-label="Leader colours"></div>' +
-          '<input class="inp" id="lg-name" list="lg-dl" maxlength="40" autocomplete="off" placeholder="Leader (e.g. Enel, Luffy, Lucci…)" style="margin-top:10px" value="' + esc(old && !old.oppMem ? old.opp.name : '') + '">' +
+          '<div class="chips" id="lg-colors" aria-label="Colores del líder"></div>' +
+          '<input class="inp" id="lg-name" list="lg-dl" maxlength="40" autocomplete="off" placeholder="Líder (p. ej. Enel, Luffy, Lucci…)" style="margin-top:10px" value="' + esc(old && !old.oppMem ? old.opp.name : '') + '">' +
           '<datalist id="lg-dl">' + faced.map(function (l) { return l.name; }).concat(C.LEADERS).filter(function (n, i, a) { return a.indexOf(n) === i; }).map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>' +
-          (faced.length ? '<div class="small dim" style="margin-top:10px">Faced here</div><div class="suggest" id="lg-quick">' + faced.slice(0, 10).map(function (l, i) { return '<button class="chip" data-g="quick" data-v="' + i + '">' + U.lchip(l) + '</button>'; }).join('') + '</div>' : '') +
+          (faced.length ? '<div class="small dim" style="margin-top:10px">Enfrentados aquí</div><div class="suggest" id="lg-quick">' + faced.slice(0, 10).map(function (l, i) { return '<button class="chip" data-g="quick" data-v="' + i + '">' + U.lchip(l) + '</button>'; }).join('') + '</div>' : '') +
         '</div>' +
         '<div id="lg-crew" class="chips"></div>' +
       '</div>' +
-      '<div class="field"><span class="lab">Result</span><div class="result-btns" id="lg-res"></div></div>' +
-      '<div class="field"><span class="lab">Turn</span><div id="lg-first"></div></div>' +
-      '<details class="more"' + (old && (old.bo === 3 || old.mvp || old.notes || old.oppName || old.opp.set) ? ' open' : '') + '><summary>More: opponent name, Bo3, MVP card, notes</summary>' +
-        '<div class="row"><div class="field grow"><label for="lg-oppname">Opponent\'s name</label><input class="inp" id="lg-oppname" maxlength="30" value="' + esc(old ? old.oppName : '') + '" placeholder="Optional"></div>' +
+      '<div class="field"><span class="lab">Resultado</span><div class="result-btns" id="lg-res"></div></div>' +
+      '<div class="field"><span class="lab">Turno</span><div id="lg-first"></div></div>' +
+      '<details class="more"' + (old && (old.bo === 3 || old.mvp || old.notes || old.oppName || old.opp.set) ? ' open' : '') + '><summary>Más: nombre del rival, Bo3, carta MVP, notas</summary>' +
+        '<div class="row"><div class="field grow"><label for="lg-oppname">Nombre del rival</label><input class="inp" id="lg-oppname" maxlength="30" value="' + esc(old ? old.oppName : '') + '" placeholder="Opcional"></div>' +
         '<div class="field" style="width:30%"><label for="lg-set">Set</label><input class="inp" id="lg-set" maxlength="12" value="' + esc(old && !old.oppMem ? old.opp.set : '') + '" placeholder="OP17"></div></div>' +
-        '<div class="field"><span class="lab">Format</span><div id="lg-bo"></div></div>' +
-        '<div class="field"><label for="lg-mvp">MVP card</label><input class="inp" id="lg-mvp" maxlength="40" value="' + esc(old ? old.mvp : '') + '" placeholder="The card that won it"></div>' +
-        '<div class="field"><label for="lg-notes">Notes</label><textarea class="inp" id="lg-notes" maxlength="300" placeholder="What happened? Misplays, top-decks, salt…">' + esc(old ? old.notes : '') + '</textarea></div>' +
+        '<div class="field"><span class="lab">Formato</span><div id="lg-bo"></div></div>' +
+        '<div class="field"><label for="lg-mvp">Carta MVP</label><input class="inp" id="lg-mvp" maxlength="40" value="' + esc(old ? old.mvp : '') + '" placeholder="La carta que te dio la partida"></div>' +
+        '<div class="field"><label for="lg-notes">Notas</label><textarea class="inp" id="lg-notes" maxlength="300" placeholder="¿Qué ha pasado? Fallos, top-decks, mosqueos…">' + esc(old ? old.notes : '') + '</textarea></div>' +
       '</details>' +
       '<div id="lg-warn"></div>' +
-      '<div class="save-bar">' + (old ? '<button class="btn danger" data-del>Delete</button>' : '') + '<button class="btn primary" data-save>' + K.art.bolt() + (old ? ' Save' : ' Log it') + '</button></div>';
+      '<div class="save-bar">' + (old ? '<button class="btn danger" data-del>Borrar</button>' : '') + '<button class="btn primary" data-save>' + K.art.bolt() + (old ? ' Guardar' : ' Registrar') + '</button></div>';
     var sh = U.sheet(html, { tall: true });
     var q = function (s) { return sh.querySelector(s); };
 
@@ -59,33 +59,34 @@
     function paint() {
       q('#lg-mem').innerHTML = C.members(U.book).map(function (m) { return chip('mem', m.id, U.av(m) + esc(m.name), f.mem === m.id, 'av-chip'); }).join('');
       q('#lg-round').innerHTML = '<div class="row wrap" style="gap:12px">' +
-        '<div class="stepper"' + (f.top ? ' style="opacity:.35"' : '') + '><button data-g="step" data-v="-1" aria-label="Previous round">−</button><span class="num">R' + f.round + '</span><button data-g="step" data-v="1" aria-label="Next round">＋</button></div>' +
-        '<div class="chips">' + chip('top', '', 'Swiss', !f.top) + '</div></div>' +
+        '<div class="stepper"' + (f.top ? ' style="opacity:.35"' : '') + '><button data-g="step" data-v="-1" aria-label="Ronda anterior">−</button><span class="num">R' + f.round + '</span><button data-g="step" data-v="1" aria-label="Ronda siguiente">＋</button></div>' +
+        '<div class="chips">' + chip('top', '', 'Suizo', !f.top) + '</div></div>' +
         '<div class="chips" style="margin-top:10px">' + C.STAGES.map(function (s) { return chip('top', s, s, f.top === s); }).join('') + '</div>';
       q('#lg-kind').innerHTML = '<div class="seg full">' +
-        '<button class="' + (f.kind === 'leader' ? 'on' : '') + '" data-g="kind" data-v="leader">Opponent</button>' +
-        '<button class="' + (f.kind === 'crew' ? 'on' : '') + '" data-g="kind" data-v="crew"' + (C.members(U.book).length < 2 ? ' disabled' : '') + '>🗡️ Crewmate</button></div>';
+        '<button class="' + (f.kind === 'leader' ? 'on' : '') + '" data-g="kind" data-v="leader">Rival</button>' +
+        '<button class="' + (f.kind === 'crew' ? 'on' : '') + '" data-g="kind" data-v="crew"' + (C.members(U.book).length < 2 ? ' disabled' : '') + '>🗡️ Compañero</button></div>';
       q('#lg-leader').hidden = f.kind !== 'leader';
       q('#lg-crew').hidden = f.kind !== 'crew';
       q('#lg-colors').innerHTML = C.COLORS.map(function (c) {
         return '<button class="chip color' + (f.colors.indexOf(c.id) >= 0 ? ' on' : '') + '" data-g="color" data-v="' + c.id + '" aria-label="' + c.name + '" aria-pressed="' + (f.colors.indexOf(c.id) >= 0) + '" style="background:' + c.hex + '"></button>';
       }).join('');
       q('#lg-crew').innerHTML = C.members(U.book).filter(function (m) { return m.id !== f.mem; }).map(function (m) { return chip('oppMem', m.id, U.av(m) + esc(m.name), f.oppMem === m.id, 'av-chip'); }).join('') ||
-        '<span class="muted small">Add more pirates to the crew first.</span>';
+        '<span class="muted small">Primero añade más piratas a la tripulación.</span>';
+      // Spanish result words are longer than WIN/LOSS/DRAW: the font scales with the screen so all three fit
       q('#lg-res').innerHTML =
-        '<button class="rbtn W' + (f.res === 'W' ? ' on' : '') + '" data-g="res" data-v="W">WIN<small>Gert lush</small></button>' +
-        '<button class="rbtn L' + (f.res === 'L' ? ' on' : '') + '" data-g="res" data-v="L">LOSS<small>Proper gutted</small></button>' +
-        '<button class="rbtn D' + (f.res === 'D' ? ' on' : '') + '" data-g="res" data-v="D">DRAW<small>Time</small></button>';
+        '<button class="rbtn W' + (f.res === 'W' ? ' on' : '') + '" style="font-size:clamp(14px,4.6vw,24px)" data-g="res" data-v="W">VICTORIA<small>¡Toma ya!</small></button>' +
+        '<button class="rbtn L' + (f.res === 'L' ? ' on' : '') + '" style="font-size:clamp(14px,4.6vw,24px)" data-g="res" data-v="L">DERROTA<small>Qué palo</small></button>' +
+        '<button class="rbtn D' + (f.res === 'D' ? ' on' : '') + '" style="font-size:clamp(14px,4.6vw,24px)" data-g="res" data-v="D">EMPATE<small>Tiempo</small></button>';
       q('#lg-first').innerHTML = '<div class="seg full">' +
-        '<button class="' + (f.first === true ? 'on' : '') + '" data-g="first" data-v="1">Went 1st</button>' +
-        '<button class="' + (f.first === false ? 'on' : '') + '" data-g="first" data-v="0">Went 2nd</button>' +
-        '<button class="' + (f.first === null ? 'on' : '') + '" data-g="first" data-v="">Not sure</button></div>';
+        '<button class="' + (f.first === true ? 'on' : '') + '" data-g="first" data-v="1">Fui 1º</button>' +
+        '<button class="' + (f.first === false ? 'on' : '') + '" data-g="first" data-v="0">Fui 2º</button>' +
+        '<button class="' + (f.first === null ? 'on' : '') + '" data-g="first" data-v="">No sé</button></div>';
       q('#lg-bo').innerHTML = '<div class="seg"><button class="' + (f.bo === 1 ? 'on' : '') + '" data-g="bo" data-v="1">Bo1</button><button class="' + (f.bo === 3 ? 'on' : '') + '" data-g="bo" data-v="3">Bo3</button></div>' +
         (f.bo === 3 ? '<div class="chips" style="margin-top:10px">' + ['2-0', '2-1', '1-2', '0-2', '1-1', '1-0', '0-1'].map(function (s) { return chip('score', s, s, f.score === s); }).join('') + '</div>' : '');
       var warn = '';
       if (f.kind === 'crew' && f.oppMem) {
         var dup = C.loggedBy(U.book, evId, f.round, f.top, f.mem, f.oppMem);
-        if (dup && (!old || dup.id !== old.id)) warn = '<div class="warn-box">⚠️ ' + esc(U.member(f.oppMem).name) + ' already logged this round against ' + esc(U.member(f.mem).name) + ' (' + (dup.res === 'W' ? 'they won' : dup.res === 'L' ? 'they lost' : 'a draw') + '). It already counts for both of you.</div>';
+        if (dup && (!old || dup.id !== old.id)) warn = '<div class="warn-box">⚠️ ' + esc(U.member(f.oppMem).name) + ' ya ha registrado esta ronda contra ' + esc(U.member(f.mem).name) + ' (' + (dup.res === 'W' ? 'ganó ' + esc(U.member(f.oppMem).name) : dup.res === 'L' ? 'ganó ' + esc(U.member(f.mem).name) : 'empate') + '). Ya cuenta para los dos.</div>';
       }
       q('#lg-warn').innerHTML = warn;
     }
@@ -122,16 +123,16 @@
     });
 
     q('[data-save]').onclick = function () {
-      if (!f.res) { X.toast('Pick WIN, LOSS or DRAW first.', 'bad'); q('#lg-res').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
-      if (f.kind === 'crew' && !f.oppMem) { X.toast('Pick the crewmate you played.', 'bad'); return; }
+      if (!f.res) { X.toast('Primero elige VICTORIA, DERROTA o EMPATE.', 'bad'); q('#lg-res').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      if (f.kind === 'crew' && !f.oppMem) { X.toast('Elige contra qué compañero has jugado.', 'bad'); return; }
       if (f.kind === 'crew') {
         var dup = C.loggedBy(U.book, evId, f.round, f.top, f.mem, f.oppMem);
-        if (dup && (!old || dup.id !== old.id)) { X.toast('Already logged by ' + U.member(f.oppMem).name + '. It counts for both of you.', 'bad'); return; }
+        if (dup && (!old || dup.id !== old.id)) { X.toast(U.member(f.oppMem).name + ' ya la ha registrado. Cuenta para los dos.', 'bad'); return; }
       }
       var mem = U.member(f.mem);
       var rec = {
         id: old ? old.id : C.newId('g'), ev: evId, mem: f.mem, round: f.top ? 0 : f.round, top: f.top,
-        opp: f.kind === 'crew' ? U.member(f.oppMem).leader : { name: q('#lg-name').value.trim() || 'Unknown', colors: f.colors, set: q('#lg-set').value.trim() },
+        opp: f.kind === 'crew' ? U.member(f.oppMem).leader : { name: q('#lg-name').value.trim() || 'Desconocido', colors: f.colors, set: q('#lg-set').value.trim() },
         oppName: f.kind === 'crew' ? '' : q('#lg-oppname').value.trim(), oppMem: f.kind === 'crew' ? f.oppMem : '',
         res: f.res, first: f.first, bo: f.bo, score: f.bo === 3 ? f.score : '',
         mvp: q('#lg-mvp').value.trim(), notes: q('#lg-notes').value.trim(),
@@ -145,34 +146,34 @@
       C.put(U.book, 'matches', rec);
       U.close();
       U.save();
-      if (old) { X.toast('Round updated', 'good'); return; }
+      if (old) { X.toast('Ronda actualizada', 'good'); return; }
 
       var after = C.games(U.book, f.mem, evId), bAfter = C.bounty(after), allAfter = C.games(U.book, f.mem, null);
       var rankAfter = C.rankOf(C.bounty(allAfter)).rank, st = C.streaks(after), rr = C.record(after);
       var gain = bAfter - bBefore;
       var info;
       if (rec.res === 'W') {
-        var title = rec.top ? 'CLIFTON CLIMB!' : st.len >= 3 ? 'THUNDER BAGUA!' : rec.first === false ? 'BORO BREATH!' : rec.oppMem ? 'FRIENDLY FIRE!' : pick(['GERT LUSH!', '¡VAMOS!', 'PROPER JOB!']);
-        info = { title: title, line: '+฿' + U.berries(gain), sub: esc(mem.name) + ' · ' + U.recText(rr) + ' · bounty ฿' + U.berries(bAfter), rankUp: rankAfter.id !== rankBefore.id ? 'RANK UP · ' + rankAfter.icon + ' ' + rankAfter.name : '' };
+        var title = rec.top ? '¡AL TOP!' : st.len >= 3 ? '¡RAIMEI HAKKE!' : rec.first === false ? '¡BORO BREATH!' : rec.oppMem ? '¡FUEGO AMIGO!' : pick(['¡BRUTAL!', '¡VAMOS!', '¡TOMA YA!']);
+        info = { title: title, line: '+฿' + U.berries(gain), sub: esc(mem.name) + ' · ' + U.recText(rr) + ' · recompensa ฿' + U.berries(bAfter), rankUp: rankAfter.id !== rankBefore.id ? '¡SUBES DE RANGO! · ' + rankAfter.icon + ' ' + rankAfter.name : '' };
       } else if (rec.res === 'L') {
-        info = { title: 'PROPER GUTTED', line: pick(['Shake it off. Next round.', 'Even Kaido has lost a fight. Next!', 'Shuffle up. ¡Vamos!', 'Bounties never go down. Go again.']), sub: esc(mem.name) + ' · ' + U.recText(rr) };
+        info = { title: '¡QUÉ PALO!', line: pick(['Sacúdetelo. A por la siguiente.', 'Hasta Kaido ha perdido alguna. ¡Siguiente!', 'Baraja y a por ellos. ¡Vamos!', 'Las recompensas nunca bajan. Otra vez.']), sub: esc(mem.name) + ' · ' + U.recText(rr) };
       } else {
-        info = { title: 'EVEN STEVENS', line: '+฿' + U.berries(gain) + ' for surviving', sub: esc(mem.name) + ' · ' + U.recText(rr) };
+        info = { title: '¡TABLAS!', line: '+฿' + U.berries(gain) + ' por sobrevivir', sub: esc(mem.name) + ' · ' + U.recText(rr) };
       }
       X.moment(rec.res, info);
       var fresh = C.badges(allAfter).filter(function (x) { return x.got && !had[x.badge.id]; });
       fresh.forEach(function (x, i) {
-        setTimeout(function () { X.toast((x.badge.shame ? '😅 Badge of shame: ' : '🏅 New badge: ') + x.badge.icon + ' ' + x.badge.name + ' (' + mem.name + ')', 'good'); }, 2700 + i * 900);
+        setTimeout(function () { X.toast((x.badge.shame ? '😅 Insignia de la vergüenza: ' : '🏅 Nueva insignia: ') + x.badge.icon + ' ' + x.badge.name + ' (' + mem.name + ')', 'good'); }, 2700 + i * 900);
       });
     };
     var del = q('[data-del]');
     if (del) del.onclick = function () {
-      U.confirm('Delete this round?', 'It disappears from the feed and every ranking, on every phone of the crew.', 'Delete', function () {
+      U.confirm('¿Borrar esta ronda?', 'Desaparecerá de la actividad y de todas las clasificaciones, en los móviles de toda la tripulación.', 'Borrar', function () {
         C.remove(U.book, 'matches', old.id);
         C.live(U.book, 'reactions').forEach(function (x) { if (x.match === old.id) C.remove(U.book, 'reactions', x.id); });
         U.close();
         U.save();
-        X.toast('Round deleted');
+        X.toast('Ronda borrada');
       }, true);
     };
   };

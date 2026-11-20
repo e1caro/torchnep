@@ -13,12 +13,12 @@
   C.COLLS = ['members', 'events', 'matches', 'reactions'];
 
   C.COLORS = [
-    { id: 'red', name: 'Red', hex: '#e5484d' },
-    { id: 'green', name: 'Green', hex: '#2fae68' },
-    { id: 'blue', name: 'Blue', hex: '#3e7bfa' },
-    { id: 'purple', name: 'Purple', hex: '#9b5cf6' },
-    { id: 'black', name: 'Black', hex: '#2b2733' },
-    { id: 'yellow', name: 'Yellow', hex: '#f5c518' },
+    { id: 'red', name: 'Rojo', hex: '#e5484d' },
+    { id: 'green', name: 'Verde', hex: '#2fae68' },
+    { id: 'blue', name: 'Azul', hex: '#3e7bfa' },
+    { id: 'purple', name: 'Morado', hex: '#9b5cf6' },
+    { id: 'black', name: 'Negro', hex: '#2b2733' },
+    { id: 'yellow', name: 'Amarillo', hex: '#f5c518' },
   ];
   var COLOR_IDS = C.COLORS.map(function (c) { return c.id; });
 
@@ -40,7 +40,7 @@
 
   C.KAIDO = { name: 'Kaido', colors: ['purple'], set: 'OP17' };
   // The regional is created on every phone with the same id, so a crew that syncs never gets two of it.
-  C.BRISTOL = { id: 'ev-bristol-2026-11-21', name: 'Bristol Regional', date: '2026-11-21', city: 'Bristol', rounds: 0, mins: 35 };
+  C.BRISTOL = { id: 'ev-bristol-2026-11-21', name: 'Regional de Bristol', date: '2026-11-21', city: 'Bristol', rounds: 0, mins: 35 };
 
   /* ---------- small helpers ---------- */
   C.now = function () { return Date.now(); };
@@ -77,10 +77,10 @@
   // dropped, text is cut to size and anything malformed is left out.
   var CLEAN = {
     members: function (r) {
-      return { name: str(r.name, 24) || 'Pirate', emoji: str(r.emoji, 12) || '🐉', color: /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : '#9b5cf6', leader: leader(r.leader), deck: str(r.deck, 40) };
+      return { name: str(r.name, 24) || 'Pirata', emoji: str(r.emoji, 12) || '🐉', color: /^#[0-9a-f]{6}$/i.test(r.color) ? r.color : '#9b5cf6', leader: leader(r.leader), deck: str(r.deck, 40) };
     },
     events: function (r) {
-      return { name: str(r.name, 40) || 'Event', date: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : '2026-01-01', city: str(r.city, 30), rounds: int(r.rounds, 0, 15, 0), mins: int(r.mins, 5, 120, 35) };
+      return { name: str(r.name, 40) || 'Evento', date: /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? r.date : '2026-01-01', city: str(r.city, 30), rounds: int(r.rounds, 0, 15, 0), mins: int(r.mins, 5, 120, 35) };
     },
     matches: function (r) {
       if (!okId(r.ev) || !okId(r.mem)) return null;
@@ -148,7 +148,7 @@
     var old = book[coll][r.id];
     r.at = Math.max(C.now(), old ? old.at + 1 : 0);
     var clean = cleanRecord(coll, r);
-    if (!clean) throw new Error('Bad ' + coll + ' record');
+    if (!clean) throw new Error('Datos no válidos: ' + ({ members: 'pirata', events: 'evento', matches: 'ronda', reactions: 'reacción' }[coll] || coll) + '.');
     book[coll][clean.id] = clean;
     return clean;
   };
@@ -174,7 +174,10 @@
     return C.live(book, 'events').sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : a.name.localeCompare(b.name); });
   };
   C.ensureBristol = function (book) {
-    if (!book.events[C.BRISTOL.id]) {
+    var old = book.events[C.BRISTOL.id];
+    // An untouched default from before the app spoke Spanish gets the new name (still the oldest possible edit, so
+    // every phone ends up with the same record and any real edit still wins).
+    if (!old || (old.at === 1 && !old.del && old.name === 'Bristol Regional')) {
       var e = {}; Object.keys(C.BRISTOL).forEach(function (k) { e[k] = C.BRISTOL[k]; });
       e.at = 1; // the oldest possible edit: any change made on any phone wins over this default
       book.events[e.id] = cleanRecord('events', e);
@@ -315,7 +318,7 @@
     { id: 'headliner', name: 'Headliner', icon: '🎭', min: 240 * M },
     { id: 'tobiroppo', name: 'Tobiroppo', icon: '🦅', min: 380 * M },
     { id: 'allstar', name: 'All-Star', icon: '⭐', min: 560 * M },
-    { id: 'emperor', name: 'Emperor', icon: '🐉', min: 800 * M },
+    { id: 'emperor', name: 'Emperador', icon: '🐉', min: 800 * M },
   ];
   C.rankOf = function (bounty) {
     var r = C.RANKS[0];
@@ -324,7 +327,7 @@
     return { rank: r, next: next, progress: next ? (bounty - r.min) / (next.min - r.min) : 1 };
   };
   C.KAIDO_BOUNTY = 4611100000;
-  C.berries = function (n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+  C.berries = function (n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }; // Spain: 4.611.100.000
 
   /* ---------- the Bounty Board ---------- */
   function standings(book, evId, filter) {
@@ -402,30 +405,30 @@
   function wins(gs) { return gs.filter(function (g) { return g.res === 'W'; }); }
   function named(g, re) { return re.test((g.opp && g.opp.name) || ''); }
   C.BADGES = [
-    { id: 'debut', icon: '🚐', name: 'All aboard', desc: 'Log your first round in Kaidoneta', test: function (gs) { return gs.length > 0; } },
-    { id: 'thunder', icon: '⚡', name: 'Thunder Bagua', desc: 'Win 3 rounds in a row', test: function (gs) { return C.streaks(gs).bestW >= 3; } },
-    { id: 'boro', icon: '🔥', name: 'Boro Breath', desc: 'Win going second', test: function (gs) { return wins(gs).some(function (g) { return g.first === false; }); } },
-    { id: 'iron', icon: '🛡️', name: 'Iron Body', desc: 'Win 3 rounds going first', test: function (gs) { return wins(gs).filter(function (g) { return g.first === true; }).length >= 3; } },
-    { id: 'gertlush', icon: '🍺', name: 'Gert Lush', desc: 'Win 4 rounds at one event', test: function (gs) { return byEvent(gs).some(function (e) { return wins(e).length >= 4; }); } },
-    { id: 'raid', icon: '🏯', name: 'Onigashima Raid', desc: 'Win 5 rounds at one event', test: function (gs) { return byEvent(gs).some(function (e) { return wins(e).length >= 5; }); } },
-    { id: 'emperor', icon: '👑', name: 'Emperor of the Sea', desc: 'Go through 4+ Swiss rounds of an event without a loss', test: function (gs) {
+    { id: 'debut', icon: '🚐', name: 'Todos a bordo', desc: 'Registra tu primera ronda en Kaidoneta', test: function (gs) { return gs.length > 0; } },
+    { id: 'thunder', icon: '⚡', name: 'Raimei Hakke', desc: 'Gana 3 rondas seguidas', test: function (gs) { return C.streaks(gs).bestW >= 3; } },
+    { id: 'boro', icon: '🔥', name: 'Boro Breath', desc: 'Gana yendo segundo', test: function (gs) { return wins(gs).some(function (g) { return g.first === false; }); } },
+    { id: 'iron', icon: '🛡️', name: 'Cuerpo de hierro', desc: 'Gana 3 rondas yendo primero', test: function (gs) { return wins(gs).filter(function (g) { return g.first === true; }).length >= 3; } },
+    { id: 'gertlush', icon: '🍺', name: 'Bristol en llamas', desc: 'Gana 4 rondas en un evento', test: function (gs) { return byEvent(gs).some(function (e) { return wins(e).length >= 4; }); } },
+    { id: 'raid', icon: '🏯', name: 'Asalto a Onigashima', desc: 'Gana 5 rondas en un evento', test: function (gs) { return byEvent(gs).some(function (e) { return wins(e).length >= 5; }); } },
+    { id: 'emperor', icon: '👑', name: 'Emperador del mar', desc: 'Pasa 4+ rondas suizas de un evento sin perder', test: function (gs) {
       return byEvent(gs).some(function (e) { var sw = e.filter(function (g) { return !g.m.top; }); return sw.length >= 4 && sw.every(function (g) { return g.res !== 'L'; }); });
     } },
-    { id: 'clifton', icon: '🌉', name: 'Clifton Climber', desc: 'Play in the top cut', test: function (gs) { return gs.some(function (g) { return !!g.m.top; }); } },
-    { id: 'comeback', icon: '🎈', name: 'Balloon Fiesta', desc: 'Lose the first round of an event, then win the next 3', test: function (gs) {
+    { id: 'clifton', icon: '🌉', name: 'Escalada en Clifton', desc: 'Juega el top cut', test: function (gs) { return gs.some(function (g) { return !!g.m.top; }); } },
+    { id: 'comeback', icon: '🎈', name: 'Remontada en globo', desc: 'Pierde la primera ronda de un evento y gana las 3 siguientes', test: function (gs) {
       return byEvent(gs).some(function (e) { return e.length >= 4 && e[0].res === 'L' && e[1].res === 'W' && e[2].res === 'W' && e[3].res === 'W'; });
     } },
-    { id: 'rainbow', icon: '🌈', name: 'Rainbow Rumble', desc: 'Beat leaders of all six colours', test: function (gs) {
+    { id: 'rainbow', icon: '🌈', name: 'Arcoíris', desc: 'Gana a líderes de los seis colores', test: function (gs) {
       var seen = {};
       wins(gs).forEach(function (g) { (g.opp.colors || []).forEach(function (c) { seen[c] = 1; }); });
       return COLOR_IDS.every(function (c) { return seen[c]; });
     } },
-    { id: 'mirror', icon: '🐉', name: 'Dragon vs Dragon', desc: 'Beat a Kaido leader', test: function (gs) { return wins(gs).some(function (g) { return named(g, /kaid/i); }); } },
-    { id: 'rocks', icon: '🍰', name: 'Rocks Reunion', desc: 'Beat a Big Mom (Charlotte Linlin) leader', test: function (gs) { return wins(gs).some(function (g) { return named(g, /linlin|big ?mom/i); }); } },
-    { id: 'friendly', icon: '🗡️', name: 'Friendly Fire', desc: 'Beat a crewmate', test: function (gs) { return wins(gs).some(function (g) { return !!g.oppMem; }); } },
-    { id: 'even', icon: '🤝', name: 'Even Stevens', desc: 'Draw a round (time ran out)', test: function (gs) { return gs.some(function (g) { return g.res === 'D'; }); } },
-    { id: 'gear5', icon: '🥁', name: 'Gear 5 Trauma', desc: 'Lose to a Luffy leader (it happened to Kaido too)', shame: true, test: function (gs) { return gs.some(function (g) { return g.res === 'L' && named(g, /luffy/i); }); } },
-    { id: 'hangover', icon: '🍻', name: 'Harbourside Hangover', desc: 'Lose 3 rounds in a row', shame: true, test: function (gs) { return C.streaks(gs).bestL >= 3; } },
+    { id: 'mirror', icon: '🐉', name: 'Dragón contra dragón', desc: 'Gana a un líder Kaido', test: function (gs) { return wins(gs).some(function (g) { return named(g, /kaid/i); }); } },
+    { id: 'rocks', icon: '🍰', name: 'Reunión de los Rocks', desc: 'Gana a un líder Big Mom (Charlotte Linlin)', test: function (gs) { return wins(gs).some(function (g) { return named(g, /linlin|big ?mom/i); }); } },
+    { id: 'friendly', icon: '🗡️', name: 'Fuego amigo', desc: 'Gana a un compañero de la tripulación', test: function (gs) { return wins(gs).some(function (g) { return !!g.oppMem; }); } },
+    { id: 'even', icon: '🤝', name: 'Tablas', desc: 'Empata una ronda (se acabó el tiempo)', test: function (gs) { return gs.some(function (g) { return g.res === 'D'; }); } },
+    { id: 'gear5', icon: '🥁', name: 'Trauma del Gear 5', desc: 'Pierde contra un líder Luffy (a Kaido también le pasó)', shame: true, test: function (gs) { return gs.some(function (g) { return g.res === 'L' && named(g, /luffy/i); }); } },
+    { id: 'hangover', icon: '🍻', name: 'Resaca en el puerto', desc: 'Pierde 3 rondas seguidas', shame: true, test: function (gs) { return C.streaks(gs).bestL >= 3; } },
   ];
   C.badges = function (games) {
     return C.BADGES.map(function (b) { return { badge: b, got: !!b.test(games) }; });
@@ -455,6 +458,8 @@
     if (typeof CompressionStream === 'undefined') return Promise.resolve('j' + b64url(bytes));
     return pipe(bytes, new CompressionStream('deflate-raw')).then(function (z) { return 'z' + b64url(z); });
   };
+  function linkError(msg) { var e = new Error(msg); e.code = 'link'; return e; }
+  var NOT_A_LINK = 'Eso no es un enlace de Kaidoneta.';
   C.unpack = function (code) {
     return Promise.resolve().then(function () {
       code = String(code || '').trim();
@@ -462,15 +467,19 @@
       if (m) code = m[1];
       var kind = code.charAt(0), bytes = unb64url(code.slice(1));
       if (kind === 'z') {
-        if (typeof DecompressionStream === 'undefined') throw new Error('This browser cannot open compressed links.');
+        if (typeof DecompressionStream === 'undefined') throw linkError('Este navegador no puede abrir enlaces comprimidos. Prueba con Chrome o Safari actualizados.');
         return pipe(bytes, new DecompressionStream('deflate-raw'));
       }
       if (kind === 'j') return bytes;
-      throw new Error('That is not a Kaidoneta link.');
+      throw linkError(NOT_A_LINK);
     }).then(function (bytes) {
       var data = JSON.parse(new TextDecoder().decode(bytes));
-      if (!data || data.app !== 'kaidoneta') throw new Error('That is not a Kaidoneta link.');
+      if (!data || data.app !== 'kaidoneta') throw linkError(NOT_A_LINK);
       return C.cleanBook(data.book);
+    }).then(null, function (e) {
+      // the browser's own errors (bad base64, broken JSON...) come in English: say it in Spanish
+      if (e && e.code === 'link') throw e;
+      throw linkError('Ese enlace está roto o incompleto. Pide que te lo vuelvan a mandar.');
     });
   };
 

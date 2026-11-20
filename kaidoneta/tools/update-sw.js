@@ -6,7 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const ROOT = path.join(__dirname, '..');
 const files = ['index.html', 'manifest.webmanifest'];
-['css', 'js', 'icons'].forEach((d) => fs.readdirSync(path.join(ROOT, d)).sort().forEach((f) => files.push(d + '/' + f)));
+['css', 'js', 'icons', 'fonts'].forEach((d) => fs.readdirSync(path.join(ROOT, d)).sort().forEach((f) => files.push(d + '/' + f)));
 const hash = crypto.createHash('sha256');
 files.forEach((f) => hash.update(f).update(fs.readFileSync(path.join(ROOT, f))));
 const version = 'kaido-' + hash.digest('hex').slice(0, 10);

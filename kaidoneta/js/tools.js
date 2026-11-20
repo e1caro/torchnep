@@ -12,12 +12,12 @@
   U.timerSheet = function () {
     var ev = U.ev();
     var presets = [30, 35, 40, 50].concat(ev.mins && [30, 35, 40, 50].indexOf(ev.mins) < 0 ? [ev.mins] : []).sort(function (a, b) { return a - b; });
-    var sh = U.sheet(U.head('Round timer') +
+    var sh = U.sheet(U.head('Temporizador') +
       '<div class="timer-big" id="tm-big" aria-live="off"></div>' +
       '<div class="row" style="justify-content:center;gap:10px"><button class="btn" data-tm="-1">−1 min</button><button class="btn primary" data-tm="go" id="tm-go" style="min-width:130px"></button><button class="btn" data-tm="1">+1 min</button></div>' +
-      '<div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost sm" data-tm="reset">↺ Reset</button></div>' +
-      '<div class="field"><span class="lab">Round length</span><div class="chips" id="tm-presets">' + presets.map(function (p) { return '<button class="chip' + (preset() === p ? ' on' : '') + '" data-tm-p="' + p + '">' + p + ' min</button>'; }).join('') + '</div></div>' +
-      '<p class="small muted">Check the length the judges announce. The phone buzzes at 5 minutes left and at time, and the timer keeps going if you close the app (it shows in the top bar).</p>');
+      '<div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost sm" data-tm="reset">↺ Reiniciar</button></div>' +
+      '<div class="field"><span class="lab">Duración de la ronda</span><div class="chips" id="tm-presets">' + presets.map(function (p) { return '<button class="chip' + (preset() === p ? ' on' : '') + '" data-tm-p="' + p + '">' + p + ' min</button>'; }).join('') + '</div></div>' +
+      '<p class="small muted">Comprueba la duración que anuncien los jueces. El móvil vibra cuando quedan 5 minutos y al acabar el tiempo, y el temporizador sigue aunque cierres la app (lo verás en la barra de arriba).</p>');
     sh.addEventListener('click', function (e) {
       var b = e.target.closest('[data-tm],[data-tm-p]');
       if (!b) return;
@@ -47,16 +47,16 @@
     var t = T(), left = U.timerLeft(), big = doc.getElementById('tm-big'), go = doc.getElementById('tm-go');
     if (big) {
       var shown = left === null ? preset() * 60000 : left;
-      big.textContent = left !== null && left <= 0 ? 'TIME!' : U.fmtTime(shown);
+      big.textContent = left !== null && left <= 0 ? '¡FIN!' : U.fmtTime(shown);
       big.className = 'timer-big' + (left !== null && left <= 0 ? ' over' : left !== null && left < 5 * 60000 ? ' warn' : '');
     }
-    if (go) go.innerHTML = t.end ? '⏸ Pause' : (left ? '▶ Resume' : '▶ Start');
+    if (go) go.innerHTML = t.end ? '⏸ Pausa' : (left ? '▶ Seguir' : '▶ Empezar');
     var pill = doc.getElementById('timer-pill');
     if (pill && left !== null) { pill.querySelector('span').textContent = U.fmtTime(left); pill.classList.toggle('warn', left < 5 * 60000); }
     if (!t.end) return;
     if (!pill) U.updateHeader();
-    if (left <= 5 * 60000 && left > 0 && !t.warn) { t.warn = true; U.saveLocal(); X.buzz([200, 100, 200]); X.sound('tick'); X.toast('⏱ 5 minutes left in the round'); }
-    if (left <= 0 && !t.done) { t.done = true; U.saveLocal(); X.buzz([400, 150, 400, 150, 600]); X.sound('alarm'); X.toast('⏱ TIME! Finish the round as the judges say.', 'bad'); }
+    if (left <= 5 * 60000 && left > 0 && !t.warn) { t.warn = true; U.saveLocal(); X.buzz([200, 100, 200]); X.sound('tick'); X.toast('⏱ Quedan 5 minutos'); }
+    if (left <= 0 && !t.done) { t.done = true; U.saveLocal(); X.buzz([400, 150, 400, 150, 600]); X.sound('alarm'); X.toast('⏱ ¡TIEMPO! Acabad la ronda como digan los jueces.', 'bad'); }
   };
 
   /* ---------- the dragon dice ---------- */
@@ -67,11 +67,11 @@
       PIPS[n].map(function (p) { return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="9" fill="#fde68a"/>'; }).join('') + '</svg>';
   }
   U.acts.dice = function () {
-    var sh = U.sheet(U.head('Who goes first?') +
-      '<p class="small muted" style="margin-top:0">Roll for it. Highest roll picks to go first or second. Ties roll again.</p>' +
-      '<div class="dice-row"><div class="die-box" id="db-a"><b>You</b><div id="d-a">' + die(6, 'a') + '</div></div><div class="die-box" id="db-b"><b>Opponent</b><div id="d-b">' + die(6, 'b') + '</div></div></div>' +
+    var sh = U.sheet(U.head('¿Quién empieza?') +
+      '<p class="small muted" style="margin-top:0">A los dados. Quien saque más elige si va primero o segundo. Si empatáis, se tira otra vez.</p>' +
+      '<div class="dice-row"><div class="die-box" id="db-a"><b>Tú</b><div id="d-a">' + die(6, 'a') + '</div></div><div class="die-box" id="db-b"><b>Rival</b><div id="d-b">' + die(6, 'b') + '</div></div></div>' +
       '<div id="d-out" class="empty" style="padding:8px;min-height:44px"></div>' +
-      '<button class="btn primary block" data-roll>🎲 Roll the dragon dice</button>');
+      '<button class="btn primary block" data-roll>🎲 Tira los dados del dragón</button>');
     var busy = false;
     sh.querySelector('[data-roll]').onclick = function () {
       if (busy) return;
@@ -88,9 +88,9 @@
         if (++n >= (still ? 1 : 12)) {
           clearInterval(iv); busy = false;
           sh.querySelector('#d-a').innerHTML = die(a, 'a'); sh.querySelector('#d-b').innerHTML = die(b, 'b');
-          if (a === b) { out.innerHTML = '<b>Tie! Roll again.</b>'; return; }
+          if (a === b) { out.innerHTML = '<b>¡Empate! Tira otra vez.</b>'; return; }
           sh.querySelector(a > b ? '#db-a' : '#db-b').classList.add('win');
-          out.innerHTML = a > b ? '<b style="color:var(--gold2)">You win the roll!</b><div class="small">Kaido decks usually like going… your call, captain.</div>' : '<b>Opponent wins the roll.</b><div class="small">Get ready either way.</div>';
+          out.innerHTML = a > b ? '<b style="color:var(--gold2)">¡Ganas la tirada!</b><div class="small">A los mazos de Kaido les suele gustar ir… tú decides, capi.</div>' : '<b>Gana el rival.</b><div class="small">Prepárate, vayas como vayas.</div>';
           X.buzz(a > b ? [30, 40, 60] : 60);
         }
       }, 75);
@@ -99,28 +99,28 @@
 
   /* ---------- kit checklist (per event, on this phone) ---------- */
   var KIT = [
-    ['deck', '🃏', 'Deck: 50 cards + the Kaido leader, sleeved'],
-    ['don', '🟣', 'DON!! deck (10 cards)'],
-    ['list', '📝', 'Decklist submitted / registered'],
-    ['ticket', '🎟️', 'Ticket, ID and the event app account'],
-    ['sleeves', '🛡️', 'Spare sleeves'],
-    ['mat', '🗺️', 'Playmat'],
-    ['dice', '🎲', 'Dice and counters'],
-    ['pen', '🖊️', 'Pen'],
-    ['charger', '🔋', 'Phone charger / power bank'],
-    ['water', '💧', 'Water and snacks'],
-    ['cash', '💷', 'Card or cash for food'],
-    ['trade', '📒', 'Trade binder'],
-    ['travel', '🚆', 'Travel plan to the venue (and back)'],
+    ['deck', '🃏', 'Mazo: 50 cartas + el líder Kaido, enfundadas'],
+    ['don', '🟣', 'Mazo de DON!! (10 cartas)'],
+    ['list', '📝', 'Lista de mazo entregada / registrada'],
+    ['ticket', '🎟️', 'Entrada, DNI y cuenta de la app del evento'],
+    ['sleeves', '🛡️', 'Fundas de repuesto'],
+    ['mat', '🗺️', 'Tapete'],
+    ['dice', '🎲', 'Dados y contadores'],
+    ['pen', '🖊️', 'Boli'],
+    ['charger', '🔋', 'Cargador / batería externa'],
+    ['water', '💧', 'Agua y algo de picar'],
+    ['cash', '💷', 'Tarjeta o efectivo para comer'],
+    ['trade', '📒', 'Carpeta de cambios'],
+    ['travel', '🚆', 'Cómo llegar al recinto (y volver)'],
   ];
   U.acts.kit = function () { U.kitSheet(); };
   U.kitSheet = function (keep) {
     var ev = U.ev(), done = U.local.kit[ev.id] || {}, n = KIT.filter(function (k) { return done[k[0]]; }).length;
-    var html = U.head('Kit check') +
+    var html = U.head('Revisa la mochila') +
       '<div class="row"><div class="progress grow"><i style="width:' + Math.round(n / KIT.length * 100) + '%"></i></div><b>' + n + '/' + KIT.length + '</b></div>' +
-      '<p class="small muted">' + (n === KIT.length ? '⚡ Ready to raid Onigashima. ¡Vamos!' : 'For ' + esc(ev.name) + '. Saved on this phone.') + '</p>' +
+      '<p class="small muted">' + (n === KIT.length ? '⚡ Listo para asaltar Onigashima. ¡Vamos!' : 'Para ' + esc(ev.name) + '. Se guarda en este móvil.') + '</p>' +
       KIT.map(function (k) { return '<button class="kit-row' + (done[k[0]] ? ' done' : '') + '" data-k="' + k[0] + '" aria-pressed="' + !!done[k[0]] + '"><span class="kit-box">' + (done[k[0]] ? '✓' : '') + '</span><span style="font-size:22px">' + k[1] + '</span><span class="kit-label grow">' + k[2] + '</span></button>'; }).join('') +
-      '<button class="btn ghost block sm" data-reset style="margin-top:8px">Untick everything</button>';
+      '<button class="btn ghost block sm" data-reset style="margin-top:8px">Desmarcar todo</button>';
     var sh = keep ? U.swap(html) : U.sheet(html);
     Array.prototype.forEach.call(sh.querySelectorAll('[data-k]'), function (b) {
       b.onclick = function () {
@@ -135,25 +135,25 @@
 
   /* ---------- Bristol ---------- */
   var SPOTS = [
-    ['🌉', 'Clifton Suspension Bridge', 'Brunel\'s bridge over the Avon Gorge. Walk across, and see it lit up at night from the Clifton side.'],
-    ['⚓', 'Harbourside & SS Great Britain', 'The old docks: Brunel\'s great iron ship, bars and food along the water. Very pirate.'],
-    ['🍔', 'Wapping Wharf', 'Little restaurants and bars in shipping containers by the harbour.'],
-    ['🎨', 'Stokes Croft', 'Street art (Bristol is Banksy\'s city), independent bars and late food.'],
-    ['🗼', 'Cabot Tower, Brandon Hill', 'Climb the tower for a free view over the whole city.'],
-    ['🛍️', 'Cabot Circus', 'Big shopping centre in the middle, for anything you forgot.'],
+    ['🌉', 'Puente colgante de Clifton', 'El puente de Brunel sobre el desfiladero del Avon. Crúzalo andando y vuelve de noche a verlo iluminado desde el lado de Clifton.'],
+    ['⚓', 'Harbourside y el SS Great Britain', 'Los muelles de toda la vida: el gran barco de hierro de Brunel, y bares y comida junto al agua. Muy pirata.'],
+    ['🍔', 'Wapping Wharf', 'Restaurantes y bares pequeñitos montados en contenedores, junto al puerto.'],
+    ['🎨', 'Stokes Croft', 'Arte urbano (Bristol es la ciudad de Banksy), bares independientes y comida hasta tarde.'],
+    ['🗼', 'Cabot Tower, Brandon Hill', 'Sube a la torre y tendrás vistas de toda la ciudad. Gratis.'],
+    ['🛍️', 'Cabot Circus', 'Centro comercial enorme en pleno centro, por si se te ha olvidado algo.'],
   ];
   var PHRASES = [
-    ['Gert lush!', 'Really good (a win).'],
-    ['Alright, my lover?', 'Hello! (said to anyone).'],
-    ['Cheers, drive!', 'Thanks, bus driver.'],
-    ['Where\'s it to?', 'Where is it?'],
-    ['Proper job!', 'Well done.'],
-    ['Ark at ee!', 'Look at him!'],
+    ['Gert lush!', '¡Buenísimo! Una pasada (como ganar una ronda).'],
+    ['Alright, my lover?', '¿Qué pasa, cariño? Es un «hola» y se lo dicen a cualquiera.'],
+    ['Cheers, drive!', '¡Gracias, conductor! (al bajarte del bus).'],
+    ['Where\'s it to?', '¿Dónde está?'],
+    ['Proper job!', '¡Bien hecho!'],
+    ['Ark at ee!', '¡Míralo a él!'],
   ];
   U.acts.bristol = function () {
     U.sheet(U.head('🌉 Bristol') +
-      '<p class="small muted" style="margin-top:0">After the last round: a few classics for the crew.</p>' +
+      '<p class="small muted" style="margin-top:0">Después de la última ronda: unos clásicos para la tripulación.</p>' +
       '<div class="card">' + SPOTS.map(function (s) { return '<div class="spot"><span class="si">' + s[0] + '</span><div><b>' + s[1] + '</b><div class="small muted">' + s[2] + '</div></div></div>'; }).join('') + '</div>' +
-      '<h2 class="sec">🗣️ Speak Bristolian</h2><div class="card">' + PHRASES.map(function (p) { return '<div class="phrase"><b>' + esc(p[0]) + '</b><span class="muted">' + esc(p[1]) + '</span></div>'; }).join('') + '</div>');
+      '<h2 class="sec">🗣️ Habla como en Bristol</h2><div class="card">' + PHRASES.map(function (p) { return '<div class="phrase"><b>' + esc(p[0]) + '</b><span class="muted">' + esc(p[1]) + '</span></div>'; }).join('') + '</div>');
   };
 })(window);

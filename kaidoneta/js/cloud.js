@@ -43,17 +43,22 @@
   function changed(what) { listeners.forEach(function (fn) { try { fn(what); } catch (e) { /* a listener's own problem */ } }); }
 
   function fail(msg, code) { var e = new Error(msg); e.code = code; return e; }
-  var OFFLINE = 'No signal. Everything is saved on this phone and syncs when you are back online.';
+  var OFFLINE = 'Sin cobertura. Todo queda guardado en este móvil y se sincroniza cuando vuelvas a tener conexión.';
+  // The service answers in English: [what it says, what the crew reads, a stable code (else the HTTP status)].
   var FRIENDLY = [
-    [/already (been )?registered|already exists/i, 'That crew name is taken. Join it with its password, or pick another name.'],
-    [/invalid login credentials|invalid grant/i, 'Wrong crew name or password.'],
-    [/password should be at least|weak password/i, 'Use a crew password of at least 6 characters.'],
-    [/rate limit|too many requests/i, 'Too many attempts. Wait a minute and try again.'],
-    [/signups? not allowed|disabled/i, 'New crews are closed right now. Try again later.'],
+    [/already (been )?registered|already exists/i, 'Ese nombre de tripulación ya está pillado. Únete con su contraseña o elige otro nombre.', 'taken'],
+    [/invalid login credentials|invalid grant/i, 'Nombre o contraseña de la tripulación incorrectos.', 'wrong'],
+    [/password should be at least|weak password/i, 'La contraseña de la tripulación necesita al menos 6 caracteres.'],
+    [/rate limit|too many requests/i, 'Demasiados intentos. Espera un minuto y vuelve a probar.'],
+    [/signups? not allowed|disabled/i, 'Ahora mismo no se pueden crear tripulaciones nuevas. Prueba más tarde.'],
   ];
-  function friendly(raw) {
-    for (var i = 0; i < FRIENDLY.length; i++) if (FRIENDLY[i][0].test(raw)) return FRIENDLY[i][1];
-    return raw;
+  function friendly(raw, status) {
+    for (var i = 0; i < FRIENDLY.length; i++) {
+      if (FRIENDLY[i][0].test(raw)) { var e = fail(FRIENDLY[i][1], FRIENDLY[i][2] || status); e.status = status; return e; }
+    }
+    var other = fail('Fallo del servidor de la tripulación (' + raw + '). Inténtalo otra vez.', status);
+    other.status = status;
+    return other;
   }
 
   /* ---------- requests ---------- */
@@ -77,7 +82,7 @@
           try { body = txt ? JSON.parse(txt) : null; } catch (e) { /* not JSON */ }
           if (r.ok) return body;
           var raw = String((body && (body.msg || body.error_description || body.message || body.error)) || ('HTTP ' + r.status));
-          throw fail(friendly(raw), r.status);
+          throw friendly(raw, r.status);
         });
       });
   }
@@ -88,14 +93,14 @@
       .then(function (s) { setSession(s); }, function (e) {
         if (e.code === 'offline') throw e;
         C.leave();
-        throw fail('The crew session ended. Join the crew again.', 'signedout');
+        throw fail('Se ha cerrado la sesión de la tripulación. Vuelve a unirte.', 'signedout');
       })
       .then(function () { refreshing = null; }, function (e) { refreshing = null; throw e; });
     return refreshing;
   }
   function api(path, opts) {
     opts = opts || {};
-    if (!C.signedIn()) return Promise.reject(fail('Join a crew first.', 'signedout'));
+    if (!C.signedIn()) return Promise.reject(fail('Primero únete a una tripulación.', 'signedout'));
     var ready = !S.at || (S.exp && C.now() > S.exp - 60000) ? refresh() : Promise.resolve();
     return ready.then(function () { return send(path, opts, true); }).then(null, function (e) {
       if (e.code === 401 && !opts.retried) { opts.retried = true; return refresh().then(function () { return send(path, opts, true); }); }
@@ -106,12 +111,12 @@
   /* ---------- crew ---------- */
   C.clean = function (crew) { return String(crew || '').trim().toLowerCase().replace(/[\s-]+/g, '_'); };
   function check(crew, pass) {
-    if (!C.CREW_RE.test(crew)) throw fail('A crew name has 3 to 20 letters, digits or _.', 'input');
-    if (String(pass || '').length < C.MIN_PASS) throw fail('Use a crew password of at least 6 characters.', 'input');
+    if (!C.CREW_RE.test(crew)) throw fail('El nombre de la tripulación lleva de 3 a 20 letras (sin tildes ni ñ), números o _.', 'input');
+    if (String(pass || '').length < C.MIN_PASS) throw fail('La contraseña de la tripulación necesita al menos ' + C.MIN_PASS + ' caracteres.', 'input');
   }
   function entered(crew) {
     return function (s) {
-      if (!s || !s.access_token) throw fail('The crew service did not answer as expected. Try again.', 'auth');
+      if (!s || !s.access_token) throw fail('El servidor de la tripulación ha respondido algo raro. Inténtalo otra vez.', 'auth');
       S = { crew: crew };
       setSession(s);
       changed('session');
@@ -124,7 +129,7 @@
     return Promise.resolve().then(function () { check(crew, pass); })
       .then(function () { return send('/auth/v1/signup', { method: 'POST', body: { email: C.email(crew), password: pass } }, false); })
       .then(entered(crew), function (e) {
-        if (/taken/.test(e.message)) return C.join(crew, pass).then(null, function () { throw e; });
+        if (e.code === 'taken') return C.join(crew, pass).then(null, function () { throw e; });
         throw e;
       });
   };

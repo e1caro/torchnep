@@ -40,7 +40,15 @@ test('Bristol is created once, with the same id everywhere', () => {
   assert.deepStrictEqual(a, b);
   const m = C.merge(a, b);
   assert.strictEqual(C.events(m).length, 1);
-  assert.strictEqual(C.events(m)[0].name, 'Bristol Regional');
+  assert.strictEqual(C.events(m)[0].name, 'Regional de Bristol');
+  // an untouched default from the English version gets the Spanish name; an edited one is left alone
+  const old = C.emptyBook();
+  old.events[C.BRISTOL.id] = Object.assign({}, a.events[C.BRISTOL.id], { name: 'Bristol Regional' });
+  assert.strictEqual(C.ensureBristol(old).events[C.BRISTOL.id].name, 'Regional de Bristol');
+  const edited = C.emptyBook();
+  edited.events[C.BRISTOL.id] = Object.assign({}, a.events[C.BRISTOL.id], { name: 'Bristol Regional', at: 5 });
+  assert.strictEqual(C.ensureBristol(edited).events[C.BRISTOL.id].name, 'Bristol Regional');
+  assert.ok(C.same(C.merge(a, old), C.merge(old, a)) && C.merge(a, old).events[C.BRISTOL.id].name === 'Regional de Bristol');
 });
 
 test('merge keeps the newest edit of each record and unions the rest', () => {
@@ -136,7 +144,9 @@ test('bounty: wins, going second, streaks, top cut and crewmates pay; it never d
   assert.strictEqual(C.gain(g, 4), B.win + B.streak + B.top);
   assert.strictEqual(C.rankOf(0).rank.id, 'waiter');
   assert.strictEqual(C.rankOf(900e6).rank.id, 'emperor');
-  assert.strictEqual(C.berries(4611100000), '4,611,100,000');
+  assert.strictEqual(C.berries(4611100000), '4.611.100.000');
+  assert.strictEqual(C.berries(999), '999');
+  assert.strictEqual(C.rankOf(900e6).rank.name, 'Emperador');
 });
 
 test('Bounty Board: points, then win rate, then bounty; moves since the last round', () => {
@@ -231,7 +241,9 @@ test('links: pack and unpack round trip', async () => {
   assert.ok(/^[zj][A-Za-z0-9_-]+$/.test(code));
   const back = await C.unpack('https://x.io/kaidoneta/#crew=' + code);
   assert.ok(C.same(back, C.cleanBook(b)));
-  await assert.rejects(C.unpack('qnope'));
+  await assert.rejects(C.unpack('qnope'), (e) => e.code === 'link' && /no es un enlace de Kaidoneta/.test(e.message));
+  await assert.rejects(C.unpack('j!!!'), (e) => e.code === 'link' && /roto o incompleto/.test(e.message));
+  await assert.rejects(C.unpack('jbm9wZQ'), (e) => e.code === 'link' && /roto o incompleto/.test(e.message));
 });
 
 /* ---------- the online crew, against a fake Supabase ---------- */
@@ -302,15 +314,15 @@ test('online crew: create, join from a second phone, both logs end up everywhere
   const pa = phone(svc, A.b), pb = phone(svc, B.b);
 
   let cl = pa.use();
-  await assert.rejects(cl.create('a', 'secret1'), /3 to 20/);
-  await assert.rejects(cl.create('kaidoneta', '123'), /6 characters/);
+  await assert.rejects(cl.create('a', 'secret1'), (e) => e.code === 'input' && /de 3 a 20/.test(e.message));
+  await assert.rejects(cl.create('kaidoneta', '123'), (e) => e.code === 'input' && /6 caracteres/.test(e.message));
   assert.strictEqual(await cl.create('Kaidoneta Crew', 'gertlush'), 'kaidoneta_crew');
   assert.ok(cl.signedIn());
   assert.strictEqual(svc.saves['uid-0'].book.members['m-javi00001'].name, 'Javi');
   pa.park();
 
   cl = pb.use();
-  await assert.rejects(cl.join('kaidoneta_crew', 'wrongpass'), /Wrong crew name or password/);
+  await assert.rejects(cl.join('kaidoneta_crew', 'wrongpass'), (e) => e.code === 'wrong' && /contraseña de la tripulación incorrectos/.test(e.message));
   await cl.join('kaidoneta_crew', 'gertlush');
   assert.strictEqual(C.members(pb.state.book).length, 3, 'the second phone got the crew');
   log(pb.state.book, pb.state.book.members['m-ana000001'], 1, 'W', LUFFY);
@@ -337,7 +349,7 @@ test('online crew: creating a crew whose name exists joins it with the right pas
   await cl.create('bristol_crew', 'onigashima');
   pa.park();
   cl = pb.use();
-  await assert.rejects(cl.create('bristol_crew', 'otherpass'), /taken/);
+  await assert.rejects(cl.create('bristol_crew', 'otherpass'), (e) => e.code === 'taken' && /ya está pillado/.test(e.message));
   await cl.create('bristol_crew', 'onigashima');
   assert.strictEqual(C.members(pb.state.book).length, 3);
 });
@@ -371,8 +383,8 @@ test('online crew: offline keeps everything and says so; leaving forgets the ses
   const cl = pa.use();
   await cl.create('offline_crew', 'nosignal');
   svc.failNext = 1;
-  await assert.rejects(cl.sync(), /No signal/);
-  assert.match(cl.lastError(), /No signal/);
+  await assert.rejects(cl.sync(), (e) => e.code === 'offline' && /Sin cobertura/.test(e.message));
+  assert.match(cl.lastError(), /Sin cobertura/);
   await cl.sync();
   assert.strictEqual(cl.lastError(), '');
   cl.leave();

@@ -1,3 +1,6 @@
+/* Rubik Dirt (SIL Open Font License, fonts/OFL.txt), cut down to the characters Spanish needs: the brush lettering
+   of the "Road to Bristol" badge. */
+@font-face { font-family: "Kaido Dirt"; src: url("../fonts/rubik-dirt.woff2") format("woff2"); font-display: swap; }
 /* Kaidoneta: Onigashima night. Purple is Kaido's colour; gold is lightning; oni red is a loss. */
 :root {
   --bg: #0d0716;

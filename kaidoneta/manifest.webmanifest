@@ -2,7 +2,8 @@
   "id": "./index.html",
   "name": "Kaidoneta",
   "short_name": "Kaidoneta",
-  "description": "The crew's One Piece Card Game tracker for the Bristol Regional: log rounds, bounties, a Bounty Board ranking, the meta, badges, a round timer. Works offline.",
+  "lang": "es",
+  "description": "La app de la tripulación para el One Piece Card Game en el Regional de Bristol: registra rondas, recompensas, el Tablón de recompensas, el meta, insignias y un temporizador. Funciona sin conexión.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -17,7 +18,7 @@
     { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ],
   "shortcuts": [
-    { "name": "Log a round", "short_name": "Log", "url": "./index.html#/home", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
-    { "name": "Bounty Board", "short_name": "Bounties", "url": "./index.html#/board", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
+    { "name": "Registrar ronda", "short_name": "Registrar", "url": "./index.html#/home", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Tablón de recompensas", "short_name": "Recompensas", "url": "./index.html#/board", "icons": [{ "src": "icons/icon-192.png", "sizes": "192x192" }] }
   ]
 }
