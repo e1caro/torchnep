@@ -459,6 +459,13 @@ details.more[open] summary::before { content: "－ "; }
 .spot { display: flex; gap: 12px; padding: 12px 0; }
 .spot + .spot { border-top: 1px solid var(--line); }
 .spot .si { font-size: 28px; flex: none; }
+.route-card { display: flex; align-items: center; gap: 12px; width: 100%; margin-bottom: 12px; border-color: rgba(251, 191, 36, .45); background: linear-gradient(135deg, rgba(76, 29, 149, .55), rgba(30, 12, 50, .8)); }
+.route-stop { display: flex; gap: 12px; padding: 12px 0; }
+.route-stop + .route-stop { border-top: 1px solid var(--line); }
+.route-num { width: 40px; height: 40px; border-radius: 50%; flex: none; display: grid; place-items: center; font: 900 18px var(--display); background: rgba(0, 0, 0, .3); border: 2px solid var(--line2); color: var(--p4); }
+.route-stop.done .route-num { background: var(--gold); border-color: var(--gold2); color: #2e1065; }
+.route-stop.done b { color: var(--gold2); }
+.route-go { display: inline-block; margin-top: 6px; font-size: 13px; font-weight: 800; color: var(--p4); text-decoration: none; padding: 6px 10px; border-radius: 10px; background: rgba(168, 85, 247, .15); border: 1px solid var(--line2); }
 .phrase { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; padding: 8px 0; }
 .phrase b { color: var(--gold2); }
 

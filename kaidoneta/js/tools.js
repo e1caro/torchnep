@@ -167,9 +167,54 @@
     ['Proper job!', '¡Bien hecho!'],
     ['Ark at ee!', '¡Míralo a él!'],
   ];
+  /* ---------- the Blackbeard route: the real Edward Teach, who gave One Piece's Marshall D. Teach his name, is
+     traditionally said to be from Bristol. Stops researched and fact-checked; visited ones are ticked on this phone. */
+  var ROUTE = { intro: '', walk: '', stops: [] }; // FILLED IN from the fact-checked research
+  function mapsPoint(st) { return 'https://www.google.com/maps/search/?api=1&query=' + st.lat + ',' + st.lng; }
+  function mapsRoute(stops) {
+    if (!stops.length) return '';
+    var pt = function (st) { return st.lat + ',' + st.lng; };
+    var mid = stops.slice(1, -1).map(pt).join('|');
+    return 'https://www.google.com/maps/dir/?api=1&travelmode=walking&origin=' + pt(stops[0]) + '&destination=' + pt(stops[stops.length - 1]) + (mid ? '&waypoints=' + encodeURIComponent(mid) : '');
+  }
+  U.acts.blackbeard = function () { U.routeSheet(); };
+  U.routeSheet = function (keep) {
+    var done = U.local.route = U.local.route || {}, stops = ROUTE.stops, n = stops.filter(function (st, i) { return done[i]; }).length;
+    var html = U.head('🏴‍☠️ Ruta de Barbanegra') +
+      '<p class="small muted" style="margin-top:0">' + esc(ROUTE.intro) + '</p>' +
+      '<div class="row"><div class="progress grow"><i style="width:' + (stops.length ? Math.round(n / stops.length * 100) : 0) + '%"></i></div><b>' + n + '/' + stops.length + '</b></div>' +
+      (n && n === stops.length ? '<div class="warn-box" style="text-align:center">🏴‍☠️ ¡Ruta completada! Barbanegra estaría orgulloso. Kaido, no tanto.</div>' : '') +
+      '<a class="btn primary block" style="margin:12px 0" target="_blank" rel="noopener" href="' + esc(mapsRoute(stops)) + '">🗺️ Abrir la ruta en el mapa</a>' +
+      '<p class="small dim" style="margin-top:0">' + esc(ROUTE.walk) + '</p>' +
+      '<div class="card">' + stops.map(function (st, i) {
+        return '<div class="route-stop' + (done[i] ? ' done' : '') + '">' +
+          '<button class="route-num" data-stop="' + i + '" aria-pressed="' + !!done[i] + '" aria-label="Marcar ' + esc(st.name) + ' como visitada">' + (done[i] ? '✓' : (i + 1)) + '</button>' +
+          '<div class="grow" style="min-width:0"><b>' + esc(st.name) + '</b><div class="small dim">' + esc(st.address) + '</div>' +
+          '<div class="small muted" style="margin-top:4px">' + esc(st.story) + '</div>' +
+          (st.open ? '<div class="small dim" style="margin-top:2px">' + esc(st.open) + '</div>' : '') +
+          '<a class="route-go" target="_blank" rel="noopener" href="' + esc(mapsPoint(st)) + '">📍 Cómo llegar</a></div></div>';
+      }).join('') + '</div>' +
+      '<p class="small dim">Una leyenda pirata no es un dato histórico: lo que es tradición, lo decimos.</p>';
+    var sh = keep ? U.swap(html) : U.sheet(html, { tall: true });
+    Array.prototype.forEach.call(sh.querySelectorAll('[data-stop]'), function (b) {
+      b.onclick = function () {
+        var i = b.getAttribute('data-stop'), d = U.local.route = U.local.route || {};
+        if (d[i]) delete d[i]; else d[i] = 1;
+        X.buzz(15);
+        U.saveLocal();
+        var top = sh.scrollTop;
+        U.routeSheet(true);
+        var now = U.topSheet(); if (now) now.scrollTop = top;
+        var all = stops.every(function (st, k) { return (U.local.route || {})[k]; });
+        if (all && d[i]) { X.sound('win'); X.toast('🏴‍☠️ ¡Ruta de Barbanegra completada!', 'good'); }
+      };
+    });
+  };
+
   U.acts.bristol = function () {
     U.sheet(U.head('🌉 Bristol') +
       '<p class="small muted" style="margin-top:0">Después de la última ronda: unos clásicos para la tripulación.</p>' +
+      (ROUTE.stops.length ? '<button class="card route-card" data-act="blackbeard"><span style="font-size:34px">🏴‍☠️</span><span class="grow" style="text-align:left"><b>Ruta de Barbanegra</b><div class="small muted">' + ROUTE.stops.length + ' paradas piratas por el puerto. El Barbanegra real, el que dio nombre a Marshall D. Teach, sería de Bristol.</div></span><span class="chev">›</span></button>' : '') +
       '<div class="card">' + SPOTS.map(function (s) { return '<div class="spot"><span class="si">' + s[0] + '</span><div><b>' + s[1] + '</b><div class="small muted">' + s[2] + '</div></div></div>'; }).join('') + '</div>' +
       '<h2 class="sec">🗣️ Habla como en Bristol</h2><div class="card">' + PHRASES.map(function (p) { return '<div class="phrase"><b>' + esc(p[0]) + '</b><span class="muted">' + esc(p[1]) + '</span></div>'; }).join('') + '</div>');
   };
