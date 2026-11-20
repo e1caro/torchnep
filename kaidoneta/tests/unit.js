@@ -246,6 +246,62 @@ test('links: pack and unpack round trip', async () => {
   await assert.rejects(C.unpack('jbm9wZQ'), (e) => e.code === 'link' && /roto o incompleto/.test(e.message));
 });
 
+test('the same round logged twice (two phones) counts once, and slotTaken finds it', () => {
+  const { b, javi, ana, ev } = crew();
+  log(b, ana, 3, 'W', ENEL);
+  log(b, ana, 3, 'W', ENEL); // the second phone, bad signal
+  assert.strictEqual(C.games(b, ana.id, ev).length, 1);
+  assert.strictEqual(C.record(C.games(b, ana.id, ev)).pts, 3);
+  assert.ok(C.slotTaken(b, ana.id, ev, 'R3', ''));
+  assert.ok(!C.slotTaken(b, ana.id, ev, 'R4', ''));
+  // friendly fire logged by Javi, and Ana logs her loss as an ordinary round: still one round for Ana
+  log(b, javi, 4, 'W', ana.leader, { oppMem: ana.id });
+  log(b, ana, 4, 'L', javi.leader);
+  assert.strictEqual(C.games(b, ana.id, ev).length, 2);
+  assert.ok(C.loggedBy(b, ev, 4, '', javi.id, ana.id), 'found in both directions');
+});
+
+test('a round logged under a merged-away profile is moved, not lost', () => {
+  const { b, ana, ev } = crew();
+  const ana2 = C.put(b, 'members', { id: 'm-ana000002', name: 'Ana', emoji: '🐍', color: '#ff7ac6', leader: ana.leader });
+  const offline = JSON.parse(JSON.stringify(b)); // Ana's phone, no signal
+  C.mergeMembers(b, ana.id, ana2.id);
+  log(offline, offline.members['m-ana000002'], 2, 'W', ENEL); // logged as the old profile
+  const m = C.merge(b, offline);
+  assert.strictEqual(m.members['m-ana000002'].into, ana.id, 'the tombstone keeps where it went');
+  assert.strictEqual(C.games(m, ana.id, ev).length, 0, 'before the fix the round is orphaned');
+  assert.strictEqual(C.fixAliases(m), true);
+  assert.strictEqual(C.games(m, ana.id, ev).length, 1);
+  assert.strictEqual(C.fixAliases(m), false, 'nothing left to move');
+  assert.strictEqual(C.aliasOf(m, 'm-ana000002'), ana.id);
+  assert.strictEqual(C.cleanBook(m).members['m-ana000002'].into, ana.id, 'survives a link or the server');
+});
+
+test('cutting text never leaves half an emoji', () => {
+  const { b } = crew();
+  const r = C.put(b, 'members', { id: 'm-emoji0001', name: 'Javi ' + '🐉'.repeat(12), emoji: '🐉', color: '#9b5cf6', leader: C.KAIDO });
+  assert.ok(!/[\ud800-\udbff](?![\udc00-\udfff])/.test(r.name), 'no lone high surrogate');
+  assert.doesNotThrow(() => encodeURIComponent(r.name));
+  assert.strictEqual(C.cleanBook({ members: { 'm-x00000001': { id: 'm-x00000001', at: 1, name: 'a\ud83d' } } }).members['m-x00000001'].name, 'a');
+});
+
+test('a link cannot delete the regional or pin a record in the future', () => {
+  const { b } = crew();
+  C.remove(b, 'events', C.BRISTOL.id);
+  C.ensureBristol(b);
+  assert.ok(C.get(b, 'events', C.BRISTOL.id), 'the regional comes back');
+  const evil = C.cleanBook({ members: { 'm-evil00001': { id: 'm-evil00001', at: 9e14, name: 'X' } } });
+  assert.ok(evil.members['m-evil00001'].at <= C.now() + C.SKEW + 100);
+});
+
+test('Emperor of the Sea stays earned after a later loss', () => {
+  const { b, javi } = crew();
+  [1, 2, 3, 4].forEach((r) => log(b, javi, r, 'W', ENEL));
+  log(b, javi, 5, 'L', LUFFY);
+  const got = C.badges(C.games(b, javi.id, null)).filter((x) => x.got).map((x) => x.badge.id);
+  assert.ok(got.includes('emperor'));
+});
+
 /* ---------- the online crew, against a fake Supabase ---------- */
 function fakeService() {
   const users = {}, saves = {}, svc = { calls: 0, failNext: 0 };
@@ -392,10 +448,29 @@ test('online crew: offline keeps everything and says so; leaving forgets the ses
   assert.strictEqual(await cl.sync(), false);
 });
 
+
+test('online crew: a busy server during the token refresh keeps the crew session', async () => {
+  const svc = fakeService();
+  const pa = phone(svc, crew().b);
+  const cl = pa.use();
+  await cl.create('busy_crew', 'servers');
+  const real = svc.fetch;
+  svc.fetch = (url, init) => (/grant_type=refresh_token/.test(url) ? Promise.resolve({ ok: false, status: 503, text: () => Promise.resolve('{"msg":"busy"}') }) : real(url, init));
+  cl.fetch = svc.fetch;
+  const st = JSON.parse(localStorage.getItem('kaidoneta.cloud'));
+  st.exp = 1; localStorage.setItem('kaidoneta.cloud', JSON.stringify(st)); cl.reload(); // the token has expired
+  await assert.rejects(cl.sync());
+  assert.ok(cl.signedIn(), 'still in the crew');
+  svc.fetch = real; cl.fetch = real;
+  await cl.sync();
+  assert.strictEqual(cl.lastError(), '');
+});
+
 (async () => {
   for (const [name, fn] of tests) {
     clock = 1000; seq = 0;
     try { await fn(); passed++; console.log('ok   ' + name); } catch (e) { console.log('FAIL ' + name); console.log(e); process.exitCode = 1; }
   }
   console.log(`\n${passed}/${tests.length} tests passed`);
+  setTimeout(() => process.exit(process.exitCode || 0), 10); // follow-up syncs leave timers behind
 })();

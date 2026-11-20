@@ -19,7 +19,8 @@
   C.CREW_RE = /^[a-z0-9_]{3,20}$/;
   C.MIN_PASS = 6;
   C.DELAY = 1500;   // after a change, wait this long for more changes before syncing
-  C.EVERY = 20000;  // while the app is open and visible, look for the crew's news this often
+  C.EVERY = 20000;
+  C.TIMEOUT = 15000; // a request that takes longer than this counts as no signal  // while the app is open and visible, look for the crew's news this often
   C.email = function (crew) { return 'kaido.' + crew + '@users.fitquest.app'; }; // an address nobody receives
   C.fetch = function (url, opts) { return root.fetch(url, opts); };              // replaced in tests
   C.now = function () { return Date.now(); };
@@ -74,8 +75,12 @@
     if (auth) hd.Authorization = 'Bearer ' + S.at;
     var init = { method: opts.method || 'GET', headers: hd };
     if (opts.body !== undefined) init.body = JSON.stringify(opts.body);
+    // a request that hangs (a venue's weak signal) gives up after C.TIMEOUT, so later syncs are not blocked by it
+    var ctl = typeof AbortController !== 'undefined' ? new AbortController() : null, tm = null;
+    if (ctl) { init.signal = ctl.signal; tm = setTimeout(function () { ctl.abort(); }, C.TIMEOUT); }
+    var done = function (v) { clearTimeout(tm); return v; };
     return Promise.resolve().then(function () { return C.fetch(C.URL + path, init); })
-      .then(null, function () { throw fail(OFFLINE, 'offline'); })
+      .then(done, function () { done(); throw fail(OFFLINE, 'offline'); })
       .then(function (r) {
         return r.text().then(function (txt) {
           var body = null;
@@ -91,7 +96,10 @@
     if (refreshing) return refreshing;
     refreshing = send('/auth/v1/token?grant_type=refresh_token', { method: 'POST', body: { refresh_token: S.rt } }, false)
       .then(function (s) { setSession(s); }, function (e) {
-        if (e.code === 'offline') throw e;
+        // only a refresh token the server really rejects ends the session; a busy server (429, 5xx) or no signal
+        // keeps it, and the next sync tries again
+        var st = e.status || e.code;
+        if (st !== 400 && st !== 401 && st !== 403 && e.code !== 'wrong') throw e.code === 'offline' ? e : fail(OFFLINE, 'offline');
         C.leave();
         throw fail('Se ha cerrado la sesión de la tripulación. Vuelve a unirte.', 'signedout');
       })
@@ -120,7 +128,8 @@
       S = { crew: crew };
       setSession(s);
       changed('session');
-      return C.sync().then(function () { return crew; });
+      // inside the crew already: a first sync that fails (no signal) is retried later, it is not a failed join
+      return C.sync().then(null, function (e) { if (e.code === 'signedout') throw e; }).then(function () { return crew; });
     };
   }
   // A new crew. If the name exists already, try to join it with the same password instead.
@@ -162,12 +171,15 @@
       last = core.canon(merged);
       var job = remote && core.same(merged, remote) ? Promise.resolve() :
         api('/rest/v1/saves', { method: 'POST', headers: { Prefer: 'resolution=merge-duplicates' }, body: { id: S.uid, data: { app: 'kaidoneta', v: 1, book: merged }, updated_at: new Date(C.now()).toISOString() } });
+      var wrote = !(remote && core.same(merged, remote));
       return job.then(function () {
         S.syncAt = C.now(); S.err = ''; keep();
         changed(took ? 'book' : 'synced');
+        // after writing, look once more a moment later: if another phone wrote at the same time, this catches it
+        if (wrote) again = true;
         return took;
       });
-    }).then(function (v) { syncing = null; return v; }, function (e) {
+    }).then(function (v) { syncing = null; later(); return v; }, function (e) {
       syncing = null;
       S.err = e.message; keep();
       changed('error');
@@ -175,10 +187,20 @@
     });
     return syncing;
   };
+  // A change made while a sync was running, or a write to double-check: one more sync shortly.
+  var again = false;
+  function later() {
+    if (!again) return;
+    again = false;
+    clearTimeout(timer);
+    waiting = true;
+    timer = setTimeout(function () { C.sync().then(null, function () { /* the next change or visit tries again */ }); }, C.DELAY * 3);
+  }
   // Called after every change: syncs a moment later (several quick changes become one sync).
   C.touch = function () {
     if (!C.signedIn()) return;
     if (core.canon(C.getBook()) === last) return;
+    if (syncing) { again = true; return; } // sent right after the sync in flight
     clearTimeout(timer);
     waiting = true;
     timer = setTimeout(function () { C.sync().then(null, function () { /* tries again at the next change or visit */ }); }, C.DELAY);

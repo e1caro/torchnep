@@ -56,7 +56,12 @@
     return JSON.stringify(v);
   }
   C.canon = canon;
-  function str(v, max) { return typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max) : ''; }
+  // Cut to size without leaving half an emoji: a lone surrogate makes the online crew's database refuse every sync.
+  function str(v, max) {
+    if (typeof v !== 'string') return '';
+    return v.replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, max)
+      .replace(/[\ud800-\udbff][\udc00-\udfff]|[\ud800-\udfff]/g, function (p) { return p.length === 2 ? p : ''; });
+  }
   function int(v, lo, hi, def) { v = Math.round(Number(v)); return isFinite(v) && v >= lo && v <= hi ? v : def; }
   var ID_RE = /^[a-z]{1,4}-[a-z0-9-]{3,40}$/;
   function okId(v) { return typeof v === 'string' && ID_RE.test(v); }
@@ -99,10 +104,15 @@
       return { match: r.match, mem: r.mem, emoji: r.emoji };
     },
   };
+  C.SKEW = 2 * 86400000; // how far ahead of this phone's clock another phone's edit may be dated
   function cleanRecord(coll, r) {
     if (!r || typeof r !== 'object' || !okId(r.id)) return null;
-    var at = int(r.at, 0, 9e15, 0);
-    if (r.del) return { id: r.id, at: at, del: 1 };
+    var at = Math.min(int(r.at, 0, 9e15, 0), C.now() + C.SKEW); // a date far in the future would win every merge forever
+    if (r.del) {
+      var t = { id: r.id, at: at, del: 1 };
+      if (coll === 'members' && okId(r.into) && r.into !== r.id) t.into = r.into; // merged into that pirate
+      return t;
+    }
     var body = CLEAN[coll](r);
     if (!body) return null;
     body.id = r.id; body.at = at;
@@ -177,9 +187,9 @@
     var old = book.events[C.BRISTOL.id];
     // An untouched default from before the app spoke Spanish gets the new name (still the oldest possible edit, so
     // every phone ends up with the same record and any real edit still wins).
-    if (!old || (old.at === 1 && !old.del && old.name === 'Bristol Regional')) {
+    if (!old || old.del || (old.at === 1 && old.name === 'Bristol Regional')) {
       var e = {}; Object.keys(C.BRISTOL).forEach(function (k) { e[k] = C.BRISTOL[k]; });
-      e.at = 1; // the oldest possible edit: any change made on any phone wins over this default
+      e.at = old && old.del ? old.at + 1 : 1; // the oldest possible edit, so any real change wins; after a deletion, just newer than it
       book.events[e.id] = cleanRecord('events', e);
     }
     return book;
@@ -203,7 +213,45 @@
       var id = C.reactionId(x.match, keepId);
       if (!C.get(book, 'reactions', id)) C.put(book, 'reactions', { id: id, match: x.match, mem: keepId, emoji: x.emoji });
     });
-    C.remove(book, 'members', dropId);
+    // the tombstone remembers who it became, so a round another phone logs later under the old profile is moved too
+    var old = book.members[dropId];
+    book.members[dropId] = { id: dropId, at: Math.max(C.now(), old ? old.at + 1 : 0), del: 1, into: keepId };
+  };
+  // The live pirate an id stands for now: itself, or the one it was merged into ('' if gone).
+  C.aliasOf = function (book, id) {
+    for (var i = 0; i < 6 && id; i++) {
+      var r = book.members[id];
+      if (!r) return '';
+      if (!r.del) return id;
+      id = r.into || '';
+    }
+    return '';
+  };
+  // Moves rounds and reactions that still name a merged-away pirate (logged on a phone that had not heard of the
+  // merge yet) to the pirate it became. Returns true if anything changed.
+  C.fixAliases = function (book) {
+    var moved = false, merged = {};
+    Object.keys(book.members).forEach(function (k) { var r = book.members[k]; if (r.del && r.into) merged[k] = 1; });
+    if (!Object.keys(merged).length) return false;
+    C.live(book, 'matches').forEach(function (m) {
+      if (!merged[m.mem] && !merged[m.oppMem] && !merged[m.by]) return;
+      var r = JSON.parse(JSON.stringify(m));
+      if (merged[r.mem]) r.mem = C.aliasOf(book, r.mem) || r.mem;
+      if (merged[r.oppMem]) r.oppMem = C.aliasOf(book, r.oppMem);
+      if (merged[r.by]) r.by = C.aliasOf(book, r.by);
+      if (r.mem === r.oppMem) r.oppMem = '';
+      if (merged[r.mem]) return; // nowhere to go
+      C.put(book, 'matches', r); moved = true;
+    });
+    C.live(book, 'reactions').forEach(function (x) {
+      if (!merged[x.mem]) return;
+      var to = C.aliasOf(book, x.mem);
+      C.remove(book, 'reactions', x.id); moved = true;
+      if (!to) return;
+      var id = C.reactionId(x.match, to);
+      if (!C.get(book, 'reactions', id)) C.put(book, 'reactions', { id: id, match: x.match, mem: to, emoji: x.emoji });
+    });
+    return moved;
   };
 
   C.reactionId = function (matchId, memId) { return 'x-' + matchId.replace(/^[a-z]+-/, '') + '-' + memId.replace(/^[a-z]+-/, ''); };
@@ -243,15 +291,23 @@
   // unless this pirate logged the same round against them too (then their own entry counts, once).
   C.games = function (book, memId, evId) {
     var all = C.live(book, 'matches').filter(function (m) { return valid(book, m) && (!evId || m.ev === evId); });
-    var own = {};
-    all.forEach(function (m) { if (m.mem === memId && m.oppMem) own[m.ev + '|' + slot(m) + '|' + m.oppMem] = 1; });
-    var out = [];
+    // one entry per pirate per round: if two phones logged the same round (bad signal), the first one logged counts
+    all.sort(function (a, b) { return (a.t || a.at) - (b.t || b.at) || (a.id < b.id ? -1 : 1); });
+    var taken = {}, out = [];
     all.forEach(function (m) {
-      if (m.mem === memId) {
-        out.push({ m: m, res: m.res, first: m.first, opp: m.opp, oppMem: m.oppMem && C.get(book, 'members', m.oppMem) ? m.oppMem : '', mirror: false });
-      } else if (m.oppMem === memId && !own[m.ev + '|' + slot(m) + '|' + m.mem]) {
-        out.push({ m: m, res: flip(m.res), first: m.first === null ? null : !m.first, opp: m.myLeader, oppMem: m.mem, mirror: true });
-      }
+      if (m.mem !== memId) return;
+      var k = m.ev + '|' + slot(m);
+      if (taken[k]) return;
+      taken[k] = 1;
+      out.push({ m: m, res: m.res, first: m.first, opp: m.opp, oppMem: m.oppMem && C.get(book, 'members', m.oppMem) ? m.oppMem : '', mirror: false });
+    });
+    // a crewmate's friendly-fire round counts the other way round, unless this pirate has that round already
+    all.forEach(function (m) {
+      if (m.oppMem !== memId || m.mem === memId) return;
+      var k = m.ev + '|' + slot(m);
+      if (taken[k]) return;
+      taken[k] = 1;
+      out.push({ m: m, res: flip(m.res), first: m.first === null ? null : !m.first, opp: m.myLeader, oppMem: m.mem, mirror: true });
     });
     return out.sort(order(book));
   };
@@ -265,7 +321,14 @@
   C.loggedBy = function (book, evId, round, top, memId, oppMemId) {
     var key = top ? 'T' + top : 'R' + round;
     return C.live(book, 'matches').filter(function (m) {
-      return m.ev === evId && slot(m) === key && m.mem === oppMemId && m.oppMem === memId;
+      return m.ev === evId && slot(m) === key && ((m.mem === oppMemId && m.oppMem === memId) || (m.mem === memId && m.oppMem === oppMemId));
+    })[0] || null;
+  };
+  // What already fills this round for this pirate (their own entry or a crewmate's friendly-fire entry naming them),
+  // apart from the match being edited. slotKey is C.slot()'s 'R3' or 'TTop 8'.
+  C.slotTaken = function (book, memId, evId, slotKey, exceptId) {
+    return C.live(book, 'matches').filter(function (m) {
+      return m.id !== exceptId && m.ev === evId && slot(m) === slotKey && (m.mem === memId || m.oppMem === memId) && valid(book, m);
     })[0] || null;
   };
 
@@ -412,7 +475,11 @@
     { id: 'gertlush', icon: '🍺', name: 'Bristol en llamas', desc: 'Gana 4 rondas en un evento', test: function (gs) { return byEvent(gs).some(function (e) { return wins(e).length >= 4; }); } },
     { id: 'raid', icon: '🏯', name: 'Asalto a Onigashima', desc: 'Gana 5 rondas en un evento', test: function (gs) { return byEvent(gs).some(function (e) { return wins(e).length >= 5; }); } },
     { id: 'emperor', icon: '👑', name: 'Emperador del mar', desc: 'Pasa 4+ rondas suizas de un evento sin perder', test: function (gs) {
-      return byEvent(gs).some(function (e) { var sw = e.filter(function (g) { return !g.m.top; }); return sw.length >= 4 && sw.every(function (g) { return g.res !== 'L'; }); });
+      // the first four Swiss rounds of an event without a loss: once earned, a later loss does not take it away
+      return byEvent(gs).some(function (e) {
+        var sw = e.filter(function (g) { return !g.m.top; });
+        return sw.length >= 4 && sw.slice(0, 4).every(function (g) { return g.res !== 'L'; });
+      });
     } },
     { id: 'clifton', icon: '🌉', name: 'Escalada en Clifton', desc: 'Juega el top cut', test: function (gs) { return gs.some(function (g) { return !!g.m.top; }); } },
     { id: 'comeback', icon: '🎈', name: 'Remontada en globo', desc: 'Pierde la primera ronda de un evento y gana las 3 siguientes', test: function (gs) {
