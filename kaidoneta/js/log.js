@@ -12,6 +12,28 @@
     return out;
   }
   function pick(list) { return list[Math.floor(Math.random() * list.length)]; }
+  function nameOf(id) { var m = U.member(id); return m ? m.name : '?'; }
+  function slotLabel(key) { return key.charAt(0) === 'T' ? key.slice(1) : key; }
+  // A round as the given pirate saw it: "ganó a Enel" / "perdió contra Javi", and who logged it.
+  function said(m, memId) {
+    var mine = m.mem === memId, res = mine ? m.res : m.res === 'W' ? 'L' : m.res === 'L' ? 'W' : 'D';
+    var opp = mine ? (m.oppMem ? nameOf(m.oppMem) : (m.opp && m.opp.name) || 'Desconocido') : nameOf(m.mem);
+    var by = m.by || m.mem;
+    return (res === 'W' ? 'ganó a ' : res === 'L' ? 'perdió contra ' : 'empató con ') + opp + (by !== memId && U.member(by) ? ' (lo registró ' + nameOf(by) + ')' : '');
+  }
+  // Swiss never pairs the same two pirates twice: an earlier Swiss round between them in this event.
+  function pairedBefore(evId, a, b, key, exceptId) {
+    return C.live(U.book, 'matches').filter(function (m) {
+      return m.id !== exceptId && m.ev === evId && !m.top && C.slot(m) !== key && U.member(m.mem) &&
+        ((m.mem === a && m.oppMem === b) || (m.mem === b && m.oppMem === a));
+    })[0] || null;
+  }
+  function taken(memId, evId, key, exceptId) {
+    if (C.slotTaken) return C.slotTaken(U.book, memId, evId, key, exceptId);
+    return C.live(U.book, 'matches').filter(function (m) {
+      return m.id !== exceptId && m.ev === evId && C.slot(m) === key && (m.mem === memId || m.oppMem === memId) && U.member(m.mem);
+    })[0] || null;
+  }
 
   U.logSheet = function (matchId, memId) {
     var members = C.members(U.book);
@@ -20,13 +42,17 @@
     if (matchId && !old) { X.toast('Esa ronda ya se ha borrado.'); return; }
     var evId = old ? old.ev : U.ev().id, ev = C.get(U.book, 'events', evId);
     var me = U.me();
+    // a friendly-fire round whose crewmate has since been removed is edited as a round against their leader
+    var lostMate = !!(old && old.oppMem && !U.member(old.oppMem));
     var f = old ? {
-      mem: old.mem, round: old.round || 1, top: old.top, kind: old.oppMem ? 'crew' : 'leader', colors: old.opp.colors.slice(),
-      oppMem: old.oppMem, res: old.res, first: old.first, bo: old.bo, score: old.score,
+      mem: U.member(old.mem) ? old.mem : '', round: old.round || 1, top: old.top, kind: old.oppMem && !lostMate ? 'crew' : 'leader', colors: old.opp.colors.slice(),
+      oppMem: lostMate ? '' : old.oppMem, res: old.res, first: old.first, bo: old.bo, score: old.score,
     } : {
-      mem: memId && U.member(memId) ? memId : me ? me.id : members[0].id, round: 1, top: '', kind: 'leader', colors: [], oppMem: '', res: '', first: null, bo: 1, score: '',
+      // with no "me" on this phone nobody is preselected: a careless tap must not credit the first pirate on the list
+      mem: memId && U.member(memId) ? memId : me ? me.id : '', round: 1, top: '', kind: 'leader', colors: [], oppMem: '', res: '', first: null, bo: 1, score: '',
     };
-    if (!old) f.round = C.nextRound(U.book, f.mem, evId);
+    if (!old && f.mem) f.round = C.nextRound(U.book, f.mem, evId);
+    var asLeader = old && (!old.oppMem || lostMate);
     var faced = facedLeaders(evId);
 
     // the event goes under the title: "Registrar ronda" next to "Regional de Bristol" does not fit on a phone
@@ -36,7 +62,7 @@
       '<div class="field"><span class="lab">Contra</span><div id="lg-kind" style="margin-bottom:12px"></div>' +
         '<div id="lg-leader">' +
           '<div class="chips" id="lg-colors" aria-label="Colores del líder"></div>' +
-          '<input class="inp" id="lg-name" list="lg-dl" maxlength="40" autocomplete="off" placeholder="Líder (p. ej. Enel, Luffy, Lucci…)" style="margin-top:10px" value="' + esc(old && !old.oppMem ? old.opp.name : '') + '">' +
+          '<input class="inp" id="lg-name" list="lg-dl" maxlength="40" autocomplete="off" placeholder="Líder (p. ej. Enel, Luffy, Lucci…)" style="margin-top:10px" value="' + esc(asLeader ? old.opp.name : '') + '">' +
           '<datalist id="lg-dl">' + faced.map(function (l) { return l.name; }).concat(C.LEADERS).filter(function (n, i, a) { return a.indexOf(n) === i; }).map(function (n) { return '<option value="' + esc(n) + '">'; }).join('') + '</datalist>' +
           (faced.length ? '<div class="small dim" style="margin-top:10px">Enfrentados aquí</div><div class="suggest" id="lg-quick">' + faced.slice(0, 10).map(function (l, i) { return '<button class="chip" data-g="quick" data-v="' + i + '">' + U.lchip(l) + '</button>'; }).join('') + '</div>' : '') +
         '</div>' +
@@ -46,7 +72,7 @@
       '<div class="field"><span class="lab">Turno</span><div id="lg-first"></div></div>' +
       '<details class="more"' + (old && (old.bo === 3 || old.mvp || old.notes || old.oppName || old.opp.set) ? ' open' : '') + '><summary>Más: rival, Bo3, carta MVP, notas</summary>' +
         '<div class="row"><div class="field grow"><label for="lg-oppname">Nombre del rival</label><input class="inp" id="lg-oppname" maxlength="30" value="' + esc(old ? old.oppName : '') + '" placeholder="Opcional"></div>' +
-        '<div class="field" style="width:30%"><label for="lg-set">Set</label><input class="inp" id="lg-set" maxlength="12" value="' + esc(old && !old.oppMem ? old.opp.set : '') + '" placeholder="OP17"></div></div>' +
+        '<div class="field" style="width:30%"><label for="lg-set">Set</label><input class="inp" id="lg-set" maxlength="12" value="' + esc(asLeader ? old.opp.set : '') + '" placeholder="OP17"></div></div>' +
         '<div class="field"><span class="lab">Formato</span><div id="lg-bo"></div></div>' +
         '<div class="field"><label for="lg-mvp">Carta MVP</label><input class="inp" id="lg-mvp" maxlength="40" value="' + esc(old ? old.mvp : '') + '" placeholder="La carta que te dio la partida"></div>' +
         '<div class="field"><label for="lg-notes">Notas</label><textarea class="inp" id="lg-notes" maxlength="300" placeholder="¿Qué ha pasado? Fallos, top-decks, mosqueos…">' + esc(old ? old.notes : '') + '</textarea></div>' +
@@ -56,6 +82,7 @@
     var sh = U.sheet(html, { tall: true });
     var q = function (s) { return sh.querySelector(s); };
 
+    if (lostMate) setTimeout(function () { X.toast('Ese compañero ya no está en la tripulación: la ronda queda contra su líder.'); }, 300);
     function chip(g, v, label, on, cls) { return '<button class="chip ' + (cls || '') + (on ? ' on' : '') + '" data-g="' + g + '" data-v="' + esc(v) + '" aria-pressed="' + !!on + '">' + label + '</button>'; }
     function paint() {
       q('#lg-mem').innerHTML = C.members(U.book).map(function (m) { return chip('mem', m.id, U.av(m) + esc(m.name), f.mem === m.id, 'av-chip'); }).join('');
@@ -84,12 +111,26 @@
         '<button class="' + (f.first === null ? 'on' : '') + '" data-g="first" data-v="">No sé</button></div>';
       q('#lg-bo').innerHTML = '<div class="seg"><button class="' + (f.bo === 1 ? 'on' : '') + '" data-g="bo" data-v="1">Bo1</button><button class="' + (f.bo === 3 ? 'on' : '') + '" data-g="bo" data-v="3">Bo3</button></div>' +
         (f.bo === 3 ? '<div class="chips" style="margin-top:10px">' + ['2-0', '2-1', '1-2', '0-2', '1-1', '1-0', '0-1'].map(function (s) { return chip('score', s, s, f.score === s); }).join('') + '</div>' : '');
-      var warn = '';
-      if (f.kind === 'crew' && f.oppMem) {
-        var dup = C.loggedBy(U.book, evId, f.round, f.top, f.mem, f.oppMem);
-        if (dup && (!old || dup.id !== old.id)) warn = '<div class="warn-box">⚠️ ' + esc(U.member(f.oppMem).name) + ' ya ha registrado esta ronda contra ' + esc(U.member(f.mem).name) + ' (' + (dup.res === 'W' ? 'ganó ' + esc(U.member(f.oppMem).name) : dup.res === 'L' ? 'ganó ' + esc(U.member(f.mem).name) : 'empate') + '). Ya cuenta para los dos.</div>';
+      var w = clashes();
+      q('#lg-warn').innerHTML = w.length ? '<div class="warn-box">' + w.map(function (x) { return '⚠️ ' + esc(x); }).join('<br>') + '</div>' : '';
+    }
+    // Rounds this one would repeat: the pirate (or, against a crewmate, the crewmate) already has this round, or the
+    // two crewmates already met in the Swiss. Only a warning: two people can log the same game on bad signal.
+    function clashes() {
+      var out = [], key = f.top ? 'T' + f.top : 'R' + f.round, except = old ? old.id : '', seen = {};
+      var who = [f.mem].concat(f.kind === 'crew' && f.oppMem ? [f.oppMem] : []);
+      who.forEach(function (id) {
+        if (!id || !U.member(id)) return;
+        var t = taken(id, evId, key, except);
+        if (!t || seen[t.id]) return;
+        seen[t.id] = 1;
+        out.push(nameOf(id) + ' ya tiene una partida en ' + slotLabel(key) + ': ' + said(t, id) + '. Si es la misma, no la registres otra vez.');
+      });
+      if (f.kind === 'crew' && f.oppMem && !f.top && U.member(f.mem) && U.member(f.oppMem)) {
+        var p = pairedBefore(evId, f.mem, f.oppMem, key, except);
+        if (p && !seen[p.id]) out.push(nameOf(f.mem) + ' y ' + nameOf(f.oppMem) + ' ya jugaron entre ellos en la ' + U.roundLabel(p) + '. En el suizo no te emparejan dos veces con la misma persona: ¿no será esa partida?');
       }
-      q('#lg-warn').innerHTML = warn;
+      return out;
     }
     paint();
 
@@ -124,13 +165,32 @@
     });
 
     q('[data-save]').onclick = function () {
+      if (!f.mem) { X.toast('Elige quién ha jugado.', 'bad'); q('#lg-mem').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
+      // a sync may have merged or removed a pirate while the sheet was open
+      if (!U.member(f.mem)) {
+        f.mem = (C.aliasOf && C.aliasOf(U.book, f.mem)) || '';
+        if (f.oppMem === f.mem) f.oppMem = '';
+        paint(); X.toast('Ese pirata se ha fusionado o borrado en otro móvil: comprueba quién ha jugado.', 'bad'); return;
+      }
+      if (f.kind === 'crew' && f.oppMem && !U.member(f.oppMem)) {
+        f.oppMem = (C.aliasOf && C.aliasOf(U.book, f.oppMem)) || '';
+        if (f.oppMem === f.mem) f.oppMem = '';
+        paint(); X.toast('Ese compañero se ha fusionado o borrado en otro móvil: elige otra vez contra quién has jugado.', 'bad'); return;
+      }
       if (!f.res) { X.toast('Primero elige VICTORIA, DERROTA o EMPATE.', 'bad'); q('#lg-res').scrollIntoView({ behavior: 'smooth', block: 'center' }); return; }
       if (f.kind === 'crew' && !f.oppMem) { X.toast('Elige contra qué compañero has jugado.', 'bad'); return; }
-      if (f.kind === 'crew') {
-        var dup = C.loggedBy(U.book, evId, f.round, f.top, f.mem, f.oppMem);
-        if (dup && (!old || dup.id !== old.id)) { X.toast(U.member(f.oppMem).name + ' ya la ha registrado. Cuenta para los dos.', 'bad'); return; }
+      var w = clashes();
+      // editing a round without moving it (same pirate, round and opponent) is always fine: it adds nothing new
+      var same = old && old.mem === f.mem && C.slot(old) === (f.top ? 'T' + f.top : 'R' + f.round) && (old.oppMem || '') === (f.kind === 'crew' ? f.oppMem : '');
+      if (w.length && !same) {
+        U.confirm(old ? '¿Guardar la ronda así?' : '¿Registrarla otra vez?', w.map(function (x) { return esc(x); }).join('<br><br>') + '<br><br>Si son dos partidas distintas, adelante. Si es la misma, en la clasificación solo cuenta la que se registró primero.', old ? 'Guardar igualmente' : 'Registrar igualmente', save);
+        return;
       }
+      save();
+    };
+    function save() {
       var mem = U.member(f.mem);
+      if (!mem || (f.kind === 'crew' && !U.member(f.oppMem))) { X.toast('Ese pirata ya no está en la tripulación: elige otra vez.', 'bad'); paint(); return; }
       var rec = {
         id: old ? old.id : C.newId('g'), ev: evId, mem: f.mem, round: f.top ? 0 : f.round, top: f.top,
         opp: f.kind === 'crew' ? U.member(f.oppMem).leader : { name: q('#lg-name').value.trim() || 'Desconocido', colors: f.colors, set: q('#lg-set').value.trim() },
@@ -151,13 +211,16 @@
 
       var after = C.games(U.book, f.mem, evId), bAfter = C.bounty(after), allAfter = C.games(U.book, f.mem, null);
       var rankAfter = C.rankOf(C.bounty(allAfter)).rank, st = C.streaks(after), rr = C.record(after);
-      var gain = bAfter - bBefore;
+      // the gain of this round as the feed shows it (a round logged late can change the streaks after it)
+      var idx = -1;
+      after.forEach(function (g, k) { if (g.m.id === rec.id && !g.mirror) idx = k; });
+      var gain = idx >= 0 ? C.gain(after, idx) : Math.max(0, bAfter - bBefore);
       var info;
       if (rec.res === 'W') {
         var title = rec.top ? '¡AL TOP!' : st.len >= 3 ? '¡RAIMEI HAKKE!' : rec.first === false ? '¡BORO BREATH!' : rec.oppMem ? '¡FUEGO AMIGO!' : pick(['¡BRUTAL!', '¡VAMOS!', '¡TOMA YA!']);
         info = { title: title, line: '+฿' + U.berries(gain), sub: esc(mem.name) + ' · ' + U.recText(rr) + ' · recompensa ฿' + U.berries(bAfter), rankUp: rankAfter.id !== rankBefore.id ? '¡SUBES DE RANGO! · ' + rankAfter.icon + ' ' + rankAfter.name : '' };
       } else if (rec.res === 'L') {
-        info = { title: '¡QUÉ PALO!', line: pick(['Sacúdetelo. A por la siguiente.', 'Hasta Kaido ha perdido alguna. ¡Siguiente!', 'Baraja y a por ellos. ¡Vamos!', 'Las recompensas nunca bajan. Otra vez.']), sub: esc(mem.name) + ' · ' + U.recText(rr) };
+        info = { title: '¡QUÉ PALO!', line: pick(['Sacúdetelo. A por la siguiente.', 'Hasta Kaido ha perdido alguna. ¡Siguiente!', 'Baraja y a por ellos. ¡Vamos!', 'Respira hondo. La siguiente es tuya.']), sub: esc(mem.name) + ' · ' + U.recText(rr) };
       } else {
         info = { title: '¡TABLAS!', line: '+฿' + U.berries(gain) + ' por sobrevivir', sub: esc(mem.name) + ' · ' + U.recText(rr) };
       }
@@ -166,7 +229,7 @@
       fresh.forEach(function (x, i) {
         setTimeout(function () { X.toast((x.badge.shame ? '😅 Insignia de la vergüenza: ' : '🏅 Nueva insignia: ') + x.badge.icon + ' ' + x.badge.name + ' (' + mem.name + ')', 'good'); }, 2700 + i * 900);
       });
-    };
+    }
     var del = q('[data-del]');
     if (del) del.onclick = function () {
       U.confirm('¿Borrar esta ronda?', 'Desaparecerá de la actividad y de todas las clasificaciones, en los móviles de toda la tripulación.', 'Borrar', function () {
