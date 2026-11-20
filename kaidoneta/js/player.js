@@ -75,6 +75,9 @@
       img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
     });
   }
+  function picImage(url) {
+    return new Promise(function (res) { var img = new Image(); img.onload = function () { res(img); }; img.onerror = function () { res(null); }; img.src = url; });
+  }
   function center(g, text, x, y, font, color, spacing) {
     g.font = font; g.fillStyle = color; g.textAlign = 'center';
     if (spacing && 'letterSpacing' in g) g.letterSpacing = spacing + 'px';
@@ -99,8 +102,21 @@
     var glow = g.createRadialGradient(820, 380, 40, 820, 380, 620);
     glow.addColorStop(0, 'rgba(168,85,247,.55)'); glow.addColorStop(1, 'rgba(168,85,247,0)');
     g.fillStyle = glow; g.fillRect(0, 0, W, H);
-    return Promise.all([svgImage(A.kaido({ bolts: true })), svgImage(A.horns()), svgImage(A.crest('', true))]).then(function (imgs) {
-      if (imgs[0]) { g.save(); g.globalAlpha = .9; g.drawImage(imgs[0], 470, 120, 640, 896); g.restore(); }
+    var kid = U.kaidoId(), art = svgImage(kid ? U.kaidoArt({ still: true }) : A.dragon());
+    return Promise.all([art, svgImage(A.horns()), svgImage(A.crest('', true))]).then(function (imgs) {
+      if (imgs[0]) {
+        // the picture fills the right side, cropped like "cover", fading into the purple on the left
+        var im = imgs[0], bw = 640, bh = 980, bx = 460, by = 80, iw = im.naturalWidth || im.width || bw, ih = im.naturalHeight || im.height || bh;
+        var sc = kid ? Math.max(bw / iw, bh / ih) : Math.min(bw / iw, bh / ih), dw = iw * sc, dh = ih * sc;
+        g.save(); g.beginPath(); g.rect(bx, by, bw, bh); g.clip();
+        g.globalAlpha = .92; g.drawImage(im, bx + (bw - dw) / 2, by + (kid ? 0 : (bh - dh) / 2), dw, dh);
+        g.globalAlpha = 1;
+        var fade = g.createLinearGradient(bx, 0, bx + 260, 0); fade.addColorStop(0, '#170a2c'); fade.addColorStop(1, 'rgba(23,10,44,0)');
+        g.fillStyle = fade; g.fillRect(bx, by, 260, bh);
+        var fade2 = g.createLinearGradient(0, by + bh - 260, 0, by + bh); fade2.addColorStop(0, 'rgba(11,6,20,0)'); fade2.addColorStop(1, '#0b0614');
+        g.fillStyle = fade2; g.fillRect(bx, by + bh - 260, bw, 260);
+        g.restore();
+      }
       // lightning
       g.save(); g.strokeStyle = '#fde68a'; g.lineWidth = 5; g.shadowColor = '#fbbf24'; g.shadowBlur = 24; g.lineJoin = 'round';
       [[60, 0, 180, 300], [1040, 860, 930, 1180]].forEach(function (L, k) {
@@ -120,7 +136,7 @@
       pic.addColorStop(0, '#fff'); pic.addColorStop(.25, m.color); pic.addColorStop(1, '#1d0b36');
       g.fillStyle = pic; g.fillRect(140, 285, 520, 400);
       g.strokeStyle = '#3b1d0f'; g.lineWidth = 6; g.strokeRect(140, 285, 520, 400);
-      if (imgs[1]) g.drawImage(imgs[1], 230, 300, 340, 159);
+      if (imgs[1]) g.drawImage(imgs[1], 175, 292, 450, 270);
       center(g, m.emoji, 400, 600, '230px "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Emoji", sans-serif', '#000');
       center(g, 'DEAD OR ALIVE', 400, 745, '900 40px ' + SERIF, '#2a1206', 10);
       var name = m.name.toUpperCase(), size = 104;

@@ -61,16 +61,16 @@
     }
     return d;
   }
-  // Flame-like tufts of hair along one edge (side -1 or 1), swept along the body.
+  // Flame-like tufts of hair along one edge (side -1 or 1), streaming back along the body (sweep < 0) or forward.
   function tufts(S, side, step, len, sweep, seed, from, to) {
     var r = seeded(seed), d = '';
     for (var i = from || 0; i < (to || S.length) - step; i += step) {
-      var s = S[i], e = S[Math.min(S.length - 1, i + step + 1)], L = kv(len, s) * (0.6 + r() * 0.7);
+      var s = S[i], e = S[Math.min(S.length - 1, i + step + 1)], L = kv(len, s) * (0.4 + r() * 1.3);
       if (L < 1.5) continue;
-      var a = pt(s, side * 0.9), b = pt(e, side * 0.9), ox = s.nx * side, oy = s.ny * side, sw = sweep * (0.6 + r() * 0.8);
-      var tip = [(a[0] + b[0]) / 2 + ox * L + s.tx * L * sw, (a[1] + b[1]) / 2 + oy * L + s.ty * L * sw];
-      var c1 = [a[0] + ox * L * 0.7 - s.tx * L * 0.15, a[1] + oy * L * 0.7 - s.ty * L * 0.15];
-      var c2 = [b[0] + ox * L * 0.25 + s.tx * L * sw * 0.2, b[1] + oy * L * 0.25 + s.ty * L * sw * 0.2];
+      var a = pt(s, side * 0.9), b = pt(e, side * 0.9), ox = s.nx * side, oy = s.ny * side, sw = sweep * (0.6 + r() * 0.8), dl = Math.sqrt(1 + sw * sw);
+      var tip = [(a[0] + b[0]) / 2 + (ox + s.tx * sw) / dl * L, (a[1] + b[1]) / 2 + (oy + s.ty * sw) / dl * L];
+      var c1 = [a[0] + (ox * 0.7 / dl - s.tx * 0.15) * L, a[1] + (oy * 0.7 / dl - s.ty * 0.15) * L];
+      var c2 = [b[0] + (ox * 0.25 + s.tx * sw * 0.2) / dl * L, b[1] + (oy * 0.25 + s.ty * sw * 0.2) / dl * L];
       d += 'M' + P(a[0], a[1]) + 'Q' + P(c1[0], c1[1]) + ' ' + P(tip[0], tip[1]) + 'Q' + P(c2[0], c2[1]) + ' ' + P(b[0], b[1]) + 'Z';
     }
     return d;
@@ -97,75 +97,92 @@
     return d;
   }
 
+  // A ragged flame mass rising from (0,0) towards -y: n licking tongues over a base W wide, about H tall, leaning by lean.
+  function fire(n, W, H, lean, seed) {
+    var r = seeded(seed), y0 = -H * 0.1;
+    var d = 'M' + P(-W / 2, y0) + 'C' + P(-W / 2, W * 0.45) + ' ' + P(W / 2, W * 0.45) + ' ' + P(W / 2, y0) + 'C' + P(W * 0.2, -H * 0.4) + ' ' + P(-W * 0.2, -H * 0.4) + ' ' + P(-W / 2, y0) + 'Z';
+    for (var k = 0; k < n; k++) {
+      var u = n > 1 ? 2 * k / (n - 1) - 1 : 0, h = H * (1 - 0.45 * u * u) * (0.7 + r() * 0.45), hw = W / (n + 1) * (0.8 + r() * 0.45);
+      var bx = u * W * 0.3, tx = bx + u * h * 0.22 + lean * h * 0.3 + (r() - 0.5) * hw, ty = -h, bend = (lean + u * 0.4) * h * 0.25;
+      d += 'M' + P(bx - hw, y0) + 'C' + P(bx - hw * 1.5 - bend * 0.3, y0 - h * 0.42) + ' ' + P(tx - hw * 0.7 - bend, ty + h * 0.42) + ' ' + P(tx, ty) +
+        'C' + P(tx + hw * 0.1 - bend * 0.6, ty + h * 0.45) + ' ' + P(bx + hw * 1.5 + bend * 0.2, y0 - h * 0.3) + ' ' + P(bx + hw, y0) + 'Z';
+    }
+    return d;
+  }
+
   /* ---------- the layout ---------- */
   // The ring, drawn clockwise from the bottom centre: [x, y, half width, belly fraction on the inner side, crest length].
-  var RING = [[205, 270, 24, .34, 6], [125, 262, 23, .36, 12], [68, 226, 22, .36, 16], [46, 164, 21, .32, 20], [62, 104, 20, .3, 24], [106, 64, 19, .28, 27],
-    [172, 46, 19, .16, 28], [248, 48, 20, 0, 28], [312, 70, 22, 0, 26], [350, 114, 25, 0, 22], [358, 170, 27, 0, 17], [338, 226, 27, .04, 12], [285, 260, 26, .2, 8]];
-  // The neck, from its base behind the lower coil up behind the head: [x, y, half width].
-  var NECK = [[244, 278, 34], [246, 236, 33], [238, 190, 31], [224, 144, 28], [206, 106, 24], [190, 80, 20]];
-  var ARM_R = [[252, 176, 17], [290, 170, 16.5], [322, 182, 15], [336, 208, 13.5], [333, 234, 12.5], [327, 250, 12]];
+  var RING = [[205, 270, 24, .34, 0], [125, 262, 23, .36, 0], [68, 226, 22, .36, 10], [46, 164, 21, .32, 18], [62, 104, 20, .3, 24], [106, 64, 19, .28, 30],
+    [172, 46, 19, .16, 34], [248, 48, 20, 0, 34], [312, 70, 22, 0, 32], [344, 114, 25, 0, 24], [350, 170, 27, 0, 16], [332, 226, 27, .04, 6], [285, 260, 26, .2, 0]];
+  // The second, lower loop: it shows below the ring and runs up behind it on both sides; the tail drops from it.
+  var COIL2 = [[96, 248, 17], [146, 288, 20], [214, 305, 22], [280, 297, 21], [322, 266, 19], [338, 232, 17]];
+  // The neck, from its base behind the lower coil up behind the head's right cheek: [x, y, half width].
+  var NECK = [[246, 282, 40], [252, 236, 40], [250, 190, 38], [240, 146, 34], [222, 108, 28], [196, 82, 22]];
+  var ARM_R = [[256, 178, 17], [292, 170, 16.5], [322, 182, 15], [336, 208, 13.5], [333, 234, 12.5], [327, 250, 12]];
   var ARM_L = [[238, 212, 15], [212, 218, 14.5], [188, 224, 13.5], [166, 232, 12.5], [150, 242, 12]];
-  var TAIL = [[214, 280, 14, .4], [231, 298, 12.5, .4], [226, 320, 11, .4], [205, 331, 9.5, .4], [189, 345, 8, .4], [190, 362, 6.5, .4], [202, 373, 5, .4], [210, 381, 3.6, .4]];
+  var TAIL = [[260, 300, 18, .4], [266, 326, 16, .4], [254, 344, 14, .4], [232, 351, 12, .4], [213, 357, 10, .4], [206, 370, 8, .4], [213, 380, 6.5, .4], [226, 383, 5, .4]];
   var HEAD = [165, 112];
-  var FLAME = {
-    A: 'M0,4C-22,4-34,-12-30,-34C-28,-48-18,-54-22,-72C-10,-62-8,-50-10,-42C-4,-56 6,-70 2,-98C16,-80 20,-64 14,-48C22,-54 26,-60 28,-70C38,-50 36,-22 26,-8C20,0 10,4 0,4Z',
-    B: 'M0,4C-18,4-30,-8-28,-28C-26,-40-30,-50-36,-62C-20,-56-14,-44-14,-36C-12,-52-4,-62-8,-86C8,-70 12,-56 8,-40C16,-48 18,-58 14,-74C30,-58 34,-34 26,-14C20,-2 10,4 0,4Z',
-    C: 'M0,4C-13,4-18,-8-13,-22C-9,-34-17,-48-8,-74C-3,-58 8,-50 9,-36C10,-28 15,-22 13,-10C11,0 6,4 0,4Z',
-  };
-  // Flames: [x, y, rotation, scale, shape, mirrored, drawn in front of the body]
+  // Flame masses: [n tongues, base width, height, lean, seed]
+  var FIRE = [[5, 34, 64, .18, 31], [4, 26, 54, -.28, 47], [3, 19, 42, .38, 53], [6, 46, 76, .06, 71]];
+  // Flames: [x, y, rotation, scale x, scale y, mass, mirrored, drawn in front of the body]. Three clusters: the left
+  // outer coil, the top right of the coil and the tattooed arm, each with a mass or two behind the body.
   var FLAMES = [
-    // behind the coils, licking out past their outer edge
-    [80, 62, -38, .46, 'A', 0, 0], [34, 128, -62, .42, 'B', 1, 0], [34, 206, -78, .38, 'C', 1, 0], [216, 30, -4, .3, 'C', 0, 0],
-    [320, 44, 22, .44, 'A', 0, 0], [372, 116, 50, .42, 'B', 0, 0], [380, 196, 70, .36, 'C', 0, 0], [118, 278, -14, .32, 'B', 1, 0],
-    // over the body
-    [104, 84, -14, .4, 'A', 0, 1], [56, 178, -24, .34, 'B', 1, 1], [90, 270, -8, .36, 'A', 0, 1], [356, 214, 24, .34, 'C', 0, 1],
-    [264, 286, 6, .3, 'B', 1, 1], [270, 176, -2, .62, 'A', 0, 1], [296, 168, 18, .48, 'B', 0, 1], [326, 184, 32, .34, 'C', 0, 1],
-    [186, 236, 8, .3, 'C', 0, 1], [224, 318, 18, .24, 'C', 0, 1], [194, 346, -20, .2, 'B', 1, 1]];
+    [16, 178, -14, .62, .9, 3, 0, 0], [40, 104, -4, .5, .74, 0, 1, 0], [326, 40, 22, .62, .88, 3, 0, 0], [366, 92, 38, .5, .7, 1, 0, 0], [300, 152, 4, .62, .9, 3, 1, 0],
+    [36, 236, -8, .5, .76, 0, 0, 1], [26, 196, -2, .44, .7, 2, 1, 1], [34, 152, 4, .4, .66, 1, 0, 1], [50, 118, 10, .34, .52, 2, 0, 1],
+    [292, 56, 12, .4, .62, 2, 0, 1], [318, 70, 22, .5, .74, 0, 1, 1], [346, 96, 32, .36, .56, 1, 0, 1],
+    [276, 182, -6, .56, .82, 0, 0, 1], [300, 176, 8, .48, .74, 1, 1, 1], [322, 188, 22, .36, .58, 2, 0, 1]];
 
   /* ---------- parts ---------- */
+  // Lengthen the muzzle: everything below the eyes moves down, up to 6 units.
+  function dn(d) { return d.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, function (m, x, y) { y = Number(y); return x + ',' + f(y <= 0 ? y : y >= 10 ? y + 6 : y * 1.6); }); }
   // The roaring head in its own coordinates: (0,0) between the eyes, about 84 wide.
-  function head(url) {
+  function head(url, geo, use) {
     var hs = spine([[-24, -32, 7], [-44, -40, 6.6], [-60, -50, 5.4], [-68, -66, 4], [-66, -84, 2.2], [-60, -96, 0.2]], 6, false);
     var horn = '<path d="' + band(hs, -1, 1) + '" fill="' + url('hn') + '" stroke="#5a3d16" stroke-width="1"/>' +
       '<path d="' + band(hs, -1, -0.1) + '" fill="#8a6a3a" opacity=".55"/>' +
       '<path d="' + ribs(hs, -1, 1, 3, 1.5, 2) + '" stroke="#6b4f2a" stroke-width=".9" fill="none" opacity=".8"/>' +
       '<path d="' + line(hs.slice(2), 0.55) + '" stroke="#fffaf0" stroke-width="1.3" fill="none" stroke-linecap="round" opacity=".85"/>';
-    var tines = taper([[-9, -38, 3.8], [-13, -60, 3.1], [-15, -80, 2.5], [-13, -96, 1.3], [-10, -106, 0.1]]) +
-      taper([[-14, -60, 2.5], [-26, -70, 1.9], [-32, -84, 0.8], [-31, -92, 0.1]]) +
-      taper([[-15, -82, 1.8], [-24, -90, 1], [-26, -98, 0.1]]);
-    var whisk = taper([[-22, 20, 1.9], [-44, 14, 1.6], [-66, 26, 1.3], [-90, 24, 1], [-110, 8, 0.6], [-122, -6, 0.1]], 5) +
-      taper([[-26, 34, 1.6], [-40, 48, 1.3], [-50, 68, 1.1], [-44, 88, 0.8], [-52, 104, 0.1]], 5);
-    var ruff = 'M-36,-26L-56,-44L-41,-30ZM-41,-16L-66,-24L-44,-8ZM-42,-4L-68,2L-42,6ZM-38,8L-60,22L-35,16ZM-32,20L-46,38L-28,28Z';
-    var face = 'M0,-44C14,-44 28,-40 36,-30L42,-16C44,-8 40,-2 34,4L30,14C28,22 27,30 24,36L-24,36C-27,30-28,22-30,14L-34,4C-40,-2-44,-8-42,-16L-36,-30C-28,-40-14,-44 0,-44Z';
-    var cheek = 'M-42,-16C-44,-8-40,-2-34,4L-30,14C-28,22-27,30-24,36L-18,36C-22,26-22,14-26,6C-30,-2-34,-8-42,-16Z';
-    var brow = 'M-2,-18C-10,-24-24,-32-40,-30C-34,-38-22,-41-13,-37C-6,-33-2,-26-2,-18Z';
+    var tines = geo('tn', both(taper([[-9, -38, 3.8], [-13, -60, 3.1], [-15, -80, 2.5], [-13, -96, 1.3], [-10, -106, 0.1]]) +
+      taper([[-14, -58, 2.6], [-26, -70, 1.9], [-32, -84, 0.8], [-31, -92, 0.1]]) +
+      taper([[-15, -80, 1.9], [-24, -90, 1], [-26, -98, 0.1]])));
+    var whisk = taper([[-22, 25, 2.6], [-36, 17, 2.2], [-48, 14, 1.8], [-60, 20, 1.3], [-70, 20, 0.8], [-78, 8, 0.1]], 5) +
+      taper([[-26, 40, 2.4], [-36, 50, 2], [-46, 58, 1.5], [-48, 66, 1], [-44, 72, 0.6], [-48, 78, 0.1]], 5);
+    var ruff = dn('M-36,-26L-56,-44L-41,-30ZM-41,-16L-66,-24L-44,-8ZM-42,-4L-68,2L-42,6ZM-38,8L-60,22L-35,16ZM-32,20L-46,38L-28,28Z');
+    var face = dn('M0,-44C14,-44 28,-40 36,-30L42,-16C44,-8 40,-2 34,4L30,14C28,22 27,30 24,36L-24,36C-27,30-28,22-30,14L-34,4C-40,-2-44,-8-42,-16L-36,-30C-28,-40-14,-44 0,-44Z');
+    var cheek = dn('M-42,-16C-44,-8-40,-2-34,4L-30,14C-28,22-27,30-24,36L-18,36C-22,26-22,14-26,6C-30,-2-34,-8-42,-16Z');
+    var ridge = 'M-2,-17C-10,-24-26,-31-46,-33L-56,-42C-40,-46-22,-44-12,-38C-5,-33-2,-25-2,-17Z';
     var eye = 'M-5,-12C-12,-15-21,-20-31,-23C-28,-14-19,-8-10,-7C-7,-8-5,-10-5,-12Z';
-    var nostril = 'M-6,18C-9,12-17,12-20,18C-17,22-13,23-9,25C-12,21-10,18-6,18Z';
-    var lowerJaw = 'M-30,36C-33,60-18,82 0,84C18,82 33,60 30,36C27,54 18,68 10,71L-10,71C-18,68-27,54-30,36Z';
-    var mouth = 'M-24,32C-28,48-20,64-10,71L10,71C20,64 28,48 24,32C10,36-10,36-24,32Z';
-    var upTeeth = 'M-24,32L-16,35L-19.5,53ZM-14,35.5L-8.5,36.5L-11.5,45ZM-6.5,36.6L-1.5,37L-4,43.5ZM1.5,37L6.5,36.6L4,43.5ZM8.5,36.5L14,35.5L11.5,45ZM16,35L24,32L19.5,53Z';
-    var loTeeth = 'M-18,66L-10,70L-14.5,54ZM-8,70.6L-2.5,71L-5.2,62ZM2.5,71L8,70.6L5.2,62ZM10,70L18,66L14.5,54Z';
-    var marks = 'M0,-42L0,-26M-6,-40C-14,-39-19,-33-15,-28M-30,-6C-34,2-31,9-27,12M-23,-2C-25,4-23,9-20,11M-12,-4C-14,2-15,6-17,9';
-    return '<path d="' + both(tines) + '" fill="' + url('hn') + '" stroke="#5a3d16" stroke-width=".9"/>' +
+    var nostril = dn('M-5,21C-7,16-14,15-18,18C-20,21-18,24-15,24C-16,22-14,20-11,21C-9,22-7,22-5,21Z');
+    var snarl = dn('M-8,-2C-12,0-14,2-15,5M-6,3C-10,5-12,7-13,10M-19,15C-15,11-9,11-6,14M-36,-30L-42,-16C-44,-8-40,-2-34,4M-30,-38C-20,-43-8,-44 0,-44');
+    var lowerJaw = dn('M-30,36C-33,60-18,82 0,84C18,82 33,60 30,36C27,54 18,68 10,71L-10,71C-18,68-27,54-30,36Z');
+    var mouth = dn('M-24,32C-28,48-20,64-10,71L10,71C20,64 28,48 24,32C10,36-10,36-24,32Z');
+    var upTeeth = dn('M-24,32L-16,35L-19.5,53ZM-14,35.5L-8.5,36.5L-11.5,45ZM-6.5,36.6L-1.5,37L-4,43.5ZM1.5,37L6.5,36.6L4,43.5ZM8.5,36.5L14,35.5L11.5,45ZM16,35L24,32L19.5,53Z');
+    var loTeeth = dn('M-18,66L-10,70L-14.5,54ZM-8,70.6L-2.5,71L-5.2,62ZM2.5,71L8,70.6L5.2,62ZM10,70L18,66L14.5,54Z');
+    var marks = dn('M0,-42L0,-26M-6,-40C-14,-39-19,-33-15,-28M-30,-6C-34,2-31,9-27,12M-23,-2C-25,4-23,9-20,11M-12,-4C-14,2-15,6-17,9');
+    return use(tines, 'fill="#5a3d16" stroke="#5a3d16" stroke-width="1.8" stroke-linejoin="round"') + use(tines, 'fill="' + url('hn') + '"') +
       horn + '<g transform="scale(-1 1)">' + horn + '</g>' +
-      '<path d="' + both(whisk) + '" fill="#e4dfff"/>' +
+      '<path d="' + both(whisk) + '" fill="#b9b2ee" opacity=".75"/>' +
       '<path d="' + both(ruff) + '" fill="#b9b2ee" stroke="#0b0820" stroke-width=".8"/>' +
       '<path d="' + lowerJaw + '" fill="' + url('fc') + '" stroke="#0b0820" stroke-width="1.2"/>' +
       '<path d="' + mouth + '" fill="' + url('mo') + '"/>' +
-      '<path d="M-13,64C-10,52 10,52 13,64C8,69-8,69-13,64Z" fill="#c2304a"/><path d="M0,55V64" stroke="#7a1028" stroke-width="1"/>' +
+      '<path d="' + dn('M-13,64C-10,52 10,52 13,64C8,69-8,69-13,64Z') + '" fill="#c2304a"/><path d="M0,61L0,70" stroke="#7a1028" stroke-width="1"/>' +
       '<path d="' + upTeeth + loTeeth + '" fill="#fffaf0" stroke="#8d88a8" stroke-width=".5"/>' +
       '<path d="' + face + '" fill="' + url('fc') + '" stroke="#0b0820" stroke-width="1.3"/>' +
       '<path d="' + both(cheek) + '" fill="#140e3a" opacity=".5"/>' +
-      '<path d="M-8,-10C-12,0-16,8-20,14L20,14C16,8 12,0 8,-10C4,-14-4,-14-8,-10Z" fill="#6d5ce8" opacity=".5"/>' +
-      '<path d="M-22,24C-24,14-16,10-9,12C-4,9 4,9 9,12C16,10 24,14 22,24C18,30-18,30-22,24Z" fill="#4636b8" stroke="#a8b4ff" stroke-width=".8"/>' +
+      '<path d="' + dn('M-8,-10C-12,0-16,8-20,14L20,14C16,8 12,0 8,-10C4,-14-4,-14-8,-10Z') + '" fill="#6d5ce8" opacity=".5"/>' +
+      '<path d="' + dn('M-21,27C-24,19-19,12-11,12C-6,12-3,15 0,15C3,15 6,12 11,12C19,12 24,19 21,27C14,31-14,31-21,27Z') + '" fill="#4636b8" stroke="#0b0820" stroke-width=".9"/>' +
+      '<path d="' + dn('M-19,17C-15,13-8,13-5,15C-2,17 2,17 5,15C8,13 15,13 19,17') + '" stroke="#a8b4ff" stroke-width="1" fill="none" opacity=".8"/>' +
       '<path d="' + both(nostril) + '" fill="#0b0820"/>' +
-      '<path d="M-23,32C-10,36 10,36 23,32" stroke="#5c0d22" stroke-width="2" fill="none"/>' +
+      '<path d="' + both(snarl) + '" stroke="#a8b4ff" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".6"/>' +
+      '<path d="' + dn('M-23,32C-10,36 10,36 23,32') + '" stroke="#5c0d22" stroke-width="2" fill="none"/>' +
       '<path d="' + both(marks) + '" stroke="#a8b4ff" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".75"/>' +
       '<g class="dg-eye"><ellipse cx="-18" cy="-15" rx="17" ry="11" fill="' + url('eg') + '"/><ellipse cx="18" cy="-15" rx="17" ry="11" fill="' + url('eg') + '"/></g>' +
       '<path d="' + both(eye) + '" fill="#fff1a8"/>' +
       '<circle cx="-17" cy="-14" r="3.8" fill="#ff8a1f"/><circle cx="17" cy="-14" r="3.8" fill="#ff8a1f"/>' +
       '<path d="M-17,-17.6V-10.4M17,-17.6V-10.4" stroke="#120a05" stroke-width="1.7" stroke-linecap="round"/>' +
-      '<path d="' + both(brow) + '" fill="#150f3d" stroke="#8f8cf5" stroke-width=".8"/>';
+      // the bony brow ridges, jutting past the face, with a lit upper edge
+      '<path d="' + both(ridge) + '" fill="#110b33" stroke="#0b0820" stroke-width=".8"/>' +
+      '<path d="' + both('M-54,-41C-40,-45-24,-43-13,-37') + '" stroke="#8f8cf5" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".8"/>';
   }
 
   // A clawed hand drawn pointing down (+y) from the wrist at (0,-12), with a spiked bracelet.
@@ -198,7 +215,7 @@
       '<path d="M-3,4.4V7M-1,4.4V7M1,4.4V7M3,4.4V7" stroke="#3a2a5a" stroke-width=".7"/></g>';
   }
   // Fish-scale pattern: dark scale rims with light crescents, two highlight colours on alternate rows.
-  function scalePattern(pid, w, h, rim, hiA, hiB) {
+  function scalePattern(pid, w, h, rim, hiA, hiB, rot, sw) {
     var r = w / 2, d1 = '', d2 = '', rims = '';
     [[0, 0, 1], [w, 0, 1], [r, h, 2], [r, -h, 2], [0, 2 * h, 1], [w, 2 * h, 1]].forEach(function (c) {
       var x = c[0], y = c[1];
@@ -207,9 +224,9 @@
         'C' + P(x + r * 0.5, y + r * 0.8) + ' ' + P(x - r * 0.5, y + r * 0.8) + ' ' + P(x - r * 0.8, y + r * 0.35) + 'Z';
       if (c[2] === 1) d1 += cr; else d2 += cr;
     });
-    return '<pattern id="' + pid + '" width="' + w + '" height="' + (2 * h) + '" patternUnits="userSpaceOnUse">' +
+    return '<pattern id="' + pid + '" width="' + w + '" height="' + f(2 * h) + '" patternUnits="userSpaceOnUse"' + (rot ? ' patternTransform="rotate(' + Math.round(rot) + ')"' : '') + '>' +
       '<path d="' + d1 + '" fill="' + hiA + '"/><path d="' + d2 + '" fill="' + hiB + '"/>' +
-      '<path d="' + rims + '" fill="none" stroke="' + rim + '" stroke-width="1.1"/></pattern>';
+      '<path d="' + rims + '" fill="none" stroke="' + rim + '" stroke-width="' + (sw || 1.1) + '"/></pattern>';
   }
 
   /* ---------- the picture ---------- */
@@ -222,59 +239,84 @@
     var inner = function (s) { return 1 - 2 * s.v[3]; };
 
     Q = 1;
-    var ring = spine(RING, 7, true), neck = spine(NECK, 9, false), armR = spine(ARM_R, 6, false), armL = spine(ARM_L, 6, false), tail = spine(TAIL, 6, false);
-    var front = ring.slice(81).concat(ring.slice(0, 3)); // the stretch of the lower coil in front of the neck
+    var ring = spine(RING, 7, true), N = ring.length, neck = spine(NECK, 9, false), armR = spine(ARM_R, 6, false), armL = spine(ARM_L, 6, false);
+    var tail = spine(TAIL, 6, false), coil = spine(COIL2, 8, false);
+    var FROM = 81, TO = N + 3; // the stretch of the lower coil in front of the neck
+    var front = ring.slice(FROM).concat(ring.slice(0, TO - N + 1));
     var gRing = geo('rb', band(ring, -1, 1, true), true), gFront = geo('fb', band(front, -1, 1)), gNeck = geo('nb', band(neck, -1, 1));
-    var gArmR = geo('ar', band(armR, -1, 1)), gArmL = geo('al', band(armL, -1, 1)), gTail = geo('tb', band(tail, -1, 1));
-    var gTat = geo('tp', band(armR.slice(3, 16), -0.85, 0.85));
-    var crest = tufts(ring, -1, 2, function (s) { return s.v[4] * 1.15; }, -0.55, 3);
-    var neckCrest = tufts(neck, 1, 3, function (s) { return 14 + Math.max(0, s.i - 22) * 1.6; }, 0.5, 8, 4, 46);
+    var gArmR = geo('ar', band(armR, -1, 1)), gArmL = geo('al', band(armL, -1, 1)), gTail = geo('tb', band(tail, -1, 1)), gCoil = geo('cb', band(coil, -1, 1));
+    var gTat = geo('tp', band(armR.slice(3, 24), -0.85, 0.85));
+    var crest = tufts(ring, -1, 3, function (s) { return s.v[4] * 1.15; }, -1, 3);
+    var neckCrest = tufts(neck, 1, 3, function (s) { return 14 + Math.max(0, s.i - 22) * 1.6; }, 0.5, 8, 18, 46);
     var up = function (a) { return Math.max(0, -Math.sin(a * Math.PI / 180)); };
     var mx = HEAD[0], my = HEAD[1] - 12;
-    var ur = function (a) { return a > -70 && a < 10 ? 1 : 0; }; // the upper right, where the mane streams off along the coil
-    var maneCore = fan(mx, my, 16, -220, 40, 10, function (a, r) { return 46 + up(a) * 16 + r * 8; }, 13, 6, 2);
-    var mane = fan(mx, my, 30, -218, 38, 30, function (a, r) { return 34 + up(a) * 62 + ur(a) * 22 + r * 28; }, 10, function (a) { return a < -90 ? -18 : 18 + ur(a) * 10; }, 13);
-    var maneHi = fan(mx, my, 11, -205, 25, 40, function (a, r) { return 18 + up(a) * 40 + ur(a) * 12 + r * 14; }, 1.8, function (a) { return a < -90 ? -14 : 14; }, 17);
-    var beardD = fan(HEAD[0], HEAD[1] + 64, 11, 40, 140, 6, function (a, r) { return 12 + r * 8 + (1 - Math.abs(a - 90) / 50) * 10; }, 9, function (a) { return a < 90 ? 10 : -10; }, 4);
-    var tip = tail[tail.length - 1], tipA = Math.atan2(tip.ty, tip.tx) * 180 / Math.PI;
-    var tuft = fan(tip.x - tip.tx * 3, tip.y - tip.ty * 3, 11, tipA - 75, tipA + 75, 2, function (a, r) { return 18 + r * 12 - Math.abs(a - tipA) / 12; }, 9, function (a) { return a < tipA ? -12 : 12; }, 21);
+    var ur = function (a) { return a > -50 && a < 10 ? 1 : 0; }; // the upper right, where the mane streams off along the coil
+    var maneCore = fan(mx, my, 16, -220, 40, 10, function (a, r) { return 44 + up(a) * 12 + r * 8; }, 13, 6, 2);
+    var mane = fan(mx, my, 30, -218, 38, 30, function (a, r) { return 30 + up(a) * 30 + ur(a) * 16 + r * 16; }, 10, function (a) { return a < -90 ? -18 : 18 + ur(a) * 10; }, 13);
+    var maneHi = fan(mx, my, 6, -200, 20, 40, function (a, r) { return 16 + up(a) * 26 + ur(a) * 10 + r * 10; }, 1.8, function (a) { return a < -90 ? -14 : 14; }, 17);
+    var beardD = fan(HEAD[0], HEAD[1] + 70, 11, 40, 140, 6, function (a, r) { return 12 + r * 8 + (1 - Math.abs(a - 90) / 50) * 10; }, 9, function (a) { return a < 90 ? 10 : -10; }, 4);
+    var tip = tail[tail.length - 1], tipA = Math.atan2(tip.ty, tip.tx) * 180 / Math.PI, tx0 = tip.x - tip.tx * 4, ty0 = tip.y - tip.ty * 4;
+    var tuft = fan(tx0, ty0, 6, tipA - 44, tipA + 30, 2, function (a, r) { return 30 + r * 10 - Math.abs(a - tipA) / 5; }, 10, 20, 21);
+    var tuftHi = tongue(tx0, ty0, tipA - 6, 3, 30, 3.5, 26);
     Q = 10;
 
-    defs += '<radialGradient id="' + id('rg') + '" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(204 160) scale(178 130)">' +
+    defs += '<radialGradient id="' + id('rg') + '" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(200 160) scale(174 130)">' +
         '<stop offset=".66" stop-color="#1e1652"/><stop offset=".8" stop-color="#4a38c0"/><stop offset=".86" stop-color="#3b2a9c"/><stop offset=".97" stop-color="#1e1652"/><stop offset="1" stop-color="#140e3a"/></radialGradient>' +
-      '<radialGradient id="' + id('rs') + '" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(204 160) scale(178 130)">' +
+      '<radialGradient id="' + id('rs') + '" gradientUnits="userSpaceOnUse" cx="0" cy="0" r="1" gradientTransform="translate(200 160) scale(174 130)">' +
         '<stop offset=".66" stop-color="#0d0930" stop-opacity=".85"/><stop offset=".76" stop-color="#0d0930" stop-opacity="0"/><stop offset=".88" stop-color="#0d0930" stop-opacity="0"/><stop offset=".98" stop-color="#0d0930" stop-opacity=".8"/></radialGradient>' +
       '<linearGradient id="' + id('nk') + '" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#b8975a"/><stop offset=".35" stop-color="#f0dca0"/><stop offset=".7" stop-color="#e2c888"/><stop offset="1" stop-color="#a88548"/></linearGradient>' +
       '<linearGradient id="' + id('bl') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#f0dca0"/><stop offset="1" stop-color="#b8975a"/></linearGradient>' +
       '<linearGradient id="' + id('lb') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#6d5ce8"/><stop offset=".5" stop-color="#3b2a9c"/><stop offset="1" stop-color="#1e1652"/></linearGradient>' +
       '<linearGradient id="' + id('ls') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0d0930" stop-opacity="0"/><stop offset=".55" stop-color="#0d0930" stop-opacity=".1"/><stop offset="1" stop-color="#0d0930" stop-opacity=".75"/></linearGradient>' +
+      '<linearGradient id="' + id('cs') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#0d0930" stop-opacity=".85"/><stop offset=".45" stop-color="#0d0930" stop-opacity=".2"/><stop offset="1" stop-color="#0d0930" stop-opacity=".55"/></linearGradient>' +
       '<radialGradient id="' + id('fc') + '" cx=".5" cy=".3" r=".7"><stop offset="0" stop-color="#6d5ce8"/><stop offset=".55" stop-color="#3b2a9c"/><stop offset="1" stop-color="#1e1652"/></radialGradient>' +
       '<radialGradient id="' + id('mo') + '" cx=".5" cy=".7" r=".7"><stop offset="0" stop-color="#7a1028"/><stop offset="1" stop-color="#1a0610"/></radialGradient>' +
       '<radialGradient id="' + id('eg') + '"><stop offset="0" stop-color="#ffe08a" stop-opacity=".95"/><stop offset="1" stop-color="#ff9a1f" stop-opacity="0"/></radialGradient>' +
       '<linearGradient id="' + id('hn') + '" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#fff6d8"/><stop offset=".5" stop-color="#f2e2b0"/><stop offset="1" stop-color="#c9a76a"/></linearGradient>' +
       '<linearGradient id="' + id('sv') + '" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#c9ccd8"/><stop offset="1" stop-color="#7d8296"/></linearGradient>' +
-      '<linearGradient id="' + id('fo') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff4d00"/><stop offset="1" stop-color="#ff7a10"/></linearGradient>' +
-      '<linearGradient id="' + id('fm') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff8a1f"/><stop offset="1" stop-color="#ffb347"/></linearGradient>' +
-      '<linearGradient id="' + id('fy') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffe08a"/><stop offset="1" stop-color="#fff6d0"/></linearGradient>' +
-      '<radialGradient id="' + id('fg') + '"><stop offset="0" stop-color="#ff7a1a" stop-opacity=".45"/><stop offset="1" stop-color="#ff4d00" stop-opacity="0"/></radialGradient>' +
+      '<linearGradient id="' + id('fo') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#e8340a"/><stop offset=".6" stop-color="#ff4d00"/><stop offset="1" stop-color="#ff7a10"/></linearGradient>' +
+      '<linearGradient id="' + id('fm') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ff7a10"/><stop offset="1" stop-color="#ff9a1f"/></linearGradient>' +
+      '<linearGradient id="' + id('fy') + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#ffd166"/><stop offset="1" stop-color="#fff2c0"/></linearGradient>' +
+      '<radialGradient id="' + id('fg') + '"><stop offset="0" stop-color="#ff6a10" stop-opacity=".4"/><stop offset="1" stop-color="#ff4d00" stop-opacity="0"/></radialGradient>' +
+      '<radialGradient id="' + id('sd') + '"><stop offset="0" stop-color="#0b0820" stop-opacity=".6"/><stop offset="1" stop-color="#0b0820" stop-opacity="0"/></radialGradient>' +
       '<radialGradient id="' + id('au') + '" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#8b5cf6" stop-opacity=".5"/><stop offset=".6" stop-color="#6d28d9" stop-opacity=".2"/><stop offset="1" stop-color="#5b21b6" stop-opacity="0"/></radialGradient>' +
       scalePattern(id('sc'), 10, 6, '#100b2e', '#a8b4ff', '#6d5ce8') +
+      scalePattern(id('ss'), 7, 4.2, '#100b2e', '#a8b4ff', '#6d5ce8', 0, 0.9) +
       scalePattern(id('tt'), 7, 4.2, '#5a1206', '#ffd166', '#ff9a1f');
-    // flames: three nested layers of one shape, defined once per shape
-    ['A', 'B', 'C'].forEach(function (k) {
-      var sh = geo('f' + k, FLAME[k]);
-      defs += '<g id="' + id('F' + k) + '"><circle cy="-34" r="46" fill="' + url('fg') + '"/>' + use(sh, 'fill="' + url('fo') + '"') +
-        use(sh, 'transform="translate(0 2) scale(.7)" fill="' + url('fm') + '"') + use(sh, 'transform="translate(0 3) scale(.4)" fill="' + url('fy') + '"') + '</g>';
+    // the ring's scales turn with it: one pattern per stretch between control points, rotated to its tangent
+    var NA = RING.length, SEG = N / NA;
+    for (var k = 0; k < NA; k++) {
+      var m1 = ring[k * SEG + 3], m2 = ring[k * SEG + 4];
+      defs += scalePattern(id('s' + k), 10, 6, '#100b2e', '#a8b4ff', '#6d5ce8', Math.atan2(m1.tx + m2.tx, -m1.ty - m2.ty) * 180 / Math.PI);
+    }
+    function ringScales(from, to) {
+      var s = '';
+      Q = 1;
+      for (var k = 0; k < 2 * NA; k++) {
+        var lo = Math.max(k * SEG, from), hi = Math.min(k * SEG + SEG, to), seg = [];
+        if (hi <= lo) continue;
+        for (var i = lo; i <= hi; i++) seg.push(ring[i % N]);
+        s += '<path d="' + band(seg, -1, 1) + '" fill="' + url('s' + (k % NA)) + '"/>';
+      }
+      Q = 10;
+      return '<g opacity=".85">' + s + '</g>';
+    }
+    // flame masses: a red ragged outer mass, an orange one inside it and a yellow core, defined once each
+    FIRE.forEach(function (v, k) {
+      defs += '<g id="' + id('F' + k) + '"><ellipse cy="' + f(-v[2] * 0.36) + '" rx="' + f(v[1] * 0.95) + '" ry="' + f(v[2] * 0.6) + '" fill="' + url('fg') + '"/>' +
+        '<path d="' + fire(v[0], v[1], v[2], v[3], v[4]) + '" fill="' + url('fo') + '"/>' +
+        '<path d="' + fire(Math.max(2, v[0] - 1), v[1] * 0.68, v[2] * 0.68, v[3], v[4] + 1) + '" fill="' + url('fm') + '"/>' +
+        '<path d="' + fire(Math.max(1, v[0] - 2), v[1] * 0.4, v[2] * 0.4, v[3], v[4] + 2) + '" fill="' + url('fy') + '"/></g>';
     });
     function flames(inFront) {
-      return FLAMES.filter(function (fl) { return !!fl[6] === inFront; }).map(function (fl, k) {
-        return '<g transform="translate(' + fl[0] + ' ' + fl[1] + ') rotate(' + fl[2] + ') scale(' + (fl[5] ? -fl[3] : fl[3]) + ' ' + fl[3] + ')">' +
-          use('#' + id('F' + fl[4]), 'class="dg-fl f' + (k % 3) + '"') + '</g>';
+      return FLAMES.filter(function (fl) { return !!fl[7] === inFront; }).map(function (fl, k) {
+        return '<g transform="translate(' + fl[0] + ' ' + fl[1] + ') rotate(' + fl[2] + ') scale(' + (fl[6] ? -fl[3] : fl[3]) + ' ' + fl[4] + ')">' +
+          use('#' + id('F' + fl[5]), 'class="dg-fl f' + (k % 3) + '"') + '</g>';
       }).join('');
     }
     // a scaly tube: base fill, scales, shading
-    function tube(ref, fill, shade) {
-      return use(ref, 'fill="' + fill + '"') + use(ref, 'fill="' + url('sc') + '" opacity=".85"') + (shade ? use(ref, 'fill="' + shade + '"') : '');
+    function tube(ref, fill, shade, pat) {
+      return use(ref, 'fill="' + fill + '"') + use(ref, 'fill="' + url(pat || 'ss') + '" opacity=".85"') + (shade ? use(ref, 'fill="' + shade + '"') : '');
     }
     // black hair with a violet rim round its outline only: the path stroked wide, then filled black over the stroke
     function rimmed(name, d, w) { var g = geo(name, d); return use(g, 'fill="#3f356a" stroke="#4a3f78" stroke-width="' + w + '" stroke-linejoin="round"') + use(g, 'fill="#0d0a14"'); }
@@ -290,49 +332,70 @@
 
     out += '<ellipse cx="200" cy="196" rx="200" ry="200" fill="' + url('au') + '" opacity=".6"/>';
     out += flames(false);
-    // the crest along the spine, then the ring
-    out += rimmed('cr', crest, 2.6);
-    out += tube(gRing, url('rg'), url('rs')) + ringDetail(ring, true);
-    // left forelimb (its shoulder behind the neck), hand and bracelet
-    var wl = armL[armL.length - 1], al = Math.atan2(wl.ty, wl.tx) * 180 / Math.PI - 90;
-    out += tube(gArmL, url('lb'), url('ls')) + edges(armL);
-    out += '<g transform="translate(' + f(wl.x + wl.tx * 4) + ' ' + f(wl.y + wl.ty * 4) + ') rotate(' + f(al + 10) + ') scale(1.25)">' + hand(url) + '</g>';
-    // neck: crest, scaly back, ribbed belly, the X scar
-    out += rimmed('nc', neckCrest, 2.4);
-    out += tube(gNeck, '#3b2a9c', null);
+    // the tail with its tuft, dropping from the lower loop
+    out += rimmed('tf', tuft, 1.6) + '<path d="' + tuftHi + '" fill="#3f356a"/>';
     Q = 1;
-    out += '<path d="' + band(neck, -1, 0.55) + '" fill="' + url('nk') + '"/>' +
-      '<path d="' + ribs(neck, -1, 0.55, 2, -3) + '" stroke="#6b4f2a" stroke-width="1.3" fill="none"/>' +
-      '<path d="' + line(neck, 0.55) + '" stroke="#4a3418" stroke-width="1.2" fill="none"/>';
-    Q = 10;
-    var scar = 'M216,196C228,212 242,226 260,236M254,194C244,210 234,226 222,244';
-    out += '<path d="' + scar + '" stroke="#5b2416" stroke-width="4.6" fill="none" stroke-linecap="round"/>' +
-      '<path d="' + scar + '" stroke="#e09478" stroke-width="1.3" fill="none" stroke-linecap="round"/>';
-    out += edges(neck, false, 1.4);
-    // right forelimb: tattoo, skull
-    out += tube(gArmR, url('lb'), url('ls'));
-    out += use(gTat, 'fill="#d2401a"') + use(gTat, 'fill="' + url('tt') + '"') + edges(armR);
-    out += skull(343, 200, 1.05);
-    // tail with its tuft, then the front of the lower coil over the neck's base and the tail's root
-    out += rimmed('tf', tuft, 2.4);
-    Q = 1;
-    out += tube(gTail, url('lb'), url('ls')) + '<path d="' + band(tail, function (s) { return 1 - 2 * s.v[3]; }, 1) + '" fill="' + url('bl') + '"/>' +
-      '<path d="' + ribs(tail, function (s) { return 1 - 2 * s.v[3]; }, 1, 2, 1) + '" stroke="#6b4f2a" stroke-width=".9" fill="none"/>';
+    out += tube(gTail, url('lb'), url('ls')) + '<path d="' + band(tail, inner, 1) + '" fill="' + url('bl') + '"/>' +
+      '<path d="' + ribs(tail, inner, 1, 2, 1) + '" stroke="#6b4f2a" stroke-width=".9" fill="none"/>';
     Q = 10;
     out += edges(tail);
-    out += tube(gFront, url('rg'), url('rs')) + ringDetail(front, false);
+    // the second, lower loop under the ring: scales, a belly strip along its lower edge, the ring's shadow on it
+    Q = 1;
+    out += tube(gCoil, '#3b2a9c', url('cs'), 's0') + '<path d="' + band(coil, 0.5, 1) + '" fill="' + url('bl') + '"/>' +
+      '<path d="' + ribs(coil, 0.5, 1, 2, 1.5) + '" stroke="#6b4f2a" stroke-width="1" fill="none"/>';
+    Q = 10;
+    out += edges(coil, false, 1.4);
+    Q = 1;
+    out += '<path d="' + line(ring.slice(74).concat(ring.slice(0, 22)), -1.12) + '" stroke="#0b0820" stroke-width="7" fill="none" opacity=".45"/>';
+    Q = 10;
+    // the crest along the spine, then the ring
+    out += rimmed('cr', crest, 1.6);
+    out += use(gRing, 'fill="' + url('rg') + '"') + ringScales(0, N) + use(gRing, 'fill="' + url('rs') + '"') + ringDetail(ring, true);
+    // right forelimb (its shoulder behind the neck): cast shadow, tattoo, rim light, skull
+    out += use(gArmR, 'transform="translate(3 5)" fill="#0b0820" opacity=".5"');
+    out += tube(gArmR, url('lb'), url('ls'));
+    out += use(gTat, 'fill="#d2401a"') + use(gTat, 'fill="' + url('tt') + '"') + edges(armR);
+    Q = 1;
+    out += '<path d="' + line(armR.slice(6), -0.8) + '" stroke="#a8b4ff" stroke-width="1.2" fill="none" opacity=".6"/>';
+    Q = 10;
+    out += skull(343, 200, 1.05);
+    // left forelimb (its shoulder behind the neck)
+    out += use(gArmL, 'transform="translate(2 4)" fill="#0b0820" opacity=".4"') + tube(gArmL, url('lb'), url('ls')) + edges(armL);
+    // neck: crest, scaly back, ribbed belly, the X scar
+    out += rimmed('nc', neckCrest, 1.6);
+    out += tube(gNeck, '#3b2a9c', null, 'sc');
+    Q = 1;
+    out += '<path d="' + band(neck, -1, 0.72) + '" fill="' + url('nk') + '"/>' +
+      '<path d="' + ribs(neck, -1, 0.72, 2, -3) + '" stroke="#6b4f2a" stroke-width="1.3" fill="none"/>' +
+      '<path d="' + line(neck, 0.72) + '" stroke="#4a3418" stroke-width="1.2" fill="none"/>';
+    Q = 10;
+    var scar = 'M216,192C230,212 248,232 276,252M278,194C262,212 246,234 218,256';
+    out += '<path d="' + scar + '" stroke="#5b2416" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+      '<path d="' + scar + '" stroke="#e8a084" stroke-width="2" fill="none" stroke-linecap="round"/>';
+    out += edges(neck, false, 1.4);
+    out += '<ellipse cx="212" cy="194" rx="24" ry="18" fill="' + url('sd') + '"/>'; // the head's shadow on the neck
+    // the front of the lower coil, over the neck's base
+    out += use(gFront, 'fill="' + url('rg') + '"') + ringScales(FROM, TO) + use(gFront, 'fill="' + url('rs') + '"') + ringDetail(front, false);
+    // the hands with their spiked bracelets
+    var wl = armL[armL.length - 1], al = Math.atan2(wl.ty, wl.tx) * 180 / Math.PI - 90;
+    out += '<ellipse cx="' + f(wl.x - 12) + '" cy="' + f(wl.y + 18) + '" rx="26" ry="12" fill="' + url('sd') + '"/>';
+    out += '<g transform="translate(' + f(wl.x + wl.tx * 4) + ' ' + f(wl.y + wl.ty * 4) + ') rotate(' + f(al + 10) + ') scale(1.25)">' + hand(url) + '</g>';
     var wr = armR[armR.length - 1], ar = Math.atan2(wr.ty, wr.tx) * 180 / Math.PI - 90;
+    out += '<ellipse cx="' + f(wr.x) + '" cy="' + f(wr.y + 26) + '" rx="26" ry="12" fill="' + url('sd') + '"/>';
     out += '<g transform="translate(' + f(wr.x + wr.tx * 4) + ' ' + f(wr.y + wr.ty * 4) + ') rotate(' + f(ar) + ') scale(1.25)">' + hand(url) + '</g>';
     // the mane behind the head, the head, the beard
     out += '<ellipse cx="' + HEAD[0] + '" cy="' + (HEAD[1] - 20) + '" rx="120" ry="110" fill="' + url('au') + '"/>';
-    out += '<g class="dg-mane">' + rimmed('mn', maneCore + mane, 3) +
-      '<path d="' + maneHi + '" fill="#8a80b8" opacity=".55"/></g>';
-    out += '<g transform="translate(' + HEAD[0] + ' ' + HEAD[1] + ')"><g class="dg-head">' + head(url) + '</g></g>';
-    out += rimmed('bd', beardD, 2.4);
+    var gMane = '#' + id('mn');
+    out += '<g class="dg-mane">' + rimmed('mn', maneCore + mane, 1.6) +
+      '<path d="' + maneHi + '" fill="#776d9e" opacity=".55" clip-path="' + url('mc') + '"/></g>';
+    defs += '<clipPath id="' + id('mc') + '">' + use(gMane, '') + '</clipPath>';
+    out += '<g transform="translate(' + HEAD[0] + ' ' + HEAD[1] + ')"><g class="dg-head">' + head(url, geo, use) + '</g></g>';
+    out += rimmed('bd', beardD, 1.6);
     out += flames(true);
     injectStyle();
+    // a 6% margin all round so the mane, crest, flames and tuft never touch the edges
     return '<svg xmlns="http://www.w3.org/2000/svg" class="dragon ' + (cls || '') + '" viewBox="0 0 400 400" role="img" aria-label="Kaido\'s dragon form">' +
-      '<defs>' + defs + '</defs>' + out + '</svg>';
+      '<defs>' + defs + '</defs><g transform="matrix(.94 0 0 .94 12 12)">' + out + '</g></svg>';
   };
 
   var CSS = '@keyframes dgFlick{0%{transform:scale(1,1);opacity:1}50%{transform:scale(.94,1.08);opacity:.92}100%{transform:scale(1.05,.9);opacity:.84}}' +

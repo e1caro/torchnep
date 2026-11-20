@@ -79,8 +79,9 @@
         bolts += '<path d="' + K.art.boltPath(x, -10, x + (Math.random() - 0.5) * 160, 300 + Math.random() * 300, Math.floor(Math.random() * 999) + 1, 26) + '"/>';
       }
     }
+    var art = kind === 'W' && K.ui && K.ui.kaidoArt ? K.ui.kaidoArt({ cls: 'moment-k' }) : '';
     el.className = 'moment show res-' + kind + (X.still() ? ' still' : '');
-    el.innerHTML = (kind === 'W' ? '<svg class="moment-bolts" viewBox="0 0 400 700" preserveAspectRatio="none">' + bolts + '</svg>' : '') +
+    el.innerHTML = (art ? '<div class="moment-kaido">' + art + '</div>' : '') + (kind === 'W' ? '<svg class="moment-bolts" viewBox="0 0 400 700" preserveAspectRatio="none">' + bolts + '</svg>' : '') +
       '<div class="moment-card">' +
         '<div class="moment-title">' + info.title + '</div>' +
         (info.line ? '<div class="moment-line">' + info.line + '</div>' : '') +

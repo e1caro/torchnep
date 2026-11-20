@@ -46,7 +46,7 @@
     html += '<h2 class="sec">⚙️ This phone</h2><div class="card">' +
       '<button class="list-btn" data-act="toggle" data-k="sound"><span style="font-size:22px">🔊</span><span class="grow"><b>Sounds</b><div class="small muted">Thunder on a win</div></span>' + sw(U.local.sound) + '</button>' +
       '<button class="list-btn" data-act="toggle" data-k="buzz"><span style="font-size:22px">📳</span><span class="grow"><b>Vibration</b><div class="small muted">Android phones</div></span>' + sw(U.local.buzz) + '</button>' +
-      '<button class="list-btn" data-act="heroPick"><span style="font-size:22px">🖼️</span><span class="grow"><b>Home picture</b><div class="small muted">' + (U.local.hero === 'photo' && U.heroPhoto ? 'Your picture' : 'Kaido (drawing)') + ' · use a photo of your leader card</div></span><span class="chev">›</span></button>' +
+      '<button class="list-btn" data-act="kaidoStyle"><span style="font-size:22px">👹</span><span class="grow"><b>Kaido style</b><div class="small muted">' + (U.kaidoId() ? esc(A.kaidoVariants[U.kaidoId()].name) : 'The dragon') + ' · on the home screen</div></span><span class="chev">›</span></button>' +
       '<button class="list-btn" data-act="install"><span style="font-size:22px">📲</span><span class="grow"><b>Add to Home Screen</b><div class="small muted">Full screen and offline</div></span><span class="chev">›</span></button>' +
       '<button class="list-btn" data-act="wipe"><span style="font-size:22px">🧨</span><span class="grow"><b style="color:#fda4af">Erase this phone</b><div class="small muted">Removes the crew\'s data from this phone only</div></span></button>' +
     '</div>';
@@ -217,33 +217,15 @@
 
   /* ---------- settings ---------- */
   U.acts.toggle = function (el) { var k = el.getAttribute('data-k'); U.local[k] = !U.local[k]; U.saveLocal(); U.render(); if (k === 'buzz') X.buzz(40); };
-  U.acts.heroPick = function () {
-    var sh = U.sheet(U.head('Home picture') +
-      '<p class="small muted">Put your own picture behind the home screen, like a photo of your Kaido leader card. It stays on this phone only.</p>' +
-      '<button class="list-btn" data-art><span style="font-size:22px">🐉</span><span class="grow"><b>Kaido drawing</b></span>' + (U.local.hero !== 'photo' || !U.heroPhoto ? '<span class="me-tag">ON</span>' : '') + '</button>' +
-      (U.heroPhoto ? '<button class="list-btn" data-photo><img src="' + U.heroPhoto + '" alt="" style="width:44px;height:44px;object-fit:cover;border-radius:10px"><span class="grow"><b>My picture</b></span>' + (U.local.hero === 'photo' ? '<span class="me-tag">ON</span>' : '') + '</button>' : '') +
-      '<label class="btn primary block" style="margin-top:12px">📷 Choose a picture<input type="file" accept="image/*" id="hp-file" hidden></label>' +
-      (U.heroPhoto ? '<button class="btn ghost block sm" style="margin-top:8px" data-rm>Remove my picture</button>' : ''));
-    sh.querySelector('[data-art]').onclick = function () { U.local.hero = 'art'; U.saveLocal(); U.close(); U.render(); };
-    var ph = sh.querySelector('[data-photo]');
-    if (ph) ph.onclick = function () { U.local.hero = 'photo'; U.saveLocal(); U.close(); U.render(); };
-    var rm = sh.querySelector('[data-rm]');
-    if (rm) rm.onclick = function () { U.setHeroPhoto(''); U.close(); U.render(); };
-    sh.querySelector('#hp-file').onchange = function () {
-      var file = this.files && this.files[0];
-      if (!file) return;
-      var img = new Image(), url = URL.createObjectURL(file);
-      img.onload = function () {
-        var max = 1000, s = Math.min(1, max / Math.max(img.width, img.height)), cv = doc.createElement('canvas');
-        cv.width = Math.round(img.width * s); cv.height = Math.round(img.height * s);
-        cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-        URL.revokeObjectURL(url);
-        var data = cv.toDataURL('image/jpeg', 0.82);
-        if (U.setHeroPhoto(data)) { U.close(); U.render(); X.toast('Looking fierce ⚡', 'good'); } else X.toast('That picture is too big for this phone\'s storage.', 'bad');
-      };
-      img.onerror = function () { X.toast('Could not open that picture.', 'bad'); };
-      img.src = url;
-    };
+  U.acts.kaidoStyle = function () {
+    var v = A.kaidoVariants || {}, cur = U.kaidoId() || 'dragon';
+    var opts = U.KAIDO_ORDER.filter(function (id) { return v[id]; }).map(function (id) { return { id: id, name: v[id].name, art: v[id].svg({ still: true }) }; });
+    opts.push({ id: 'dragon', name: 'The dragon', art: A.dragon() });
+    var sh = U.sheet(U.head('Kaido style') + '<p class="small muted" style="margin-top:0">Who watches over the home screen.</p><div class="styles">' +
+      opts.map(function (o) { return '<button class="style-card' + (o.id === cur ? ' on' : '') + '" data-style="' + o.id + '"><span class="style-art">' + o.art + '</span><b>' + esc(o.name) + '</b></button>'; }).join('') + '</div>');
+    Array.prototype.forEach.call(sh.querySelectorAll('[data-style]'), function (b) {
+      b.onclick = function () { U.local.kaido = b.getAttribute('data-style'); U.saveLocal(); U.close(); U.go('home'); };
+    });
   };
   U.acts.install = function () {
     U.sheet(U.head('📲 Add to Home Screen') +

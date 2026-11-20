@@ -8,14 +8,12 @@
   var doc = root.document;
 
   /* ---------- saving ---------- */
-  var BOOK_KEY = 'kaidoneta.book', LOCAL_KEY = 'kaidoneta.local', HERO_KEY = 'kaidoneta.hero';
+  var BOOK_KEY = 'kaidoneta.book', LOCAL_KEY = 'kaidoneta.local', OLD_HERO_KEY = 'kaidoneta.hero';
   function read(k) { try { return JSON.parse(root.localStorage.getItem(k)); } catch (e) { return null; } }
   function write(k, v) { try { root.localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
 
   U.book = C.ensureBristol(C.cleanBook(read(BOOK_KEY)));
-  U.local = Object.assign({ me: '', ev: C.BRISTOL.id, sound: true, buzz: true, scope: 'event', kit: {}, timer: { mins: 0, end: 0, left: 0 }, hero: 'art', welcomed: false }, read(LOCAL_KEY) || {});
-  U.heroPhoto = (function () { try { return root.localStorage.getItem(HERO_KEY) || ''; } catch (e) { return ''; } })();
-
+  U.local = Object.assign({ me: '', ev: C.BRISTOL.id, sound: true, buzz: true, scope: 'event', kit: {}, timer: { mins: 0, end: 0, left: 0 }, welcomed: false }, read(LOCAL_KEY) || {});
   // After every change to the crew's data: keep it, sync it, show it.
   U.save = function () {
     if (!write(BOOK_KEY, U.book)) X.toast('This phone could not save. Free some space or leave private browsing.', 'bad');
@@ -23,16 +21,6 @@
     U.render();
   };
   U.saveLocal = function () { write(LOCAL_KEY, U.local); };
-  U.setHeroPhoto = function (dataUrl) {
-    try {
-      if (dataUrl) root.localStorage.setItem(HERO_KEY, dataUrl); else root.localStorage.removeItem(HERO_KEY);
-      U.heroPhoto = dataUrl || '';
-      U.local.hero = dataUrl ? 'photo' : 'art';
-      U.saveLocal();
-      return true;
-    } catch (e) { return false; }
-  };
-
   /* ---------- helpers ---------- */
   var $ = function (s, el) { return (el || doc).querySelector(s); };
   U.$ = $;
@@ -174,9 +162,9 @@
   function tabs() {
     return TABS.map(function (t) {
       if (t.id === 'log') {
-        return '<button class="tab tab-log" data-act="tab" data-tab="log" aria-label="Log a round"><span class="fab">' + A.bolt() + '</span><span class="fab-label">Log</span></button>';
+        return '<button class="tab tab-log" data-act="tab" data-tab="log" aria-label="Log a round"><span class="fab">' + A.bolt() + '</span></button>';
       }
-      return '<button class="tab' + (U.tab === t.id ? ' on' : '') + '" data-act="tab" data-tab="' + t.id + '"' + (U.tab === t.id ? ' aria-current="page"' : '') + '><span class="t-ico" aria-hidden="true">' + t.icon + '</span>' + t.label + '</button>';
+      return '<button class="tab' + (U.tab === t.id ? ' on' : '') + '" data-act="tab" data-tab="' + t.id + '" aria-label="' + t.label + '"' + (U.tab === t.id ? ' aria-current="page"' : '') + '><span class="t-ico" aria-hidden="true">' + t.icon + '</span></button>';
     }).join('');
   }
 
@@ -204,9 +192,25 @@
   U.updateHeader = function () { var h = $('#top'); if (h && !h.hidden) { h.innerHTML = header(); h.classList.toggle('timing', U.timerLeft() !== null && root.innerWidth < 420); } };
 
   /* ---------- HQ ---------- */
+  // Kaido: one of the rendered styles (js/kaido-*.js), chosen in Crew → Kaido style; 'dragon' shows the dragon instead.
+  U.KAIDO_ORDER = ['backlit', 'bust', 'ukiyoe'];
+  U.kaidoId = function () {
+    var v = A.kaidoVariants || {}, id = U.local.kaido;
+    if (id === 'dragon') return '';
+    if (v[id]) return id;
+    for (var i = 0; i < U.KAIDO_ORDER.length; i++) if (v[U.KAIDO_ORDER[i]]) return U.KAIDO_ORDER[i];
+    return '';
+  };
+  U.kaidoArt = function (opts) { var id = U.kaidoId(); return id ? A.kaidoVariants[id].svg(opts || {}) : ''; };
+  U.dragonArt = function (cls) { return A.dragon(cls); };
+  function heroBolts() {
+    return '<svg class="hero-bolts" viewBox="0 0 400 400" preserveAspectRatio="none" aria-hidden="true">' +
+      '<path class="hb1" d="' + A.boltPath(30, 0, 70, 170, 11, 18) + '"/><path class="hb2" d="' + A.boltPath(380, 20, 330, 210, 5, 16) + '"/><path class="hb3" d="' + A.boltPath(200, 0, 250, 90, 21, 10) + '"/></svg>';
+  }
   function heroArt() {
-    if (U.local.hero === 'photo' && U.heroPhoto) return '<div class="hero-kaido"><img src="' + U.heroPhoto + '" alt="Your picture"></div>';
-    return '<div class="hero-kaido">' + A.kaido({ cls: 'hero-k' }) + '</div>';
+    var k = U.kaidoArt({ cls: 'hero-k' });
+    if (k) return '<div class="hero-kaido k-' + U.kaidoId() + '">' + k + '</div>';
+    return '<div class="hero-dragon">' + U.dragonArt('hero-d') + '</div>' + heroBolts();
   }
   function countdown(ev) {
     var d = U.daysTo(ev.date);
@@ -233,7 +237,7 @@
         '<button class="kicker" data-act="events">¡Vamos Kaidoneta! · ' + esc(U.dateLabel(ev.date)) + ' ▾</button>' +
         '<div class="row" style="align-items:flex-end;gap:10px"><h1 class="grow">' + esc(ev.name) + '</h1><span class="count">' + countdown(ev) + '</span></div>' +
       '</section>' +
-      '<section class="hero' + (U.local.hero === 'photo' && U.heroPhoto ? ' photo' : '') + '">' +
+      '<section class="hero">' +
       A.balloon('#f472b6', '#fde68a', 'b1') + A.balloon('#a78bfa', '#fff', 'b2') + A.balloon('#fbbf24', '#7c3aed', 'b3') +
       heroArt() +
       '<div class="hero-skyline">' + A.skyline() + '</div>' +
@@ -328,7 +332,7 @@
   }
   function board() {
     var ev = U.ev(), all = U.local.scope === 'all', rows = C.board(U.book, all ? null : ev.id);
-    var html = '<div class="page"><div class="board-head"><h1><span>Beasts Pirates</span>Bounty<br>Board</h1>' + A.dragon() + '</div>' + scopeSeg(ev);
+    var html = '<div class="page"><div class="board-head"><h1><span>Beasts Pirates</span>Bounty<br>Board</h1>' + U.dragonArt() + '</div>' + scopeSeg(ev);
     if (!rows.length) return html + '<div class="card empty" style="margin-top:14px"><div class="big">🏴‍☠️</div>No pirates yet. Add your crew in the Crew tab.</div></div>';
     if (!rows.some(function (r) { return r.rec.n; })) html += '<div class="card empty" style="margin-top:14px"><div class="big">💰</div><b>No bounties yet.</b><div class="small">Every win raises your bounty: going second, streaks, top cut and beating a crewmate pay extra.</div></div>';
     html += '<div class="posters">' + rows.map(function (r, i) { return U.poster(r, i === 0 && r.rec.n > 0); }).join('') + '</div>';
@@ -381,7 +385,7 @@
 
   /* ---------- onboarding ---------- */
   function onboard() {
-    return '<div class="onboard">' + A.dragon() +
+    return '<div class="onboard">' + U.dragonArt() +
       '<h1>Kaidoneta</h1>' +
       '<p>The Beasts Pirates\' tracker for the <b>Bristol Regional</b>. Log every round, raise your bounty, climb the crew\'s Bounty Board.</p>' +
       '<button class="btn primary" data-act="start">' + A.bolt() + ' Start our crew</button>' +
@@ -462,6 +466,7 @@
   var started = false;
   U.startCloud = function () { if (!started && cloud.signedIn()) { started = true; cloud.start(); } };
   U.boot = function () {
+    try { root.localStorage.removeItem(OLD_HERO_KEY); } catch (e) { /* an older version's picture */ }
     cloud.getBook = function () { return U.book; };
     cloud.setBook = function (b) {
       U.book = C.ensureBristol(b);
