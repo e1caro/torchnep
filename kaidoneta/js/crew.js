@@ -7,7 +7,7 @@
 
   function sw(on) { return '<span class="switch' + (on ? ' on' : '') + '" aria-hidden="true"></span>'; }
   function dupes() {
-    var by = {}, out = [];
+    var by = Object.create(null), out = []; // no prototype: a pirate called "constructor" or "__proto__" is just a name
     C.members(U.book).forEach(function (m) { var k = m.name.trim().toLowerCase(); (by[k] = by[k] || []).push(m); });
     Object.keys(by).forEach(function (k) { if (by[k].length > 1) out.push(by[k]); });
     return out;
@@ -40,7 +40,7 @@
     // events
     html += '<h2 class="sec">🏯 Evento</h2><div class="card"><button class="list-btn" data-act="events"><span style="font-size:26px">🌉</span><span class="grow"><b>' + esc(ev.name) + '</b><div class="small muted">' + esc(U.dateLabel(ev.date)) + (ev.city ? ' · ' + esc(ev.city) : '') + ' · rondas de ' + ev.mins + ' min</div></span><span class="chev">›</span></button></div>';
     // links
-    html += '<h2 class="sec">🔗 ¿Sin cobertura? Por enlace</h2><div class="card"><div class="small muted" style="margin-bottom:10px">Manda toda la tripulación (piratas, rondas y reacciones) como enlace por el grupo. Al abrirlo en otro móvil se fusiona todo: no se pierde nada.</div>' +
+    html += '<h2 class="sec">🔗 ¿Sin cobertura? Por enlace</h2><div class="card"><div class="small muted" style="margin-bottom:10px">Manda toda la tripulación (piratas, rondas y reacciones) como enlace por el grupo. Al abrirlo en otro móvil se fusiona todo. En iPhone con Kaidoneta en la pantalla de inicio, copia el enlace y pégalo en 📥 Abrir un enlace.</div>' +
       '<div class="row"><button class="btn sm grow" data-act="sendLink">📤 Enviar enlace</button><button class="btn sm grow" data-act="importLink">📥 Abrir un enlace</button></div></div>';
     // settings
     html += '<h2 class="sec">⚙️ Este móvil</h2><div class="card">' +
@@ -153,15 +153,20 @@
       btn.disabled = true; btn.textContent = 'Conectando…';
       q('#cr-err').innerHTML = '';
       (mode === 'create' ? cloud.create(crew, pass) : cloud.join(crew, pass)).then(function (c) {
-        U.close();
+        // a slow answer may arrive after the user moved on: close this sheet only if it is still the one on top
+        if (U.topSheet() === sh) U.close();
         U.startCloud();
         U.render();
         X.toast((mode === 'create' ? 'Tripulación ' + c + ' creada' : '¡Ya estás en ' + c + '!') + ' ⚡ Ahora se sincroniza todo.', 'good');
-        if (!U.me() && C.members(U.book).length) setTimeout(U.whoSheet, 400);
-        else if (!C.members(U.book).length) setTimeout(function () { U.memberSheet(null, { me: true }); }, 400);
+        setTimeout(function () {
+          if (U.topSheet()) return;
+          if (!U.me() && C.members(U.book).length) U.whoSheet();
+          else if (!C.members(U.book).length) U.memberSheet(null, { me: true });
+        }, 400);
       }, function (e) {
         btn.disabled = false; btn.textContent = mode === 'create' ? '🏴‍☠️ Crear tripulación' : '☁️ Unirse';
         q('#cr-err').innerHTML = '<div class="warn-box">' + esc(e.message) + '</div>';
+        if (U.topSheet() !== sh) X.toast(e.message, 'bad');
       });
     };
   };
@@ -170,7 +175,7 @@
   };
   U.acts.invite = function () {
     var url = root.location.origin + root.location.pathname + '#join=' + encodeURIComponent(cloud.crew());
-    var text = '¡Únete a nuestra tripulación de Kaidoneta “' + cloud.crew() + '” para el Regional de Bristol! ⚡ Abre este enlace y escribe la contraseña de la tripulación que te pase.';
+    var text = '¡Únete a nuestra tripulación de Kaidoneta “' + cloud.crew() + '” para el Regional de Bristol! ⚡ Abre este enlace y escribe la contraseña de la tripulación que te pase. En iPhone, si tienes Kaidoneta en la pantalla de inicio, ábrela desde ahí → Tripulación → Unirse, y escribe el nombre “' + cloud.crew() + '” y la contraseña.';
     share(text, url);
   };
   U.acts.leaveCrew = function () {
@@ -190,28 +195,43 @@
   U.acts.sendLink = function () {
     C.pack(U.book).then(function (code) {
       var url = root.location.origin + root.location.pathname + '#crew=' + code, n = C.count(U.book);
-      share('Tripulación de Kaidoneta: ' + n.members + ' piratas, ' + n.matches + ' rondas. Ábrelo para fusionarlo con tu app ⚡', url);
+      share('Tripulación de Kaidoneta: ' + n.members + ' piratas, ' + n.matches + ' rondas. Ábrelo para fusionarlo con tu app ⚡ En iPhone con Kaidoneta en la pantalla de inicio: copia el enlace y pégalo en Tripulación → Abrir un enlace.', url);
     });
   };
   U.importSheet = function () {
-    var sh = U.sheet(U.head('Abrir un enlace') + '<p class="small muted">Pega el enlace (o el código) que te ha mandado un amigo. Se fusiona con este móvil: gana lo más reciente y no se pierde nada.</p><textarea class="inp" id="im-code" placeholder="https://…#crew=…"></textarea><div id="im-err"></div><div class="save-bar"><button class="btn primary" data-go>Fusionar</button></div>');
+    var sh = U.sheet(U.head('Abrir un enlace') + '<p class="small muted">Pega el enlace (o el código) que te ha mandado un amigo. Se fusiona con este móvil: en cada pirata, ronda o evento gana el cambio más reciente.</p><textarea class="inp" id="im-code" placeholder="https://…#crew=…"></textarea><div id="im-err"></div><div class="save-bar"><button class="btn primary" data-go>Fusionar</button></div>');
     sh.querySelector('[data-go]').onclick = function () {
       C.unpack(sh.querySelector('#im-code').value).then(function (b) { U.close(); setTimeout(function () { confirmMerge(b); }, 80); }, function (e) {
         sh.querySelector('#im-err').innerHTML = '<div class="warn-box">' + esc(e.message || 'Ese enlace no se ha podido abrir.') + '</div>';
       });
     };
   };
+  // Live records on this phone that a newer deletion in the link would remove.
+  function deletions(b) {
+    var n = 0;
+    ['members', 'matches', 'events'].forEach(function (coll) {
+      var theirs = b[coll] || {};
+      Object.keys(theirs).forEach(function (k) {
+        var t = theirs[k], mine = U.book[coll] && U.book[coll][k];
+        if (t && t.del && mine && !mine.del && t.at > mine.at) n++;
+      });
+    });
+    return n;
+  }
   function confirmMerge(b) {
-    var n = C.count(b);
-    U.confirm('¿Fusionar esta tripulación?', n.members + ' piratas · ' + n.matches + ' rondas · ' + n.events + ' eventos. Gana lo más reciente y no se pierde nada de este móvil.', 'Fusionar', function () {
+    var n = C.count(b), gone = deletions(b);
+    U.confirm('¿Fusionar esta tripulación?', n.members + ' piratas · ' + n.matches + ' rondas · ' + n.events + ' eventos. En cada pirata, ronda o evento gana el cambio más reciente, también si es un borrado.' +
+      (gone ? ' <b>Ojo: este enlace borra ' + gone + (gone === 1 ? ' cosa' : ' cosas') + ' (piratas, rondas o eventos) de este móvil.</b>' : ''), 'Fusionar', function () {
       U.book = C.ensureBristol(C.merge(U.book, b));
+      if (C.fixAliases) C.fixAliases(U.book);
+      U.fixMe && U.fixMe();
       U.save();
       X.toast('Fusionado ⚡', 'good');
       if (!U.me() && C.members(U.book).length) setTimeout(U.whoSheet, 300);
     });
   }
   U.openLink = function (hash) {
-    try { root.history.replaceState(null, '', root.location.pathname + '#/home'); } catch (e) { /* file:// */ }
+    try { root.history.replaceState(root.history.state, '', root.location.pathname + '#/' + (U.tab || 'home')); } catch (e) { /* file:// */ }
     C.unpack(hash).then(confirmMerge, function (e) { X.toast(e.message || 'Ese enlace no se ha podido abrir.', 'bad'); });
   };
 
@@ -229,7 +249,8 @@
   };
   U.acts.install = function () {
     U.sheet(U.head('📲 Añadir a pantalla de inicio') +
-      '<div class="card"><b>iPhone (Safari)</b><div class="small muted">Toca <b>Compartir</b> (el cuadrado con la flecha) → <b>Añadir a pantalla de inicio</b> → Añadir.</div></div>' +
+      '<div class="card"><b>iPhone (Safari)</b><div class="small muted">Toca <b>Compartir</b> (el cuadrado con la flecha) → <b>Añadir a pantalla de inicio</b> → Añadir.</div>' +
+        '<div class="small muted" style="margin-top:8px">Ojo: en iPhone la app de la pantalla de inicio guarda sus propios datos, aparte de Safari. Ábrela desde el icono (con cobertura la primera vez) y únete ahí a la tripulación online: Tripulación → Unirse, con el nombre y la contraseña de la tripulación. Los enlaces de tripulación se abren en Safari: cópialos y pégalos en Tripulación → 📥 Abrir un enlace.</div></div>' +
       '<div class="card"><b>Android (Chrome)</b><div class="small muted">Toca <b>⋮</b> → <b>Añadir a pantalla de inicio</b> (o <b>Instalar app</b>).</div></div>' +
       '<p class="small muted">Así se abre a pantalla completa y funciona sin cobertura. Las rondas se sincronizan con la tripulación online cuando el móvil vuelve a tener conexión.</p>');
   };

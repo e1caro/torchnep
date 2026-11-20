@@ -91,6 +91,32 @@ async function run(browser, base, size, name) {
   await tap('.sheet [data-save]');
   await page.waitForTimeout(2900);
 
+  // the same pirate's same round again (two phones on bad signal): a warning, and a confirmation before saving it
+  await tap('.hero-me [data-act="log"]');
+  await page.waitForTimeout(300);
+  await tap('.sheet [data-g="step"][data-v="-1"]'); // R3 → R2, which Javi already has
+  const warn = await page.locator('#lg-warn').innerText();
+  if (!/Javi ya tiene una partida en R2/.test(warn)) problems.push(`${name}: no duplicate-round warning (got "${warn}")`);
+  await tap('.sheet [data-g="res"][data-v="W"]');
+  await tap('.sheet [data-save]');
+  await page.waitForTimeout(300);
+  if (!(await page.locator('.sheet [data-ok]').count())) problems.push(`${name}: saving a duplicate round asked for no confirmation`);
+  await tap('.sheet-wrap:last-child .sheet [data-act="close"]'); // cancel the confirmation
+  await page.waitForTimeout(200);
+  await tap('.sheet-wrap:last-child .sheet [data-act="close"]'); // and the log sheet
+  await page.waitForTimeout(300);
+  const dupN = await page.evaluate(() => K.core.live(K.ui.book, 'matches').length);
+  if (dupN !== 3) problems.push(`${name}: ${dupN} rounds after cancelling a duplicate, expected 3`);
+
+  // with no "me" on this phone, nobody is preselected
+  await page.evaluate(() => { K.ui.local.me = ''; K.ui.saveLocal(); K.ui.render(); });
+  await tap('.tab-log');
+  await page.waitForTimeout(300);
+  if (await page.locator('.sheet [data-g="mem"].on').count()) problems.push(`${name}: a pirate was preselected with no "me"`);
+  await tap('.sheet [data-act="close"]');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => { K.ui.local.me = K.core.members(K.ui.book).filter((m) => m.name === 'Javi')[0].id; K.ui.saveLocal(); K.ui.render(); });
+
   // a reaction
   await tap('[data-act="react"][data-emoji="🔥"]');
   await page.waitForTimeout(200);

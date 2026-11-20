@@ -17,7 +17,7 @@
       '<div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap"><button class="btn" data-tm="-1" style="white-space:nowrap">−1 min</button><button class="btn primary" data-tm="go" id="tm-go" style="min-width:130px"></button><button class="btn" data-tm="1" style="white-space:nowrap">+1 min</button></div>' +
       '<div class="row" style="justify-content:center;margin-top:10px"><button class="btn ghost sm" data-tm="reset">↺ Reiniciar</button></div>' +
       '<div class="field"><span class="lab">Duración de la ronda</span><div class="chips" id="tm-presets">' + presets.map(function (p) { return '<button class="chip' + (preset() === p ? ' on' : '') + '" data-tm-p="' + p + '">' + p + ' min</button>'; }).join('') + '</div></div>' +
-      '<p class="small muted">Comprueba la duración que anuncien los jueces. El móvil vibra cuando quedan 5 minutos y al acabar el tiempo, y el temporizador sigue aunque cierres la app (lo verás en la barra de arriba).</p>');
+      '<p class="small muted">Comprueba la duración que anuncien los jueces. Avisa cuando quedan 5 minutos y al acabar el tiempo: vibra en Android; en iPhone suena, con el volumen alto (y sin el modo silencio). Las alertas saltan con la app abierta; el tiempo sigue contando aunque la cierres (lo verás en la barra de arriba).</p>');
     sh.addEventListener('click', function (e) {
       var b = e.target.closest('[data-tm],[data-tm-p]');
       if (!b) return;
@@ -28,7 +28,11 @@
         Array.prototype.forEach.call(sh.querySelectorAll('[data-tm-p]'), function (c) { c.classList.toggle('on', c === b); });
       } else if (a === 'go') {
         if (t.end) { t.left = t.end - now; t.end = 0; }
-        else { t.end = now + (t.left || preset() * 60000); t.left = 0; if (t.end - now > 5 * 60000) t.warn = false; if (t.end > now) t.done = false; }
+        else {
+          t.end = now + (t.left || preset() * 60000); t.left = 0; if (t.end - now > 5 * 60000) t.warn = false; if (t.end > now) t.done = false;
+          // iPhone only lets sound start from a tap: wake the audio now so the 5-minute and TIME! alerts can play later
+          X.sound('tick');
+        }
         X.buzz(20);
       } else if (a === 'reset') { t.end = 0; t.left = 0; t.warn = false; t.done = false; }
       else {
@@ -122,15 +126,28 @@
       KIT.map(function (k) { return '<button class="kit-row' + (done[k[0]] ? ' done' : '') + '" data-k="' + k[0] + '" aria-pressed="' + !!done[k[0]] + '"><span class="kit-box">' + (done[k[0]] ? '✓' : '') + '</span><span style="font-size:22px">' + k[1] + '</span><span class="kit-label grow">' + k[2] + '</span></button>'; }).join('') +
       '<button class="btn ghost block sm" data-reset style="margin-top:8px">Desmarcar todo</button>';
     var sh = keep ? U.swap(html) : U.sheet(html);
+    // ticking a row updates it in place, so the list does not jump back to the top
+    function paintKit() {
+      var d = U.local.kit[ev.id] || {}, got = KIT.filter(function (k) { return d[k[0]]; }).length;
+      sh.querySelector('.progress i').style.width = Math.round(got / KIT.length * 100) + '%';
+      sh.querySelector('.progress').nextElementSibling.textContent = got + '/' + KIT.length;
+      sh.querySelector('p.small.muted').innerHTML = got === KIT.length ? '⚡ Listo para asaltar Onigashima. ¡Vamos!' : 'Para ' + esc(ev.name) + '. Se guarda en este móvil.';
+      Array.prototype.forEach.call(sh.querySelectorAll('[data-k]'), function (b) {
+        var on = !!d[b.getAttribute('data-k')];
+        b.classList.toggle('done', on);
+        b.setAttribute('aria-pressed', String(on));
+        b.querySelector('.kit-box').textContent = on ? '✓' : '';
+      });
+    }
     Array.prototype.forEach.call(sh.querySelectorAll('[data-k]'), function (b) {
       b.onclick = function () {
         var d = U.local.kit[ev.id] = U.local.kit[ev.id] || {}, k = b.getAttribute('data-k');
         if (d[k]) delete d[k]; else d[k] = 1;
         X.buzz(10);
-        U.saveLocal(); U.kitSheet(true);
+        U.saveLocal(); paintKit();
       };
     });
-    sh.querySelector('[data-reset]').onclick = function () { U.local.kit[ev.id] = {}; U.saveLocal(); U.kitSheet(true); };
+    sh.querySelector('[data-reset]').onclick = function () { U.local.kit[ev.id] = {}; U.saveLocal(); paintKit(); };
   };
 
   /* ---------- Bristol ---------- */

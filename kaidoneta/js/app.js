@@ -21,6 +21,18 @@
     U.render();
   };
   U.saveLocal = function () { write(LOCAL_KEY, U.local); };
+  // A pirate merged into another (here or on another phone): this phone's "me" follows it...
+  U.fixMe = function () {
+    if (!U.local.me || U.member(U.local.me) || !C.aliasOf) return;
+    var to = C.aliasOf(U.book, U.local.me);
+    if (to && to !== U.local.me) { U.local.me = to; U.saveLocal(); }
+  };
+  // ...and so do rounds and reactions that still name the old profile. True if the book changed.
+  function heal() {
+    var changed = !!(C.fixAliases && C.fixAliases(U.book));
+    U.fixMe();
+    return changed;
+  }
   /* ---------- helpers ---------- */
   var $ = function (s, el) { return (el || doc).querySelector(s); };
   U.$ = $;
@@ -247,6 +259,10 @@
     '</section><div class="hero-me-wrap">' + meBox + '</div>';
 
     html += '<div class="page" style="padding-top:4px">';
+    if (iosSafari() && !U.local.iosTip) {
+      html += '<div class="warn-box ios-tip" style="margin:0 0 12px">📲 En iPhone, añade Kaidoneta a la pantalla de inicio y úsala desde ahí: la app de la pantalla de inicio guarda sus propios datos.' +
+        '<div class="row" style="margin-top:8px;gap:8px"><button class="btn sm grow" data-act="install">Cómo se hace</button><button class="btn sm ghost" data-act="iosTipOff">Entendido</button></div></div>';
+    }
     html += '<div class="tools">' +
       '<button class="tool" data-act="timer"><span class="t-ico">⏱</span>Tempori&shy;zador</button>' +
       '<button class="tool" data-act="dice"><span class="t-ico">🎲</span>¿Quién empieza?</button>' +
@@ -284,6 +300,9 @@
     return html;
   }
   U.acts.feedAll = function () { U._feedAll = true; U.render(); };
+  // iPhone Safari, not the Home Screen app (which keeps its own, separate data)
+  function iosSafari() { var n = root.navigator; return !n.standalone && /iPhone|iPad|iPod/.test(n.userAgent || ''); }
+  U.acts.iosTipOff = function () { U.local.iosTip = true; U.saveLocal(); U.render(); };
 
   function feedItem(m) {
     var mem = U.member(m.mem), opp = m.oppMem ? U.member(m.oppMem) : null, me = U.me();
@@ -464,6 +483,18 @@
     };
   };
 
+  /* ---------- links: #crew=... merges a crew's data, #join=name opens the crew form ---------- */
+  function links() {
+    var h = root.location.hash;
+    if (/[#&]crew=/.test(h)) U.openLink(h); // it takes the code out of the address, so this runs once
+    else if (/[#&]join=/.test(h)) {
+      var name = '';
+      try { name = decodeURIComponent((h.match(/join=([^&]+)/) || [])[1] || ''); } catch (e) { /* a broken link */ }
+      try { root.history.replaceState(root.history.state, '', root.location.pathname + '#/' + U.tab); } catch (e) { /* file:// */ }
+      U.crewSheet('join', name);
+    }
+  }
+
   /* ---------- boot ---------- */
   var started = false;
   U.startCloud = function () { if (!started && cloud.signedIn()) { started = true; cloud.start(); } };
@@ -472,7 +503,9 @@
     cloud.getBook = function () { return U.book; };
     cloud.setBook = function (b) {
       U.book = C.ensureBristol(b);
+      var fixed = heal();
       write(BOOK_KEY, U.book);
+      if (fixed) setTimeout(function () { cloud.touch(); }, 0); // the moved rounds go back up to the crew
     };
     cloud.on(function (what) {
       if (what === 'book') {
@@ -483,15 +516,14 @@
       if (dot) dot.className = 'sync-dot ' + (what === 'syncing' ? 'busy' : cloud.lastError() ? 'err' : 'ok');
       if (U.tab === 'crew' && (what === 'synced' || what === 'error' || what === 'session') && !U.topSheet()) U.render();
     });
-    U.render();
+    if (heal()) U.save(); else U.render();
     U.startCloud();
     setInterval(function () {
       U.tickTimer && U.tickTimer();
     }, 1000);
-    // links: #crew=... merges a crew's data, #join=name opens the crew form
-    var h = root.location.hash;
-    if (/[#&]crew=/.test(h)) U.openLink(h);
-    else if (/[#&]join=/.test(h)) { var name = decodeURIComponent((h.match(/join=([^&]+)/) || [])[1] || ''); U.crewSheet('join', name); }
+    // links, at launch and when one is opened while the app is already open
+    links();
+    root.addEventListener('hashchange', links);
     // offline + installable (not from file://)
     if ('serviceWorker' in root.navigator && /^https?:/.test(root.location.protocol)) {
       root.addEventListener('load', function () { root.navigator.serviceWorker.register('sw.js').then(null, function () { /* not available */ }); });

@@ -22,7 +22,7 @@
       '<div class="seg full" style="margin-bottom:16px"><button class="' + (!all ? 'on' : '') + '" data-scope="event">' + esc(ev.name) + '</button><button class="' + (all ? 'on' : '') + '" data-scope="all">Histórico</button></div>' +
       poster +
       '<div class="row" style="margin-top:16px"><button class="btn gold grow" data-share>📸 Compartir</button><button class="btn primary grow" data-log>' + A.bolt() + ' Registrar</button></div>' +
-      '<div class="small muted" style="margin-top:12px;text-align:center">Juega con ' + U.lchip(m.leader) + (m.deck ? ' · “' + esc(m.deck) + '”' : '') + '</div>' +
+      '<div class="small muted" style="margin-top:12px;text-align:center;overflow-wrap:anywhere">Juega con ' + U.lchip(m.leader) + (m.deck ? ' · “' + esc(m.deck) + '”' : '') + '</div>' +
       '<h2 class="sec">📈 Balance</h2><div class="stat-grid">' +
         stat(U.recText(rec), 'Balance') + stat(rec.pts, 'Puntos') + stat(rec.n ? U.pct(rec.rate) : '—', '% victorias') +
         stat(st.len ? letter(st.cur) + st.len : '—', 'Racha') + stat(st.bestW || '—', 'Mejor racha') + stat('฿' + U.short(b), 'Recompensa') +
