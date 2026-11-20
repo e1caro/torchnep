@@ -10,7 +10,8 @@
   A.kaidoVariants = A.kaidoVariants || {};
   var uid = 0;
 
-  function f(n) { return Math.round(n * 10) / 10; }
+  var prec = 10; // 1 = whole units for the big busy layers (hair, fur, lines): smaller SVG
+  function f(n) { return Math.round(n * prec) / prec; }
   function P(x, y) { return f(x) + ',' + f(y); }
   function seeded(seed) { var s = seed % 2147483647 || 7; return function () { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; }; }
 
@@ -20,7 +21,8 @@
     for (var i = 0; i < last; i++) {
       var p0 = pts[closed ? (i - 1 + n) % n : Math.max(0, i - 1)], p1 = pts[i], p2 = pts[(i + 1) % n], p3 = pts[closed ? (i + 2) % n : Math.min(n - 1, i + 2)];
       var a = p1[2] === 0 ? 0 : 1 / 6, b = p2[2] === 0 ? 0 : 1 / 6;
-      d += 'C' + P(p1[0] + (p2[0] - p0[0]) * a, p1[1] + (p2[1] - p0[1]) * a) + ' ' + P(p2[0] - (p3[0] - p1[0]) * b, p2[1] - (p3[1] - p1[1]) * b) + ' ' + P(p2[0], p2[1]);
+      // Catmull-Rom tangents are symmetric at a smooth point, so the shorter S command is exact there.
+      d += (i > 0 && a ? 'S' : 'C' + P(p1[0] + (p2[0] - p0[0]) * a, p1[1] + (p2[1] - p0[1]) * a) + ' ') + P(p2[0] - (p3[0] - p1[0]) * b, p2[1] - (p3[1] - p1[1]) * b) + ' ' + P(p2[0], p2[1]);
     }
     return d + (closed ? 'Z' : '');
   }
@@ -93,8 +95,9 @@
     defs += '<radialGradient id="' + id('burst') + '" cx="205" cy="105" r="175" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop offset=".15" stop-color="#f0dcff" stop-opacity=".8"/><stop offset=".4" stop-color="#b06cff" stop-opacity=".45"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>';
     defs += '<linearGradient id="' + id('fade') + '" x1="0" y1="0" x2="0" y2="560" gradientUnits="userSpaceOnUse"><stop offset=".68" stop-color="#fff"/><stop offset=".96" stop-color="#000"/></linearGradient>';
     defs += '<linearGradient id="' + id('hf') + '" x1="0" y1="0" x2="400" y2="0" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000"/><stop offset=".1" stop-color="#fff"/><stop offset=".9" stop-color="#fff"/><stop offset="1" stop-color="#000"/></linearGradient>';
+    defs += '<linearGradient id="' + id('tf') + '" x1="0" y1="0" x2="0" y2="60" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#000"/><stop offset="1" stop-color="#000" stop-opacity="0"/></linearGradient>';
     defs += '<mask id="' + id('m') + '" maskUnits="userSpaceOnUse" x="-20" y="-40" width="440" height="640"><rect x="-20" y="-40" width="440" height="640" fill="' + url('fade') + '"/></mask>';
-    defs += '<mask id="' + id('mh') + '" maskUnits="userSpaceOnUse" x="-20" y="-40" width="440" height="640"><rect x="-20" y="-40" width="440" height="640" fill="' + url('hf') + '"/></mask>';
+    defs += '<mask id="' + id('mh') + '" maskUnits="userSpaceOnUse" x="-20" y="-40" width="440" height="640"><rect x="-20" y="-40" width="440" height="640" fill="' + url('hf') + '"/><rect x="-20" y="-40" width="440" height="100" fill="' + url('tf') + '"/></mask>';
     defs += '<filter id="' + id('glow') + '" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4"/></filter>';
     defs += '<filter id="' + id('eg') + '" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3.2"/></filter>';
     defs += '<filter id="' + id('sg') + '" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter>';
@@ -102,13 +105,14 @@
     defs += '<pattern id="' + id('bgd') + '" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(20)"><circle cx="3.5" cy="3.5" r="1.1" fill="#c4a1ff"/></pattern>';
 
     /* ================= background ================= */
+    prec = 1;
     var bg = '<rect x="-20" y="-40" width="440" height="640" fill="' + url('bg') + '"/>';
     bg += '<rect x="-20" y="-40" width="440" height="640" fill="' + url('bgd') + '" opacity=".07"/>';
     // manga focus lines radiating from the face
     r = seeded(11);
     var fd = '', fd2 = '', cx = 205, cy = 195;
-    for (var k = 0; k < 110; k++) {
-      var an = (k / 110) * Math.PI * 2 + (r() - 0.5) * 0.05, r0 = 135 + r() * 80, sp = 0.003 + r() * 0.011;
+    for (var k = 0; k < 96; k++) {
+      var an = (k / 96) * Math.PI * 2 + (r() - 0.5) * 0.05, r0 = 135 + r() * 80, sp = 0.003 + r() * 0.011;
       var tri = 'M' + P(cx + Math.cos(an) * r0, cy + Math.sin(an) * r0) + 'L' + P(cx + Math.cos(an - sp) * 640, cy + Math.sin(an - sp) * 640) + 'L' + P(cx + Math.cos(an + sp) * 640, cy + Math.sin(an + sp) * 640) + 'Z';
       if (k % 3) fd += tri; else fd2 += tri;
     }
@@ -138,7 +142,7 @@
     function lock(pts, col) {
       locks += path(rib(pts, 1), col);
       var hl = pts.map(function (p, j) { return [p[0], p[1] - p[2] * 0.45, j === 0 || j === pts.length - 1 ? 0 : Math.max(0.6, p[2] * 0.18)]; });
-      lockH += path(rib(hl, 1), j2 % 3 ? HRH : HRH2);
+      if (j2 % 4 !== 3) lockH += path(rib(hl, 1), j2 % 3 ? HRH : HRH2);
       j2++;
     }
     var j2 = 0;
@@ -157,6 +161,7 @@
     lock([[150, 132, 9], [124, 136, 8], [98, 150, 6.5], [80, 172, 4], [70, 196, 0]], HR);
     lock([[152, 168, 9], [126, 188, 8], [106, 222, 6], [96, 258, 3], [96, 280, 0]], HR);
     o += locks + lockH;
+    prec = 10;
 
     /* ================= Hassaikai's handle + ring (behind the left shoulder) ================= */
     var hx0 = 132, hy0 = 352, hx1 = 42, hy1 = 200, ux = hx1 - hx0, uy = hy1 - hy0, ul = Math.sqrt(ux * ux + uy * uy);
@@ -176,6 +181,7 @@
     o += inked(poly([[hx1 + uy * 10, hy1 - ux * 10], [hx1 - uy * 10, hy1 + ux * 10], [hx1 - uy * 9 + ux * 7, hy1 + ux * 9 + uy * 7], [hx1 + uy * 9 + ux * 7, hy1 - ux * 9 + uy * 7]]), '#4a3f66', 1.2);
 
     /* ================= fur collar (behind) ================= */
+    prec = 1;
     var furBack = smooth([[70, 312], [110, 280], [160, 262], [250, 256], [310, 268], [370, 280], [430, 286, 0], [432, 380, 0], [330, 340], [200, 330], [60, 350]], true);
     o += path(furBack, FUR);
     r = seeded(31);
@@ -190,6 +196,7 @@
     }
     for (k = 0; k < 14; k++) tuft(100 + k * 22 + r() * 10, 272 + r() * 10, -Math.PI / 2 + (r() - 0.5) * 0.9, 12 + r() * 8, 2 + r() * 1.2, FUR4);
     o += ft; ft = '';
+    prec = 10;
 
     /* ================= torso ================= */
     var torsoD = smooth([[166, 250, 0], [165, 296], [142, 316], [98, 330], [40, 342], [-20, 360, 0], [-20, 600, 0], [420, 600, 0], [420, 350, 0], [372, 334], [318, 318], [284, 302], [270, 280], [264, 245, 0]], true);
@@ -236,6 +243,7 @@
     o += path(rib([[300, 330, 0.3], [312, 370, 1.8], [332, 412, 2], [360, 452, 1.2], [384, 480, 0.2]], 3), INK);
 
     /* ================= fur over the left shoulder ================= */
+    prec = 1;
     var furL = smooth([[-24, 296, 0], [30, 286], [86, 292], [130, 304], [160, 326], [158, 352], [134, 372], [112, 404], [96, 450], [86, 520], [80, 600, 0], [-24, 600, 0]], true);
     o += inked(furL, FUR, 1.4);
     r = seeded(47);
@@ -256,6 +264,7 @@
       tuft(p[0] + 3, p[1] + 6, ang + (r() - 0.5) * 0.4, 12 + r() * 8, 1.8 + r(), FUR4);
     });
     o += ft;
+    prec = 10;
 
     /* ================= horns ================= */
     function horn(pts, inner, rings) {
@@ -264,7 +273,7 @@
       s += inked(d, HN, 1.6, inner > 0 ? 2.4 : -2.4, 2.4);
       var g = '';
       // cel shadow along the outer side, a deeper sliver at the edge, glossy streak + rim on the inner side
-      g += path(band(pts, 2, -inner * 1.3, -inner * 0.05), HNS);
+      g += path(band(pts, 2, -inner * 1.3, -inner * 0.3), HNS);
       g += path(band(pts, 2, -inner * 1.3, -inner * 0.72), HND);
       g += path(band(pts, 2, inner * 0.22, inner * 0.5), '#fffaf0');
       g += path(band(pts, 2, inner * 0.82, inner * 1.2), RIM, ' opacity=".85"');
@@ -274,8 +283,8 @@
       });
       return s + '<g clip-path="' + url('ch' + inner) + '">' + g + '</g>';
     }
-    var hornLpts = [[168, 150, 21], [132, 160, 22], [98, 150, 20], [73, 124, 17], [58, 88, 13.5], [54, 50, 10], [58, 14, 6], [72, -22, 0]];
-    var hornRpts = [[246, 144, 23], [290, 153, 24], [328, 140, 21.5], [354, 110, 18], [367, 72, 14], [367, 32, 9.5], [358, -4, 5], [342, -38, 0]];
+    var hornLpts = [[168, 150, 21], [132, 160, 22], [98, 150, 20], [73, 126, 17], [59, 96, 13.5], [54, 64, 10], [57, 34, 6], [68, 6, 0]];
+    var hornRpts = [[246, 144, 23], [290, 153, 24], [328, 141, 21.5], [353, 114, 18], [366, 82, 14], [368, 50, 10], [361, 22, 6], [348, 2, 0]];
     o += horn(hornLpts, 1, [1, 2, 3, 4]);
     o += horn(hornRpts, -1, [1, 2, 3, 4]);
     // glossy glints on the horns
@@ -283,6 +292,7 @@
 
     /* ================= dreadlocks sticking up between the horns ================= */
     r = seeded(61);
+    prec = 1;
     var dr2 = '', drH = '', drC = '';
     var dreads = [[172, 112, -0.25, 70, 7], [186, 104, -0.05, 86, 8], [202, 100, 0.15, 94, 8.5], [220, 102, 0.35, 92, 8], [238, 106, 0.6, 84, 7.5], [254, 112, 0.85, 70, 7], [196, 108, -0.45, 60, 6]];
     dreads.forEach(function (q, j) {
@@ -301,6 +311,7 @@
         drC += 'M' + P(p[0] - nn[0] * ww, p[1] - nn[1] * ww) + 'Q' + P(p[0] + nn[2] * 3, p[1] + nn[3] * 3) + ' ' + P(p[0] + nn[0] * ww, p[1] + nn[1] * ww);
       }
     });
+    prec = 10;
     o += dr2 + drH + '<path d="' + drC + '" fill="none" stroke="' + INK + '" stroke-width="1.3" opacity=".8"/>';
 
     /* ================= ear (near side) ================= */

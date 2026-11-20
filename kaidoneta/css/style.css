@@ -79,7 +79,7 @@ img, svg { display: block; }
   border-bottom: 1px solid var(--line);
 }
 .top .brand { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; overflow: hidden; }
-.top .brand .crest { width: 34px; height: 36px; flex: none; filter: drop-shadow(0 0 8px rgba(168, 85, 247, .6)); }
+.top .brand .crest { width: 36px; height: 36px; flex: none; border-radius: 10px; filter: drop-shadow(0 0 8px rgba(168, 85, 247, .6)); }
 .top .brand b {
   font: 900 21px/1.1 var(--display); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
   background: linear-gradient(180deg, #fff, var(--p4) 60%, var(--p3)); -webkit-background-clip: text; background-clip: text; color: transparent;
@@ -433,7 +433,7 @@ details.more[open] summary::before { content: "－ "; }
 .hist-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
 .hist-row + .hist-row { border-top: 1px solid var(--line); }
 .hist-row .rd { font: 900 14px var(--display); color: var(--p4); min-width: 34px; }
-.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.duo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; } /* a long leader name is cut, never pushes the page sideways */
 .duo .card { padding: 12px; }
 .duo .card .lab { font-size: 11px; font-weight: 900; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); margin-bottom: 6px; }
 
@@ -459,7 +459,8 @@ details.more[open] summary::before { content: "－ "; }
 
 /* onboarding */
 .onboard { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: calc(24px + var(--safe-t)) 22px calc(30px + var(--safe-b)); max-width: 520px; margin: 0 auto; }
-.onboard .dragon { width: min(78vw, 340px); height: auto; filter: drop-shadow(0 0 30px rgba(168, 85, 247, .5)); }
+.onboard .dragon, .onboard .badge { width: min(84vw, 380px); height: auto; filter: drop-shadow(0 0 30px rgba(168, 85, 247, .5)); }
+.onboard .badge { border-radius: 50%; margin-bottom: 4px; }
 .onboard h1 { margin: 6px 0 4px; font: 900 clamp(46px, 15vw, 68px)/.9 var(--display); text-transform: uppercase; letter-spacing: .03em; background: linear-gradient(180deg, #fff, #e9d5ff 55%, #a855f7); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .onboard p { color: var(--muted); margin: 6px 0 22px; }
 .onboard .btn { width: 100%; margin-top: 10px; }

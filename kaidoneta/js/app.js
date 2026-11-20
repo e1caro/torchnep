@@ -189,7 +189,7 @@
     var sync = cloud.signedIn()
       ? '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Sincronización de la tripulación"><span class="sync-dot ' + st + '" id="sync-dot"></span>' + esc(cloud.crew()) + '</button>'
       : '<button class="chip-btn" data-act="tab" data-tab="crew" aria-label="Sin sincronizar: solo en este móvil"><span class="sync-dot"></span>Solo</button>';
-    return '<div class="brand">' + A.crest('', false) + '<b>Kaidoneta</b></div>' + timer + sync;
+    return '<div class="brand">' + (A.badge ? A.icon(true, 1).replace('<svg ', '<svg class="crest" aria-hidden="true" ') : A.crest('', false)) + '<b>Kaidoneta</b></div>' + timer + sync;
   }
   U.updateHeader = function () { var h = $('#top'); if (h && !h.hidden) { h.innerHTML = header(); h.classList.toggle('timing', U.timerLeft() !== null && root.innerWidth < 420); } };
 
@@ -387,7 +387,7 @@
 
   /* ---------- onboarding ---------- */
   function onboard() {
-    return '<div class="onboard">' + U.dragonArt() +
+    return '<div class="onboard">' + (A.badge ? A.badge({ cls: 'onboard-badge' }) : U.dragonArt()) +
       '<h1>Kaidoneta</h1>' +
       '<p>La bitácora de los Beasts Pirates para el <b>Regional de Bristol</b>. Registra cada ronda, sube tu recompensa y escala en el Tablón de recompensas de la tripulación.</p>' +
       '<button class="btn primary" data-act="start">' + A.bolt() + ' Montar nuestra tripulación</button>' +
