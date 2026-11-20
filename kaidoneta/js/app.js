@@ -207,7 +207,7 @@
 
   /* ---------- HQ ---------- */
   // Kaido: one of the rendered styles (js/kaido-*.js), chosen in Crew → Kaido style; 'dragon' shows the dragon instead.
-  U.KAIDO_ORDER = ['bust', 'backlit', 'ukiyoe']; // the first that exists is the default: the crew chose the close-up
+  U.KAIDO_ORDER = ['bust', 'backlit', 'ukiyoe', 'hybrid']; // the first that exists is the default: the crew chose the close-up
   U.kaidoId = function () {
     var v = A.kaidoVariants || {}, id = U.local.kaido;
     if (id === 'dragon') return '';
