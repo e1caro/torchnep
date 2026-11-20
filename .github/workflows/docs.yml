@@ -64,6 +64,7 @@ jobs:
       - name: Add the Kaidoneta app (served at /kaidoneta/, without its tests and tools)
         run: |
           node kaidoneta/tests/unit.js
+          node kaidoneta/tools/update-sw.js   # a new offline version for every deploy: phones update themselves
           cp -r kaidoneta site/kaidoneta
           rm -rf site/kaidoneta/tests site/kaidoneta/tools
 
