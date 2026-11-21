@@ -169,7 +169,78 @@
   ];
   /* ---------- the Blackbeard route: the real Edward Teach, who gave One Piece's Marshall D. Teach his name, is
      traditionally said to be from Bristol. Stops researched and fact-checked; visited ones are ticked on this phone. */
-  var ROUTE = { intro: '', walk: '', stops: [] }; // FILLED IN from the fact-checked research
+  // Researched and fact-checked (sources: VisitBristol, VisitEngland, Royal Museums Greenwich, Britannica, Historic
+  // England, Bristol Museums, the Long John Silver Trust's Treasure Island Trail, Show of Strength, CAMRA).
+  var ROUTE = {
+    "intro": "El Barbanegra real (Edward Teach, o Thache) murió el 22 de noviembre de 1718 en Ocracoke, Carolina del Norte, luchando contra los hombres del teniente Maynard. Pudo nacer en Bristol hacia 1680: es tradición, no está probado (hay historiadores que lo sitúan en Jamaica). Lo que sí es historia: Bristol fue un gran puerto corsario y sus pubs están ligados a La isla del tesoro. Marshall D. Teach, el Barbanegra de One Piece, se llama así por él, y el 22 de noviembre de 2026 se cumplen 308 años de su muerte.",
+    "walk": "Un paseo en bucle de unos 2,5-2,8 km: 35-45 minutos andando, o 2,5-3,5 horas con paradas en los pubs. Empieza en St Mary Redcliffe, cerca de la estación de Temple Meads, o únete en cualquier parada. Si preferís acabar en un pub, terminad en el Llandoger Trow.",
+    "stops": [
+      {
+        "name": "Iglesia de St Mary Redcliffe",
+        "address": "Redcliffe Way, BS1 6RA",
+        "lat": 51.44832,
+        "lng": -2.58954,
+        "story": "Dice la leyenda que Barbanegra tenía una cueva escondite bajo esta iglesia; no hay pruebas. Es el gran monumento de Redcliffe, el barrio donde la tradición de Bristol sitúa su nacimiento.",
+        "open": "Iglesia en uso, entrada gratis (se agradecen donativos), más o menos de 8:00 a 16:00-17:00 de lunes a sábado; puede cerrar por oficios."
+      },
+      {
+        "name": "The Golden Guinea (pub)",
+        "address": "19 Guinea Street, BS1 6SX",
+        "lat": 51.44728,
+        "lng": -2.59286,
+        "story": "Guinea Street es la calle donde, según la tradición, vivió o nació Barbanegra, y el cartel del pub lo muestra a él. Ningún documento lo confirma. Aquí empieza el paseo teatral «Blood, Blackbeard & Buccaneers».",
+        "open": "Pub en un edificio protegido de principios del siglo XVIII."
+      },
+      {
+        "name": "Entrada de las Redcliffe Caves",
+        "address": "Phoenix Wharf, BS1 6SR (al pie de la rampa, junto al Benjamin Perry Boathouse, frente al barco Thekla)",
+        "lat": 51.44845,
+        "lng": -2.59304,
+        "story": "Túneles excavados en la arenisca roja para sacar arena para el vidrio y la cerámica de Bristol. Se dice que fueron el escondite de Barbanegra, pero no hay ninguna prueba.",
+        "open": "Solo se ven desde fuera: las cuevas abren únicamente en visitas con entrada (por ejemplo, las del Bristol Film Festival)."
+      },
+      {
+        "name": "The Ostrich (pub)",
+        "address": "Lower Guinea Street, BS1 6TJ",
+        "lat": 51.4479,
+        "lng": -2.59391,
+        "story": "Pub de hacia 1745 metido en la roca: desde dentro se ve una de las cuevas. Es el Black Spot G de la ruta de La isla del tesoro, dedicado a Israel Hands, pirata real que navegó con Barbanegra. Barbanegra no pisó este edificio: es posterior a su muerte.",
+        "open": "Pub con terraza junto al puerto; pedid que os enseñen la cueva."
+      },
+      {
+        "name": "M Shed (museo de Bristol)",
+        "address": "Princes Wharf, Wapping Road, BS1 4RN",
+        "lat": 51.4473,
+        "lng": -2.5986,
+        "story": "De aquí sale «Pirates and Prejudice», el paseo de los museos de Bristol sobre piratas reales y de ficción, de Henry Morgan a Barbanegra y Long John Silver, separando el mito de la historia.",
+        "open": "Museo en el muelle. El paseo guiado es por temporadas (la de 2026 ya terminó)."
+      },
+      {
+        "name": "Placa de Woodes Rogers, Queen Square",
+        "address": "33-35 Queen Square, BS1 4LU (lado sur)",
+        "lat": 51.44975,
+        "lng": -2.59512,
+        "story": "Woodes Rogers, corsario de Bristol: en 1709 rescató a Alexander Selkirk, el Robinson Crusoe real, y en 1718 llegó a Nassau como gobernador de las Bahamas para acabar con el refugio pirata que usaba Barbanegra. No fue él quien lo mató: fueron los hombres de Maynard.",
+        "open": "Plaza pública, siempre abierta. El punto del mapa es aproximado: la placa está en el lado sur."
+      },
+      {
+        "name": "The Hole in the Wall (pub)",
+        "address": "2 The Grove, Queen Square, BS1 4QZ",
+        "lat": 51.44944,
+        "lng": -2.59365,
+        "story": "Según la tradición, inspiró el Spy-Glass, la taberna de Long John Silver en La isla del tesoro. Sus ventanucos servían para vigilar a la leva y a los aduaneros.",
+        "open": "Pub y restaurante en la esquina sureste de la plaza; preguntad por la mirilla."
+      },
+      {
+        "name": "The Llandoger Trow (pub)",
+        "address": "King Street, esquina con Welsh Back, BS1 4ER",
+        "lat": 51.4519,
+        "lng": -2.5931,
+        "story": "De hacia 1664: dicen que inspiró la posada Almirante Benbow de La isla del tesoro, y una tradición sin pruebas cuenta que aquí Defoe conoció a Selkirk. Las guías dicen que Barbanegra bebía aquí y que su fantasma ronda el local; no hay pruebas, pero es el final perfecto.",
+        "open": "Pub en uso (en invierno, lunes y martes abre a las 14:00)."
+      }
+    ]
+  };
   function mapsPoint(st) { return 'https://www.google.com/maps/search/?api=1&query=' + st.lat + ',' + st.lng; }
   function mapsRoute(stops) {
     if (!stops.length) return '';
