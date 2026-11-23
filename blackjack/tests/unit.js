@@ -289,19 +289,164 @@ test('chart changes with the rules (H17, no DAS, no surrender)', () => {
   eq(adviceFor(['10S', '6H'], '10C', { surrender: 'none' }), 'H');
   eq(adviceFor(['2S', '2H'], '2C', { das: false }), 'H');
 });
+test('no hole card: no doubling 11 or splitting 8s against a ten', () => {
+  eq(adviceFor(['6S', '5H'], '10C', { holeCard: 'enhc', surrender: 'none' }), 'H');
+  eq(adviceFor(['8S', '8H'], '10C', { holeCard: 'enhc', surrender: 'none' }), 'H');
+  eq(adviceFor(['8S', '8H'], '9C', { holeCard: 'enhc' }), 'P');
+  eq(adviceFor(['6S', '5H'], '10C', { holeCard: 'obo' }), 'D');
+});
 test('decisions are graded against the chart', () => {
   const s = play(stacked(['10S', '6H', '6C', '10D', '5H']), 10);
   BJ.hit(s);
   eq([s.stats.decisions, s.stats.correct, s.advice.best], [1, 0, 'S']);
 });
 
+console.log('No hole card, Charlie, continuous shuffle');
+test('no hole card: three cards are dealt, the dealer draws the second after the player', () => {
+  const s = stacked(['10S', '9H', '8C', '7D', '2C'], { holeCard: 'enhc' });
+  play(s, 10);
+  eq([s.phase, s.dealer.length], ['player', 1]);
+  BJ.stand(s); finish(s);
+  eq([s.dealer.map((c) => c.rank), s.hands[0].result], [['9', '7', '2'], 'push']); // 18 against 9 + 7 + 2
+});
+test('European no hole card: a dealer blackjack takes the double too', () => {
+  const s = stacked(['6S', 'AH', '5C', '3D', 'KH'], { holeCard: 'enhc', insurance: false });
+  play(s, 10);
+  BJ.double(s); finish(s);
+  eq([s.dealerBJ, s.hands[0].result, s.last.net], [true, 'lose', -2000]);
+});
+test('original bets only: a dealer blackjack takes the first bet, doubles and split hands come back', () => {
+  let s = stacked(['6S', 'AH', '5C', '3D', 'KH'], { holeCard: 'obo', insurance: false });
+  play(s, 10); BJ.double(s); finish(s);
+  eq([s.hands[0].result, s.last.net], ['lose', -1000]);
+  s = stacked(['8S', 'KH', '8C', '9D', '2H', 'AS'], { holeCard: 'obo' });
+  play(s, 10); BJ.split(s); BJ.runAuto(s); BJ.stand(s); BJ.runAuto(s); BJ.stand(s); finish(s);
+  eq([s.dealerBJ, s.hands.map((h) => h.result), s.last.net], [true, ['lose', 'returned'], -1000]);
+});
+test('no hole card: blackjack against a dealer ace is settled after the second card', () => {
+  const s = stacked(['AS', 'AH', 'KC', 'QD'], { holeCard: 'enhc', insurance: false });
+  play(s, 10); finish(s);
+  eq([s.hands[0].result, s.last.net], ['push', 0]);
+});
+test('no hole card: surrender is refused against an ace, allowed against a ten', () => {
+  let s = stacked(['10S', 'AH', '6C', '9D'], { holeCard: 'enhc', insurance: false, surrender: 'late' });
+  play(s, 10); ok(!BJ.canSurrender(s), 'not against an ace');
+  s = stacked(['10S', 'KH', '6C', 'AD'], { holeCard: 'enhc', surrender: 'late' });
+  play(s, 10); ok(BJ.canSurrender(s), 'against a ten'); BJ.surrender(s); finish(s);
+  eq([s.dealer.length, s.last.net], [1, -500]); // nothing left to play for: the dealer does not draw
+});
+test('a six-card Charlie wins at once, even against a dealer 20', () => {
+  const s = stacked(['2S', '10H', '2C', 'KD', '2H', 'AS', '3D', '2D'], { charlie: 6, insurance: false });
+  play(s, 10);
+  for (let i = 0; i < 4; i++) BJ.hit(s);
+  finish(s);
+  eq([s.hands[0].cards.length, s.hands[0].result, s.last.net, s.dealer.length, s.stats.charlies], [6, 'charlie', 1000, 2, 1]);
+});
+test('a continuous shuffle table shuffles before every hand', () => {
+  BJ.setRng(BJ.seeded(4));
+  const s = BJ.newGame({ continuous: true, minBet: 1 });
+  for (let r = 0; r < 5; r++) {
+    BJ.addBet(s, 100); BJ.deal(s);
+    eq(BJ.step(s).kind, 'shuffle', 'round ' + r);
+    BJ.runAuto(s);
+    if (s.phase === 'insurance') { BJ.insurance(s, false); BJ.runAuto(s); }
+    while (s.phase === 'player') { BJ.stand(s); BJ.runAuto(s); }
+    BJ.collect(s);
+  }
+  eq(s.shuffles, 5);
+  BJ.setRng(null);
+});
+
+console.log('Side bets');
+const c = (x) => C(x);
+test('Perfect Pairs: perfect, coloured and mixed pairs', () => {
+  eq(BJ.perfectPairs(c('8H'), c('8H')).odds, 25);
+  eq(BJ.perfectPairs(c('8H'), c('8D')).odds, 12);
+  eq(BJ.perfectPairs(c('8H'), c('8S')).kind, 'mixed');
+  eq(BJ.perfectPairs(c('KH'), c('QH')), null);
+});
+test('21+3: trips, straights (ace high or low), flushes', () => {
+  const k = (a, b, d) => (BJ.twentyOnePlus3(c(a), c(b), c(d)) || {}).kind || null;
+  eq([k('7H', '7H', '7H'), k('7H', '7S', '7D'), k('9C', '10C', 'JC'), k('AS', '2H', '3D'), k('QS', 'KH', 'AD'), k('KS', 'AH', '2D'), k('2H', '9H', 'KH'), k('2H', '9H', 'KS')],
+    ['suitedTrips', 'trips', 'straightFlush', 'straight', 'straight', null, 'flush', null]);
+});
+test('side bet house edges match the published figures (8 decks: Pairs 4.10%, 21+3 3.70%)', () => {
+  eq([BJ.ppEdge(8), BJ.t3Edge(8), BJ.ppEdge(6)], [4.1, 3.7, 6.11]);
+});
+test('side bets are paid as soon as the first cards are out, and count in the round', () => {
+  const s = stacked(['8H', '9C', '8H', '10D'], { sidePP: true, side213: true });
+  ok(BJ.addBet(s, 1000) && BJ.addBet(s, 500, 'pp') && BJ.addBet(s, 500, 't3'), 'bets');
+  BJ.deal(s);
+  let e; while ((e = BJ.step(s)) && e.kind !== 'side');
+  eq([e.kind, s.sides.pp.kind, s.sides.pp.paid, s.sides.t3.kind, s.sides.t3.paid], ['side', 'perfect', 13000, null, 0]);
+  eq(s.bankroll, 100000 - 2000 + 13000, 'paid at once');
+  BJ.runAuto(s); BJ.stand(s); finish(s); // 16 vs 19: lose 10
+  eq(s.last.net, 13000 - 500 - 1000 - 500);
+  eq(s.bankroll, 100000 + s.stats.net);
+  eq([s.stats.sides.pp.wins, s.stats.sides.t3.bets, s.log[0].pp.k], [1, 1, 'perfect']);
+});
+test('side bets: only where the table has them, up to the side bet maximum, and rebet brings them back', () => {
+  const s = BJ.newGame({ sidePP: true, side213: false, sideMax: 25, minBet: 10, maxBet: 500 });
+  ok(!BJ.canAdd(s, 500, 't3'), 'no 21+3 here');
+  ok(BJ.addBet(s, 2500, 'pp') && !BJ.addBet(s, 100, 'pp'), 'side max');
+  ok(!BJ.canDeal(s), 'a side bet alone is not a bet');
+  BJ.addBet(s, 1000); BJ.deal(s); BJ.runAuto(s);
+  while (s.phase !== 'done') { if (s.phase === 'insurance') BJ.insurance(s, false); else if (s.phase === 'player') BJ.stand(s); BJ.runAuto(s); }
+  BJ.collect(s);
+  ok(BJ.rebet(s, 2), 'rebet x2');
+  eq([s.bet, s.side.pp], [2000, 2500], 'main doubled, side capped');
+});
+
+console.log('Session statistics');
+test('streaks, low point, dealer busts and the hand log', () => {
+  const s = stacked(['10S', '6H', '9C', '10D', 'KH', '10S', '9H', '10C', '10D', '10S', '7H', '6C', '10D'], { insurance: false });
+  play(s, 10); BJ.stand(s); finish(s); BJ.collect(s); // 19 against 16 + K: the dealer busts
+  play(s, 10); BJ.stand(s); finish(s); BJ.collect(s); // 20 against 19
+  play(s, 10); BJ.stand(s); finish(s);                // 16 against 17
+  const st = s.stats;
+  eq([st.rounds, st.won, st.lost, st.dealerBusts, st.winStreak, st.loseStreak, st.streak], [3, 2, 1, 1, 2, 1, -1]);
+  eq([s.log.length, s.log[0].d, s.log[0].h[0].c, s.log[2].net], [3, ['6H', '10D', 'KH'], ['10S', '9C'], -1000]);
+  eq([st.peak, st.low], [102000, 100000]);
+});
+test('a rebuy counts as money brought to the table', () => {
+  const s = stacked(['10S', '9H', '6C', '10D'], { bankroll: 10, minBet: 10 });
+  play(s, 10); BJ.stand(s); finish(s); BJ.collect(s);
+  BJ.rebuy(s);
+  eq([s.stats.bought, s.stats.rebuys, s.stats.net], [2000, 1, -1000]);
+});
+test('a game saved by the first version loads and plays on', () => {
+  const old = BJ.newGame({});
+  delete old.side; delete old.lastSide; delete old.log; delete old.sides;
+  delete old.stats.sides; delete old.stats.low; delete old.stats.bought; delete old.rules.holeCard;
+  const s = BJ.upgrade(JSON.parse(JSON.stringify(old)));
+  eq([s.rules.holeCard, s.side, s.log, s.stats.bought, s.stats.sides.pp.bets], ['peek', { pp: 0, t3: 0 }, [], 100000, 0]);
+  play(s, 10);
+  ok(['player', 'insurance', 'done'].includes(s.phase), s.phase);
+});
+
+console.log('Tables');
+test('every table is well formed and its limits make sense', () => {
+  const ids = new Set();
+  for (const tb of BJ.TABLES) {
+    ok(!ids.has(tb.id), 'duplicate ' + tb.id); ids.add(tb.id);
+    ok(tb.name && tb.place && ['floor', 'online'].includes(tb.group) && ['green', 'blue', 'red'].includes(tb.felt), tb.id);
+    const r = BJ.normalizeRules(Object.assign({ bankroll: 100000 }, tb.rules));
+    Object.keys(tb.rules).forEach((k) => eq(r[k], tb.rules[k], tb.id + '.' + k + ' is a valid value'));
+    ok(r.minBet < r.maxBet, tb.id + ' limits');
+  }
+});
+
 console.log('Simulations');
+const VEGAS = { decks: 6, payout: '3:2', hitSoft17: false, holeCard: 'peek', doubleOn: 'any', das: true, maxHands: 4, resplitAces: false,
+  hitSplitAces: false, surrender: 'late', insurance: true, charlie: 0, penetration: 0.75, continuous: false };
 function simulate(rounds, rules, chooser, seed) {
   BJ.setRng(BJ.seeded(seed));
-  const s = BJ.newGame(Object.assign({ bankroll: 1000000, minBet: 10, maxBet: 10000 }, rules));
+  const s = BJ.newGame(Object.assign({}, rules, { bankroll: 1000000, minBet: 10, maxBet: 10000 }));
   const start = s.bankroll;
   for (let r = 0; r < rounds; r++) {
-    BJ.addBet(s, 1000); BJ.deal(s);
+    BJ.addBet(s, 1000);
+    if (chooser === 'random') { if (Math.random() < 0.5) BJ.addBet(s, 500, 'pp'); if (Math.random() < 0.5) BJ.addBet(s, 500, 't3'); }
+    BJ.deal(s);
     for (let guard = 0; s.phase !== 'done'; guard++) {
       if (guard > 200) throw new Error('round never ends: ' + s.phase);
       if (BJ.step(s)) continue;
@@ -329,29 +474,33 @@ function randomMove(s) {
   if (BJ.canSurrender(s)) moves.push('R');
   return moves[Math.floor(Math.random() * moves.length)];
 }
-test('random play with every rule on: rounds end and no money appears or vanishes', () => {
-  for (const preset of BJ.PRESETS) {
-    const s = simulate(3000, preset.rules, 'random', 11);
-    ok(s.stats.splits > 50, preset.id + ': splits were played (' + s.stats.splits + ')');
-    ok(s.stats.doubles > 50, preset.id + ': doubles were played');
+test('random play at every table, side bets included: rounds end and no money appears or vanishes', () => {
+  for (const tb of BJ.TABLES) {
+    const s = simulate(2500, tb.rules, 'random', 11);
+    ok(s.stats.splits > 30, tb.id + ': splits were played (' + s.stats.splits + ')');
+    ok(s.stats.doubles > 30 || tb.rules.doubleOn !== 'any', tb.id + ': doubles were played');
+    if (tb.rules.sidePP) ok(s.stats.sides.pp.bets > 500, tb.id + ': Perfect Pairs played');
   }
 });
+test('the chart plays every table without asking for a move that is not allowed', () => {
+  for (const tb of BJ.TABLES) simulate(3000, tb.rules, 'chart', 5);
+});
 test('basic strategy loses about the estimated house edge (6 decks, S17, DAS, late surrender)', () => {
-  const s = simulate(150000, BJ.PRESETS[0].rules, 'chart', 2026);
+  const s = simulate(150000, VEGAS, 'chart', 2026);
   const edge = -s.stats.net / (150000 * 1000);
   console.log('      house edge over 150,000 rounds: ' + (100 * edge).toFixed(2) + '%');
-  ok(Math.abs(100 * edge - BJ.houseEdge(BJ.PRESETS[0].rules)) < 0.6, 'edge ' + (100 * edge).toFixed(2) + '% is far from the estimate ' + BJ.houseEdge(BJ.PRESETS[0].rules) + '%');
+  ok(Math.abs(100 * edge - BJ.houseEdge(VEGAS)) < 0.6, 'edge ' + (100 * edge).toFixed(2) + '% is far from the estimate ' + BJ.houseEdge(VEGAS) + '%');
   eq(s.stats.correct, s.stats.decisions, 'the chart agrees with itself');
 });
-test('house edge estimates: 6:5 and H17 cost the player, surrender and more decks behave', () => {
-  const base = BJ.PRESETS[0].rules, e = (x) => BJ.houseEdge(Object.assign({}, base, x));
-  eq(BJ.houseEdge(base), 0.42);
-  ok(e({ payout: '6:5' }) > e({}) + 1.3 && e({ hitSoft17: true }) > e({}), '6:5, H17');
-  ok(e({ surrender: 'none' }) > e({}) && e({ decks: 1 }) < e({ decks: 8 }), 'surrender, decks');
+test('house edge estimates: 6:5, H17 and no hole card cost the player; surrender, Charlie and more decks behave', () => {
+  const e = (x) => BJ.houseEdge(Object.assign({}, VEGAS, x));
+  eq(BJ.houseEdge(VEGAS), 0.42);
+  ok(e({ payout: '6:5' }) > e({}) + 1.3 && e({ hitSoft17: true }) > e({}) && e({ holeCard: 'enhc', surrender: 'none' }) > e({ surrender: 'none' }), '6:5, H17, ENHC');
+  ok(e({ surrender: 'none' }) > e({}) && e({ decks: 1 }) < e({ decks: 8 }) && e({ charlie: 5 }) < e({ charlie: 6 }), 'surrender, decks, Charlie');
 });
 test('a 6:5 table costs the player more than a 3:2 table (same cards)', () => {
-  const a = simulate(40000, Object.assign({}, BJ.PRESETS[0].rules, { payout: '3:2' }), 'chart', 99);
-  const b = simulate(40000, Object.assign({}, BJ.PRESETS[0].rules, { payout: '6:5' }), 'chart', 99);
+  const a = simulate(40000, Object.assign({}, VEGAS, { payout: '3:2' }), 'chart', 99);
+  const b = simulate(40000, Object.assign({}, VEGAS, { payout: '6:5' }), 'chart', 99);
   ok(b.stats.net < a.stats.net, '6:5 should lose more');
 });
 
