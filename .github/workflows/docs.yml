@@ -68,6 +68,12 @@ jobs:
           cp -r kaidoneta site/kaidoneta
           rm -rf site/kaidoneta/tests site/kaidoneta/tools
 
+      - name: Add the Blackjack app (served at /blackjack/, without its tests and tools)
+        run: |
+          node blackjack/tests/unit.js
+          cp -r blackjack site/blackjack
+          rm -rf site/blackjack/tests site/blackjack/tools
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
