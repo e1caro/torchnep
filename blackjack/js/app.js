@@ -1191,7 +1191,8 @@
       else if (b.id === 'csvBtn') {
         const text = csv();
         const done = () => toast(`Copied ${loadSessions().length} sessions as CSV`);
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => toast('Copying is not allowed here'));
+        if (window.BlackjackNative && window.BlackjackNative.copy) { window.BlackjackNative.copy(text); done(); } // the Android app
+        else if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, () => toast('Copying is not allowed here'));
         else toast('Copying is not allowed here');
       }
     });
@@ -1282,7 +1283,9 @@
   }
 
   // For the browser tests: the game, whether anything is moving, and money as the page writes it.
-  window.BJGame = { get state() { return S; }, get busy() { return busy || pendingFly > 0 || dealQueued; }, fmt: (c) => money(c) };
+  // back(): the Android app's Back button closes an open sheet first (true when it did).
+  window.BJGame = { get state() { return S; }, get busy() { return busy || pendingFly > 0 || dealQueued; }, fmt: (c) => money(c),
+    back: () => { if (!openSheetId || (openSheetId === 'setup' && !S)) return false; closeSheet(); return true; } };
   const hot = window.claude && window.claude.hot;
   if (hot && hot.snapshot) hot.snapshot(() => ({ s: S, prefs: P }));
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});

@@ -122,3 +122,4 @@ The side bet edges are exact (counted over every combination of cards) and match
 Pairs 4.10% and 21+3 3.70% with 8 decks.
 
 The deploy (`.github/workflows/docs.yml`) runs the unit tests and copies the app to `/blackjack/` on GitHub Pages.
+The Android app is `../android-blackjack` (built and released by `.github/workflows/android-blackjack.yml`).

@@ -1,0 +1,54 @@
+plugins {
+    id 'com.android.application'
+}
+
+// versionCode and versionName come from the workflow (-PversionCode=12 -PversionName=1.12)
+def vCode = (project.findProperty('versionCode') ?: '1') as int
+def vName = (project.findProperty('versionName') ?: '1.0') as String
+
+android {
+    namespace 'io.github.e1caro.blackjack'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'io.github.e1caro.blackjack'
+        minSdk 24
+        targetSdk 36
+        versionCode vCode
+        versionName vName
+        // the native version: raise it (-PblackjackShell=2) when this shell changes in a way a newer web app needs
+        buildConfigField 'int', 'SHELL', (project.findProperty('blackjackShell') ?: '1') as String
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    // Signing: the key file and its password come from environment variables, never from git.
+    // Every release must use the same key, so each APK installs over the previous one and keeps its data.
+    def env = { String k, String d = null -> System.getenv(k) ?: d }
+    signingConfigs {
+        release {
+            storeFile file(env('BLACKJACK_KEYSTORE_FILE', '../blackjack.jks'))
+            storePassword env('BLACKJACK_KEY_PASS')
+            keyAlias env('BLACKJACK_KEY_ALIAS', 'fitquest')
+            keyPassword env('BLACKJACK_KEY_PASS')
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            if (env('BLACKJACK_KEY_PASS')) signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}
