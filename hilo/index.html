@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hi-Lo Counting Trainer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,500..900;1,6..96,500..900&family=Instrument+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* One visual world: the blackjack table. Felt ground, brass rules, white cards.
+     Layout: a single column; each drill is one brass-ruled table, reference below it. */
+  --felt: #10513c;
+  --felt-deep: #0b3d2c;
+  --rail: #072a1e;
+  --ink: #f4efde;
+  --muted: #b9cdbf;
+  --brass: #e3b955;
+  --line: rgba(227, 185, 85, .34);
+  --card: #fbf9f1;
+  --card-ink: #17201b;
+  --pip-red: #c21f38;
+  --good: #a5e6b6;
+  --bad: #ffb3a1;
+  --hit: #b8382f;
+  --double: #2c69ae;
+  --display: 'Bodoni Moda', Didot, 'Bodoni MT', Georgia, serif;
+  --body: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; color: var(--ink); font: 400 16px/1.55 var(--body);
+  background: var(--felt-deep);
+  background-image: radial-gradient(1100px 760px at 50% -120px, #1a6a50 0%, var(--felt) 45%, rgba(11,61,44,0) 100%);
+  background-repeat: no-repeat;
+}
+a { color: var(--brass); }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; border-radius: 4px; }
+.wrap { max-width: 1000px; margin: 0 auto; padding: 0 20px 72px; }
+
+/* header */
+.top { display: flex; align-items: baseline; gap: 20px; flex-wrap: wrap; padding: 22px 0 0; }
+.brand { font: italic 800 26px/1 var(--display); color: var(--ink); text-decoration: none; letter-spacing: -.01em; }
+.brand span { color: var(--brass); }
+.tabs { display: flex; gap: 4px; overflow-x: auto; margin: 14px -20px 0; padding: 0 20px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tabs a { flex: none; padding: 10px 11px 11px; color: var(--muted); text-decoration: none; font-weight: 500; font-size: 15px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
+.tabs a:hover { color: var(--ink); }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--brass); }
+
+.view { display: none; padding-top: 34px; }
+.view.on { display: block; }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-weight: 800; font-size: clamp(38px, 7vw, 68px); line-height: .98; letter-spacing: -.02em; }
+h1 em { color: var(--brass); font-weight: 700; }
+h2 { font-weight: 700; font-size: 30px; line-height: 1.1; letter-spacing: -.01em; }
+h3 { font-weight: 700; font-size: 21px; line-height: 1.2; }
+p { margin: 0; max-width: 66ch; }
+.eyebrow { font: 500 12.5px/1.4 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--brass); }
+.lede { font-size: 18px; color: var(--ink); margin-top: 18px; }
+.muted { color: var(--muted); }
+.stack { display: flex; flex-direction: column; gap: 14px; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+/* cards */
+.card {
+  --w: 68px; position: relative; flex: none; width: var(--w); height: calc(var(--w) * 1.4);
+  background: var(--card); color: var(--card-ink); border-radius: calc(var(--w) * .1);
+  box-shadow: 0 1px 0 rgba(255,255,255,.6) inset, 0 6px 14px rgba(0,0,0,.32), 0 1px 2px rgba(0,0,0,.4);
+}
+.card b { position: absolute; top: 5%; left: 10%; font: 800 calc(var(--w) * .38)/1 var(--display); letter-spacing: -.04em; }
+.card .pip { position: absolute; right: 9%; bottom: 6%; width: 44%; height: auto; fill: currentColor; }
+.card.red { color: var(--pip-red); }
+.card.back { background: repeating-linear-gradient(45deg, #8e2231 0 5px, #a32b3b 5px 10px); border: 4px solid var(--card); }
+.card.sm { --w: 44px; }
+.card.lg { --w: 132px; }
+.hand { display: flex; gap: 8px; flex-wrap: wrap; }
+@keyframes deal { from { transform: translateY(-10px) rotate(-2deg); opacity: .35; } to { transform: none; opacity: 1; } }
+.card.in { animation: deal .14s ease-out; }
+@media (prefers-reduced-motion: reduce) { .card.in { animation: none; } }
+
+/* the table panel */
+.table {
+  background: linear-gradient(180deg, rgba(7,42,30,.5), rgba(7,42,30,.72));
+  border: 1px solid var(--line); border-radius: 20px; padding: 24px;
+  box-shadow: 0 0 0 5px rgba(7,42,30,.45);
+}
+.row-label { font: 500 12px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 9px; }
+.seat { display: flex; flex-direction: column; }
+.seats { display: flex; flex-direction: column; gap: 22px; }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; }
+button, .btn {
+  font: 600 16px/1 var(--body); color: var(--rail); background: var(--brass); border: 0; border-radius: 10px;
+  padding: 13px 18px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: 0 2px 0 rgba(0,0,0,.35);
+}
+button:hover:not(:disabled), .btn:hover { filter: brightness(1.08); }
+button:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,.35); }
+button:disabled { opacity: .35; cursor: not-allowed; }
+button.ghost, .btn.ghost { background: transparent; color: var(--ink); box-shadow: inset 0 0 0 1px var(--line); }
+button kbd { font: 500 11px/1 var(--mono); padding: 3px 5px; border-radius: 4px; background: rgba(7,42,30,.16); color: inherit; }
+button.ghost kbd { background: rgba(244,239,222,.12); }
+.feedback { min-height: 26px; font-weight: 500; }
+.feedback.ok { color: var(--good); }
+.feedback.no { color: var(--bad); }
+.meter { display: flex; gap: 22px; flex-wrap: wrap; font: 500 13.5px/1.3 var(--mono); color: var(--muted); }
+.meter b { color: var(--ink); font-weight: 500; font-size: 17px; }
+.drill-head { display: flex; flex-direction: column; gap: 10px; margin-bottom: 22px; }
+.drill-head p { color: var(--muted); }
+.pass { display: inline-flex; align-items: center; gap: 8px; font: 500 13px/1.3 var(--mono); color: var(--muted); }
+.pill { display: inline-block; font: 500 12px/1 var(--mono); letter-spacing: .04em; padding: 5px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.done { background: var(--brass); color: var(--rail); border-color: var(--brass); }
+details { border-top: 1px solid var(--line); padding-top: 14px; margin-top: 26px; }
+summary { cursor: pointer; font-weight: 600; color: var(--brass); }
+details > *:not(summary) { margin-top: 16px; }
+input[type="text"], select {
+  font: 500 20px/1 var(--mono); color: var(--ink); background: var(--rail); border: 1px solid var(--line);
+  border-radius: 10px; padding: 11px 12px;
+}
+input[type="text"] { width: 96px; text-align: center; }
+select { font-size: 15px; padding: 10px 12px; }
+label { font-size: 14px; color: var(--muted); display: flex; flex-direction: column; gap: 6px; }
+label.inline { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); cursor: pointer; }
+.controls { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+.step { padding: 13px 15px; min-width: 46px; justify-content: center; }
+.big-count { font: 500 clamp(52px, 11vw, 84px)/.9 var(--mono); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.big-count small { display: block; font: 500 12px/1 var(--mono); letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+
+/* discard tray */
+.tray { display: flex; gap: 3px; align-items: flex-end; }
+.tray span { width: 20px; height: 34px; border-radius: 3px; background: rgba(244,239,222,.1); box-shadow: inset 0 0 0 1px rgba(244,239,222,.16); }
+.tray span.full { background: var(--card); }
+.tray-bar { position: relative; width: 100%; max-width: 280px; height: 14px; border-radius: 4px; background: rgba(244,239,222,.1); box-shadow: inset 0 0 0 1px rgba(244,239,222,.16); overflow: hidden; }
+.tray-bar i { position: absolute; inset: 0 auto 0 0; background: var(--card); }
+.tray-bar::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0 calc(100% / var(--decks, 6) - 1px), rgba(7,42,30,.9) calc(100% / var(--decks, 6) - 1px) calc(100% / var(--decks, 6))); }
+
+/* plan */
+.hero { display: flex; flex-direction: column; gap: 0; }
+.tagstrip { display: flex; gap: 26px; flex-wrap: wrap; margin-top: 30px; }
+.taggroup { display: flex; flex-direction: column; gap: 10px; }
+.taggroup .hand { gap: 5px; flex-wrap: nowrap; }
+.taggroup strong { font: 500 30px/1 var(--mono); }
+.taggroup strong span { font: 500 12.5px/1 var(--mono); letter-spacing: .06em; color: var(--muted); margin-left: 8px; text-transform: uppercase; }
+.plus strong { color: var(--good); } .minus strong { color: var(--bad); }
+.stages { list-style: none; counter-reset: st; padding: 0; margin: 20px 0 0; display: flex; flex-direction: column; }
+.stages li { counter-increment: st; display: grid; grid-template-columns: 54px 1fr auto; gap: 6px 18px; padding: 22px 0; border-top: 1px solid var(--line); align-items: start; }
+.stages li::before { content: counter(st); font: italic 800 44px/.9 var(--display); color: var(--brass); }
+.stages .body { display: flex; flex-direction: column; gap: 8px; }
+.stages .side { display: flex; flex-direction: column; gap: 10px; align-items: flex-end; }
+.stages .std { font-size: 14.5px; color: var(--muted); }
+.stages .std b { color: var(--ink); font-weight: 600; }
+@media (max-width: 640px) {
+  .stages li { grid-template-columns: 40px 1fr; }
+  .stages .side { grid-column: 2; flex-direction: row; align-items: center; flex-wrap: wrap; }
+  .table { padding: 18px 16px; }
+  .card { --w: 58px; } .card.lg { --w: 112px; } .card.sm { --w: 36px; }
+  .taggroup .card.sm { --w: 30px; }
+}
+section.block { margin-top: 56px; display: flex; flex-direction: column; gap: 16px; }
+
+/* tables of numbers */
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; font-size: 14.5px; }
+th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid rgba(227,185,85,.18); }
+th { font: 500 12px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+td.n, th.n { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.chart { font-family: var(--mono); font-size: 13px; }
+.chart th, .chart td { padding: 0; border: 0; text-align: center; }
+.chart th { width: 34px; height: 28px; color: var(--muted); }
+.chart th.rowh { width: 62px; text-align: left; text-transform: none; letter-spacing: 0; font-size: 13px; color: var(--ink); }
+.chart td { width: 34px; height: 30px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--rail); }
+.chart caption { text-align: left; font: 700 18px/1.2 var(--display); padding-bottom: 8px; color: var(--ink); }
+.aH { background: var(--hit); color: #fff; }
+.aS { background: var(--brass); color: var(--rail); }
+.aD { background: var(--double); color: #fff; }
+.aP { background: var(--card); color: var(--card-ink); }
+.charts { display: flex; gap: 28px; flex-wrap: wrap; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 16px; height: 16px; border-radius: 3px; display: inline-block; }
+
+.review { display: flex; flex-wrap: wrap; gap: 4px; }
+.review span { font: 500 12.5px/1 var(--mono); padding: 5px 6px; border-radius: 5px; background: var(--card); color: var(--card-ink); }
+.review span.red { color: var(--pip-red); }
+.review .pip { width: .8em; height: .8em; vertical-align: -.06em; margin-left: 1px; fill: currentColor; }
+.review span em { font-style: normal; color: #5a655f; margin-left: 4px; }
+.flash { display: flex; flex-direction: column; align-items: center; gap: 16px; min-height: 240px; justify-content: center; }
+.playerhand { padding: 12px; border-radius: 14px; border: 1px solid transparent; display: flex; flex-direction: column; gap: 9px; }
+.playerhand.active { border-color: var(--brass); background: rgba(227,185,85,.08); }
+.hands { display: flex; gap: 10px; flex-wrap: wrap; margin: -12px; }
+.handinfo { font: 500 13px/1.3 var(--mono); color: var(--muted); }
+.handinfo b { color: var(--ink); font-weight: 500; }
+.notes { display: flex; flex-direction: column; gap: 4px; min-height: 26px; }
+.statusbar { display: flex; gap: 18px 28px; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+canvas { width: 100%; height: 320px; display: block; }
+hr { border: 0; border-top: 1px solid var(--line); margin: 22px 0; }
+ul.plain { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; max-width: 66ch; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#plan">Hi<span>-</span>Lo</a>
+    <span class="eyebrow" id="rules-line">6 decks · dealer stands on soft 17 · double after split · 3 to 2</span>
+  </header>
+  <nav class="tabs" aria-label="Sections">
+    <a href="#plan">Plan</a>
+    <a href="#strategy">Basic strategy</a>
+    <a href="#running-count">Running count</a>
+    <a href="#true-count">True count and bets</a>
+    <a href="#deviations">Deviations</a>
+    <a href="#table">Full table</a>
+    <a href="#edge">The edge</a>
+    <a href="#rules">Rules and bankroll</a>
+  </nav>
+
+  <!-- PLAN -->
+  <section class="view" id="view-plan">
+    <div class="hero">
+      <h1>Low cards leave,<br><em>bets go up.</em></h1>
+      <p class="lede">A shoe that has lost its small cards is rich in tens and aces, and that favours the player. Hi-Lo tracks this with one number. Every card you see moves the count by its tag:</p>
+      <div class="tagstrip" id="tagstrip"></div>
+      <p class="lede">Counting well is five small skills running at once. Each stage below has a drill and a standard to meet before you move on. Your results are kept on this device.</p>
+    </div>
+    <ol class="stages" id="stages"></ol>
+
+    <section class="block">
+      <h2>What the edge is worth</h2>
+      <p>These figures come from a 60-million-hand simulation of the standard rules (six decks, the dealer stands on soft 17, double after split, bets of 1 to 12 units), one player against the dealer, 75% of the shoe dealt, no mistakes. Under <a href="#rules">Rules and bankroll</a> you can change the rules, and <a href="#edge">The edge</a> then runs the simulation for yours.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>How you play</th><th class="n">Edge on money bet</th><th class="n">Units won per 100 hands</th><th class="n">Swing per 100 hands (1 SD)</th></tr></thead>
+        <tbody>
+          <tr><td>Basic strategy, flat bet</td><td class="n">−0.42%</td><td class="n">−0.42</td><td class="n">±11.5</td></tr>
+          <tr><td>Count, bet 1 to 12 units, basic strategy</td><td class="n">+0.49%</td><td class="n">+0.81</td><td class="n">±30.4</td></tr>
+          <tr><td>Count, bet 1 to 12 units, with deviations</td><td class="n">+0.74%</td><td class="n">+1.23</td><td class="n">±31.5</td></tr>
+        </tbody>
+      </table></div>
+      <ul class="plain">
+        <li><strong>The edge is small and the swings are large.</strong> At 100 hands an hour you expect about 1.2 units an hour, with a typical hourly swing of about 31 units either way. After 200 hours, roughly 29% of perfect counters are still behind.</li>
+        <li><strong>Bankroll decides whether you survive the swings.</strong> Betting this ramp without ever resizing, the chance of losing the whole bankroll is about 29% with 500 units, 8% with 1,000 and under 1% with 2,000.</li>
+        <li><strong>Mistakes cost more than the edge.</strong> A basic strategy error rate of a few percent, or a count that drifts by two or three, gives it all back. That is why the standards below are strict.</li>
+        <li><strong>Game choice matters as much as skill.</strong> Avoid tables that pay 6 to 5 on blackjack, continuous shuffling machines, and shoes cut off before 70% is dealt. None of them can be beaten by this method.</li>
+        <li><strong>Counting in your head is legal. Devices are not.</strong> Casinos are private businesses and in most places can ask a suspected counter to stop playing blackjack, restrict them to flat bets, shuffle early, or bar them. A 1 to 12 bet spread is what they look for.</li>
+      </ul>
+    </section>
+  </section>
+
+  <!-- BASIC STRATEGY -->
+  <section class="view" id="view-strategy">
+    <div class="drill-head">
+      <h2>Basic strategy</h2>
+      <p>The correct play for every hand when you know nothing about the shoe. Answer from memory, then check the chart only for the ones you miss.</p>
+      <div class="pass"><span class="pill" id="strat-pill">Not passed</span> Standard: 100 correct in a row</div>
+    </div>
+    <div class="table">
+      <div class="seats">
+        <div class="seat"><div class="row-label">Dealer</div><div class="hand" id="strat-dealer"></div></div>
+        <div class="seat"><div class="row-label" id="strat-label">Your hand</div><div class="hand" id="strat-player"></div></div>
+        <div class="btns" id="strat-btns">
+          <button data-a="H">Hit <kbd>H</kbd></button>
+          <button data-a="S">Stand <kbd>S</kbd></button>
+          <button data-a="D">Double <kbd>D</kbd></button>
+          <button data-a="P">Split <kbd>P</kbd></button>
+        </div>
+        <div class="feedback" id="strat-fb" role="status"></div>
+        <div class="meter" id="strat-meter"></div>
+      </div>
+    </div>
+    <details>
+      <summary>Show the chart</summary>
+      <div class="legend">
+        <span><i class="aH"></i>Hit</span><span><i class="aS"></i>Stand</span><span><i class="aD"></i>Double</span><span><i class="aP"></i>Split</span>
+      </div>
+      <div class="scroll"><div class="charts" id="charts"></div></div>
+      <p class="muted">The chart follows the rules you have set. When you cannot double (three or more cards), hit instead, except on soft 18 and soft 19, which stand. The standard rules were checked cell by cell against an exact expected-value calculation.</p>
+    </details>
+  </section>
+
+  <!-- RUNNING COUNT -->
+  <section class="view" id="view-running-count">
+    <div class="drill-head">
+      <h2>Running count</h2>
+      <p>Start at 0. Add 1 for 2 to 6, subtract 1 for tens and aces, ignore 7 to 9. Read cards in pairs when you can: a king with a 5 is zero, so skip it. One card is held back from the deck, so a full countdown ends on +1, 0 or −1.</p>
+      <div class="pass"><span class="pill" id="rc-pill">Not passed</span> Standard: 51 cards in 30 seconds or less, right, three times running</div>
+    </div>
+    <div class="table stack" style="gap:18px">
+      <div class="controls" id="rc-setup">
+        <label>Cards <select id="rc-len"><option value="51">One deck (51)</option><option value="20">20 cards</option><option value="30">30 cards</option></select></label>
+        <label>Pace <select id="rc-pace"><option value="self">I tap for each card</option><option value="1">1 a second</option><option value="1.5">1.5 a second</option><option value="2" selected>2 a second</option><option value="3">3 a second</option><option value="4">4 a second</option></select></label>
+        <label class="inline"><input type="checkbox" id="rc-pairs"> Two at a time</label>
+        <button id="rc-start">Deal</button>
+      </div>
+      <div class="flash" id="rc-stage"></div>
+      <div class="feedback" id="rc-fb" role="status"></div>
+      <div class="meter" id="rc-meter"></div>
+    </div>
+  </section>
+
+  <!-- TRUE COUNT -->
+  <section class="view" id="view-true-count">
+    <div class="drill-head">
+      <h2>True count and bets</h2>
+      <p>A running count of +6 means much more with one deck left than with five. Divide the running count by the decks still in the shoe and round down (−1.5 becomes −2). That true count sets the bet.</p>
+      <div class="pass"><span class="pill" id="tc-pill">Not passed</span> Standard: 30 in a row, true count and bet both right</div>
+    </div>
+    <div class="table">
+      <div class="seats">
+        <div style="display:flex;gap:28px 56px;flex-wrap:wrap;align-items:flex-end">
+          <div class="big-count"><small>Running count</small><span id="tc-rc"></span></div>
+          <div class="stack" style="gap:9px"><div class="row-label" style="margin:0">Discard tray, half-deck marks</div><div class="tray" id="tc-tray"></div><div class="handinfo" id="tc-traytext"></div></div>
+        </div>
+        <div class="controls">
+          <label for="tc-input">True count
+            <span class="btns" style="gap:6px"><button type="button" class="ghost step" data-step="-1" data-for="tc-input" aria-label="Lower">−</button><input type="text" id="tc-input" inputmode="numeric" autocomplete="off"><button type="button" class="ghost step" data-step="1" data-for="tc-input" aria-label="Raise">+</button></span>
+          </label>
+          <label>Then your bet, in units
+            <span class="btns" id="tc-bets" style="gap:6px"></span>
+          </label>
+        </div>
+        <div class="feedback" id="tc-fb" role="status"></div>
+        <div class="meter" id="tc-meter"></div>
+      </div>
+    </div>
+    <section class="block" style="margin-top:30px">
+      <h3>The bet ramp</h3>
+      <div class="scroll"><table id="ramp-table"></table></div>
+      <p class="muted">Each point of true count is worth about half a percent. The house edge is gone at about +1, so the money goes out from +2. One unit is your table minimum.</p>
+    </section>
+  </section>
+
+  <!-- DEVIATIONS -->
+  <section class="view" id="view-deviations">
+    <div class="drill-head">
+      <h2>Deviations</h2>
+      <p>At some counts the basic strategy play stops being the best one. Insurance and the hands below, known as the Illustrious 18, capture most of what there is to gain. They add about a quarter of a percent to the edge.</p>
+      <div class="pass"><span class="pill" id="dev-pill">Not passed</span> Standard: 50 correct in a row</div>
+    </div>
+    <div class="table">
+      <div class="seats">
+        <div style="display:flex;gap:24px 56px;flex-wrap:wrap;align-items:flex-end">
+          <div class="big-count"><small>True count</small><span id="dev-tc"></span></div>
+          <div class="seat"><div class="row-label">Dealer</div><div class="hand" id="dev-dealer"></div></div>
+          <div class="seat"><div class="row-label" id="dev-label">Your hand</div><div class="hand" id="dev-player"></div></div>
+        </div>
+        <div class="btns" id="dev-btns"></div>
+        <div class="feedback" id="dev-fb" role="status"></div>
+        <div class="meter" id="dev-meter"></div>
+      </div>
+    </div>
+    <details>
+      <summary>Show the list</summary>
+      <div class="scroll"><table id="dev-table"></table></div>
+      <p class="muted">Index numbers are the published Hi-Lo values for shoe games; the list follows the rules you have set. Under the standard rules they lift the edge from +0.49% to +0.74% in the simulation.</p>
+    </details>
+  </section>
+
+  <!-- TABLE -->
+  <section class="view" id="view-table">
+    <div class="drill-head">
+      <h2>Full table</h2>
+      <p>Everything at once. Keep the count yourself, bet the ramp, and play each hand as the true count says. You will be asked for the running count without warning, and always before a shuffle.</p>
+      <div class="pass"><span class="pill" id="table-pill">Not passed</span> Standard: a whole shoe with every count check right and at most one play or bet error</div>
+    </div>
+    <div class="table">
+      <div class="statusbar">
+        <div class="stack" style="gap:8px;flex:1;min-width:220px"><div class="row-label" style="margin:0">Discard tray, deck marks</div><div class="tray-bar"><i id="t-tray"></i></div></div>
+        <div class="meter" id="t-meter"></div>
+      </div>
+      <div class="seats">
+        <div class="seat"><div class="row-label" id="t-dealer-label">Dealer</div><div class="hand" id="t-dealer"></div></div>
+        <div class="seat"><div class="row-label">You</div><div class="hands" id="t-hands"></div></div>
+        <div class="notes" id="t-notes" role="status"></div>
+        <div class="controls" id="t-controls"></div>
+      </div>
+      <hr>
+      <div class="controls">
+        <label class="inline"><input type="checkbox" id="t-coach" checked> Tell me when I misplay</label>
+        <label class="inline"><input type="checkbox" id="t-show"> Show the count (does not count toward the standard)</label>
+        <button class="ghost" id="t-buyin" type="button">Add a buy-in</button>
+        <span class="handinfo" id="t-count"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- EDGE -->
+  <section class="view" id="view-edge">
+    <div class="drill-head">
+      <h2>The edge</h2>
+      <p>The same rules engine that deals the practice table, played by a perfect player, one player against the dealer, under the rules you have set.</p>
+    </div>
+    <div class="table stack" style="gap:18px">
+      <div class="scroll"><table id="edge-table"></table></div>
+      <div class="btns"><button id="edge-run">Run 1,000,000 hands of each</button></div>
+      <p class="muted" id="edge-note">Shown: a 60-million-hand run. A run of a million hands here can land a few tenths of a percent away, which is a lesson in how slowly this edge shows up.</p>
+    </div>
+    <section class="block">
+      <h3>Six counters, 20,000 hands each</h3>
+      <p class="muted" id="paths-text">About 200 hours of play with the 1 to 12 ramp and deviations. The straight line is the average result. Each path is one perfect player.</p>
+      <div class="table" style="padding:14px"><canvas id="paths" role="img" aria-label="Bankroll paths of six simulated counters over 20,000 hands"></canvas></div>
+      <div class="btns"><button class="ghost" id="paths-new">Deal six more</button></div>
+    </section>
+  </section>
+
+  <!-- RULES AND BANKROLL -->
+  <section class="view" id="view-rules">
+    <div class="drill-head">
+      <h2>Rules and bankroll</h2>
+      <p>Set the table you are training for. The strategy chart, the deviations, the practice table and the simulation all follow these rules.</p>
+    </div>
+    <div class="table stack" style="gap:20px">
+      <h3>House rules</h3>
+      <div class="controls"><label for="set-preset">Start from<select id="set-preset"></select></label><button class="ghost" id="set-reset" type="button">Back to the standard shoe</button></div>
+      <p class="muted" id="set-preset-note"></p>
+      <div class="controls" id="set-rules"></div>
+      <hr style="margin:4px 0">
+      <h3>Your money</h3>
+      <div class="controls" id="set-money"></div>
+      <p class="muted" id="set-ramp"></p>
+      <div class="feedback ok" id="set-fb" role="status"></div>
+    </div>
+  </section>
+</div>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

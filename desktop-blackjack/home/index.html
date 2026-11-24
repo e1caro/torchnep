@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Blackjack &amp; Hi-Lo</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+:root {
+  /* The table again: felt ground, brass rules, white cards. Two doors side by side, nothing else. */
+  --felt: #10513c; --felt-deep: #0b3d2c; --rail: #072a1e; --ink: #f4efde; --muted: #b9cdbf;
+  --brass: #e3b955; --line: rgba(227, 185, 85, .34); --card: #fbf9f1; --card-ink: #17201b; --pip-red: #c21f38;
+  --display: 'Bodoni Moda', Didot, 'Bodoni MT', Georgia, serif;
+  --body: 'Instrument Sans', system-ui, 'Segoe UI', sans-serif;
+  --mono: 'DM Mono', ui-monospace, Consolas, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0; color: var(--ink); font: 400 16px/1.55 var(--body); background: var(--felt-deep);
+  background-image: radial-gradient(1200px 800px at 50% -160px, #1a6a50 0%, var(--felt) 45%, rgba(11,61,44,0) 100%);
+  background-repeat: no-repeat; display: flex; flex-direction: column;
+}
+.wrap { width: 100%; max-width: 1040px; margin: auto; padding: 36px 24px 44px; display: flex; flex-direction: column; gap: 34px; }
+h1 { margin: 0; font: 800 clamp(40px, 7vw, 72px)/.98 var(--display); letter-spacing: -.02em; text-wrap: balance; }
+h1 em { color: var(--brass); font-weight: 700; }
+.lede { margin: 16px 0 0; max-width: 60ch; font-size: 18px; color: var(--muted); }
+.doors { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+@media (max-width: 760px) { .doors { grid-template-columns: 1fr; } }
+.door {
+  display: flex; flex-direction: column; gap: 14px; padding: 26px; border-radius: 20px; color: inherit; text-decoration: none;
+  background: linear-gradient(180deg, rgba(7,42,30,.5), rgba(7,42,30,.74)); border: 1px solid var(--line);
+  box-shadow: 0 0 0 5px rgba(7,42,30,.45); transition: transform .15s ease, border-color .15s ease;
+}
+.door:hover, .door:focus-visible { transform: translateY(-3px); border-color: var(--brass); outline: none; }
+@media (prefers-reduced-motion: reduce) { .door { transition: none; } .door:hover { transform: none; } }
+.door h2 { margin: 0; font: 700 32px/1.1 var(--display); letter-spacing: -.01em; }
+.door p { margin: 0; color: var(--muted); max-width: 46ch; }
+.door .state { font: 500 13px/1.4 var(--mono); color: var(--ink); min-height: 19px; }
+.door .go { margin-top: auto; align-self: flex-start; font: 600 16px/1 var(--body); color: var(--rail); background: var(--brass); border-radius: 10px; padding: 13px 18px; box-shadow: 0 2px 0 rgba(0,0,0,.35); display: inline-flex; gap: 8px; align-items: center; }
+.door kbd { font: 500 11px/1 var(--mono); padding: 3px 5px; border-radius: 4px; background: rgba(7,42,30,.16); }
+.fan { display: flex; height: 96px; align-items: flex-end; padding-left: 6px; }
+.c { position: relative; width: 58px; height: 82px; margin-left: -16px; border-radius: 6px; background: var(--card); color: var(--card-ink);
+  box-shadow: 0 6px 14px rgba(0,0,0,.32), 0 1px 2px rgba(0,0,0,.4); transform-origin: 50% 120%; }
+.c:first-child { margin-left: 0; }
+.c b { position: absolute; top: 4px; left: 7px; font: 800 22px/1 var(--display); letter-spacing: -.04em; }
+.c svg { position: absolute; right: 6px; bottom: 6px; width: 24px; height: 24px; fill: currentColor; }
+.c.red { color: var(--pip-red); }
+.c small { position: absolute; left: 0; right: 0; bottom: -24px; text-align: center; font: 500 13px/1 var(--mono); color: var(--muted); }
+.chip { width: 46px; height: 46px; border-radius: 50%; margin-left: 14px; align-self: center; border: 5px dashed rgba(251,249,241,.9); background: var(--pip-red); box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.chip + .chip { margin-left: -12px; background: #2c69ae; }
+.chip + .chip + .chip { background: var(--rail); }
+footer { font: 500 12.5px/1.5 var(--mono); color: var(--muted); letter-spacing: .02em; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Blackjack <em>&amp; Hi-Lo</em></h1>
+    <p class="lede">Play at the table, or learn to count it. Both keep their own progress on this computer, and each has a way back here in its menu.</p>
+  </header>
+  <main class="doors">
+    <a class="door" id="door-table" href="blackjack/index.html">
+      <div class="fan" aria-hidden="true">
+        <div class="c" style="transform:rotate(-8deg)"><b>A</b><svg viewBox="0 0 100 100"><path d="M50 6c32 28 43 43 43 57 0 12-9 20-20 20-8 0-14-4-18-10 1 9 4 16 10 22H35c6-6 9-13 10-22-4 6-10 10-18 10C16 83 7 75 7 63 7 49 18 34 50 6z"/></svg></div>
+        <div class="c red" style="transform:rotate(6deg)"><b>K</b><svg viewBox="0 0 100 100"><path d="M50 90C18 62 7 46 7 30 7 16 18 7 30 7c9 0 16 5 20 13 4-8 11-13 20-13 12 0 23 9 23 23 0 16-11 32-43 60z"/></svg></div>
+        <span class="chip"></span><span class="chip"></span><span class="chip"></span>
+      </div>
+      <h2>Blackjack table</h2>
+      <p>Sit down with your own buy-in at a casino or online table, Sevilla included. Dealt and flipped cards, flying chips, side bets, and statistics for every session.</p>
+      <div class="state" id="state-table"></div>
+      <span class="go">Play <kbd>1</kbd></span>
+    </a>
+    <a class="door" id="door-hilo" href="hilo/index.html">
+      <div class="fan" aria-hidden="true" style="padding-bottom:24px">
+        <div class="c red"><b>5</b><svg viewBox="0 0 100 100"><path d="M50 5 87 50 50 95 13 50z"/></svg><small>+1</small></div>
+        <div class="c" style="margin-left:8px"><b>8</b><svg viewBox="0 0 100 100"><circle cx="50" cy="27" r="20"/><circle cx="27" cy="58" r="20"/><circle cx="73" cy="58" r="20"/><path d="M44 50h12c0 22 3 35 10 45H34c7-10 10-23 10-45z"/></svg><small>0</small></div>
+        <div class="c red" style="margin-left:8px"><b>Q</b><svg viewBox="0 0 100 100"><path d="M50 90C18 62 7 46 7 30 7 16 18 7 30 7c9 0 16 5 20 13 4-8 11-13 20-13 12 0 23 9 23 23 0 16-11 32-43 60z"/></svg><small>−1</small></div>
+      </div>
+      <h2>Hi-Lo trainer</h2>
+      <p>Learn to count cards in six stages: basic strategy, the running count, the true count, the bet ramp, the deviations, and a full practice shoe. Your rules, your bankroll.</p>
+      <div class="state" id="state-hilo"></div>
+      <span class="go">Train <kbd>2</kbd></span>
+    </a>
+  </main>
+  <footer>Works offline. Nothing leaves this computer.</footer>
+</div>
+<script>
+(function () {
+  function read(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  var g = (read('blackjack.v1') || {}).s, t = '';     // the table's saved game: { s: game, prefs: ... }
+  if (g && g.table && g.rules && isFinite(g.bankroll)) {
+    var cur = g.rules.currency || '', chips = Math.round(g.bankroll) / 100;
+    t = 'Your seat: ' + g.table.name + ' · ' + cur + chips.toLocaleString('en-US') + ' in chips';
+  } else t = 'No table open yet';
+  document.getElementById('state-table').textContent = t;
+  var p = read('hilo-trainer') || {}, done = 0;
+  if (p.stratBest >= 100) done++; if (p.rcBestRun >= 3) done++; if (p.tcBest >= 30) done++; if (p.devBest >= 50) done++; if (p.tableShoes >= 1) done++;
+  document.getElementById('state-hilo').textContent = done ? done + ' of 5 drills passed' : 'No drill passed yet';
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey || e.altKey || e.metaKey) return;
+    if (e.key === '1') location.href = 'blackjack/index.html';
+    if (e.key === '2') location.href = 'hilo/index.html';
+  });
+})();
+</script>
+</body>
+</html>

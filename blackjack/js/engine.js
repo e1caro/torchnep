@@ -48,6 +48,8 @@
       { decks: 6, minBet: 10, maxBet: 1000, hitSoft17: true, doubleOn: '10-11', das: false }),
     T('europe', 'floor', 'European casino', 'No hole card, double on 9 to 11, split once', 'red',
       { decks: 6, minBet: 5, maxBet: 500, holeCard: 'enhc', doubleOn: '9-11', maxHands: 2 }),
+    T('sevilla', 'floor', 'Sevilla', 'Andalusian casino rules: no hole card, double on any two cards', 'red',
+      { decks: 6, minBet: 5, maxBet: 500, holeCard: 'enhc' }),
     T('online', 'online', 'Online classic', 'Software dealer, the shoe is shuffled every hand', 'green',
       { decks: 6, minBet: 1, maxBet: 500, maxHands: 2, continuous: true, sidePP: true }),
     T('live', 'online', 'Live dealer studio', 'Eight decks, no hole card, both side bets', 'blue',

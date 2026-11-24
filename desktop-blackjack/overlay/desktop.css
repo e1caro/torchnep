@@ -1,0 +1,6 @@
+/* Added to both apps inside the desktop program: the links between them. */
+a.btn { text-decoration: none; color: inherit; }
+.desk-links .row { margin-top: 10px; }
+.desk-nav { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.desk-nav a { font: 600 14px/1 var(--body); color: var(--ink); text-decoration: none; padding: 9px 12px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--line); }
+.desk-nav a:hover, .desk-nav a:focus-visible { box-shadow: inset 0 0 0 1px var(--brass); color: var(--brass); }

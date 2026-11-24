@@ -22,13 +22,17 @@ shows its limits, its rules in short and its house edge for someone playing perf
 | Atlantic City | Casino floor | 15–5,000 | 8 | Stands | 3:2 | Peeks | Double any 2, DAS, split to 4, surrender | Pairs | 0.44% |
 | Reno | Casino floor | 10–1,000 | 6 | Hits | 3:2 | Peeks | Double 10–11, split to 4 | – | 1.04% |
 | European casino | Casino floor | 5–500 | 6 | Stands | 3:2 | No hole card | Double 9–11, DAS, split to 2 | – | 0.75% |
+| Sevilla | Casino floor | 5–500 | 6 | Stands | 3:2 | No hole card | Double any 2, DAS, split to 4 | – | 0.61% |
 | Online classic | Online | 1–500 | 6 | Stands | 3:2 | Peeks | Double any 2, DAS, split to 2, shuffled every hand | Pairs | 0.45% |
 | Live dealer studio | Online | 5–2,500 | 8 | Stands | 3:2 | No hole card | Double any 2, DAS, split to 2 | Pairs, 21+3 | 0.68% |
 | Six-card Charlie | Online | 1–250 | 6 | Stands | 3:2 | Peeks | Double any 2, DAS, split to 4, surrender, 6-card Charlie, shuffled every hand | – | 0.22% |
 | Online VIP | Online | 50–20,000 | 8 | Stands | 3:2 | Peeks | Double any 2, DAS, split to 4, resplit aces, surrender, shuffled every hand | 21+3 | 0.26% |
 
 The tables follow the rule sets commonly found in those kinds of places; they are not copies of any particular
-casino or game provider. **Change the rules of this table** opens every rule of the chosen table:
+casino or game provider. **Sevilla** follows the rules Andalusian casinos play by (Order of 4 February 2010, BOJA 39:
+six decks, the dealer takes the second card after the players and stands on every 17, double on any two cards and
+after a split, split aces get one card, blackjack pays 3 to 2, insurance, no surrender); its limits are an example, and
+the regulation does not say what a dealer blackjack does to doubled and split bets (here it takes them). **Change the rules of this table** opens every rule of the chosen table:
 
 - **Limits**: minimum bet (1 to 1,000), maximum bet (50 to 50,000). The chip tray offers the chips that suit them.
 - **Shoe and dealer**: 1, 2, 4, 6 or 8 decks; shuffle every hand (as online games do) or a cut card at 50% to 90%;
