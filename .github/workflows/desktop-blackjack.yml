@@ -1,8 +1,8 @@
 name: desktop-blackjack
 
 # Builds the desktop program (desktop-blackjack/: the Blackjack table and the Hi-Lo trainer in one Windows .exe) and
-# runs the real .exe on Windows. Nothing is released: the .exe and screenshots of the run are attached to the workflow
-# run as artifacts.
+# runs the real .exe on Windows, where it plays through itself (tests/selftest.js). Nothing is released: the .exe and
+# a picture of its window are attached to the workflow run as artifacts.
 
 on:
   push:
@@ -56,34 +56,40 @@ jobs:
           name: BlackjackHiLo-windows
           path: dist
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install the test driver
-        working-directory: desktop-blackjack
-        run: npm install --no-save --no-audit --no-fund playwright-core
-
-      - name: Run the program and play through it
+      - name: Run the program and let it play through itself
         shell: pwsh
         run: |
-          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = "--remote-debugging-port=9222"
           "sha256 " + (Get-FileHash dist\BlackjackHiLo.exe -Algorithm SHA256).Hash.ToLower()
           New-Item -ItemType Directory -Force shots | Out-Null
-          $p = Start-Process -FilePath dist\BlackjackHiLo.exe -PassThru
-          Start-Sleep -Seconds 10
-          if ($p.HasExited) { throw "the program exited at once with code $($p.ExitCode)" }
-          "window title: " + (Get-Process -Id $p.Id).MainWindowTitle
-          node desktop-blackjack/tests/smoke.js --cdp http://127.0.0.1:9222 --shots shots
-          if ($LASTEXITCODE -ne 0) { throw "the play-through failed" }
-          # close the window as a person would, open it again: the seat and the rules must still be there
-          $p.CloseMainWindow() | Out-Null
-          if (-not $p.WaitForExit(15000)) { Stop-Process -Id $p.Id -Force }
+          function Play($mode) {
+            $log = Join-Path $PWD "selftest-$mode.log"
+            $env:BJHILO_SELFTEST = $log
+            $env:BJHILO_SELFTEST_MODE = $mode
+            $p = Start-Process -FilePath dist\BlackjackHiLo.exe -PassThru
+            $null = $p.Handle
+            Start-Sleep -Seconds 6
+            if (-not $p.HasExited) { "window title: " + (Get-Process -Id $p.Id).MainWindowTitle }
+            if (-not $p.WaitForExit(420000)) { Stop-Process -Id $p.Id -Force; if (Test-Path $log) { Get-Content $log }; throw "the $mode play-through did not finish" }
+            if (Test-Path $log) { Get-Content $log } else { throw "the program wrote no log (exit code $($p.ExitCode))" }
+            if ($p.ExitCode -ne 0) { throw "the $mode play-through failed (exit code $($p.ExitCode))" }
+          }
+          Play "full"
           Start-Sleep -Seconds 3
+          Play "restart"      # closed and opened again: the seat and the rules must still be there
+
+      - name: A picture of the window as a person gets it
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Remove-Item Env:BJHILO_SELFTEST -ErrorAction SilentlyContinue
           $p = Start-Process -FilePath dist\BlackjackHiLo.exe -PassThru
           Start-Sleep -Seconds 10
-          node desktop-blackjack/tests/smoke.js --cdp http://127.0.0.1:9222 --shots shots --after-restart
-          if ($LASTEXITCODE -ne 0) { throw "the saved games did not survive a restart" }
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+          $bmp.Save((Join-Path $PWD "shots\window.png"), [System.Drawing.Imaging.ImageFormat]::Png)
           Stop-Process -Id $p.Id -Force
 
       - uses: actions/upload-artifact@v4

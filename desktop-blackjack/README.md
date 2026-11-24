@@ -23,7 +23,8 @@ overlay/           desktop.css + desktop.js, added to both apps: the links betwe
 fonts/             the fonts of both apps (SIL OFL, see fonts/LICENSES.txt), so nothing comes from the network
 winres/            the icon and the Windows manifest
 build.py           assembles frontend/ from ../blackjack and ../hilo, then cross-compiles dist/BlackjackHiLo.exe
-tests/smoke.js     plays through the program: in Chromium against frontend/, or against the running .exe
+tests/selftest.js  the play-through; the .exe runs it on itself when started with BJHILO_SELFTEST=<log file>
+tests/browser.js   runs the same play-through in Chromium against frontend/
 ```
 
 The two apps are copied in unchanged, apart from their font links. `frontend/` and `dist/` are generated.
@@ -34,9 +35,9 @@ The two apps are copied in unchanged, apart from their font links. `frontend/` a
 python3 build.py                      # needs Go 1.26; builds from Linux, macOS or Windows
 python3 build.py --frontend           # only assemble frontend/
 (cd frontend && python3 -m http.server 8765) &
-node tests/smoke.js --url http://localhost:8765/        # 6 checks in Chromium (needs Playwright)
+node tests/browser.js http://localhost:8765/            # the play-through in Chromium (needs Playwright)
 ```
 
-`.github/workflows/desktop-blackjack.yml` builds the .exe and then runs it on a Windows machine, driving the real
-window through the same six checks, closing it and opening it again to see that the saved games are still there. The
-.exe is attached to the workflow run; nothing is released.
+`.github/workflows/desktop-blackjack.yml` builds the .exe and then runs it on a Windows machine, where the real
+window plays through itself, is closed and opened again to see that the saved games are still there. The .exe is
+attached to the workflow run; nothing is released.
