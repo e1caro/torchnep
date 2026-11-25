@@ -1,0 +1,100 @@
+name: desktop-blackjack
+
+# Builds the desktop program (desktop-blackjack/: the Blackjack table and the Hi-Lo trainer in one Windows .exe) and
+# runs the real .exe on Windows, where it plays through itself (tests/selftest.js). Nothing is released: the .exe and
+# a picture of its window are attached to the workflow run as artifacts.
+
+on:
+  push:
+    branches: [master, "claude/**", "ccr-**"]
+    paths: ["desktop-blackjack/**", "blackjack/**", "hilo/**", ".github/workflows/desktop-blackjack.yml"]
+  pull_request:
+    branches: [master]
+    paths: ["desktop-blackjack/**", "blackjack/**", "hilo/**", ".github/workflows/desktop-blackjack.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-blackjack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop-blackjack/go.mod
+          cache-dependency-path: desktop-blackjack/go.sum
+
+      - name: Test the rules (blackjack table, trainer chart)
+        run: |
+          node blackjack/tests/unit.js
+          cd hilo/tests && python3 strategy_check.py && node exact6.js
+
+      - name: Build BlackjackHiLo.exe
+        run: python3 desktop-blackjack/build.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlackjackHiLo-windows
+          path: desktop-blackjack/dist/BlackjackHiLo.exe
+          if-no-files-found: error
+
+  windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: BlackjackHiLo-windows
+          path: dist
+
+      - name: Run the program and let it play through itself
+        shell: pwsh
+        run: |
+          "sha256 " + (Get-FileHash dist\BlackjackHiLo.exe -Algorithm SHA256).Hash.ToLower()
+          New-Item -ItemType Directory -Force shots | Out-Null
+          function Play($mode) {
+            $log = Join-Path $PWD "selftest-$mode.log"
+            $env:BJHILO_SELFTEST = $log
+            $env:BJHILO_SELFTEST_MODE = $mode
+            $p = Start-Process -FilePath dist\BlackjackHiLo.exe -PassThru
+            $null = $p.Handle
+            Start-Sleep -Seconds 6
+            if (-not $p.HasExited) { "window title: " + (Get-Process -Id $p.Id).MainWindowTitle }
+            if (-not $p.WaitForExit(420000)) { Stop-Process -Id $p.Id -Force; if (Test-Path $log) { Get-Content $log }; throw "the $mode play-through did not finish" }
+            if (Test-Path $log) { Get-Content $log } else { throw "the program wrote no log (exit code $($p.ExitCode))" }
+            if ($p.ExitCode -ne 0) { throw "the $mode play-through failed (exit code $($p.ExitCode))" }
+          }
+          Play "full"
+          Start-Sleep -Seconds 3
+          Play "restart"      # closed and opened again: the seat and the rules must still be there
+
+      - name: A picture of the window as a person gets it
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Remove-Item Env:BJHILO_SELFTEST -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath dist\BlackjackHiLo.exe -PassThru
+          Start-Sleep -Seconds 10
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+          $bmp.Save((Join-Path $PWD "shots\window.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+          Stop-Process -Id $p.Id -Force
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screenshots
+          path: shots
+          if-no-files-found: ignore

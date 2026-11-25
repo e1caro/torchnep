@@ -1,0 +1,127 @@
+name: android-blackjack
+
+# Builds the Blackjack Table Android app (android-blackjack/, with blackjack/ packed inside it).
+# - On a push to a claude/** or ccr-** branch or a pull request that touches the app: builds the APK as a check
+#   (downloadable from the run's artifacts).
+# - On a push to master that touches the app, or run by hand (Actions > android-blackjack > Run workflow):
+#   builds and publishes a release "Blackjack 1.N" (tag blackjack-N) with the APK, which can be downloaded and
+#   installed straight from a phone.
+# Each release also carries web.zip (the web app) and shell-S (the native version it needs): installed apps download
+# web.zip by themselves and show it from the next time they open, so the APK is only reinstalled when the shell changes.
+# Tags are blackjack-N, never v* (that would start the PyPI publish workflow) or another app's prefix; releases are not
+# marked "latest".
+#
+# Signing: every release must use the same key, so each APK installs over the previous one and keeps the data.
+# It reuses the repository's sideload key (secrets FITQUEST_KEYSTORE and FITQUEST_KEY_PASS, as the other Android
+# workflows do). Without them a one-off key is generated: the APK installs, but a later one will not update it.
+
+on:
+  push:
+    branches: [master, "claude/**", "ccr-**"]
+    paths: ["android-blackjack/**", "blackjack/**", ".github/workflows/android-blackjack.yml"]
+  pull_request:
+    branches: [master]
+    paths: ["android-blackjack/**", "blackjack/**", ".github/workflows/android-blackjack.yml"]
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "What's new in this version"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-blackjack-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.13"
+
+      - name: Test the game (rules, payouts, side bets, tables, statistics)
+        run: node blackjack/tests/unit.js
+
+      - name: Pack the web app into the APK
+        run: |
+          mkdir -p android-blackjack/app/src/main/assets/www
+          rsync -a --delete --exclude tests --exclude tools --exclude README.md \
+            blackjack/ android-blackjack/app/src/main/assets/www/
+
+      - name: Pack the web app for installed apps to update themselves
+        run: |
+          (cd android-blackjack/app/src/main/assets/www && zip -qr "$GITHUB_WORKSPACE/web.zip" .)
+          SHELL_V=$(grep -oE "blackjackShell'\) \?: '[0-9]+'" android-blackjack/app/build.gradle | grep -oE "[0-9]+" | tail -1)
+          echo "$SHELL_V" > "shell-$SHELL_V" # not empty: GitHub refuses empty release files
+          ls -la web.zip shell-*
+
+      - name: Signing key
+        env:
+          KEYSTORE: ${{ secrets.FITQUEST_KEYSTORE }}
+        run: |
+          if [ -n "$KEYSTORE" ]; then
+            echo "$KEYSTORE" | base64 -d > android-blackjack/blackjack.jks
+          else
+            echo "::warning::No FITQUEST_KEYSTORE secret: signing with a one-off key, so a later APK will not be able to update this one."
+            keytool -genkeypair -keystore android-blackjack/blackjack.jks -alias fitquest -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass fitquest -keypass fitquest -dname "CN=Blackjack"
+          fi
+
+      - name: Build
+        env:
+          BLACKJACK_KEY_PASS: ${{ secrets.FITQUEST_KEY_PASS || 'fitquest' }}
+        run: |
+          gradle -p android-blackjack assembleRelease \
+            -PversionCode=${{ github.run_number }} -PversionName=1.${{ github.run_number }} --no-daemon --console=plain
+
+      - name: Name the APK and check it
+        run: |
+          APK=Blackjack-1.${{ github.run_number }}.apk
+          cp android-blackjack/app/build/outputs/apk/release/app-release.apk "$APK"
+          ls -la "$APK"
+          # the web app must really be inside
+          unzip -l "$APK" | grep -E "assets/www/(index.html|js/app.js|js/engine.js|css/style.css)"
+          echo "APK=$APK" >> "$GITHUB_ENV"
+
+      - name: Show package and signature
+        continue-on-error: true
+        run: |
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs "$APK" | head -5
+          "$BT/aapt2" dump badging "$APK" | grep -E "^package|^sdkVersion|^targetSdkVersion|^application-label:|^uses-permission"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Blackjack-1.${{ github.run_number }}
+          path: Blackjack-1.${{ github.run_number }}.apk
+
+      - name: Publish the release
+        if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: blackjack-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Blackjack 1.${{ github.run_number }}
+          body: |
+            ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notes) || 'Blackjack Table for Android: casino-floor and online tables with their own limits and rules, side bets, animated cards and chips, strategy hints, a card count and statistics for every session. Works offline.' }}
+
+            **Install on Android:** download `Blackjack-1.${{ github.run_number }}.apk` on the phone, open it and allow "Install unknown apps" for your browser when asked.
+
+            The app updates itself: when there is a new version it downloads it and shows it the next time you open the app.
+          files: |
+            Blackjack-1.${{ github.run_number }}.apk
+            web.zip
+            shell-*
+          make_latest: false

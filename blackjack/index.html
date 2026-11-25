@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#140f0b">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="A blackjack table for the phone and the desktop: choose your bankroll, the number of decks and the house rules, then play with dealt, flipped and swept cards, chips that fly, strategy hints and a card count.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Blackjack">
+  <title>Blackjack Table</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Manrope:wght@500;600;700;800&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-felt="green" data-back="red">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="suit-H" viewBox="0 0 100 100"><path d="M50 92C22 68 4 52 4 31 4 16 15 6 29 6c9 0 16 5 21 13 5-8 12-13 21-13 14 0 25 10 25 25 0 21-18 37-46 61z"/></symbol>
+    <symbol id="suit-D" viewBox="0 0 100 100"><path d="M50 2C62 22 75 37 92 50 75 63 62 78 50 98 38 78 25 63 8 50 25 37 38 22 50 2z"/></symbol>
+    <symbol id="suit-S" viewBox="0 0 100 100"><path d="M50 4C36 24 6 38 6 60c0 14 11 23 24 23 9 0 15-4 18-9-1 10-5 17-14 22h32c-9-5-13-12-14-22 3 5 9 9 18 9 13 0 24-9 24-23C94 38 64 24 50 4z"/></symbol>
+    <symbol id="suit-C" viewBox="0 0 100 100"><circle cx="50" cy="27" r="20"/><circle cx="27" cy="57" r="20"/><circle cx="73" cy="57" r="20"/><circle cx="50" cy="50" r="12"/><path d="M43 50h14v6c0 16 4 28 15 38H28c11-10 15-22 15-38z"/></symbol>
+    <symbol id="crown-K" viewBox="0 0 100 50"><path d="M8 46 4 8l24 20L50 2l22 26L96 8l-4 38z"/></symbol>
+    <symbol id="crown-Q" viewBox="0 0 100 50"><path d="M10 46 7 16q22 22 29-6 7 18 14 18t14-18q7 28 29 6l-3 30z"/></symbol>
+    <symbol id="crown-J" viewBox="0 0 100 50"><path d="M8 46q2-28 42-33 34-4 44 15-24-3-28 18z"/></symbol>
+  </svg>
+
+  <div id="app">
+    <header class="top">
+      <button class="icon-btn" id="menuBtn" type="button" aria-label="Menu and table settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="bank">
+        <span id="tableLabel">Bankroll</span>
+        <b id="bank" aria-label="Bankroll"></b>
+      </div>
+      <button class="icon-btn" id="statsBtn" type="button" aria-label="Session statistics">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 20V11M12 20V5M19 20v-6"/></svg>
+      </button>
+    </header>
+
+    <main class="room">
+      <div class="table" id="table">
+        <div class="felt" id="felt">
+          <div class="tray" title="Discard tray"><div class="pile" id="pile"><i class="cb"></i><b></b></div></div>
+          <div class="shoe" id="shoe">
+            <div class="shoe-box"><div class="shoe-card cb" id="shoeMouth"></div></div>
+            <div class="gauge" aria-hidden="true"><i id="gauge"></i><b id="cutmark"></b></div>
+          </div>
+          <p class="count" id="count" hidden></p>
+
+          <section class="dealer" id="dealerZone" aria-label="Dealer">
+            <div class="hand" id="dealerHand"></div>
+            <div class="total" id="dealerTotal"></div>
+          </section>
+
+          <div class="middle">
+            <svg class="print" viewBox="0 0 480 160" aria-hidden="true">
+              <path id="arc1" d="M30 30Q240 108 450 30" fill="none"/>
+              <path id="arc2" d="M66 66Q240 132 414 66" fill="none"/>
+              <path id="arc3" d="M98 98Q240 154 382 98" fill="none"/>
+              <text class="p1"><textPath href="#arc1" startOffset="50%" text-anchor="middle" id="print1">Blackjack pays 3 to 2</textPath></text>
+              <text class="p2"><textPath href="#arc2" startOffset="50%" text-anchor="middle" id="print2">Dealer stands on all 17s</textPath></text>
+              <text class="p2"><textPath href="#arc3" startOffset="50%" text-anchor="middle" id="print3">Insurance pays 2 to 1</textPath></text>
+            </svg>
+            <p class="msg" id="msg" aria-live="polite"></p>
+          </div>
+
+          <section class="seats" id="seats" aria-label="Your hands"></section>
+        </div>
+      </div>
+    </main>
+
+    <footer class="rail" id="controls">
+      <div class="panel" id="pBet">
+        <div class="chips" id="chipTray"></div>
+        <div class="row">
+          <button class="btn ghost" id="clearBtn" type="button">Clear</button>
+          <button class="btn ghost" id="rebetBtn" type="button">Rebet</button>
+          <button class="btn ghost" id="doubleRebetBtn" type="button">Rebet ×2</button>
+          <button class="btn gold wide" id="dealBtn" type="button">Deal</button>
+        </div>
+      </div>
+      <div class="panel" id="pPlay" hidden>
+        <div class="subrow">
+          <p class="hint" id="hint"></p>
+          <button class="btn ghost small" id="surrenderBtn" type="button" data-act="surrender">Surrender <kbd>R</kbd></button>
+        </div>
+        <div class="row acts">
+          <button class="btn act hit" id="hitBtn" type="button" data-act="hit">Hit <kbd>H</kbd></button>
+          <button class="btn act stand" id="standBtn" type="button" data-act="stand">Stand <kbd>S</kbd></button>
+          <button class="btn act double" id="doubleBtn" type="button" data-act="double">Double <kbd>D</kbd></button>
+          <button class="btn act split" id="splitBtn" type="button" data-act="split">Split <kbd>P</kbd></button>
+        </div>
+      </div>
+      <div class="panel" id="pIns" hidden>
+        <p class="ask" id="insText"></p>
+        <div class="row">
+          <button class="btn ghost" id="insNo" type="button">No thanks <kbd>N</kbd></button>
+          <button class="btn gold" id="insYes" type="button">Insure <kbd>Y</kbd></button>
+        </div>
+      </div>
+      <div class="panel" id="pDone" hidden>
+        <p class="ask" id="doneText"></p>
+        <div class="row">
+          <button class="btn ghost" id="changeBtn" type="button">Change bet</button>
+          <button class="btn gold wide" id="againBtn" type="button">Deal again</button>
+        </div>
+      </div>
+      <div class="panel" id="pBroke" hidden>
+        <p class="ask">You are out of chips for this table.</p>
+        <div class="row">
+          <button class="btn ghost" id="brokeLeaveBtn" type="button">Leave table</button>
+          <button class="btn gold wide" id="rebuyBtn" type="button">Rebuy</button>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <div class="sheet" id="setup" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="box lobby">
+      <form id="setupForm" novalidate>
+        <div class="box-head">
+          <h2 id="setupTitle">Choose a table</h2>
+          <div class="head-btns">
+            <button class="btn ghost small" id="lobbyStatsBtn" type="button" hidden>Your sessions</button>
+            <button class="icon-btn" type="button" data-close aria-label="Close">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </div>
+        </div>
+        <div id="buyin"></div>
+        <div class="tabs" role="tablist" id="lobbyTabs" aria-label="Kinds of table">
+          <button type="button" role="tab" data-group="floor">Casino floor</button>
+          <button type="button" role="tab" data-group="online">Online</button>
+          <button type="button" role="tab" data-group="mine">My tables</button>
+        </div>
+        <div class="tables" id="tableList"></div>
+        <details class="custom" id="customize">
+          <summary>Change the rules of this table</summary>
+          <div id="setupFields"></div>
+          <div class="saverow">
+            <input type="text" id="saveName" maxlength="40" placeholder="Name for these rules" aria-label="Name for these rules" autocomplete="off">
+            <button class="btn ghost" type="button" id="saveTableBtn">Save to My tables</button>
+          </div>
+        </details>
+        <p class="err" id="setupErr" role="alert"></p>
+        <div class="box-foot">
+          <p class="sumline" id="lobbySum"></p>
+          <button class="btn gold wide big" type="submit" id="sitBtn">Sit down</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="sheet" id="menu" role="dialog" aria-modal="true" aria-labelledby="menuTitle">
+    <div class="box">
+      <div class="box-head">
+        <h2 id="menuTitle">This table</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <dl class="rules" id="rulesList"></dl>
+      <div class="row">
+        <button class="btn ghost" id="openStatsBtn" type="button">Statistics</button>
+        <button class="btn gold" id="leaveBtn" type="button">Leave table</button>
+      </div>
+      <p class="note">Leaving ends this session: it goes to your session history, and you can choose another table.</p>
+      <h3>Look and help</h3>
+      <div id="prefFields"></div>
+      <h3>Keys</h3>
+      <p class="keys"><kbd>H</kbd> hit · <kbd>S</kbd> stand · <kbd>D</kbd> double · <kbd>P</kbd> split · <kbd>R</kbd> surrender · <kbd>Y</kbd>/<kbd>N</kbd> insurance · <kbd>Enter</kbd> deal · <kbd>Backspace</kbd> clear bet</p>
+    </div>
+  </div>
+
+  <div class="sheet" id="stats" role="dialog" aria-modal="true" aria-labelledby="statsTitle">
+    <div class="box">
+      <div class="box-head">
+        <h2 id="statsTitle">Statistics</h2>
+        <button class="icon-btn" type="button" data-close aria-label="Close">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+      </div>
+      <div class="tabs" role="tablist" id="statsTabs" aria-label="Statistics">
+        <button type="button" role="tab" data-tab="session">Session</button>
+        <button type="button" role="tab" data-tab="hands">Hands</button>
+        <button type="button" role="tab" data-tab="sessions">History</button>
+        <button type="button" role="tab" data-tab="totals">All time</button>
+      </div>
+      <div id="statsBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/engine.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
