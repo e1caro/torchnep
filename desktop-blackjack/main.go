@@ -2,7 +2,9 @@
 //
 // The program is a native window showing the pages packed into it (frontend/, assembled by build.py) with the
 // WebView2 component that ships with Windows 10 and 11. It opens no network port and reads nothing from the
-// network; the games keep their progress in the window's own storage under %APPDATA%\BlackjackHiLo.
+// network; the games keep their progress in the window's own storage under %APPDATA%\BlackjackHiLo, and in
+// saved.json there as well: that storage did not always survive closing the program, so every change is also
+// written to the file (Desk.SaveStore) and the first page of each run puts it back (store.js, overlay/keep.js).
 //
 // The window fills the screen the first time and afterwards comes back the way it was left (its size, maximised or
 // full screen: window.json next to the saved games), a second start brings the open window forward instead, and the
@@ -21,9 +23,11 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/wailsapp/wails/v2"
@@ -61,7 +65,55 @@ func (s *SelfTest) Done(failed int) {
 
 // Desk is what the desktop layer of the pages asks the program for (window.go.main.Desk in the page).
 type Desk struct {
-	ctx context.Context
+	ctx   context.Context
+	store string     // saved.json: the copy of the games and settings kept on disk ("" when there is no place for it)
+	mu    sync.Mutex // one write of saved.json at a time
+}
+
+// storeText is what store.js hands the first page: the copy of the games, or null when there is none to give.
+type storeText struct {
+	App   string            `json:"app"`
+	Games map[string]string `json:"games"`
+}
+
+// SaveStore writes the games and settings the page sent (keep.js) to saved.json: whole or not at all, by way of a
+// file next to it that then takes its place.
+func (d *Desk) SaveStore(text string) error {
+	if d.store == "" {
+		return nil
+	}
+	if len(text) > 32<<20 {
+		return errors.New("too big to keep")
+	}
+	var s storeText
+	if err := json.Unmarshal([]byte(text), &s); err != nil || s.App != "BlackjackHiLo" || s.Games == nil {
+		return errors.New("not the games of this program")
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if err := os.MkdirAll(filepath.Dir(d.store), 0o755); err != nil {
+		return err
+	}
+	tmp := d.store + ".new"
+	if err := os.WriteFile(tmp, []byte(text), 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, d.store)
+}
+
+// storeJS answers /store.js: an id of this run and the copy on disk, for keep.js on the first page of the run.
+func (d *Desk) storeJS(run string) []byte {
+	kept := []byte("null")
+	if d.store != "" {
+		d.mu.Lock()
+		text, err := os.ReadFile(d.store)
+		d.mu.Unlock()
+		var s storeText
+		if err == nil && json.Unmarshal(text, &s) == nil && s.App == "BlackjackHiLo" && s.Games != nil {
+			kept = text
+		}
+	}
+	return []byte("window.__deskRun=" + strconv.Quote(run) + ";\nwindow.__deskStore=" + string(kept) + ";\n")
 }
 
 var backupFiles = []runtime.FileFilter{{DisplayName: "Backup of your games (*.json)", Pattern: "*.json"}}
@@ -182,6 +234,22 @@ func main() {
 	}
 
 	desk := &Desk{}
+	if data != "" {
+		desk.store = filepath.Join(data, "saved.json")
+	}
+	run := strconv.FormatInt(time.Now().UnixNano(), 36)
+	// store.js comes from the program itself, never from the pages packed into it.
+	keepStore := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path != "/store.js" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			w.Header().Set("Content-Type", "text/javascript; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			_, _ = w.Write(desk.storeJS(run))
+		})
+	}
 	app := &options.App{
 		Title:            "Blackjack & Hi-Lo",
 		Width:            window.Width,
@@ -190,7 +258,7 @@ func main() {
 		MinHeight:        minHeight,
 		WindowStartState: start,
 		BackgroundColour: &options.RGBA{R: 11, G: 61, B: 44, A: 255},
-		AssetServer:      &assetserver.Options{Assets: pages},
+		AssetServer:      &assetserver.Options{Assets: pages, Middleware: keepStore},
 		SingleInstanceLock: &options.SingleInstanceLock{
 			UniqueId: "e1caro-blackjack-hilo-6c1f0c1e",
 			// Started again while it is open (the shortcut, twice): the window that is there comes forward.

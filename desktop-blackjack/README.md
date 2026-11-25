@@ -14,6 +14,10 @@ SmartScreen says "Windows protected your PC": choose **More info**, then **Run a
 WebView2 component that ships with Windows 11 and current Windows 10 (if it is missing, the program offers to fetch
 it). Saved games live in `%APPDATA%\BlackjackHiLo`; deleting that folder resets both apps.
 
+Your games and settings (your keys among them) are kept twice there: in the window's own storage, and in
+`saved.json`, written a moment after every change. The window's storage did not always survive closing the
+program, so each time it starts, the first page puts back what `saved.json` holds before either app reads anything.
+
 ## What the PC adds
 
 Everything is drawn at the size of the window: a window of 1180 by 860 is the smallest full-size one, a bigger one
@@ -55,9 +59,12 @@ the program while it is open brings that window forward.
 
 ```
 main.go            the window (Wails v2): shows the pages packed into the .exe, no network port; remembers how
-                   the window was left (window.json next to the saved games) and opens the backup file dialogs
+                   the window was left (window.json next to the saved games), keeps saved.json and answers
+                   store.js with it, and opens the backup file dialogs
 home/index.html    the home screen
-overlay/           added to the home screen and both apps. fit.js draws the page at the size of the window;
+overlay/           added to the home screen and both apps. store.js + keep.js, first on every page, put
+                   saved.json back at the start of a run and send it every change; fit.js draws the page at the
+                   size of the window;
                    desktop.css + desktop.js are the links between the apps and everything under "What the PC
                    adds" (the table's own controls are pressed for it, its panels read the game as it stands)
 fonts/             the fonts of both apps (SIL OFL, see fonts/LICENSES.txt), so nothing comes from the network
@@ -69,7 +76,8 @@ tests/browser.js   runs the same play-through in Chromium against frontend/
 
 The two apps are copied in unchanged, apart from their font links. `frontend/` and `dist/` are generated. The
 play-through covers the desktop layer too; the file dialogs of a backup are the one thing it cannot reach, and the
-side panels only show in a window wide enough for them.
+side panels only show in a window wide enough for them. Between its two runs on Windows the workflow deletes the
+window's own storage, so the second run proves that the seat, the rules and your keys come back from `saved.json`.
 
 ## Build and test
 

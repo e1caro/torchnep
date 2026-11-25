@@ -6,7 +6,8 @@
     python3 build.py --frontend   only assemble frontend/ (what the tests open in a browser)
 
 frontend/ is generated: the two web apps are copied in unchanged except that their fonts come from fonts/ instead of
-the network, and overlay/ is added to them: fit.js draws everything at the size of the window, desktop.{css,js} is the
+the network, and overlay/ is added to them: store.js and keep.js keep a copy of the games in a file, fit.js draws
+everything at the size of the window, desktop.{css,js} is the
 desktop layer (the links between the apps, the commands, the panels beside the table)."""
 import hashlib
 import os
@@ -49,7 +50,7 @@ def app_page(src, extra_head=''):
     assert n >= 2, 'font links not found in %s' % src
     assert 'fonts.googleapis.com' not in html and 'fonts.gstatic.com' not in html
     head = ('<link rel="stylesheet" href="../fonts/fonts.css">\n<link rel="stylesheet" href="../desktop.css">\n'
-            '<script src="../fit.js"></script>\n' + extra_head)
+            '<script src="../store.js"></script>\n<script src="../keep.js"></script>\n<script src="../fit.js"></script>\n' + extra_head)
     assert html.count('</head>') == 1 and html.count('</body>') == 1
     return html.replace('</head>', head + '</head>').replace('</body>', '<script src="../desktop.js"></script>\n</body>')
 
@@ -64,7 +65,7 @@ def frontend():
         css += "@font-face { font-family: '%s'; font-style: %s; font-weight: %s; font-display: swap; src: url(%s) format('woff2'); }\n" % (family, style, weight, name)
     write(OUT / 'fonts' / 'fonts.css', css)
     shutil.copyfile(HERE / 'fonts' / 'LICENSES.txt', OUT / 'fonts' / 'LICENSES.txt')
-    for name in ('desktop.css', 'desktop.js', 'fit.js'):
+    for name in ('desktop.css', 'desktop.js', 'fit.js', 'keep.js', 'store.js'):
         write(OUT / name, (HERE / 'overlay' / name).read_text(encoding='utf-8').replace('\r\n', '\n'))
     write(OUT / 'index.html', (HERE / 'home' / 'index.html').read_text(encoding='utf-8').replace('\r\n', '\n'))
 
