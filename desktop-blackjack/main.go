@@ -4,8 +4,9 @@
 // WebView2 component that ships with Windows 10 and 11. It opens no network port and reads nothing from the
 // network; the games keep their progress in the window's own storage under %APPDATA%\BlackjackHiLo.
 //
-// The window comes back the way it was left (its size, maximised or full screen: window.json next to the saved
-// games), a second start brings the open window forward instead, and the pages reach two things through Desk: a
+// The window fills the screen the first time and afterwards comes back the way it was left (its size, maximised or
+// full screen: window.json next to the saved games), a second start brings the open window forward instead, and the
+// pages draw themselves at the size of the window (overlay/fit.js). They reach two things through Desk: a
 // file to save a backup of the games to, and one to read it back from (overlay/desktop.js).
 //
 // Started with BJHILO_SELFTEST=<log file> it plays through itself (tests/selftest.js), writes what it found to that
@@ -119,11 +120,13 @@ const (
 	minWidth, minHeight         = 380, 620
 )
 
-// readWindow answers how the window was left, or the first-run window when nothing sensible was kept.
+// readWindow answers how the window was left. The first time there is nothing to read: the window then fills the
+// screen, which is where a card table belongs on a PC (the pages draw themselves at the size of the window).
 func readWindow(file string) windowState {
 	st := windowState{Width: defaultWidth, Height: defaultHeight}
 	text, err := os.ReadFile(file)
 	if err != nil {
+		st.Maximised = true
 		return st
 	}
 	var kept windowState
@@ -201,9 +204,6 @@ func main() {
 		Windows: &windows.Options{
 			WebviewUserDataPath: data,
 			Theme:               windows.Dark,
-			// Ctrl with + and -, or with the mouse wheel, makes everything bigger or smaller; Ctrl+0 is the normal size.
-			ZoomFactor:           1.0,
-			IsZoomControlEnabled: true,
 		},
 		Bind:      []interface{}{desk},
 		OnStartup: func(ctx context.Context) { desk.ctx = ctx },

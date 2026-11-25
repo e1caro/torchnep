@@ -6,7 +6,8 @@
     python3 build.py --frontend   only assemble frontend/ (what the tests open in a browser)
 
 frontend/ is generated: the two web apps are copied in unchanged except that their fonts come from fonts/ instead of
-the network, and overlay/desktop.{css,js} adds the links between them."""
+the network, and overlay/ is added to them: fit.js draws everything at the size of the window, desktop.{css,js} is the
+desktop layer (the links between the apps, the commands, the panels beside the table)."""
 import hashlib
 import os
 import pathlib
@@ -42,12 +43,13 @@ def write(path, text):
 
 
 def app_page(src, extra_head=''):
-    """An app's index.html with local fonts and the overlay."""
+    """An app's index.html with local fonts and the overlay (fit.js in the head: it must run before the app does)."""
     html = src.read_text(encoding='utf-8').replace('\r\n', '\n')
     html, n = FONT_LINKS.subn('', html)
     assert n >= 2, 'font links not found in %s' % src
     assert 'fonts.googleapis.com' not in html and 'fonts.gstatic.com' not in html
-    head = '<link rel="stylesheet" href="../fonts/fonts.css">\n<link rel="stylesheet" href="../desktop.css">\n' + extra_head
+    head = ('<link rel="stylesheet" href="../fonts/fonts.css">\n<link rel="stylesheet" href="../desktop.css">\n'
+            '<script src="../fit.js"></script>\n' + extra_head)
     assert html.count('</head>') == 1 and html.count('</body>') == 1
     return html.replace('</head>', head + '</head>').replace('</body>', '<script src="../desktop.js"></script>\n</body>')
 
@@ -62,7 +64,7 @@ def frontend():
         css += "@font-face { font-family: '%s'; font-style: %s; font-weight: %s; font-display: swap; src: url(%s) format('woff2'); }\n" % (family, style, weight, name)
     write(OUT / 'fonts' / 'fonts.css', css)
     shutil.copyfile(HERE / 'fonts' / 'LICENSES.txt', OUT / 'fonts' / 'LICENSES.txt')
-    for name in ('desktop.css', 'desktop.js'):
+    for name in ('desktop.css', 'desktop.js', 'fit.js'):
         write(OUT / name, (HERE / 'overlay' / name).read_text(encoding='utf-8').replace('\r\n', '\n'))
     write(OUT / 'index.html', (HERE / 'home' / 'index.html').read_text(encoding='utf-8').replace('\r\n', '\n'))
 

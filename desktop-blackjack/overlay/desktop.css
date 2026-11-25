@@ -33,10 +33,10 @@ a.btn { text-decoration: none; color: inherit; }
 }
 .desk-layer {
   position: fixed; inset: 0; z-index: 200; display: flex; justify-content: center; align-items: flex-start;
-  padding: min(13vh, 110px) 16px 16px; background: rgba(3, 9, 7, .58); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  padding: min(calc(13vh / var(--desk-s, 1)), 110px) 16px 16px; background: rgba(3, 9, 7, .58); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
 }
 .desk-box {
-  width: min(640px, 100%); max-height: min(74vh, 660px); display: flex; flex-direction: column; overflow: hidden; text-align: left;
+  width: min(640px, 100%); max-height: min(calc(74vh / var(--desk-s, 1)), 660px); display: flex; flex-direction: column; overflow: hidden; text-align: left;
   color: var(--d-ink); background: var(--d-panel); border: 1px solid var(--d-line); border-radius: 16px;
   box-shadow: 0 26px 64px rgba(0, 0, 0, .58), 0 0 0 5px rgba(7, 42, 30, .42); font: 500 15px/1.45 var(--d-body);
   animation: desk-in .14s ease-out;
@@ -77,8 +77,106 @@ a.btn { text-decoration: none; color: inherit; }
 .desk-btn:hover { box-shadow: inset 0 0 0 1px var(--d-brass); }
 .desk-btn.gold { color: var(--d-rail); background: var(--d-brass); box-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
 .desk-toast {
-  position: fixed; left: 18px; bottom: 18px; z-index: 210; max-width: min(520px, calc(100vw - 36px)); padding: 10px 14px; border-radius: 11px;
+  position: fixed; left: 18px; bottom: 18px; z-index: 210; max-width: min(520px, calc(100vw / var(--desk-s, 1) - 36px)); padding: 10px 14px; border-radius: 11px;
   color: var(--d-ink); background: var(--d-panel); border: 1px solid var(--d-line); box-shadow: 0 10px 26px rgba(0, 0, 0, .5);
   font: 600 14px/1.35 var(--d-body); overflow-wrap: anywhere; pointer-events: none; opacity: 0; translate: 0 10px; transition: opacity .2s, translate .2s;
 }
 .desk-toast.on { opacity: 1; translate: 0 0; }
+
+/* ---------- drawn at the size of the window (fit.js) ---------- */
+/* The cards were sized from the window; the page is now a scaled one, so from the window divided by the scale. */
+.felt { --cwb: clamp(46px, calc(min(14.5vw, 10.8vh) / var(--desk-s, 1)), 108px); }
+
+/* ---------- the table on a wide window: a panel on each side (desktop.js) ---------- */
+.desk-side { display: none; }
+html.desk-wide body[data-felt] {
+  display: grid; grid-template-columns: minmax(250px, 1fr) minmax(0, 1180px) minmax(250px, 1fr); grid-template-rows: minmax(0, 1fr);
+  justify-content: center; column-gap: 8px; padding: 0 14px;
+}
+html.desk-wide body[data-felt] #app { grid-column: 2; grid-row: 1; width: 100%; max-width: none; margin: 0; }
+html.desk-wide body[data-felt] .desk-pill { display: none; }
+html.desk-wide .desk-side {
+  display: flex; flex-direction: column; gap: 10px; grid-row: 1; min-height: 0; padding: 14px 0; overflow: hidden;
+  font: 600 13px/1.4 Manrope, system-ui, 'Segoe UI', sans-serif; color: var(--ink); -webkit-user-select: none; user-select: none;
+}
+#deskLeft { grid-column: 1; justify-self: end; width: 100%; max-width: 340px; }
+#deskRight { grid-column: 3; justify-self: start; width: 100%; max-width: 340px; }
+.desk-side section { flex: none; padding: 14px 16px; border-radius: 16px; background: rgba(255, 255, 255, .04); border: 1px solid rgba(255, 255, 255, .09); }
+.desk-side section.grow { flex: 1 1 auto; min-height: 0; overflow: hidden; }
+.desk-side.idle section, .desk-side.idle .desk-side-foot { visibility: hidden; }
+.desk-side h3 { margin: 0 0 2px; font: 400 21px/1.15 var(--serif); color: var(--gold); letter-spacing: 0; }
+.desk-side p { margin: 0; }
+.desk-sub, .desk-note, .desk-ends, .desk-legend { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+.desk-note { margin-top: 10px !important; line-height: 1.45; }
+.desk-note.good { color: var(--good); }
+.desk-note.bad { color: var(--bad); }
+.desk-note kbd, .desk-side-foot kbd { display: inline-block; font: 700 11px/1.2 Manrope, system-ui, sans-serif; border: 1px solid currentColor; border-radius: 4px; padding: 1px 4px; opacity: .7; }
+.desk-ends { display: flex; justify-content: space-between; gap: 8px; margin-top: 5px !important; font-variant-numeric: tabular-nums; }
+.desk-net { display: flex; align-items: baseline; gap: 10px; margin: 10px 0 6px !important; }
+.desk-net b { font: 400 40px/1 var(--serif); font-variant-numeric: tabular-nums; }
+.desk-net span { font-size: 13px; color: var(--muted); }
+.desk-side .good { color: var(--good); }
+.desk-side .bad { color: var(--bad); }
+.desk-spark { display: block; width: 100%; height: 78px; overflow: visible; }
+.desk-spark .base { stroke: rgba(255, 255, 255, .28); stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+.desk-spark .line { fill: none; stroke: var(--good); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.desk-spark .area { fill: rgba(243, 212, 124, .13); }
+.desk-spark .dot { fill: var(--good); }
+.desk-spark.down .line { stroke: var(--bad); }
+.desk-spark.down .area { fill: rgba(255, 196, 187, .1); }
+.desk-spark.down .dot { fill: var(--bad); }
+.desk-wlp { display: flex; gap: 2px; height: 10px; border-radius: 5px; overflow: hidden; background: rgba(255, 255, 255, .08); }
+.desk-wlp i { display: block; min-width: 0; }
+.desk-wlp .w { background: var(--good); }
+.desk-wlp .p { background: rgba(255, 255, 255, .4); }
+.desk-wlp .l { background: #c8333b; }
+.desk-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.desk-figs div { padding: 8px 10px; border-radius: 10px; background: rgba(255, 255, 255, .045); }
+.desk-figs span { display: block; font-size: 12px; color: var(--muted); }
+.desk-figs b { display: block; font: 400 21px/1.15 var(--serif); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.desk-log { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 7px; }
+.desk-log li { display: grid; grid-template-columns: 2em minmax(0, 1fr) auto; gap: 8px; align-items: baseline; }
+.desk-log i { font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; }
+.desk-log span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-log b { font-weight: 800; font-variant-numeric: tabular-nums; }
+.desk-big { margin: 6px 0 9px !important; font: 400 30px/1.05 var(--serif); }
+.desk-big span { font: 600 13px/1 Manrope, system-ui, sans-serif; color: var(--muted); }
+.desk-shoe { position: relative; height: 10px; border-radius: 5px; overflow: hidden; background: linear-gradient(#f4ecdb, #cbbd9c); }
+.desk-shoe i { position: absolute; left: 0; top: 0; bottom: 0; background: rgba(24, 16, 10, .86); }
+.desk-shoe b { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: #ff5d50; }
+.desk-tabs { display: flex; gap: 6px; margin: 8px 0 8px; }
+.desk-tabs button, .desk-side-foot button {
+  appearance: none; flex: 1 1 0; min-height: 30px; padding: 0 8px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, .17); background: rgba(255, 255, 255, .05);
+  color: var(--ink); font: 700 13px/1 Manrope, system-ui, sans-serif; cursor: pointer; white-space: nowrap;
+}
+.desk-tabs button:hover, .desk-side-foot button:hover { background: rgba(255, 255, 255, .11); }
+.desk-tabs button:focus-visible, .desk-side-foot button:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+.desk-tabs button[aria-pressed=true] { background: var(--gold); color: var(--gold-ink); border-color: transparent; }
+.desk-chart { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 2px; text-align: center; font: 800 12px/1 Manrope, system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+.desk-chart[data-sec=Hard] tbody:not([data-sec=Hard]), .desk-chart[data-sec=Soft] tbody:not([data-sec=Soft]), .desk-chart[data-sec=Pairs] tbody:not([data-sec=Pairs]) { display: none; }
+.desk-chart th { height: 20px; padding: 0; font-weight: 700; color: var(--muted); }
+.desk-chart tbody th, .desk-chart thead th:first-child { width: 3.4em; text-align: left; white-space: nowrap; }
+.desk-chart td { height: 21px; padding: 0; border-radius: 4px; opacity: .8; }
+.desk-chart tr.at th, .desk-chart thead th.at { color: #fff; }
+.desk-chart tr.at td { opacity: 1; }
+.desk-chart td.on { opacity: 1; outline: 2px solid #fff; outline-offset: 1px; box-shadow: 0 0 14px rgba(255, 255, 255, .75); }
+.desk-side .mH { background: #f3ecdc; color: #1b1813; }
+.desk-side .mS { background: #c8333b; color: #fff; }
+.desk-side .mD { background: #e3b443; color: #20170a; }
+.desk-side .mP { background: #2f63c8; color: #fff; }
+.desk-side .mR { background: #77747c; color: #fff; }
+.desk-legend { margin-top: 9px !important; line-height: 1.9; }
+.desk-legend span { display: inline-block; min-width: 17px; padding: 2px 0; margin-left: 5px; border-radius: 4px; text-align: center; font: 800 11px/1.2 Manrope, system-ui, sans-serif; }
+.desk-legend span:first-child { margin-left: 0; }
+.desk-side-foot { flex: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.desk-side-foot button:first-child { flex-basis: 100%; }
+.desk-side-foot button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 34px; }
+
+/* a win lights the rail for a moment; a blackjack throws a little gold from the middle of the felt */
+.table::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0; box-shadow: 0 0 0 3px rgba(232, 201, 111, .8), 0 0 70px rgba(232, 201, 111, .55); }
+.table.desk-won::after { animation: desk-glow 1.3s ease-out; }
+.table.desk-bj::after { animation: desk-glow 1.5s ease-out; box-shadow: 0 0 0 4px #fff1bf, 0 0 110px rgba(255, 226, 140, .85); }
+@keyframes desk-glow { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+.desk-burst { position: absolute; left: 50%; top: 56%; width: 0; height: 0; z-index: 35; pointer-events: none; }
+.desk-burst i { position: absolute; width: 11px; height: 11px; margin: -5px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff7d6, #e8c96f 55%, #a97c18); animation: desk-fleck var(--t, .9s) cubic-bezier(.15, .7, .3, 1) forwards; }
+@keyframes desk-fleck { from { transform: translate(0, 0) scale(.4); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) scale(1.1); opacity: 0; } }

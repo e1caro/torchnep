@@ -55,6 +55,8 @@
       ok(fonts >= 2, 'the bundled fonts did not load (' + fonts + ')');
       await api.Report('      ' + location.origin + ' · ' + innerWidth + '×' + innerHeight + ' · ' + navigator.userAgent);
       ok(window.Desk && window.Desk.page === 'home' && visible('#bar-commands'), 'the desktop layer is missing');
+      ok(window.DeskFit && window.DeskFit.scale >= 1, 'the page is not drawn at the size of the window');
+      await api.Report('      drawn at ' + Math.round(window.DeskFit.scale * 100) + '%');
       key('k', { ctrlKey: true });
       await until(function () { return document.querySelectorAll('#deskList li[data-cmd]').length >= 10; }, 5000, 'the commands');
       var q = $('#deskQ'); q.value = 'trainer dev'; q.dispatchEvent(new Event('input', { bubbles: true }));
@@ -109,6 +111,10 @@
       await until(function () { return !$('#count').hidden && /Running/.test(text('#count')); }, 5000, 'the card count after the K key');
       key('k');
       await until(function () { return $('#count').hidden; }, 5000, 'the card count hidden again');
+      ok($('#deskLeft') && $('#deskRight') && document.querySelectorAll('#deskRight #deskTabs button').length === 3, 'the side panels of a wide window are missing');
+      if (document.documentElement.classList.contains('desk-wide')) {     // only a wide window shows them
+        await until(function () { return document.querySelectorAll('#deskChart td').length === 280 && /Sevilla/.test(text('#deskLeft')); }, 5000, 'the session and the strategy chart beside the table');
+      }
       $('#dealBtn').click();
       await until(function () {                     // stand on everything until the round is over
         if (G.busy) return false;
