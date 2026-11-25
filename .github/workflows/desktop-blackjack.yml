@@ -74,8 +74,15 @@ jobs:
             if ($p.ExitCode -ne 0) { throw "the $mode play-through failed (exit code $($p.ExitCode))" }
           }
           Play "full"
-          Start-Sleep -Seconds 3
-          Play "restart"      # closed and opened again: the seat and the rules must still be there
+          # Closed: the window's own storage is deleted, as it was lost on a person's computer. Opened again, the seat,
+          # the rules and the keys must come back from saved.json, the program's own copy.
+          $edge = { @(Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -match 'BlackjackHiLo' }).Count }
+          for ($i = 0; $i -lt 30 -and (& $edge) -gt 0; $i++) { Start-Sleep -Seconds 1 }
+          $data = Join-Path $env:APPDATA 'BlackjackHiLo'
+          "saved.json: " + $(if (Test-Path "$data\saved.json") { (Get-Item "$data\saved.json").Length.ToString() + " bytes" } else { "missing" })
+          Remove-Item -Recurse -Force "$data\EBWebView\Default\Local Storage" -ErrorAction Stop
+          "the window's storage was deleted"
+          Play "restart"      # closed and opened again: the seat, the rules and the keys must still be there
 
       - name: A picture of the window as a person gets it
         shell: pwsh

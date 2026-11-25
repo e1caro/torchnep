@@ -6,7 +6,8 @@
  * BlackjackHiLo.exe runs this script on every page when it is started with BJHILO_SELFTEST=<log file> (see main.go);
  * tests/browser.js does the same in Chromium against frontend/. It carries on across page loads by keeping its place
  * in sessionStorage, and reports through window.go.main.SelfTest. With mode 'restart' it only checks that a second
- * launch still has what the first one saved. */
+ * launch still has what the first one saved, keys of your own included; on Windows the workflow deletes the window's
+ * own storage in between, so that what the second launch finds comes from saved.json. */
 (async function () {
   'use strict';
   var api = window.go && window.go.main && window.go.main.SelfTest;
@@ -153,15 +154,26 @@
         await until(function () { return rt.WindowIsFullscreen().then(function (on) { st.full = on; }) && !st.full; }, 8000, 'the window back after F11');
         delete st.full;
       }
+      // keys of your own, left set for the next start to find: hit on X, stand on the down arrow
+      window.Desk.setKey('hit', 'x');
+      window.Desk.setKey('stand', 'ArrowDown');
+      if (window.runtime) {                         // the real program: they are in saved.json before the window closes
+        ok(window.DeskStore && await window.DeskStore.flush(), 'the games and settings were not written to saved.json');
+      }
     } }
   ];
   var RESTART = [
-    { name: 'opened again: the home screen still shows the seat', where: atHome, run: async function () {
+    { name: 'opened again: the home screen still shows the seat, and your keys are still yours', where: atHome, run: async function () {
+      if (window.runtime) await api.Report('      saved.json ' + (window.DeskStore.kept ? 'found' : 'missing') + ', ' + window.DeskStore.restored + ' entries put back into the storage');
       ok(/Sevilla/.test(text('#state-table')), 'the seat is gone: ' + text('#state-table'));
+      ok(window.Desk.keyOf('hit') === 'x' && window.Desk.keyOf('stand') === 'ArrowDown', 'your keys were forgotten: hit ' + window.Desk.keyOf('hit') + ', stand ' + window.Desk.keyOf('stand'));
       return function () { $('#door-hilo').click(); };
     } },
-    { name: 'opened again: the trainer still has the Sevilla rules and the buy-in', where: atTrainer, run: async function () {
+    { name: 'opened again: the trainer still has the Sevilla rules and the buy-in, and its buttons your keys', where: atTrainer, run: async function () {
       await until(function () { return /no hole card/.test(text('#rules-line')); }, 10000, 'the saved rules (' + text('#rules-line') + ')');
+      await view('strategy');
+      await until(function () { return text('#view-strategy button[data-a="H"] kbd') === 'X' && text('#view-strategy button[data-a="S"] kbd') === '↓'; }, 5000,
+        'the drill buttons showing your keys (' + text('#view-strategy button[data-a="H"] kbd') + ', ' + text('#view-strategy button[data-a="S"] kbd') + ')');
       await view('table');
       ok(/Buy-ins/.test(text('#t-meter')) && document.querySelectorAll('#t-controls button[data-bet]').length === 5, 'money settings lost: ' + text('#t-meter'));
     } }
