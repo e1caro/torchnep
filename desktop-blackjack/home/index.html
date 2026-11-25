@@ -6,9 +6,10 @@
 <meta name="color-scheme" content="dark">
 <title>Blackjack &amp; Hi-Lo</title>
 <link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="desktop.css">
 <style>
 :root {
-  /* The table again: felt ground, brass rules, white cards. Two doors side by side, nothing else. */
+  /* The table again: felt ground, brass rules, white cards. Two doors side by side; what the keyboard does above them. */
   --felt: #10513c; --felt-deep: #0b3d2c; --rail: #072a1e; --ink: #f4efde; --muted: #b9cdbf;
   --brass: #e3b955; --line: rgba(227, 185, 85, .34); --card: #fbf9f1; --card-ink: #17201b; --pip-red: #c21f38;
   --display: 'Bodoni Moda', Didot, 'Bodoni MT', Georgia, serif;
@@ -23,49 +24,84 @@ body {
   background-image: radial-gradient(1200px 800px at 50% -160px, #1a6a50 0%, var(--felt) 45%, rgba(11,61,44,0) 100%);
   background-repeat: no-repeat; display: flex; flex-direction: column;
 }
-.wrap { width: 100%; max-width: 1040px; margin: auto; padding: 36px 24px 44px; display: flex; flex-direction: column; gap: 34px; }
+.wrap { width: 100%; max-width: 1040px; margin: auto; padding: 28px 24px 36px; display: flex; flex-direction: column; gap: 30px; }
+.bar { display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+.bar button, footer button {
+  appearance: none; border: 0; background: transparent; color: var(--ink); cursor: pointer; font: 600 14px/1 var(--body);
+}
+.bar button { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--line); }
+.bar button:hover, .bar button:focus-visible { box-shadow: inset 0 0 0 1px var(--brass); color: var(--brass); outline: none; }
+kbd { font: 500 11px/1 var(--mono); padding: 3px 5px; border-radius: 4px; background: rgba(244,239,222,.1); box-shadow: inset 0 0 0 1px rgba(244,239,222,.2); white-space: nowrap; }
 h1 { margin: 0; font: 800 clamp(40px, 7vw, 72px)/.98 var(--display); letter-spacing: -.02em; text-wrap: balance; }
 h1 em { color: var(--brass); font-weight: 700; }
 .lede { margin: 16px 0 0; max-width: 60ch; font-size: 18px; color: var(--muted); }
 .doors { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
 @media (max-width: 760px) { .doors { grid-template-columns: 1fr; } }
 .door {
-  display: flex; flex-direction: column; gap: 14px; padding: 26px; border-radius: 20px; color: inherit; text-decoration: none;
+  position: relative; display: flex; flex-direction: column; gap: 14px; padding: 26px; border-radius: 20px; color: inherit; text-decoration: none;
   background: linear-gradient(180deg, rgba(7,42,30,.5), rgba(7,42,30,.74)); border: 1px solid var(--line);
   box-shadow: 0 0 0 5px rgba(7,42,30,.45); transition: transform .15s ease, border-color .15s ease;
 }
 .door:hover, .door:focus-visible { transform: translateY(-3px); border-color: var(--brass); outline: none; }
-@media (prefers-reduced-motion: reduce) { .door { transition: none; } .door:hover { transform: none; } }
+.door:focus-visible { box-shadow: 0 0 0 5px rgba(7,42,30,.45), 0 0 0 7px var(--brass); }
 .door h2 { margin: 0; font: 700 32px/1.1 var(--display); letter-spacing: -.01em; }
 .door p { margin: 0; color: var(--muted); max-width: 46ch; }
-.door .state { font: 500 13px/1.4 var(--mono); color: var(--ink); min-height: 19px; }
+.door .state { font: 500 13px/1.5 var(--mono); color: var(--ink); min-height: 39px; }
+.door .state span { display: block; color: var(--muted); }
 .door .go { margin-top: auto; align-self: flex-start; font: 600 16px/1 var(--body); color: var(--rail); background: var(--brass); border-radius: 10px; padding: 13px 18px; box-shadow: 0 2px 0 rgba(0,0,0,.35); display: inline-flex; gap: 8px; align-items: center; }
-.door kbd { font: 500 11px/1 var(--mono); padding: 3px 5px; border-radius: 4px; background: rgba(7,42,30,.16); }
+.door .go kbd { background: rgba(7,42,30,.16); box-shadow: none; }
+.door .last {
+  position: absolute; top: 18px; right: 18px; font: 500 12px/1 var(--mono); letter-spacing: .04em; color: var(--brass);
+  padding: 7px 9px; border-radius: 8px; box-shadow: inset 0 0 0 1px var(--line); display: inline-flex; gap: 7px; align-items: center;
+}
+.door .last[hidden] { display: none; }
 .fan { display: flex; height: 96px; align-items: flex-end; padding-left: 6px; }
 .c { position: relative; width: 58px; height: 82px; margin-left: -16px; border-radius: 6px; background: var(--card); color: var(--card-ink);
-  box-shadow: 0 6px 14px rgba(0,0,0,.32), 0 1px 2px rgba(0,0,0,.4); transform-origin: 50% 120%; }
+  box-shadow: 0 6px 14px rgba(0,0,0,.32), 0 1px 2px rgba(0,0,0,.4); transform-origin: 50% 120%; transform: rotate(var(--r, 0deg)); transition: transform .22s ease; }
 .c:first-child { margin-left: 0; }
 .c b { position: absolute; top: 4px; left: 7px; font: 800 22px/1 var(--display); letter-spacing: -.04em; }
 .c svg { position: absolute; right: 6px; bottom: 6px; width: 24px; height: 24px; fill: currentColor; }
 .c.red { color: var(--pip-red); }
 .c small { position: absolute; left: 0; right: 0; bottom: -24px; text-align: center; font: 500 13px/1 var(--mono); color: var(--muted); }
-.chip { width: 46px; height: 46px; border-radius: 50%; margin-left: 14px; align-self: center; border: 5px dashed rgba(251,249,241,.9); background: var(--pip-red); box-shadow: 0 4px 10px rgba(0,0,0,.35); }
+.chip { width: 46px; height: 46px; border-radius: 50%; margin-left: 14px; align-self: center; border: 5px dashed rgba(251,249,241,.9); background: var(--pip-red); box-shadow: 0 4px 10px rgba(0,0,0,.35); transition: translate .22s ease; }
 .chip + .chip { margin-left: -12px; background: #2c69ae; }
 .chip + .chip + .chip { background: var(--rail); }
-footer { font: 500 12.5px/1.5 var(--mono); color: var(--muted); letter-spacing: .02em; }
+/* the door you point at: the hand opens a little, the chips and the count cards lift one after another */
+.door:hover .c, .door:focus-visible .c { transform: rotate(calc(var(--r, 0deg) * 1.7)) translateY(var(--lift, 0px)); }
+.door:hover .chip, .door:focus-visible .chip { translate: 0 -5px; }
+.door .chip:nth-of-type(2), .door .c:nth-child(2) { transition-delay: .04s; }
+.door .chip:nth-of-type(3), .door .c:nth-child(3) { transition-delay: .08s; }
+.pips { display: inline-flex; gap: 5px; margin-right: 10px; vertical-align: -1px; }
+.pips i { width: 11px; height: 11px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--line); }
+.pips i.on { background: var(--brass); box-shadow: none; }
+@media (prefers-reduced-motion: reduce) {
+  .door, .c, .chip { transition: none; }
+  .door:hover, .door:focus-visible { transform: none; }
+  .door:hover .c, .door:focus-visible .c { transform: rotate(var(--r, 0deg)); }
+  .door:hover .chip, .door:focus-visible .chip { translate: none; }
+}
+footer { display: flex; justify-content: space-between; gap: 8px 20px; flex-wrap: wrap; font: 500 12.5px/1.5 var(--mono); color: var(--muted); letter-spacing: .02em; }
+footer button { font: inherit; letter-spacing: inherit; color: var(--muted); padding: 0; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+footer button:hover, footer button:focus-visible { color: var(--brass); text-decoration-color: var(--brass); outline: none; }
 </style>
 </head>
 <body>
 <div class="wrap">
+  <nav class="bar" aria-label="This program">
+    <button type="button" id="bar-commands" data-cmd="palette">Commands <kbd>Ctrl K</kbd></button>
+    <button type="button" id="bar-fullscreen" data-cmd="fullscreen">Full screen <kbd>F11</kbd></button>
+    <button type="button" id="bar-keys" data-cmd="keys">Keys <kbd>F1</kbd></button>
+  </nav>
   <header>
     <h1>Blackjack <em>&amp; Hi-Lo</em></h1>
     <p class="lede">Play at the table, or learn to count it. Both keep their own progress on this computer, and each has a way back here in its menu.</p>
   </header>
   <main class="doors">
     <a class="door" id="door-table" href="blackjack/index.html">
+      <span class="last" id="last-table" hidden>Last played <kbd>Enter</kbd></span>
       <div class="fan" aria-hidden="true">
-        <div class="c" style="transform:rotate(-8deg)"><b>A</b><svg viewBox="0 0 100 100"><path d="M50 6c32 28 43 43 43 57 0 12-9 20-20 20-8 0-14-4-18-10 1 9 4 16 10 22H35c6-6 9-13 10-22-4 6-10 10-18 10C16 83 7 75 7 63 7 49 18 34 50 6z"/></svg></div>
-        <div class="c red" style="transform:rotate(6deg)"><b>K</b><svg viewBox="0 0 100 100"><path d="M50 90C18 62 7 46 7 30 7 16 18 7 30 7c9 0 16 5 20 13 4-8 11-13 20-13 12 0 23 9 23 23 0 16-11 32-43 60z"/></svg></div>
+        <div class="c" style="--r:-8deg"><b>A</b><svg viewBox="0 0 100 100"><path d="M50 6c32 28 43 43 43 57 0 12-9 20-20 20-8 0-14-4-18-10 1 9 4 16 10 22H35c6-6 9-13 10-22-4 6-10 10-18 10C16 83 7 75 7 63 7 49 18 34 50 6z"/></svg></div>
+        <div class="c red" style="--r:6deg"><b>K</b><svg viewBox="0 0 100 100"><path d="M50 90C18 62 7 46 7 30 7 16 18 7 30 7c9 0 16 5 20 13 4-8 11-13 20-13 12 0 23 9 23 23 0 16-11 32-43 60z"/></svg></div>
         <span class="chip"></span><span class="chip"></span><span class="chip"></span>
       </div>
       <h2>Blackjack table</h2>
@@ -74,10 +110,11 @@ footer { font: 500 12.5px/1.5 var(--mono); color: var(--muted); letter-spacing: 
       <span class="go">Play <kbd>1</kbd></span>
     </a>
     <a class="door" id="door-hilo" href="hilo/index.html">
+      <span class="last" id="last-hilo" hidden>Last played <kbd>Enter</kbd></span>
       <div class="fan" aria-hidden="true" style="padding-bottom:24px">
-        <div class="c red"><b>5</b><svg viewBox="0 0 100 100"><path d="M50 5 87 50 50 95 13 50z"/></svg><small>+1</small></div>
-        <div class="c" style="margin-left:8px"><b>8</b><svg viewBox="0 0 100 100"><circle cx="50" cy="27" r="20"/><circle cx="27" cy="58" r="20"/><circle cx="73" cy="58" r="20"/><path d="M44 50h12c0 22 3 35 10 45H34c7-10 10-23 10-45z"/></svg><small>0</small></div>
-        <div class="c red" style="margin-left:8px"><b>Q</b><svg viewBox="0 0 100 100"><path d="M50 90C18 62 7 46 7 30 7 16 18 7 30 7c9 0 16 5 20 13 4-8 11-13 20-13 12 0 23 9 23 23 0 16-11 32-43 60z"/></svg><small>−1</small></div>
+        <div class="c red" style="--lift:-5px"><b>5</b><svg viewBox="0 0 100 100"><path d="M50 5 87 50 50 95 13 50z"/></svg><small>+1</small></div>
+        <div class="c" style="margin-left:8px;--lift:-5px"><b>8</b><svg viewBox="0 0 100 100"><circle cx="50" cy="27" r="20"/><circle cx="27" cy="58" r="20"/><circle cx="73" cy="58" r="20"/><path d="M44 50h12c0 22 3 35 10 45H34c7-10 10-23 10-45z"/></svg><small>0</small></div>
+        <div class="c red" style="margin-left:8px;--lift:-5px"><b>Q</b><svg viewBox="0 0 100 100"><path d="M50 90C18 62 7 46 7 30 7 16 18 7 30 7c9 0 16 5 20 13 4-8 11-13 20-13 12 0 23 9 23 23 0 16-11 32-43 60z"/></svg><small>−1</small></div>
       </div>
       <h2>Hi-Lo trainer</h2>
       <p>Learn to count cards in six stages: basic strategy, the running count, the true count, the bet ramp, the deviations, and a full practice shoe. Your rules, your bankroll.</p>
@@ -85,24 +122,72 @@ footer { font: 500 12.5px/1.5 var(--mono); color: var(--muted); letter-spacing: 
       <span class="go">Train <kbd>2</kbd></span>
     </a>
   </main>
-  <footer>Works offline. Nothing leaves this computer.</footer>
+  <footer>
+    <span>Works offline. Nothing leaves this computer.</span>
+    <span><button type="button" id="foot-backup" data-cmd="backup">Back up your games</button> · <button type="button" id="foot-restore" data-cmd="restore">Restore a backup</button> · Version 1.1</span>
+  </footer>
 </div>
+<script src="desktop.js"></script>
 <script>
 (function () {
   function read(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
-  var g = (read('blackjack.v1') || {}).s, t = '';     // the table's saved game: { s: game, prefs: ... }
-  if (g && g.table && g.rules && isFinite(g.bankroll)) {
+  function line(el, first, second) {
+    el.textContent = first;
+    if (second) { var s = document.createElement('span'); s.textContent = second; el.appendChild(s); }
+  }
+  function plural(n, word) { return n.toLocaleString('en-US') + ' ' + word + (n === 1 ? '' : 's'); }
+  function hours(ms) {
+    var min = Math.round(ms / 60000);
+    return min < 60 ? min + ' min' : Math.floor(min / 60) + ' h ' + (min % 60 ? (min % 60) + ' min' : '');
+  }
+
+  // the table: the seat that is open, and every session there has been (the open one counts too)
+  var g = (read('blackjack.v1') || {}).s, seat = 'No table open yet';   // the saved game: { s: game, prefs: ... }
+  var open = g && g.table && g.rules && isFinite(g.bankroll);
+  if (open) {
     var cur = g.rules.currency || '', chips = Math.round(g.bankroll) / 100;
-    t = 'Your seat: ' + g.table.name + ' · ' + cur + chips.toLocaleString('en-US') + ' in chips';
-  } else t = 'No table open yet';
-  document.getElementById('state-table').textContent = t;
-  var p = read('hilo-trainer') || {}, done = 0;
-  if (p.stratBest >= 100) done++; if (p.rcBestRun >= 3) done++; if (p.tcBest >= 30) done++; if (p.devBest >= 50) done++; if (p.tableShoes >= 1) done++;
-  document.getElementById('state-hilo').textContent = done ? done + ' of 5 drills passed' : 'No drill passed yet';
+    seat = 'Your seat: ' + g.table.name + ' · ' + cur + chips.toLocaleString('en-US') + ' in chips';
+  }
+  var past = read('blackjack.sessions.v1'), sessions = 0, hands = 0, time = 0;
+  (Array.isArray(past) ? past : []).forEach(function (r) {
+    if (!r || !r.stats || (open && g.session && r.id === g.session.id)) return;
+    sessions++; hands += r.stats.rounds || 0; time += r.played || 0;
+  });
+  if (open && g.stats && g.stats.rounds) { sessions++; hands += g.stats.rounds; time += (g.session && g.session.played) || 0; }
+  line(document.getElementById('state-table'), seat,
+    hands ? plural(sessions, 'session') + ' · ' + plural(hands, 'hand') + (time >= 60000 ? ' · ' + hours(time).trim() + ' at the tables' : '') : '');
+
+  // the trainer: the five drills of its plan
+  var p = read('hilo-trainer') || {};
+  var passed = [p.stratBest >= 100, p.rcBestRun >= 3, p.tcBest >= 30, p.devBest >= 50, p.tableShoes >= 1], done = passed.filter(Boolean).length;
+  var st = document.getElementById('state-hilo'), pips = document.createElement('b');
+  pips.className = 'pips'; pips.setAttribute('aria-hidden', 'true');
+  pips.innerHTML = passed.map(function (ok) { return '<i' + (ok ? ' class="on"' : '') + '></i>'; }).join('');
+  line(st, done ? done + ' of 5 drills passed' : 'No drill passed yet',
+    p.stratBest || p.tcBest || p.devBest ? 'Best streaks: strategy ' + (p.stratBest || 0) + ' · true count ' + (p.tcBest || 0) + ' · deviations ' + (p.devBest || 0) : '');
+  st.insertBefore(pips, st.firstChild);
+
+  // where you were: Enter goes back there
+  var desk = read('desk.v1') || {}, doors = { table: document.getElementById('door-table'), trainer: document.getElementById('door-hilo') };
+  var last = doors[desk.last] ? desk.last : null;
+  if (last) document.getElementById(last === 'table' ? 'last-table' : 'last-hilo').hidden = false;
+
+  document.querySelectorAll('[data-cmd]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var c = b.dataset.cmd;
+      if (c === 'palette') window.Desk.palette(); else window.Desk.run(c);
+    });
+  });
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey || e.altKey || e.metaKey) return;
+    var on = document.activeElement, tag = on && on.tagName;
     if (e.key === '1') location.href = 'blackjack/index.html';
-    if (e.key === '2') location.href = 'hilo/index.html';
+    else if (e.key === '2') location.href = 'hilo/index.html';
+    else if (e.key === 'Enter' && last && tag !== 'A' && tag !== 'BUTTON') location.href = doors[last].getAttribute('href');
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      e.preventDefault();
+      (on === doors.table ? doors.trainer : on === doors.trainer ? doors.table : e.key === 'ArrowLeft' ? doors.table : doors.trainer).focus();
+    }
   });
 })();
 </script>

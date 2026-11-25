@@ -1,6 +1,84 @@
-/* Added to both apps inside the desktop program: the links between them. */
+/* The desktop layer (desktop.js), on the home screen and in both apps: the links between them, the panels over the
+   page (commands, keys, a question), a line of feedback, and the number of its key on every chip of the tray.
+   It brings its own colours, so it reads the same over the green trainer and over any felt of the table. */
 a.btn { text-decoration: none; color: inherit; }
 .desk-links .row { margin-top: 10px; }
+.desk-links .keys { margin-top: 12px; }
 .desk-nav { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
-.desk-nav a { font: 600 14px/1 var(--body); color: var(--ink); text-decoration: none; padding: 9px 12px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--line); }
+.desk-nav a { font: 600 14px/1 var(--body); color: var(--ink); text-decoration: none; padding: 9px 12px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--line); display: inline-flex; align-items: center; gap: 4px; }
 .desk-nav a:hover, .desk-nav a:focus-visible { box-shadow: inset 0 0 0 1px var(--brass); color: var(--brass); }
+
+/* the way to the commands, in a corner of both apps; a narrow window has no room for it (Ctrl+K still works) */
+.desk-pill {
+  position: fixed; right: 14px; bottom: 14px; z-index: 70; appearance: none; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 10px 8px 12px; border-radius: 10px; color: #f4efde; background: rgba(8, 20, 15, .78); box-shadow: inset 0 0 0 1px rgba(227, 185, 85, .36);
+  font: 600 13px/1 var(--body, 'Manrope', 'Instrument Sans', system-ui, 'Segoe UI', sans-serif); opacity: .82; transition: opacity .15s;
+}
+.desk-pill:hover, .desk-pill:focus-visible { opacity: 1; box-shadow: inset 0 0 0 1px #e3b955; outline: none; }
+@media (max-width: 899px) { .desk-pill { display: none; } }
+
+/* the key of each chip */
+#chipTray { counter-reset: deskchip; }
+#chipTray .chip-btn { counter-increment: deskchip; }
+#chipTray .chip-btn::after {
+  content: counter(deskchip); position: absolute; right: -5px; top: -7px; min-width: 18px; height: 18px; padding: 0 4px; box-sizing: border-box;
+  font: 500 11px/18px 'DM Mono', ui-monospace, Consolas, monospace; text-align: center; color: #f4efde; background: rgba(10, 8, 6, .88);
+  border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(244, 239, 222, .26); pointer-events: none;
+}
+
+.desk-layer, .desk-toast {
+  --d-ink: #f4efde; --d-muted: #b9cdbf; --d-brass: #e3b955; --d-line: rgba(227, 185, 85, .36); --d-panel: #0c2119; --d-rail: #072a1e;
+  --d-body: var(--body, 'Manrope', 'Instrument Sans', system-ui, 'Segoe UI', sans-serif);
+  --d-mono: 'DM Mono', ui-monospace, Consolas, monospace;
+}
+.desk-layer {
+  position: fixed; inset: 0; z-index: 200; display: flex; justify-content: center; align-items: flex-start;
+  padding: min(13vh, 110px) 16px 16px; background: rgba(3, 9, 7, .58); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.desk-box {
+  width: min(640px, 100%); max-height: min(74vh, 660px); display: flex; flex-direction: column; overflow: hidden; text-align: left;
+  color: var(--d-ink); background: var(--d-panel); border: 1px solid var(--d-line); border-radius: 16px;
+  box-shadow: 0 26px 64px rgba(0, 0, 0, .58), 0 0 0 5px rgba(7, 42, 30, .42); font: 500 15px/1.45 var(--d-body);
+  animation: desk-in .14s ease-out;
+}
+@keyframes desk-in { from { opacity: 0; transform: translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .desk-box { animation: none; } .desk-toast { transition: none !important; } }
+.desk-box kbd, .desk-pill kbd {
+  display: inline-block; font: 500 12px/1 var(--d-mono, 'DM Mono', ui-monospace, Consolas, monospace); padding: 4px 6px; border-radius: 5px; color: inherit;
+  background: rgba(244, 239, 222, .09); box-shadow: inset 0 0 0 1px rgba(244, 239, 222, .22); white-space: nowrap;
+}
+.desk-box kbd + kbd { margin-left: 4px; }
+.desk-q {
+  appearance: none; width: 100%; box-sizing: border-box; margin: 0; padding: 17px 20px 15px; border: 0; border-bottom: 1px solid var(--d-line); border-radius: 0;
+  background: transparent; color: var(--d-ink); font: 500 18px/1.3 var(--d-body); outline: none; caret-color: var(--d-brass);
+}
+.desk-q::placeholder { color: var(--d-muted); opacity: .8; }
+.desk-q:focus-visible { border-bottom-color: var(--d-brass); }
+.desk-list { list-style: none; margin: 0; padding: 6px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.desk-list li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 9px 14px; border-radius: 9px; cursor: pointer; }
+.desk-list li[aria-selected=true] { background: rgba(227, 185, 85, .15); box-shadow: inset 0 0 0 1px rgba(227, 185, 85, .5); }
+.desk-list .desk-k { flex: none; color: var(--d-muted); }
+.desk-list .desk-none { color: var(--d-muted); cursor: default; }
+.desk-foot { margin: 0; padding: 10px 20px 12px; border-top: 1px solid var(--d-line); color: var(--d-muted); font: 500 12.5px/1.6 var(--d-body); }
+.desk-foot kbd { margin-right: 4px; }
+.desk-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px 0; }
+.desk-box h2 { margin: 0; padding: 0; border: 0; font: 700 22px/1.2 var(--display, var(--serif, Georgia, serif)); letter-spacing: 0; color: var(--d-ink); text-transform: none; }
+.desk-box h3 { margin: 18px 0 10px; padding: 0; border: 0; font: 500 12px/1 var(--d-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--d-brass); }
+.desk-x { appearance: none; width: 36px; height: 36px; border: 0; border-radius: 9px; background: transparent; color: var(--d-ink); font: 400 24px/1 var(--d-body); cursor: pointer; }
+.desk-x:hover { background: rgba(244, 239, 222, .1); }
+.desk-x:focus-visible, .desk-btn:focus-visible { outline: 2px solid var(--d-brass); outline-offset: 2px; }
+.desk-scroll { overflow-y: auto; padding: 0 20px 20px; }
+.desk-keys { display: grid; grid-template-columns: minmax(132px, max-content) 1fr; gap: 9px 18px; margin: 0; align-items: baseline; }
+.desk-keys dt, .desk-keys dd { margin: 0; padding: 0; font: inherit; color: inherit; }
+.desk-keys dd { color: var(--d-muted); }
+.desk-text { margin: 10px 20px 0; max-width: 56ch; color: var(--d-muted); }
+.desk-row { display: flex; justify-content: flex-end; gap: 10px; padding: 18px 20px 20px; }
+.desk-btn { appearance: none; border: 0; border-radius: 10px; padding: 11px 18px; font: 600 15px/1 var(--d-body); cursor: pointer; color: var(--d-ink); background: transparent; box-shadow: inset 0 0 0 1px var(--d-line); }
+.desk-btn:hover { box-shadow: inset 0 0 0 1px var(--d-brass); }
+.desk-btn.gold { color: var(--d-rail); background: var(--d-brass); box-shadow: 0 2px 0 rgba(0, 0, 0, .35); }
+.desk-toast {
+  position: fixed; left: 18px; bottom: 18px; z-index: 210; max-width: min(520px, calc(100vw - 36px)); padding: 10px 14px; border-radius: 11px;
+  color: var(--d-ink); background: var(--d-panel); border: 1px solid var(--d-line); box-shadow: 0 10px 26px rgba(0, 0, 0, .5);
+  font: 600 14px/1.35 var(--d-body); overflow-wrap: anywhere; pointer-events: none; opacity: 0; translate: 0 10px; transition: opacity .2s, translate .2s;
+}
+.desk-toast.on { opacity: 1; translate: 0 0; }
