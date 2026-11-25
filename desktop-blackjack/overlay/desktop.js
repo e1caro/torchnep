@@ -6,6 +6,7 @@
  *   table      1 to 6 put a chip from the tray on the bet, M opens the menu, T the statistics, K shows the count;
  *              on a wide window a panel on each side: the session as it goes, the shoe, the strategy chart
  *   trainer    Alt+1 to Alt+8 go to its sections
+ *   your keys  hit, stand, double, split, deal and the rest each on the key you choose
  *   backups    every saved game to one file, and back
  *
  * The two apps themselves are not changed: the table's own controls are pressed for it. What this layer remembers
@@ -52,8 +53,9 @@
     menu.appendChild(el('<div class="desk-links"><h3>Also in this program</h3><div class="row">' +
       '<a class="btn ghost" id="deskHilo" href="../hilo/index.html">Hi-Lo trainer</a>' +
       '<a class="btn ghost" id="deskHome" href="../index.html">Home screen</a></div>' +
-      '<p class="keys"><kbd>1</kbd>–<kbd>6</kbd> chips · <kbd>M</kbd> this menu · <kbd>T</kbd> statistics · <kbd>K</kbd> the count · <kbd>I</kbd> side panels · ' +
-      '<kbd>F11</kbd> full screen · <kbd>Ctrl</kbd>+<kbd>K</kbd> every command · <kbd>F1</kbd> all keys</p></div>'));
+      '<p class="keys" id="deskMenuKeys"></p>' +
+      '<div class="row"><button class="btn ghost" id="deskMenuYourKeys" type="button">Change the keys</button></div></div>'));
+    $('#deskMenuYourKeys').addEventListener('click', function () { var x = $('#menu [data-close]'); if (x) x.click(); keysEditor(); });
     lobbyBtns.insertBefore(el('<a class="btn ghost small" id="deskLobbyHome" href="../index.html">Home screen</a>'), lobbyBtns.firstChild);
   } else if (page === 'trainer') {               // the trainer: two links at the right of its header
     $('header.top').appendChild(el('<span class="desk-nav"><a id="deskHome" href="../index.html">Home screen</a>' +
@@ -389,6 +391,99 @@
     if (said) { sessionStorage.removeItem('desk.said'); setTimeout(function () { say(said); }, 300); }
   } catch (e) { /* no session storage */ }
 
+  /* ---------- your keys: which key hits, stands, doubles... ---------- */
+  // Every action has one key, and you can give it another ("Your keys", from F1 or the commands). The apps only
+  // know their own (H to hit, S to stand): the key you chose is handed to them as theirs, and the one it replaced
+  // no longer answers. Kept under desk.v1 as { action: key }. A key is named as the keyboard event names it, a
+  // letter in lower case, the space bar 'Space'. table / trainer: the app's own key for the action on that page;
+  // DESK: an action of this layer; missing: the action does not exist there.
+  var DESK = 1;
+  var ACTIONS = [
+    { id: 'hit', label: 'Hit', def: 'h', table: 'h', trainer: 'h', group: 'Playing a hand' },
+    { id: 'stand', label: 'Stand', def: 's', table: 's', trainer: 's' },
+    { id: 'double', label: 'Double', def: 'd', table: 'd', trainer: 'd' },
+    { id: 'split', label: 'Split', def: 'p', table: 'p', trainer: 'p' },
+    { id: 'surrender', label: 'Surrender', def: 'r', table: 'r' },
+    { id: 'yes', label: 'Insurance: take it', def: 'y', table: 'y', trainer: 'y' },
+    { id: 'no', label: 'Insurance: no', def: 'n', table: 'n', trainer: 'n' },
+    { id: 'deal', label: 'Deal, bet the same again, next round', def: 'Enter', table: 'Enter', group: 'At the blackjack table' },
+    { id: 'clear', label: 'Take the bet back', def: 'Backspace', table: 'Backspace' },
+    { id: 'change', label: 'Change the bet after a round', def: 'c', table: 'c' },
+    { id: 'menu', label: 'Menu, rules and settings', def: 'm', table: DESK },
+    { id: 'stats', label: 'Statistics', def: 't', table: DESK },
+    { id: 'count', label: 'Show or hide the card count', def: 'k', table: DESK },
+    { id: 'panels', label: 'Side panels on a wide window', def: 'i', table: DESK },
+    { id: 'next', label: 'Next card in the running count', def: 'Space', trainer: 'Space', group: 'In the Hi-Lo trainer' }
+  ];
+  var ALSO = { table: { Space: 'deal', Delete: 'clear' } };      // other keys the table itself gives to an action
+  var ARROWS = { ArrowLeft: '←', ArrowRight: '→', ArrowUp: '↑', ArrowDown: '↓' };
+  function action(id) { for (var i = 0; i < ACTIONS.length; i++) if (ACTIONS[i].id === id) return ACTIONS[i]; return null; }
+  function keyName(e) {                          // the name of the key pressed, or '' for one that cannot be given to an action
+    var k = e.key;
+    if (!k || e.ctrlKey || e.altKey || e.metaKey) return '';
+    if (k === ' ') return 'Space';
+    if (k.length === 1) return /[1-6?]/.test(k) ? '' : k.toLowerCase();     // 1 to 6 are the chips, ? the list of keys
+    return /^(Enter|Backspace|Delete|Insert|Home|End|PageUp|PageDown|Arrow(Left|Right|Up|Down))$/.test(k) ? k : '';
+  }
+  function show(name) { return ARROWS[name] || (name.length === 1 ? name.toUpperCase() : name); }
+  function keyOf(id) { var mine = read().keys || {}, a = action(id); return (typeof mine[id] === 'string' && mine[id]) || (a ? a.def : ''); }
+  function actionByKey(name) { for (var i = 0; i < ACTIONS.length; i++) if (keyOf(ACTIONS[i].id) === name) return ACTIONS[i]; return null; }
+  // Gives an action a key. The action that had it takes the key this one leaves, so that none is left without.
+  function setKey(id, name) {
+    var a = action(id), mine = read().keys || {}, other = actionByKey(name), was = keyOf(id);
+    if (!a || !name || name === was) return null;
+    if (other) { if (was === other.def) delete mine[other.id]; else mine[other.id] = was; }
+    if (name === a.def) delete mine[id]; else mine[id] = name;
+    keep({ keys: mine });
+    hints();
+    return other;
+  }
+  function resetKeys() { keep({ keys: {} }); hints(); }
+  // What to do with a key on this page: hand the app its own key instead, run an action of this layer, keep a key
+  // that was given away from answering, or leave it alone.
+  function heard(name) {
+    var a = actionByKey(name), own = a && a[page], i, b = null;
+    if (own === DESK) return { desk: a.id };
+    if (own) return own === name ? null : { send: own };
+    for (i = 0; i < ACTIONS.length && !b; i++) if (ACTIONS[i][page] === name) b = ACTIONS[i];
+    if (!b && ALSO[page] && ALSO[page][name]) b = action(ALSO[page][name]);
+    return b && keyOf(b.id) !== b.def ? { swallow: true } : null;
+  }
+  var passing = false;
+  function send(name) {
+    passing = true;
+    try { document.body.dispatchEvent(new KeyboardEvent('keydown', { key: name === 'Space' ? ' ' : name, bubbles: true, cancelable: true })); }
+    finally { passing = false; }
+  }
+  function deskAct(id) {
+    if (id === 'menu') press('menuBtn'); else if (id === 'stats') press('statsBtn'); else if (id === 'count') run('count'); else if (id === 'panels') panelsOn();
+  }
+  // The keys the apps print on their own buttons and in the table's menu follow yours.
+  var TABLE_HINTS = { hit: '#hitBtn kbd', stand: '#standBtn kbd', double: '#doubleBtn kbd', split: '#splitBtn kbd', surrender: '#surrenderBtn kbd', yes: '#insYes kbd', no: '#insNo kbd' };
+  var DRILL = { H: 'hit', S: 'stand', D: 'double', P: 'split', Y: 'yes', N: 'no' };
+  function label(node, id) { var t = show(keyOf(id)); if (node && node.textContent !== t) node.textContent = t; }
+  function hints() {
+    var K = function (id) { return '<kbd>' + esc(show(keyOf(id))) + '</kbd>'; }, id, p;
+    if (page === 'table') {
+      for (id in TABLE_HINTS) label($(TABLE_HINTS[id]), id);
+      p = $('#menu .box > p.keys');
+      if (p) p.innerHTML = K('hit') + ' hit · ' + K('stand') + ' stand · ' + K('double') + ' double · ' + K('split') + ' split · ' + K('surrender') + ' surrender · ' +
+        K('yes') + '/' + K('no') + ' insurance · ' + K('deal') + ' deal · ' + K('clear') + ' clear bet';
+      p = $('#deskMenuKeys');
+      if (p) p.innerHTML = '<kbd>1</kbd>–<kbd>6</kbd> chips · ' + K('menu') + ' this menu · ' + K('stats') + ' statistics · ' + K('count') + ' the count · ' + K('panels') + ' side panels · ' +
+        '<kbd>F11</kbd> full screen · <kbd>Ctrl</kbd>+<kbd>K</kbd> every command · <kbd>F1</kbd> all keys';
+    } else if (page === 'trainer') {
+      document.querySelectorAll('button[data-a] kbd').forEach(function (k) { var a = DRILL[k.parentNode.dataset.a]; if (a) label(k, a); });
+      document.querySelectorAll('button[data-ins] kbd').forEach(function (k) { label(k, k.parentNode.dataset.ins === '1' ? 'yes' : 'no'); });
+      label($('#rc-next kbd'), 'next');
+    }
+  }
+  if (page === 'trainer' && window.MutationObserver) {       // the trainer draws its buttons again for every hand
+    var hintT = 0;
+    new MutationObserver(function () { clearTimeout(hintT); hintT = setTimeout(hints, 0); }).observe(document.body, { childList: true, subtree: true });
+  }
+  hints();
+
   /* ---------- commands ---------- */
   var CMDS = [
     { id: 'table', title: 'Blackjack table', keys: 'Ctrl 1', run: function () { go('table'); } },
@@ -397,12 +492,12 @@
   ];
   if (page === 'table') {
     CMDS.push(
-      { id: 'menu', title: 'Table: menu, rules and settings', keys: 'M', run: function () { press('menuBtn'); } },
-      { id: 'stats', title: 'Table: statistics of this session', keys: 'T', run: function () { press('statsBtn'); } },
-      { id: 'count', title: 'Table: show or hide the card count', keys: 'K', run: function () { pref('count', 'The card count is shown', 'The card count is hidden'); } },
+      { id: 'menu', title: 'Table: menu, rules and settings', act: 'menu', run: function () { press('menuBtn'); } },
+      { id: 'stats', title: 'Table: statistics of this session', act: 'stats', run: function () { press('statsBtn'); } },
+      { id: 'count', title: 'Table: show or hide the card count', act: 'count', run: function () { pref('count', 'The card count is shown', 'The card count is hidden'); } },
       { id: 'hints', title: 'Table: basic strategy hints on or off', run: function () { pref('hints', 'Basic strategy hints are on', 'Basic strategy hints are off'); } },
       { id: 'sound', title: 'Table: sound on or off', run: function () { pref('sound', 'Sound is on', 'Sound is off'); } },
-      { id: 'panels', title: 'Table: side panels (session, shoe, strategy chart) on or off', keys: 'I', run: function () { panelsOn(); } });
+      { id: 'panels', title: 'Table: side panels (session, shoe, strategy chart) on or off', act: 'panels', run: function () { panelsOn(); } });
   }
   SECTIONS.forEach(function (s, i) {
     CMDS.push({ id: 'sec-' + s[0], title: 'Trainer: ' + s[1], keys: page === 'trainer' ? 'Alt ' + (i + 1) : '', run: function () { go('trainer', s[0]); } });
@@ -414,6 +509,7 @@
     { id: 'smaller', title: 'Everything smaller', keys: 'Ctrl −', run: function () { zoomBy(-0.1); } },
     { id: 'normal', title: 'Everything at the normal size for this window', keys: 'Ctrl 0', run: function () { zoomTo(1); } },
     { id: 'keys', title: 'Keyboard shortcuts of this page', keys: 'F1', run: keysSheet },
+    { id: 'yourkeys', title: 'Change the keys: hit, stand, double, split, deal and the rest', run: keysEditor },
     { id: 'backup', title: 'Save a backup of all your games to a file', run: backup },
     { id: 'restore', title: 'Restore your games from a backup file', run: restore });
   if (rt() && rt().Quit) CMDS.push({ id: 'quit', title: 'Close the program', keys: 'Alt F4', run: function () { rt().Quit(); } });
@@ -460,7 +556,7 @@
       shown = CMDS.filter(function (c) { var t = c.title.toLowerCase(); return words.every(function (w) { return t.indexOf(w) >= 0; }); });
       sel = Math.min(sel, Math.max(0, shown.length - 1));
       list.innerHTML = shown.length ? shown.map(function (c, i) {
-        return '<li role="option" data-i="' + i + '" data-cmd="' + c.id + '" aria-selected="' + (i === sel) + '"><span>' + esc(c.title) + '</span><span class="desk-k">' + kbd(c.keys) + '</span></li>';
+        return '<li role="option" data-i="' + i + '" data-cmd="' + c.id + '" aria-selected="' + (i === sel) + '"><span>' + esc(c.title) + '</span><span class="desk-k">' + kbd(c.act ? show(keyOf(c.act)) : c.keys) + '</span></li>';
       }).join('') : '<li class="desk-none">No command matches</li>';
       var on = list.querySelector('[aria-selected=true]');
       if (on && on.scrollIntoView) on.scrollIntoView({ block: 'nearest' });
@@ -474,25 +570,71 @@
     q.focus();
   }
 
-  var PAGE_KEYS = {
-    home: ['On the home screen', [['1', 'Blackjack table'], ['2', 'Hi-Lo trainer'], ['Enter', 'carry on where you were'], ['← →', 'from one door to the other']]],
-    table: ['At the blackjack table', [['1 – 6', 'put a chip from the tray on the bet'], ['Enter', 'deal, bet the same again, next round'], ['Backspace', 'take the bet back'],
-      ['H', 'hit'], ['S', 'stand'], ['D', 'double'], ['P', 'split'], ['R', 'surrender'], ['Y N', 'insurance, yes or no'], ['C', 'change the bet after a round'],
-      ['M', 'menu, rules and settings'], ['T', 'statistics'], ['K', 'show or hide the card count'],
-      ['I', 'side panels on a wide window: your session, the shoe, the strategy chart'], ['Esc', 'close a panel']]],
-    trainer: ['In the Hi-Lo trainer', [['H S D P', 'hit, stand, double, split in the drills and at the practice table'], ['Y N', 'insurance, or whether to leave the chart'],
-      ['Space', 'next card in the running count'], ['Alt 1 – 8', 'the sections, from the plan to the rules']]]
-  };
+  function pageKeys() {
+    var K = function () { return Array.prototype.map.call(arguments, function (id) { return show(keyOf(id)); }).join(' '); };
+    if (page === 'home') return ['On the home screen', [['1', 'Blackjack table'], ['2', 'Hi-Lo trainer'], ['Enter', 'carry on where you were'], ['← →', 'from one door to the other']]];
+    if (page === 'table') return ['At the blackjack table', [['1 – 6', 'put a chip from the tray on the bet'], [K('deal'), 'deal, bet the same again, next round'], [K('clear'), 'take the bet back'],
+      [K('hit'), 'hit'], [K('stand'), 'stand'], [K('double'), 'double'], [K('split'), 'split'], [K('surrender'), 'surrender'], [K('yes', 'no'), 'insurance, yes or no'],
+      [K('change'), 'change the bet after a round'], [K('menu'), 'menu, rules and settings'], [K('stats'), 'statistics'], [K('count'), 'show or hide the card count'],
+      [K('panels'), 'side panels on a wide window: your session, the shoe, the strategy chart'], ['Esc', 'close a panel']]];
+    return ['In the Hi-Lo trainer', [[K('hit', 'stand', 'double', 'split'), 'hit, stand, double, split in the drills and at the practice table'],
+      [K('yes', 'no'), 'insurance, or whether to leave the chart'], [K('next'), 'next card in the running count'], ['Alt 1 – 8', 'the sections, from the plan to the rules']]];
+  }
   var EVERYWHERE = [['Ctrl K', 'every command, by name'], ['F1', 'this list'], ['F11', 'full screen'], ['Ctrl T', 'keep the window on top'],
     ['Ctrl 1', 'Blackjack table'], ['Ctrl 2', 'Hi-Lo trainer'], ['Ctrl H', 'home screen'], ['Ctrl + − 0', 'bigger, smaller, normal size (also Ctrl and the mouse wheel); it is remembered']];
   function rows(list) { return list.map(function (r) { return '<dt>' + kbd(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>'; }).join(''); }
   function keysSheet() {
-    var p = PAGE_KEYS[page];
+    var p = pageKeys();
     var L = open('<div class="desk-head"><h2 id="deskKeysTitle">Keyboard</h2><button type="button" class="desk-x" data-desk-close aria-label="Close">×</button></div>' +
       '<div class="desk-scroll"><h3>' + p[0] + '</h3><dl class="desk-keys">' + rows(p[1]) + '</dl>' +
-      '<h3>Everywhere</h3><dl class="desk-keys">' + rows(EVERYWHERE) + '</dl></div>');
+      '<h3>Everywhere</h3><dl class="desk-keys">' + rows(EVERYWHERE) + '</dl></div>' +
+      '<div class="desk-row"><button type="button" class="desk-btn" id="deskToYourKeys">Change the keys</button></div>');
     L.firstChild.id = 'deskKeys';
     L.firstChild.setAttribute('aria-labelledby', 'deskKeysTitle');
+    L.querySelector('#deskToYourKeys').addEventListener('click', keysEditor);
+    L.querySelector('[data-desk-close]').focus();
+  }
+  // Your keys: click an action, press the key it should have.
+  function keysEditor() {
+    var waiting = null, note = '';
+    function list() {
+      return ACTIONS.map(function (a) {
+        return (a.group ? '<h3>' + a.group + '</h3>' : '') + '<div class="desk-bind"><span>' + esc(a.label) + '</span><button type="button" data-bind="' + a.id + '"' +
+          (waiting === a.id ? ' class="wait">Press a key' : '><kbd>' + esc(show(keyOf(a.id))) + '</kbd>') + '</button></div>';
+      }).join('');
+    }
+    var L = open('<div class="desk-head"><h2 id="deskYourKeysTitle">Your keys</h2><button type="button" class="desk-x" data-desk-close aria-label="Close">×</button></div>' +
+      '<p class="desk-text">Click an action, then press the key you want for it. Letters, digits from 7, Space, Enter, Backspace and the arrows can be used; ' +
+      '1 to 6 stay with the chips. A key that was in use changes places with the one you replace.</p>' +
+      '<div class="desk-scroll" id="deskBinds"></div><p class="desk-text" id="deskBindNote" role="status"></p>' +
+      '<div class="desk-row"><button type="button" class="desk-btn" id="deskBindReset">The usual keys</button><button type="button" class="desk-btn gold" data-desk-close>Done</button></div>', function (e) {
+      if (!waiting) return false;
+      var id = waiting, name = keyName(e), other;
+      if (e.key === 'Escape') { waiting = null; note = ''; draw(id); return true; }
+      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return true;       // on the way to a key
+      if (!name) { note = 'That key cannot be used: it belongs to the program or to the chips.'; draw(id); return true; }
+      waiting = null;
+      other = setKey(id, name);
+      note = action(id).label + ' is now ' + show(name) + (other ? ', and ' + other.label.toLowerCase() + ' is now ' + show(keyOf(other.id)) : '') + '.';
+      draw(id);
+      return true;
+    });
+    function draw(focus) {
+      L.querySelector('#deskBinds').innerHTML = list();
+      L.querySelector('#deskBindNote').textContent = note;
+      var b = focus && L.querySelector('[data-bind="' + focus + '"]');
+      if (b) b.focus();
+    }
+    L.firstChild.id = 'deskYourKeys';
+    L.firstChild.setAttribute('aria-labelledby', 'deskYourKeysTitle');
+    L.querySelector('#deskBinds').addEventListener('click', function (e) {
+      var b = e.target.closest('[data-bind]');
+      if (!b) return;
+      waiting = waiting === b.dataset.bind ? null : b.dataset.bind; note = '';
+      draw(b.dataset.bind);
+    });
+    L.querySelector('#deskBindReset').addEventListener('click', function () { waiting = null; resetKeys(); note = 'Every action has its usual key again.'; draw(); });
+    draw();
     L.querySelector('[data-desk-close]').focus();
   }
   function ask(title, text, yes, then) {
@@ -512,13 +654,14 @@
   window.addEventListener('keydown', function (e) {
     var k = e.key, low = k.length === 1 ? k.toLowerCase() : k, ctrl = e.ctrlKey || e.metaKey;
     function take(fn) { e.preventDefault(); e.stopPropagation(); fn(); }
+    if (passing) return;                          // a key of yours, on its way to the app as the app's own
     if (layer) {                                  // a panel of this layer is open: nothing reaches the game under it
       e.stopPropagation();
-      if (k === 'Escape') { e.preventDefault(); close(); }
+      if (onKey && onKey(e) === true) e.preventDefault();          // the panel wanted this key for itself
+      else if (k === 'Escape') { e.preventDefault(); close(); }
       else if (k === 'Tab') trapTab(e);
       else if (ctrl && low === 'k') { e.preventDefault(); close(); }
       else if (k === 'F1' || k === 'F11') e.preventDefault();
-      else if (onKey) onKey(e);
       return;
     }
     if (k === 'F11') return take(fullscreen);
@@ -543,13 +686,14 @@
     if (k === '?') return take(keysSheet);
     if (page === 'table' && !sheetOpen()) {
       if (/^[1-6]$/.test(k)) return take(function () { chip(Number(k)); });
-      if (low === 'm') return take(function () { press('menuBtn'); });
-      if (low === 't') return take(function () { press('statsBtn'); });
-      if (low === 'k') return take(function () { run('count'); });
-      if (low === 'i') return take(function () { panelsOn(); });
     }
+    var does = heard(keyName(e));                 // your keys
+    if (!does) return;
+    if (does.swallow) { e.stopPropagation(); return; }
+    if (does.desk) { if (!sheetOpen()) take(function () { deskAct(does.desk); }); return; }
+    take(function () { send(does.send); });
   }, true);
 
   window.Desk = { page: page, run: run, palette: palette, keys: keysSheet, close: close, fullscreen: fullscreen, pin: pin, backup: backup, restore: restore,
-    backupText: backupText, parseBackup: parseBackup, get open() { return !!layer; }, get commands() { return CMDS.map(function (c) { return c.id; }); } };
+    backupText: backupText, parseBackup: parseBackup, keyOf: keyOf, setKey: setKey, resetKeys: resetKeys, yourKeys: keysEditor, get open() { return !!layer; }, get commands() { return CMDS.map(function (c) { return c.id; }); } };
 })();

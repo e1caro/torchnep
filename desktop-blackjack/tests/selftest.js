@@ -74,8 +74,14 @@
       key('3', { altKey: true });
       await until(function () { return $('#view-running-count').classList.contains('on'); }, 5000, 'the running count after Alt+3');
       await view('strategy');
-      for (var i = 0; i < 25; i++) key('s');
-      ok(/of 25/.test(text('#strat-meter')), 'the strategy drill did not count 25 hands: ' + text('#strat-meter'));
+      window.Desk.setKey('stand', 'j');             // your keys: stand on J, and S no longer answers
+      await until(function () { return text('#view-strategy button[data-a="S"] kbd') === 'J'; }, 5000, 'the Stand button showing its new key');
+      key('s');
+      ok(!/of 1\b/.test(text('#strat-meter')), 'S still stands after the key was given to J: ' + text('#strat-meter'));
+      for (var i = 0; i < 25; i++) key('j');
+      ok(/of 25/.test(text('#strat-meter')), 'the strategy drill did not count 25 hands on the J key: ' + text('#strat-meter'));
+      window.Desk.resetKeys();
+      ok(window.Desk.keyOf('stand') === 's', 'the usual keys did not come back');
       await view('table');
       $('#t-controls button[data-bet="1"]').click();
       await until(function () { return document.querySelectorAll('#t-hands .card').length >= 2; }, 5000, 'cards at the practice table');

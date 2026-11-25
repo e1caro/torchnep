@@ -72,6 +72,18 @@ a.btn { text-decoration: none; color: inherit; }
 .desk-keys dt, .desk-keys dd { margin: 0; padding: 0; font: inherit; color: inherit; }
 .desk-keys dd { color: var(--d-muted); }
 .desk-text { margin: 10px 20px 0; max-width: 56ch; color: var(--d-muted); }
+.desk-text:empty { display: none; }
+/* your keys: an action, and the key it has */
+#deskBinds { margin-top: 6px; padding-bottom: 8px; }
+.desk-bind { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 0; }
+.desk-bind button {
+  appearance: none; flex: none; min-width: 92px; min-height: 34px; padding: 0 10px; border: 0; border-radius: 9px; cursor: pointer; color: var(--d-ink);
+  background: rgba(244, 239, 222, .06); box-shadow: inset 0 0 0 1px var(--d-line); font: 600 13px/1 var(--d-body);
+}
+.desk-bind button:hover { box-shadow: inset 0 0 0 1px var(--d-brass); }
+.desk-bind button:focus-visible { outline: 2px solid var(--d-brass); outline-offset: 2px; }
+.desk-bind button.wait { color: var(--d-rail); background: var(--d-brass); box-shadow: none; }
+#deskBindNote { margin: 8px 20px 0; color: var(--d-brass); }
 .desk-row { display: flex; justify-content: flex-end; gap: 10px; padding: 18px 20px 20px; }
 .desk-btn { appearance: none; border: 0; border-radius: 10px; padding: 11px 18px; font: 600 15px/1 var(--d-body); cursor: pointer; color: var(--d-ink); background: transparent; box-shadow: inset 0 0 0 1px var(--d-line); }
 .desk-btn:hover { box-shadow: inset 0 0 0 1px var(--d-brass); }

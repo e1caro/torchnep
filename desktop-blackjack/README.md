@@ -30,7 +30,7 @@ little gold.
 | Key | What it does |
 | --- | --- |
 | `Ctrl+K` | Every command by name: type a few letters, `Enter`. Also the **Commands** button in a corner of both apps. |
-| `F1` or `?` | The keys of the page you are on. |
+| `F1` or `?` | The keys of the page you are on, and **Change the keys**. |
 | `F11` | Full screen, and back. |
 | `Ctrl+T` | Keeps the window on top of the others (a trainer next to a video, say), and lets go. |
 | `Ctrl` with `+` `-` `0`, or with the mouse wheel | Everything bigger, smaller, the normal size for the window. It is remembered. |
@@ -39,6 +39,12 @@ little gold.
 | `M` `T` `K` `I` at the table | The menu, the statistics, the card count shown or hidden, the side panels shown or hidden. |
 | `Alt+1` to `Alt+8` in the trainer | Its sections, from the plan to the rules. |
 | `Enter` on the home screen | Back to the app you used last; `1` and `2` open either. |
+
+**Your keys.** Hit, stand, double, split, surrender, insurance, deal, taking the bet back and the rest each have one
+key, and you can give any of them another: **Change the keys** in the list of keys (`F1`), in the table's menu or in
+the commands, then click the action and press the key. Letters, digits from 7, Space, Enter, Backspace and the arrows
+can be used; a key already in use changes places with the one you replace. The buttons and every list of keys show
+yours, both apps follow them, and they travel in a backup.
 
 The home screen also shows where you stand (your seat and chips, sessions, hands and time at the tables, the drills
 passed) and has **Back up your games** and **Restore a backup**: every saved game in one `.json` file, to keep or to
