@@ -13,6 +13,23 @@ screen where you can tell Claude what to add or change.
   `Style.java` and chosen under "Widget style" in the app. The picker draws each preview from
   the same layouts and code as the real widget.
 
+## How the widget stays current
+
+A widget cannot watch anything by itself, and phones hold background apps back, so `DayWidget`
+redraws on several routes at once:
+
+- the calendar provider's change broadcast (`PROVIDER_CHANGED`), delivered even while the app is
+  in the background: the main route when an event is added, changed or deleted;
+- a content-trigger job on the calendar (`CalendarJob`), which Android may delay for apps that
+  are rarely opened;
+- an alarm at the next event boundary, and in any case every 15 minutes while the phone is awake;
+- the phone's own half-hourly widget update;
+- the round-arrow button on the widget.
+
+Settings in the app shows when the widget last refreshed by itself and why. On phones that
+restrict background apps hard (Xiaomi among them) the app needs Autostart and unrestricted
+battery use for the first three routes.
+
 ## Releases and self-update
 
 `.github/workflows/android-myday.yml` builds the APK on every push that touches this folder.
@@ -45,5 +62,7 @@ zipalign dalvik-exchange android-sdk-platform-23`) and Robolectric's `android-al
 
 - `tools/check.sh`: JVM checks for the date logic, the styles, the Claude request and reply
   handling, and picking the newer release.
-- `tools/device-check.sh`: on an emulator, installs the APK, opens the app and fails if it
-  crashes or cannot draw a widget style. The workflow runs it before any release.
+- `tools/device-check.sh`: on an emulator, opens the app (it must not crash and must draw every
+  widget style), then shows the real widget through `WidgetHostActivity` and adds and deletes a
+  calendar event under it: the widget must follow, also with the app's process gone. The
+  workflow runs it before any release.

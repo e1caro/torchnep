@@ -203,6 +203,24 @@ final class Store {
 
     // ---- settings ----
 
+    /**
+     * Remembers the last time the widget redrew without the app's screen asking for it. Shown under Settings,
+     * so it is possible to tell whether the phone is letting the widget keep itself current.
+     */
+    static void noteRefresh(Context ctx, String reason) {
+        if ("app".equals(reason)) return;
+        prefs(ctx).edit().putLong("widget_refreshed_at", System.currentTimeMillis())
+                .putString("widget_refresh_reason", reason).apply();
+    }
+
+    static long refreshedAt(Context ctx) {
+        return prefs(ctx).getLong("widget_refreshed_at", 0);
+    }
+
+    static String refreshReason(Context ctx) {
+        return prefs(ctx).getString("widget_refresh_reason", "");
+    }
+
     static String style(Context ctx) {
         return prefs(ctx).getString("style", "sky");
     }

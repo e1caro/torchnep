@@ -3,6 +3,7 @@ package app.myday.widget;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
+import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService;
 
@@ -39,8 +40,16 @@ public class WidgetService extends RemoteViewsService {
             long token = Binder.clearCallingIdentity();
             try {
                 style = Style.current(ctx);
-                rows = Rows.build(ctx, style);
+                List<Rows.Row> built = Rows.build(ctx, style);
+                int eventsToday = 0;
+                for (Rows.Row r : built) {
+                    if (r.type == Rows.HEADER) break;
+                    if (r.type == Rows.EVENT) eventsToday++;
+                }
+                rows = built;
+                Log.i("MyDay", "widget rows rebuilt: events_today=" + eventsToday + " total=" + built.size());
             } catch (RuntimeException e) {
+                Log.e("MyDay", "widget rows failed", e);
                 rows = new ArrayList<>();
             } finally {
                 Binder.restoreCallingIdentity(token);

@@ -303,10 +303,37 @@
             android:textColor="@color/mute" />
 
         <TextView
+            android:id="@+id/widgetStatus"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="Add the widget: long-press an empty spot on your home screen, tap Widgets, find My Day and drag it out.\n\nEvents come from your phone's calendar, so anything Claude adds to your Google Calendar from a chat shows up here too. Tap an event in the widget to open it, tap a to-do to tick it off.\n\nThe app looks for a newer version by itself and installs it. The first time, Android asks you to allow My Day to install apps."
+            android:textSize="15sp"
+            android:textColor="@color/ink" />
+
+        <TextView
+            android:id="@+id/backgroundHelp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="13sp"
+            android:lineSpacingMultiplier="1.15"
+            android:textColor="@color/mute" />
+
+        <Button
+            android:id="@+id/systemSettings"
+            style="@style/Chip"
+            android:layout_width="wrap_content"
+            android:layout_weight="0"
+            android:layout_marginTop="10dp"
+            android:paddingStart="18dp"
+            android:paddingEnd="18dp"
+            android:text="Open phone settings for My Day" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Add the widget: long-press an empty spot on your home screen, tap Widgets, find My Day and drag it out.\n\nEvents come from your phone's calendar, so anything Claude adds to your Google Calendar from a chat shows up here too. Tap an event in the widget to open it, tap a to-do to tick it off, and tap the round arrow to refresh it.\n\nThe app looks for a newer version by itself and installs it. The first time, Android asks you to allow My Day to install apps."
             android:textSize="13sp"
             android:lineSpacingMultiplier="1.15"
             android:textColor="@color/mute" />
