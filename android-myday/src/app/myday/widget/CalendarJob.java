@@ -37,7 +37,7 @@ public class CalendarJob extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         // refresh() books this job again, which is how a content-trigger job keeps watching.
-        DayWidget.refresh(this);
+        DayWidget.refresh(this, "calendar changed");
         return false;
     }
 

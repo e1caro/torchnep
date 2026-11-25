@@ -10,14 +10,26 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
 
 import java.util.List;
 
-/** The home-screen widget: a header, optionally a week strip, and a scrolling list below. */
+/**
+ * The home-screen widget: a header, optionally a week strip, and a scrolling list below.
+ *
+ * It redraws when the calendar provider broadcasts a change (the main route: delivered even while the app is in
+ * the background), when the content-trigger job fires, at the next event boundary, on a 15-minute heartbeat, on
+ * the phone's own half-hourly widget update, and when the refresh button is tapped. Several routes on purpose:
+ * each one can be held back by a phone's battery rules.
+ */
 public class DayWidget extends AppWidgetProvider {
     static final String ACTION_REFRESH = "app.myday.widget.REFRESH";
+    private static final String REASON = "reason";
+
+    /** The longest the widget goes without redrawing while the phone is awake, whatever else fails. */
+    private static final long HEARTBEAT = 15 * Day.MINUTE;
 
     private static final int[] SKY_BG = {R.drawable.header_morning, R.drawable.header_day,
             R.drawable.header_evening, R.drawable.header_night};
@@ -40,18 +52,27 @@ public class DayWidget extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
-        refresh(ctx);
+        refresh(ctx, "phone's regular update");
     }
 
     @Override
     public void onAppWidgetOptionsChanged(Context ctx, AppWidgetManager mgr, int id, Bundle options) {
-        refresh(ctx);
+        refresh(ctx, "widget resized");
     }
 
     @Override
     public void onReceive(Context ctx, Intent intent) {
-        if (ACTION_REFRESH.equals(intent.getAction())) {
-            refresh(ctx);
+        String action = intent.getAction();
+        if (ACTION_REFRESH.equals(action)) {
+            String reason = intent.getStringExtra(REASON);
+            refresh(ctx, reason == null ? "timer" : reason);
+        } else if (Intent.ACTION_PROVIDER_CHANGED.equals(action)) {
+            Log.i("MyDay", "calendar changed");
+            refresh(ctx, "calendar changed");
+        } else if (Intent.ACTION_TIME_CHANGED.equals(action) || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
+            refresh(ctx, "clock changed");
+        } else if (Intent.ACTION_MY_PACKAGE_REPLACED.equals(action)) {
+            refresh(ctx, "app updated");
         } else {
             super.onReceive(ctx, intent);
         }
@@ -64,8 +85,12 @@ public class DayWidget extends AppWidgetProvider {
         CalendarJob.cancel(ctx);
     }
 
-    /** Redraws every My Day widget and books the next redraw. Safe to call from anywhere. */
     static void refresh(Context context) {
+        refresh(context, "app");
+    }
+
+    /** Redraws every My Day widget and books the next redraw. Safe to call from anywhere. */
+    static void refresh(Context context, String reason) {
         Context ctx = context.getApplicationContext();
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
         if (mgr == null) return;
@@ -77,6 +102,7 @@ public class DayWidget extends AppWidgetProvider {
         for (int id : ids) {
             RemoteViews v = shell(ctx, style, head);
 
+            v.setOnClickPendingIntent(R.id.refresh, refreshIntent(ctx, 31, "refresh button"));
             v.setOnClickPendingIntent(R.id.add, open(ctx, MainActivity.ACTION_COMPOSE, 10));
             v.setOnClickPendingIntent(R.id.mic, open(ctx, MainActivity.ACTION_VOICE, 11));
             v.setOnClickPendingIntent(R.id.header, open(ctx, Intent.ACTION_MAIN, 12));
@@ -104,8 +130,12 @@ public class DayWidget extends AppWidgetProvider {
         }
         mgr.notifyAppWidgetViewDataChanged(ids, R.id.list);
 
+        Store.noteRefresh(ctx, reason);
+
+        // Redraw again at the next moment the header changes, and in any case within the heartbeat.
         AlarmManager am = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
-        if (am != null) am.set(AlarmManager.RTC, head.nextChange + 2000, alarmIntent(ctx));
+        long next = Math.min(head.nextChange + 2000, System.currentTimeMillis() + HEARTBEAT);
+        if (am != null) am.set(AlarmManager.RTC, next, alarmIntent(ctx));
         CalendarJob.schedule(ctx);
         UpdateJob.schedule(ctx);
     }
@@ -162,7 +192,7 @@ public class DayWidget extends AppWidgetProvider {
         Style.text(ctx, v, R.id.next, inkL, inkD);
         v.setTextViewText(R.id.next, h.summary);
         v.setViewVisibility(R.id.next, s.summary ? View.VISIBLE : View.GONE);
-        for (int button : new int[]{R.id.add, R.id.mic}) {
+        for (int button : new int[]{R.id.add, R.id.mic, R.id.refresh}) {
             v.setInt(button, "setBackgroundResource", buttonBg);
             Style.tint(ctx, v, button, inkL, inkD);
         }
@@ -222,8 +252,12 @@ public class DayWidget extends AppWidgetProvider {
     }
 
     private static PendingIntent alarmIntent(Context ctx) {
-        Intent i = new Intent(ctx, DayWidget.class).setAction(ACTION_REFRESH);
-        return PendingIntent.getBroadcast(ctx, 30, i,
+        return refreshIntent(ctx, 30, "timer");
+    }
+
+    private static PendingIntent refreshIntent(Context ctx, int requestCode, String reason) {
+        Intent i = new Intent(ctx, DayWidget.class).setAction(ACTION_REFRESH).putExtra(REASON, reason);
+        return PendingIntent.getBroadcast(ctx, requestCode, i,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
     }
 }

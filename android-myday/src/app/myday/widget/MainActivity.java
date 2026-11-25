@@ -14,6 +14,7 @@ import android.content.SharedPreferences;
 import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.provider.Settings;
@@ -55,7 +56,7 @@ public class MainActivity extends Activity {
     private static final int REQ_CALENDAR = 1, REQ_VOICE = 2;
 
     private EditText input, apiKey;
-    private TextView reply, keyHint, keyState, dateView, versionText, updateStatus;
+    private TextView reply, keyHint, keyState, dateView, versionText, updateStatus, widgetStatus;
     private boolean updating;
     private final SharedPreferences.OnSharedPreferenceChangeListener updateListener =
             new SharedPreferences.OnSharedPreferenceChangeListener() {
@@ -97,6 +98,15 @@ public class MainActivity extends Activity {
         styleList = findViewById(R.id.styleList);
         versionText = findViewById(R.id.versionText);
         updateStatus = findViewById(R.id.updateStatus);
+        widgetStatus = findViewById(R.id.widgetStatus);
+        ((TextView) findViewById(R.id.backgroundHelp)).setText(backgroundHelp());
+        findViewById(R.id.systemSettings).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startActivity(new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        Uri.fromParts("package", getPackageName(), null)));
+            }
+        });
         findViewById(R.id.checkUpdate).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -679,6 +689,31 @@ public class MainActivity extends Activity {
         render();
     }
 
+    private void showWidgetStatus(long now, String today) {
+        long at = Store.refreshedAt(this);
+        if (at == 0) {
+            widgetStatus.setText("The widget has not refreshed by itself yet.");
+            return;
+        }
+        String when = Day.iso(at).equals(today) ? "at " + Day.clock(this, at)
+                : "on " + Day.shortDate(Day.iso(at)) + " at " + Day.clock(this, at);
+        String reason = Store.refreshReason(this);
+        widgetStatus.setText("The widget last refreshed by itself " + when
+                + (reason.isEmpty() ? "." : " (" + reason + ")."));
+    }
+
+    /** Phones differ in how hard they hold background apps back; Xiaomi's settings have their own names. */
+    private static String backgroundHelp() {
+        String maker = Build.MANUFACTURER == null ? "" : Build.MANUFACTURER.toLowerCase(Locale.US);
+        String intro = "The widget refreshes when your calendar changes, and at least every 15 minutes. "
+                + "If it shows old events, your phone is holding My Day back. ";
+        if (maker.contains("xiaomi") || maker.contains("redmi") || maker.contains("poco")) {
+            return intro + "On this phone, open the settings below, turn on Autostart, and set Battery saver "
+                    + "to No restrictions.";
+        }
+        return intro + "Open the settings below and let My Day use the battery without restrictions.";
+    }
+
     // ---- drawing ----
 
     private void render() {
@@ -713,6 +748,7 @@ public class MainActivity extends Activity {
         for (Store.Note n : notes) noteList.addView(noteRow(n));
 
         showUpdateStatus();
+        showWidgetStatus(now, today);
 
         calendars = Cal.writable(this);
         List<String> names = new ArrayList<>();
