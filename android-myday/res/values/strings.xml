@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">My Day</string>
+    <string name="widget_name">My Day</string>
+    <string name="widget_desc">Today\'s schedule, to-dos and notes</string>
+    <string name="widget_empty">Nothing planned</string>
+    <string name="widget_empty_sub">Tap + or the mic to add something</string>
+    <string name="widget_loading">Your day at a glance</string>
+</resources>

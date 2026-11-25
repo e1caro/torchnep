@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg">#FFFFFF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="ink">#16171A</color>
+    <color name="mute">#6B6E76</color>
+    <color name="line">#E8E8EB</color>
+    <color name="card">#F4F4F6</color>
+    <color name="accent">#F2541B</color>
+    <color name="sky">#2F7BFF</color>
+    <color name="w_accent">#D4420C</color>
+    <color name="cal_red">#D93036</color>
+    <color name="now_tangerine">#14F2541B</color>
+    <color name="now_red">#14E5484D</color>
+</resources>

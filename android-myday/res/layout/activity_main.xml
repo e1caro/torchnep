@@ -1,0 +1,314 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/scroll"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:clipToPadding="false"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="40dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:fontFamily="sans-serif-condensed"
+            android:textStyle="bold"
+            android:textSize="34sp"
+            android:textColor="@color/ink" />
+
+        <TextView
+            android:id="@+id/date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:textColor="@color/mute" />
+
+        <LinearLayout
+            android:id="@+id/permCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="16dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Allow calendar access so your events show in the widget and Claude can add new ones."
+                android:textSize="15sp"
+                android:textColor="@color/ink" />
+
+            <Button
+                android:id="@+id/allow"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginTop="12dp"
+                android:paddingStart="22dp"
+                android:paddingEnd="22dp"
+                android:background="@drawable/send_bg"
+                android:stateListAnimator="@null"
+                android:text="Allow calendar"
+                android:textAllCaps="false"
+                android:textSize="15sp"
+                android:textColor="#FFFFFF" />
+        </LinearLayout>
+
+        <TextView style="@style/Section" android:text="Tell Claude" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@drawable/card_bg"
+            android:padding="14dp">
+
+            <EditText
+                android:id="@+id/input"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="96dp"
+                android:gravity="top|start"
+                android:background="@drawable/input_bg"
+                android:padding="12dp"
+                android:hint="Dentist Friday at 5, remind me to call Mum, gym moved to 7…"
+                android:inputType="textMultiLine|textCapSentences"
+                android:maxLength="800"
+                android:textSize="16sp"
+                android:textColor="@color/ink"
+                android:textColorHint="@color/mute" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageButton
+                    android:id="@+id/mic"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/chip_bg"
+                    android:src="@drawable/ic_mic"
+                    android:tint="@color/ink"
+                    android:contentDescription="Speak instead" />
+
+                <ProgressBar
+                    android:id="@+id/busy"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="14dp"
+                    android:indeterminate="true"
+                    android:visibility="gone" />
+
+                <View
+                    android:layout_width="0dp"
+                    android:layout_height="1dp"
+                    android:layout_weight="1" />
+
+                <Button
+                    android:id="@+id/send"
+                    android:layout_width="wrap_content"
+                    android:layout_height="48dp"
+                    android:paddingStart="26dp"
+                    android:paddingEnd="26dp"
+                    android:background="@drawable/send_bg"
+                    android:stateListAnimator="@null"
+                    android:text="Send"
+                    android:textAllCaps="false"
+                    android:textSize="16sp"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/reply"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textSize="15sp"
+                android:textColor="@color/ink"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/keyHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="To let Claude sort these out for you, add a Claude API key under Settings below. Until then, Send asks whether to save it as an event, a to-do or a note."
+                android:textSize="13sp"
+                android:textColor="@color/mute" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <Button android:id="@+id/addEvent" style="@style/Chip" android:text="+ Event" />
+            <Button android:id="@+id/addTodo" style="@style/Chip" android:layout_marginStart="8dp" android:text="+ To-do" />
+            <Button android:id="@+id/addNote" style="@style/Chip" android:layout_marginStart="8dp" android:text="+ Note" />
+        </LinearLayout>
+
+        <TextView style="@style/Section" android:text="Today" />
+        <LinearLayout android:id="@+id/todayList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+
+        <TextView style="@style/Section" android:text="To-do" />
+        <LinearLayout android:id="@+id/todoList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+
+        <TextView style="@style/Section" android:text="Keep in mind" />
+        <LinearLayout android:id="@+id/noteList" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+
+        <TextView style="@style/Section" android:layout_marginTop="36dp" android:text="Widget style" />
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="-20dp"
+            android:layout_marginEnd="-20dp"
+            android:clipToPadding="false"
+            android:paddingStart="16dp"
+            android:paddingEnd="8dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:id="@+id/styleList"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+        </HorizontalScrollView>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="Tap a style to use it. The previews show sample content."
+            android:textSize="13sp"
+            android:textColor="@color/mute" />
+
+        <TextView style="@style/Section" android:layout_marginTop="36dp" android:text="Settings" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Claude API key"
+            android:textSize="14sp"
+            android:textColor="@color/mute" />
+
+        <EditText
+            android:id="@+id/apiKey"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/input_bg"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:hint="sk-ant-…"
+            android:inputType="textPassword"
+            android:singleLine="true"
+            android:textSize="16sp"
+            android:textColor="@color/ink"
+            android:textColorHint="@color/mute" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/keyState"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="13sp"
+                android:textColor="@color/mute" />
+
+            <Button
+                android:id="@+id/clearKey"
+                style="@style/Chip"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:text="Remove" />
+
+            <Button
+                android:id="@+id/saveKey"
+                style="@style/Chip"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:layout_marginStart="8dp"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:text="Save key" />
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="Add new events to"
+            android:textSize="14sp"
+            android:textColor="@color/mute" />
+
+        <Spinner
+            android:id="@+id/calendar"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/versionText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textSize="15sp"
+                android:textColor="@color/ink" />
+
+            <Button
+                android:id="@+id/checkUpdate"
+                style="@style/Chip"
+                android:layout_width="wrap_content"
+                android:layout_weight="0"
+                android:paddingStart="18dp"
+                android:paddingEnd="18dp"
+                android:text="Check for updates" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/updateStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textSize="13sp"
+            android:textColor="@color/mute" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Add the widget: long-press an empty spot on your home screen, tap Widgets, find My Day and drag it out.\n\nEvents come from your phone's calendar, so anything Claude adds to your Google Calendar from a chat shows up here too. Tap an event in the widget to open it, tap a to-do to tick it off.\n\nThe app looks for a newer version by itself and installs it. The first time, Android asks you to allow My Day to install apps."
+            android:textSize="13sp"
+            android:lineSpacingMultiplier="1.15"
+            android:textColor="@color/mute" />
+    </LinearLayout>
+</ScrollView>
