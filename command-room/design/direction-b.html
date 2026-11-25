@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command Room, direction B: blackboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Recursive:slnt,wght,CASL,CRSV,MONO@-15..0,300..800,0..1,0..1,0..1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #1a2420; --pane: #202c27; --pane-2: #27352f; --line: #34453d;
+  --ink: #ecf1ea; --ink-2: #b3c2b7; --muted: #84978a;
+  --done: #7fd6a2; --sent: #b7a6ff; --todo: #b3c2b7; --failed: #ff7a70; --attention: #ffc857; --off: #84978a;
+  --train: #3987e5; --test: #d95926; --glyph-ink: #1a2420; --glyph-hole: #202c27;
+  --text: "Recursive", "Segoe UI", sans-serif; --mono: "Recursive", "Cascadia Mono", Consolas, monospace;
+}
+[data-theme="light"] {
+  --bg: #eef1ea; --pane: #ffffff; --pane-2: #f4f6f1; --line: #d3dacd;
+  --ink: #1c2a23; --ink-2: #44554a; --muted: #6a7a6f;
+  --done: #1d8a4e; --sent: #6a55d8; --todo: #44554a; --failed: #c4362c; --attention: #a86c00; --off: #6a7a6f;
+  --train: #2a78d6; --test: #eb6834; --glyph-ink: #ffffff; --glyph-hole: #ffffff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 14px/1.5 var(--text); font-variation-settings: "MONO" 0, "CASL" 0; }
+button, input { font: inherit; color: inherit; font-variation-settings: inherit; }
+:focus-visible { outline: 2px solid var(--attention); outline-offset: 2px; }
+.mono, pre, kbd, .chart-tip, .tick, .endlabel, .chart-table td { font-family: var(--mono); font-variation-settings: "MONO" 1, "CASL" 0; }
+.chalk { font-variation-settings: "MONO" 0, "CASL" 1; font-weight: 700; }
+.app { display: grid; grid-template-columns: 178px minmax(0, 1fr); grid-template-rows: auto auto; min-height: 100vh; }
+.rail { grid-row: 1 / 3; padding: 18px 12px; border-right: 1px solid var(--line); }
+.rail .name { font-size: 21px; line-height: 1.1; padding: 0 6px 18px; }
+.rail a { display: flex; align-items: center; justify-content: space-between; padding: 6px; color: var(--ink-2); text-decoration: none; border-radius: 3px; }
+.rail a[aria-current] { color: var(--ink); background: var(--pane-2); }
+.rail a:hover { color: var(--ink); }
+kbd { font-size: 11.5px; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 5px; }
+.prompt { display: flex; align-items: center; gap: 14px; padding: 14px 22px; border-bottom: 1px solid var(--line); }
+.prompt label { font-size: 20px; color: var(--muted); }
+.prompt input { flex: 1; min-width: 0; background: none; border: 0; border-bottom: 1px dashed var(--line); padding: 4px 0; font-size: 16px; font-family: var(--mono); font-variation-settings: "MONO" 1, "CASL" 0; }
+.prompt input::placeholder { color: var(--muted); }
+.plain { background: none; border: 1px solid var(--line); border-radius: 3px; padding: 4px 10px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.1fr) minmax(0, 1fr); align-content: start; }
+.col { padding: 20px 22px 28px; border-right: 1px solid var(--line); min-width: 0; }
+.col:last-child { border-right: 0; }
+.col h2 { margin: 0; font-size: 22px; line-height: 1.15; }
+.col h3 { margin: 26px 0 8px; font-size: 17px; }
+.lead { margin: 2px 0 16px; color: var(--muted); font-size: 13.5px; }
+.glyph { flex: none; }
+.st-done { color: var(--done); } .st-sent { color: var(--sent); } .st-todo { color: var(--todo); }
+.st-failed { color: var(--failed); } .st-attention { color: var(--attention); } .st-off { color: var(--off); }
+.needs { list-style: none; margin: 0; padding: 0; counter-reset: n; }
+.needs li { counter-increment: n; padding: 14px 0 16px; border-top: 1px solid var(--line); display: grid; grid-template-columns: 30px minmax(0, 1fr); }
+.needs li::before { content: counter(n); font-family: var(--mono); font-variation-settings: "MONO" 1; color: var(--muted); font-size: 15px; padding-top: 2px; }
+.needs .what { font-size: 18px; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.needs .kind { font-size: 13px; font-weight: 400; color: var(--ink-2); display: inline-flex; align-items: center; gap: 5px; margin-left: auto; }
+.needs p { margin: 4px 0 0; color: var(--ink-2); max-width: 62ch; }
+pre { margin: 10px 0 0; padding: 8px 11px; background: var(--pane); border-left: 3px solid var(--ink-2); font-size: 12.5px; white-space: pre-wrap; word-break: break-word; }
+.needs .after { font-size: 12.5px; color: var(--muted); }
+.src { padding: 12px 0; border-top: 1px solid var(--line); }
+.src b { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; }
+.src p { margin: 3px 0 0; color: var(--ink-2); }
+.bar { height: 6px; border-radius: 3px; background: var(--pane-2); margin: 6px 0 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--sent); border-radius: 3px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 13px; color: var(--ink-2); }
+.sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.sw-train { background: var(--train); } .sw-test { background: var(--test); }
+.chart-toggle { margin-left: auto; background: none; border: 0; padding: 2px 0; color: var(--ink-2); text-decoration: underline; cursor: pointer; font-size: 13px; }
+.chart-wrap { position: relative; }
+.chart-wrap svg { display: block; width: 100%; height: auto; }
+.grid { stroke: var(--line); stroke-width: 1; } .axis { stroke: var(--muted); stroke-width: 1; }
+.split { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+.tick { fill: var(--muted); font-size: 11px; } .endlabel { fill: var(--ink); font-size: 12px; }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; } .line-train { stroke: var(--train); } .line-test { stroke: var(--test); }
+.dot { stroke: var(--bg); stroke-width: 2; } .dot-train { fill: var(--train); } .dot-test { fill: var(--test); }
+.cross { stroke: var(--ink-2); stroke-width: 1; }
+.chart-tip { position: absolute; top: 6px; background: var(--pane-2); border: 1px solid var(--line); border-radius: 3px; padding: 6px 9px; font-size: 12px; line-height: 1.5; pointer-events: none; white-space: nowrap; }
+.chart-axis { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.chart-table, .board { width: 100%; border-collapse: collapse; }
+.chart-table { margin-top: 8px; font-size: 12.5px; }
+.chart-table th, .chart-table td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.chart-table th { color: var(--ink-2); font-weight: 600; }
+.board th { text-align: left; font-weight: 600; color: var(--ink-2); font-size: 13px; padding: 0 14px 6px 0; }
+.board td { padding: 5px 14px 5px 0; border-top: 1px solid var(--line); white-space: nowrap; }
+.board td.name { font-weight: 600; } .board tr.variant td.name { font-weight: 400; padding-left: 16px; color: var(--ink-2); }
+.board .cell { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.board .none { color: var(--muted); }
+.tag { font-size: 11.5px; color: var(--muted); margin-left: 6px; font-weight: 400; }
+.rows { list-style: none; margin: 0; padding: 0; }
+.rows li { display: flex; gap: 10px; justify-content: space-between; padding: 4px 0; border-top: 1px solid var(--line); font-size: 13px; }
+.rows time, .rows .when { color: var(--muted); white-space: nowrap; }
+.foot { color: var(--muted); font-size: 12.5px; margin: 22px 0 0; }
+.empty { padding: 60px 28px; max-width: 60ch; grid-column: 1 / -1; }
+@media (max-width: 1240px) { main { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .col:nth-child(3) { grid-column: 1 / 3; border-top: 1px solid var(--line); } .col:nth-child(2) { border-right: 0; } }
+@media (max-width: 800px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { grid-row: auto; display: flex; gap: 6px; overflow-x: auto; padding: 8px 12px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .rail .name { padding: 4px 6px; white-space: nowrap; } .rail a { gap: 8px; white-space: nowrap; }
+  main { grid-template-columns: minmax(0, 1fr); } .col, .col:nth-child(3) { grid-column: 1; border-right: 0; border-top: 1px solid var(--line); }
+  .prompt { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Areas">
+    <div class="name chalk">Command Room</div>
+    <a href="#" aria-current="page">Mission control <kbd>1</kbd></a><a href="#">Board <kbd>2</kbd></a><a href="#">Material <kbd>3</kbd></a>
+    <a href="#">Jobs <kbd>4</kbd></a><a href="#">Launch <kbd>5</kbd></a><a href="#">Results <kbd>6</kbd></a>
+    <a href="#">Elements <kbd>7</kbd></a><a href="#">Library <kbd>8</kbd></a><a href="#">Reports <kbd>9</kbd></a>
+  </nav>
+  <header class="prompt">
+    <label for="cmd" aria-hidden="true">&rsaquo;</label>
+    <input id="cmd" type="text" aria-label="Command bar" placeholder="launch training for PbTe with rfe">
+    <kbd>Ctrl+K</kbd>
+    <button class="plain" id="theme" type="button"></button>
+  </header>
+  <main id="main"></main>
+</div>
+<script src="snapshot.local.js"></script>
+<script src="derive.js"></script>
+<script>
+(function () {
+  CR.theme(document.getElementById("theme"));
+  const main = document.getElementById("main");
+  if (!CR.S) {
+    main.innerHTML = '<div class="empty"><h2 class="chalk">No data to show</h2><p>This screen draws only what it reads. The snapshot of the board and the local jobs (snapshot.local.js) is not next to this page, so there is nothing to draw. Make the snapshot, then reload.</p></div>';
+    return;
+  }
+  const S = CR.S, lanes = CR.lanes(), next = CR.next(), local = CR.localJobs(), g = CR.glyph, lab = CR.STATE_LABEL, run = S.lastRun;
+  const kindGlyph = { ready: "todo", attention: "attention", waiting: "off" };
+  const kindText = { ready: "ready to launch", attention: "check first", waiting: "waiting" };
+  const esc = (t) => t.replace(/</g, "&lt;");
+  const stateOf = (it) => { const v = next.find((x) => x.item === it); return v && v.kind === "attention" ? "attention" : CR.STATE[it.status]; };
+
+  main.innerHTML = `
+  <section class="col" aria-label="Needs you">
+    <h2 class="chalk">Needs you</h2>
+    <p class="lead">${next.length} open step${next.length === 1 ? "" : "s"} on the board, in the order they can go</p>
+    <ol class="needs">${next.map((v) => `<li><div>
+      <div class="what">${CR.STAGE_LABEL[v.item.stage]} of ${v.item.name}<span class="kind">${g(kindGlyph[v.kind], 14)}${kindText[v.kind]}</span></div>
+      <p>${v.reason}</p>
+      ${v.command ? `<pre>${esc(v.command)}</pre><p class="after">Runs as a dry run first. Nothing is sent without your click.</p>` : ""}
+    </div></li>`).join("") || "<li><div>Nothing is waiting for you.</div></li>"}</ol>
+  </section>
+  <section class="col" aria-label="Running now">
+    <h2 class="chalk">Running now</h2>
+    <p class="lead">Three places where work runs</p>
+    ${S.clusters.map((c) => `<div class="src"><b>${g("off")}${c.label}</b><p>Not connected. Command Room has not been allowed to read this queue yet.</p></div>`).join("")}
+    <div class="src"><b>${g(local.running.length ? "sent" : "off")}This computer</b>
+      ${local.running.length ? local.running.map((j) => `<p class="mono">${j.name}  ${j.step}/${j.total}  ${j.phase || ""}  ${j.metric || ""}</p><div class="bar"><i style="width:${Math.round(100 * j.step / j.total)}%"></i></div>`).join("") : "<p>Nothing is running.</p>"}
+      ${local.last ? `<p>Last to finish: <span class="mono">${local.last.name}</span>, ${local.last.state}, ${CR.fmtDate(local.last.updated)}.</p>` : ""}</div>
+    <h3 class="chalk">Last training on this computer</h3>
+    <p class="lead"><span class="mono">${run.name}</span>, finished ${CR.fmtDate(run.finished)}</p>
+    <div id="curve"></div>
+  </section>
+  <section class="col" aria-label="Board">
+    <h2 class="chalk">Board</h2>
+    <p class="lead">Every material and variant, stage by stage</p>
+    <table class="board"><thead><tr><th scope="col">Material</th>${CR.STAGES.map((s) => `<th scope="col">${CR.STAGE_LABEL[s]}</th>`).join("")}</tr></thead><tbody>
+    ${lanes.map((l) => `<tr class="${l.variant ? "variant" : ""}"><td class="name">${l.name}${l.polar && !l.variant ? '<span class="tag">polar</span>' : ""}</td>${CR.STAGES.map((s) => {
+      const it = l.cells[s];
+      if (!it) return `<td><span class="cell none">${(S.potential || []).includes(l.name) && s === "vasp" ? "potential" : ""}</span></td>`;
+      const st = stateOf(it); return `<td><span class="cell">${g(st, 14)}${lab[st]}</span></td>`;
+    }).join("")}</tr>`).join("")}</tbody></table>
+    <h3 class="chalk">Latest reports</h3>
+    <ul class="rows">${S.reports.slice(0, 5).map((r) => `<li><span class="mono">${r.name}</span><span class="when">${CR.fmtDate(r.modified)}</span></li>`).join("")}</ul>
+    <h3 class="chalk">Board changes</h3>
+    <ul class="rows">${S.board.history.slice(-4).reverse().map((h) => `<li><span>${h.text}</span><span class="when">${CR.fmtDate(h.t)}</span></li>`).join("")}</ul>
+    <p class="foot">Read ${CR.fmtDate(S.generated)} from the work board and ClaudeHub on this computer. The clusters were not read.</p>
+  </section>`;
+  CR.curve(document.getElementById("curve"), run);
+})();
+</script>
+</body>
+</html>

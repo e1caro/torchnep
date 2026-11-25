@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Command Room, direction A: mimic panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #111a2c; --panel: #172238; --panel-2: #1d2a45; --line: #2b3b5e;
+  --ink: #e8edf7; --ink-2: #a9b7d3; --muted: #7384a8; --track: #3a4c75; --track-on: #c9d4ea;
+  --done: #2bb596; --sent: #a394f5; --todo: #a9b7d3; --failed: #ff5d5d; --attention: #ffb938; --off: #7384a8;
+  --train: #3987e5; --test: #d95926; --glyph-ink: #111a2c; --glyph-hole: #172238;
+  --sans: "Barlow", "Segoe UI", sans-serif; --cond: "Barlow Semi Condensed", "Barlow", "Segoe UI", sans-serif;
+  --mono: "DM Mono", "Cascadia Mono", Consolas, monospace;
+}
+[data-theme="light"] {
+  --bg: #edf0f6; --panel: #ffffff; --panel-2: #f4f6fb; --line: #d5dbe8;
+  --ink: #14213d; --ink-2: #44506b; --muted: #6b7690; --track: #c3ccdd; --track-on: #14213d;
+  --done: #0f8a70; --sent: #6a55d8; --todo: #44506b; --failed: #c92f2f; --attention: #b87400; --off: #6b7690;
+  --train: #2a78d6; --test: #eb6834; --glyph-ink: #ffffff; --glyph-hole: #ffffff;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 14px/1.45 var(--sans); }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.app { display: grid; grid-template-columns: 172px minmax(0, 1fr) 348px; grid-template-rows: 52px auto; min-height: 100vh; }
+.rail { grid-row: 1 / 3; background: var(--panel); border-right: 1px solid var(--line); padding: 14px 10px; }
+.rail .name { font: 600 19px/1.1 var(--cond); letter-spacing: .01em; padding: 2px 8px 16px; }
+.rail a { display: block; padding: 7px 8px; border-radius: 4px; color: var(--ink-2); text-decoration: none; font: 500 15px var(--cond); }
+.rail a[aria-current] { background: var(--panel-2); color: var(--ink); box-shadow: inset 3px 0 0 var(--ink); }
+.rail a:hover { color: var(--ink); }
+.top { grid-column: 2 / 4; display: flex; align-items: center; gap: 18px; padding: 0 18px; border-bottom: 1px solid var(--line); }
+.cmd { flex: 1; max-width: 560px; background: var(--panel); border: 1px solid var(--line); border-radius: 4px; padding: 7px 12px; font-family: var(--mono); font-size: 13px; }
+.cmd::placeholder { color: var(--muted); }
+.sources { display: flex; gap: 16px; margin-left: auto; font-size: 13px; color: var(--ink-2); }
+.sources span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.plain { background: none; border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+main { padding: 16px 18px 24px; display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-content: start; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; }
+.panel h2 { margin: 0 0 2px; font: 600 17px/1.2 var(--cond); }
+.panel .sub { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.mimic { grid-column: 1 / 3; }
+.mimic-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 22px; }
+.key { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-left: auto; font-size: 13px; color: var(--ink-2); }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+#mimic { display: block; width: 100%; height: auto; margin-top: 6px; }
+#mimic text { fill: var(--ink); font: 500 15px var(--cond); }
+#mimic .stage { fill: var(--ink-2); font: 600 14px var(--cond); }
+#mimic .variant { fill: var(--ink-2); font: 500 14px var(--cond); }
+#mimic .tag { fill: var(--muted); font: 400 11.5px var(--mono); }
+#mimic .rule { stroke: var(--line); stroke-width: 1; }
+#mimic .track { stroke: var(--track); stroke-width: 3; fill: none; stroke-linecap: round; }
+#mimic .track.on { stroke: var(--track-on); }
+#mimic .track.pending { stroke-dasharray: 2 7; }
+#mimic .origin { fill: var(--panel); stroke: var(--ink-2); stroke-width: 1.6; }
+#mimic .lamp { cursor: pointer; }
+#mimic .lamp .halo { fill: transparent; stroke: transparent; stroke-width: 1.5; }
+#mimic .lamp:hover .halo, #mimic .lamp[aria-pressed="true"] .halo { stroke: var(--ink); }
+#mimic .lamp:focus-visible { outline: none; }
+#mimic .lamp:focus-visible .halo { stroke: var(--ink); stroke-dasharray: 3 2; }
+.glyph { flex: none; }
+.st-done { color: var(--done); } .st-sent { color: var(--sent); } .st-todo { color: var(--todo); }
+.st-failed { color: var(--failed); } .st-attention { color: var(--attention); } .st-off { color: var(--off); }
+.srcs { display: grid; gap: 12px; }
+.src { border-top: 1px solid var(--line); padding-top: 10px; }
+.src:first-of-type { border-top: 0; padding-top: 0; }
+.src h3 { margin: 0 0 4px; font: 600 15px var(--cond); display: flex; align-items: center; gap: 8px; }
+.src p { margin: 0; color: var(--ink-2); font-size: 13.5px; }
+.mono { font-family: var(--mono); font-size: 12.5px; }
+.bar { height: 6px; border-radius: 3px; background: var(--panel-2); margin: 6px 0 2px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--sent); border-radius: 3px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; align-items: center; font-size: 13px; color: var(--ink-2); }
+.sw { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.sw-train { background: var(--train); } .sw-test { background: var(--test); }
+.chart-toggle { margin-left: auto; background: none; border: 0; padding: 2px 0; color: var(--ink-2); text-decoration: underline; cursor: pointer; font-size: 13px; }
+.chart-wrap { position: relative; }
+.chart-wrap svg { display: block; width: 100%; height: auto; }
+.grid { stroke: var(--line); stroke-width: 1; } .axis { stroke: var(--track); stroke-width: 1; }
+.split { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; }
+.tick { fill: var(--muted); font: 400 11px var(--mono); } .endlabel { fill: var(--ink); font: 500 12px var(--mono); }
+.line { fill: none; stroke-width: 2; stroke-linejoin: round; } .line-train { stroke: var(--train); } .line-test { stroke: var(--test); }
+.dot { stroke: var(--panel); stroke-width: 2; } .dot-train { fill: var(--train); } .dot-test { fill: var(--test); }
+.cross { stroke: var(--ink-2); stroke-width: 1; }
+.chart-tip { position: absolute; top: 6px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 6px 9px; font: 400 12px/1.5 var(--mono); pointer-events: none; white-space: nowrap; }
+.chart-axis { margin: 2px 0 0; color: var(--muted); font-size: 12.5px; }
+.chart-table { width: 100%; border-collapse: collapse; font: 400 12.5px var(--mono); margin-top: 8px; }
+.chart-table th, .chart-table td { text-align: right; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+.chart-table th { font: 600 13px var(--cond); color: var(--ink-2); }
+.dock { background: var(--panel); border-left: 1px solid var(--line); padding: 16px; }
+.dock h2 { margin: 0 0 8px; font: 600 17px/1.2 var(--cond); }
+.dock section + section { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--line); }
+dl { margin: 0; display: grid; grid-template-columns: 96px 1fr; gap: 6px 10px; font-size: 13.5px; }
+dt { color: var(--muted); } dd { margin: 0; }
+.statecell { display: inline-flex; align-items: center; gap: 6px; }
+pre.cmdline { margin: 10px 0 0; padding: 9px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 4px; font: 400 12.5px/1.5 var(--mono); white-space: pre-wrap; word-break: break-word; }
+.next { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.next button { width: 100%; text-align: left; background: var(--panel-2); border: 1px solid var(--line); border-radius: 5px; padding: 9px 11px; cursor: pointer; }
+.next button:hover { border-color: var(--ink-2); }
+.next .what { display: flex; align-items: center; gap: 8px; font: 600 15px var(--cond); }
+.next .kind { margin-left: auto; font: 400 12.5px var(--sans); color: var(--ink-2); }
+.next .why { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+.foot { grid-column: 1 / 3; color: var(--muted); font-size: 12.5px; margin: 0; }
+.empty { padding: 60px 24px; max-width: 560px; }
+@media (max-width: 1180px) { .app { grid-template-columns: 172px minmax(0, 1fr); } .top { grid-column: 2; } .dock { grid-column: 2; border-left: 0; border-top: 1px solid var(--line); } }
+@media (max-width: 760px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
+  .rail { grid-row: auto; display: flex; overflow-x: auto; gap: 4px; padding: 8px; border-right: 0; border-bottom: 1px solid var(--line); }
+  .rail .name { padding: 6px 8px; white-space: nowrap; } .rail a { white-space: nowrap; }
+  .top, .dock { grid-column: 1; } .top { flex-wrap: wrap; padding: 10px 14px; height: auto; } .sources { margin-left: 0; flex-wrap: wrap; }
+  main { grid-template-columns: minmax(0, 1fr); } .mimic, .foot { grid-column: 1; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Areas">
+    <div class="name">Command Room</div>
+    <a href="#" aria-current="page">Mission control</a><a href="#">Board</a><a href="#">Material</a><a href="#">Jobs</a>
+    <a href="#">Launch</a><a href="#">Results</a><a href="#">Elements</a><a href="#">Library</a><a href="#">Reports</a>
+  </nav>
+  <header class="top">
+    <input class="cmd" type="text" aria-label="Command bar" placeholder="Go to, find a run, or ask in plain words   Ctrl+K">
+    <div class="sources" id="sources"></div>
+    <button class="plain" id="theme" type="button"></button>
+  </header>
+  <main id="main"></main>
+  <aside class="dock" id="dock" aria-label="Details"></aside>
+</div>
+<script src="snapshot.local.js"></script>
+<script src="derive.js"></script>
+<script>
+(function () {
+  CR.theme(document.getElementById("theme"));
+  const main = document.getElementById("main"), dock = document.getElementById("dock");
+  if (!CR.S) {
+    main.innerHTML = '<div class="empty panel"><h2>No data to show</h2><p>This screen draws only what it reads. The snapshot of the board and the local jobs (snapshot.local.js) is not next to this page, so there is nothing to draw. Make the snapshot, then reload.</p></div>';
+    return;
+  }
+  const S = CR.S, lanes = CR.lanes(), next = CR.next(), local = CR.localJobs();
+  const g = CR.glyph, lab = CR.STATE_LABEL;
+
+  document.getElementById("sources").innerHTML =
+    S.clusters.map((c) => `<span>${g(c.connected ? "done" : "off", 14)}${c.label}: ${c.connected ? "connected" : "not connected"}</span>`).join("") +
+    `<span>${g(local.running.length ? "sent" : "off", 14)}This computer: ${local.running.length} running</span>`;
+
+  /* mimic diagram */
+  const W = 860, X = { vasp: 330, training: 540, shengbte: 750 }, top = 44, step = 38, H = top + lanes.length * step + 8;
+  const y = (i) => top + i * step + 14;
+  const stateOf = (it) => CR.STATE[it.status];
+  const verdictOf = (it) => next.find((v) => v.item === it);
+  const lampState = (it) => { const v = verdictOf(it); return v && v.kind === "attention" ? "attention" : stateOf(it); };
+  let svg = "";
+  CR.STAGES.forEach((s) => { svg += `<text class="stage" x="${X[s]}" y="20" text-anchor="middle">${CR.STAGE_LABEL[s]}</text>`; });
+  svg += `<line class="rule" x1="0" x2="${W}" y1="30" y2="30"/>`;
+  lanes.forEach((lane, i) => {
+    const yy = y(i), have = CR.STAGES.filter((s) => lane.cells[s]);
+    svg += `<text class="${lane.variant ? "variant" : ""}" x="${lane.variant ? 34 : 12}" y="${yy + 5}">${lane.name}</text>`;
+    if (lane.polar && !lane.variant) svg += `<text class="tag" x="${12 + lane.name.length * 9 + 14}" y="${yy + 4}">polar</text>`;
+    for (let k = 1; k < have.length; k++) {
+      const a = lane.cells[have[k - 1]], b = lane.cells[have[k]];
+      const cls = stateOf(a) === "done" && stateOf(b) === "done" ? "on" : stateOf(a) === "done" ? "" : "pending";
+      svg += `<line class="track ${cls}" x1="${X[have[k - 1]] + 11}" x2="${X[have[k]] - 11}" y1="${yy}" y2="${yy}"/>`;
+    }
+    if (lane.variant && have.length) {
+      const first = have[0], fi = CR.STAGES.indexOf(first), parent = lanes.find((l) => l.name === lane.material);
+      const prev = fi > 0 ? CR.STAGES[fi - 1] : null;
+      if (prev && parent && parent.cells[prev] && !(S.potential || []).includes(lane.name)) {
+        const py = y(lanes.indexOf(parent)), x1 = X[prev] + 11, x2 = X[first] - 11, mx = (x1 + x2) / 2;
+        const cls = stateOf(parent.cells[prev]) === "done" && stateOf(lane.cells[first]) === "done" ? "on" : "";
+        svg += `<path class="track ${cls}" d="M${x1} ${py} C${mx} ${py} ${mx} ${yy} ${x2} ${yy}"/>`;
+      } else if (first !== "vasp") {
+        const ox = X[first] - 78;
+        svg += `<path class="origin" d="M${ox} ${yy - 6}l6 6-6 6-6-6z"/><line class="track on" x1="${ox + 10}" x2="${X[first] - 11}" y1="${yy}" y2="${yy}"/>`;
+        svg += `<text class="tag" x="${ox - 12}" y="${yy + 4}" text-anchor="end">forces from a potential</text>`;
+      }
+    }
+    have.forEach((s) => {
+      const it = lane.cells[s], st = lampState(it);
+      svg += `<g class="lamp st-${st}" role="button" tabindex="0" aria-pressed="false" data-id="${it.id}" aria-label="${CR.STAGE_LABEL[s]} of ${it.name}: ${lab[st]}">` +
+        `<circle class="halo" cx="${X[s]}" cy="${yy}" r="13"/><svg x="${X[s] - 9}" y="${yy - 9}" width="18" height="18" viewBox="0 0 16 16">${g(st).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</svg></g>`;
+    });
+  });
+
+  const ready = next.filter((v) => v.kind === "ready").length, att = next.filter((v) => v.kind === "attention").length;
+  const run = S.lastRun;
+  main.innerHTML = `
+    <section class="panel mimic" aria-label="Pipeline">
+      <div class="mimic-head"><h2>Pipeline</h2>
+        <p class="sub" style="margin:0">${ready} step${ready === 1 ? "" : "s"} ready to launch, ${att} to check first</p>
+        <div class="key">${["done", "sent", "todo", "attention", "failed"].map((s) => `<span>${g(s, 14)}${lab[s]}</span>`).join("")}</div></div>
+      <svg id="mimic" viewBox="0 0 ${W} ${H}" role="group" aria-label="Every material and variant through VASP, training and ShengBTE">${svg}</svg>
+    </section>
+    <section class="panel" aria-label="Jobs"><h2>Jobs</h2><p class="sub">Three places where work runs</p><div class="srcs">
+      ${S.clusters.map((c) => `<div class="src"><h3>${g("off")}${c.label}</h3><p>Not connected. Command Room has not been allowed to read this queue yet.</p></div>`).join("")}
+      <div class="src"><h3>${g(local.running.length ? "sent" : "off")}This computer</h3>
+      ${local.running.length ? local.running.map((j) => `<p class="mono">${j.name}  ${j.step}/${j.total}  ${j.phase || ""}  ${j.metric || ""}</p><div class="bar"><i style="width:${Math.round(100 * j.step / j.total)}%"></i></div>`).join("")
+        : `<p>Nothing is running.</p>`}
+      ${local.last ? `<p style="margin-top:6px">Last to finish: <span class="mono">${local.last.name}</span>, ${local.last.state}, ${CR.fmtDate(local.last.updated)}.</p>` : ""}</div>
+    </div></section>
+    <section class="panel" aria-label="Last training"><h2>Last training on this computer</h2>
+      <p class="sub"><span class="mono">${run.name}</span>, finished ${CR.fmtDate(run.finished)}. No training is running now.</p><div id="curve"></div></section>
+    <p class="foot">Read ${CR.fmtDate(S.generated)} from the work board and ClaudeHub on this computer. The clusters were not read.</p>`;
+  CR.curve(document.getElementById("curve"), run);
+
+  /* dock */
+  function select(id) {
+    const it = S.board.items.find((x) => x.id === id), v = verdictOf(it), st = lampState(it);
+    document.querySelectorAll("#mimic .lamp").forEach((n) => n.setAttribute("aria-pressed", n.dataset.id === id));
+    document.getElementById("selected").innerHTML = `<h2>${CR.STAGE_LABEL[it.stage]} of ${it.name}</h2>
+      <dl><dt>State</dt><dd><span class="statecell">${g(st, 14)}${lab[st]}</span></dd>
+      <dt>Board says</dt><dd>${it.status}, since ${CR.fmtDate(it.updated)}</dd>
+      <dt>Note</dt><dd>${it.note || "none"}</dd>
+      <dt>Rule</dt><dd>${v ? v.reason : "Nothing to do: this step is " + lab[st] + "."}</dd></dl>
+      ${v && v.command ? `<pre class="cmdline">${v.command.replace(/</g, "&lt;")}</pre><p class="sub" style="margin:6px 0 0">Runs as a dry run first. Nothing is sent without your click.</p>` : ""}`;
+  }
+  dock.innerHTML = `<section id="selected"></section><section><h2>What to launch now</h2><ul class="next">${
+    next.map((v) => `<li><button type="button" data-id="${v.item.id}"><span class="what">${g(v.kind === "ready" ? "todo" : v.kind === "attention" ? "attention" : "off", 14)}${CR.STAGE_LABEL[v.item.stage]} of ${v.item.name}<span class="kind">${v.kind === "ready" ? "ready" : v.kind === "attention" ? "check first" : "waiting"}</span></span><p class="why">${v.reason}</p></button></li>`).join("")
+    || "<li>Nothing is waiting for you.</li>"}</ul></section>`;
+  dock.querySelectorAll(".next button").forEach((b) => b.addEventListener("click", () => select(b.dataset.id)));
+  document.querySelectorAll("#mimic .lamp").forEach((n) => {
+    n.addEventListener("click", () => select(n.dataset.id));
+    n.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(n.dataset.id); } });
+  });
+  select((next[0] ? next[0].item : S.board.items[0]).id);
+})();
+</script>
+</body>
+</html>
