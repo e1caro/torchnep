@@ -255,7 +255,9 @@ fun AccompanimentScreen(vm: ScorebookViewModel, ui: AccompanyUi, onBack: () -> U
                     Modifier.padding(horizontal = 6.dp).size(48.dp).clip(CircleShape).background(Gold).clickable { vm.toggleAccompanyPlay() },
                     contentAlignment = Alignment.Center,
                 ) {
-                    if (active) Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Stage))
+                // getting the sound ready (a turning ring), playing (a stop square), or ready to play
+                if (pb.preparing) androidx.compose.material3.CircularProgressIndicator(Modifier.size(26.dp), color = Stage, strokeWidth = 3.dp)
+                else if (active) Box(Modifier.size(16.dp).clip(RoundedCornerShape(3.dp)).background(Stage))
                     else Icon(Icons.Filled.PlayArrow, contentDescription = "Play", tint = Stage, modifier = Modifier.size(30.dp))
                 }
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {

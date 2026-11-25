@@ -51,6 +51,8 @@ data class TNote(
     val tick: Int,
     val duration: Int,
     val decision: Decision,
+    /** When the key itself was released, if the pedal kept the note sounding until [offset] (MIDI keyboards); else negative. */
+    val keyOff: Double = -1.0,
 )
 
 @Serializable
@@ -174,7 +176,7 @@ class Transcriber(val personal: PersonalModel = PersonalModel(), private val net
             val ni = neuralIndex[e.id]
             val tick = if (ni != null) neural!!.result.ticks[ni] else q[i].tick
             val duration = if (ni != null) neural!!.result.durations[ni] else q[i].duration
-            TNote(e.id, d.pitch + settings.transpose, e.onset, e.offset, e.velocity, handMap[e.id] ?: Hand.RIGHT, tick, duration, d.decision)
+            TNote(e.id, d.pitch + settings.transpose, e.onset, e.offset, e.velocity, handMap[e.id] ?: Hand.RIGHT, tick, duration, d.decision, e.keyOff)
         }
         val k = keys!!
         val keyList = k.regions.map { r -> TimedKey(r.key.transpose(settings.transpose), grid.tickOf(r.fromStep.toDouble()).roundToInt(), grid.time(r.fromStep.toDouble())) }

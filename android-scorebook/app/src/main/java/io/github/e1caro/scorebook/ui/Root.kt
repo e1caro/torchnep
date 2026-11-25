@@ -111,8 +111,9 @@ fun ScorebookRoot(vm: ScorebookViewModel = viewModel(), openTake: String? = null
         val obs = LifecycleEventObserver { _, e ->
             val mic = ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
             when (e) {
-                Lifecycle.Event.ON_START -> vm.startListening(mic)
-                Lifecycle.Event.ON_STOP -> vm.stopListening()
+                // (the updater needs to know whether the app is on screen: Android's confirmation can only show then)
+                Lifecycle.Event.ON_START -> { io.github.e1caro.scorebook.data.Updater.onScreen = true; vm.startListening(mic) }
+                Lifecycle.Event.ON_STOP -> { io.github.e1caro.scorebook.data.Updater.onScreen = false; vm.stopListening() }
                 else -> {}
             }
         }

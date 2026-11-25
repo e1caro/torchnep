@@ -54,6 +54,20 @@ jobs:
           npm run build
           cp -r dist ../site/bizsim
 
+      - name: Add the Bloomdoku app (served at /bloomdoku/, without its tests and tools)
+        run: |
+          node bloomdoku/tests/unit.js
+          node bloomdoku/tests/unit-cloud.js
+          cp -r bloomdoku site/bloomdoku
+          rm -rf site/bloomdoku/tests site/bloomdoku/tools
+
+      - name: Add the Kaidoneta app (served at /kaidoneta/, without its tests and tools)
+        run: |
+          node kaidoneta/tests/unit.js
+          node kaidoneta/tools/update-sw.js   # a new offline version for every deploy: phones update themselves
+          cp -r kaidoneta site/kaidoneta
+          rm -rf site/kaidoneta/tests site/kaidoneta/tools
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3

@@ -42,6 +42,14 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
   chord symbols, accidentals, beams. One-tap transpose.
 - **Exports.** A PDF is saved to *Downloads/Scorebook* after every take (can be turned off); PDF, MIDI and
   MusicXML can be shared or saved from any take.
+- **True lengths and the pedal in the MIDI file.** The MIDI keeps how long every note really sounded (the score
+  shows tidy note values; the MIDI is the performance) and where the sustain pedal was down (controller 64).
+  From a MIDI keyboard that is exact: each note ends where its key was released and the pedal is written as it
+  was used. From the microphone the pedal is read from the notes: those that ring on while their hand is more
+  than an octave away, or more notes ringing in one hand than it has fingers. Checked on real performances with a
+  known pedal: 95 % of what it marks is pedal, it finds about 55 % of the pedalled time (where everything is
+  within reach it cannot tell), and it marks about 5 % of unpedalled playing by mistake. A chip on the score shows
+  the share of the take played with pedal.
 - **Playback.** Play any score with a built-in piano sound (or play the take's own recording) while the notes
   light up and the page follows; 0.5× / 0.75× / 1× speed for practice.
 - **Library.** Every take is kept with its audio, auto-titled ("Idea in D minor, 14 Nov") with date, duration,
@@ -65,11 +73,14 @@ context — is in **[ARCHITECTURE.md](ARCHITECTURE.md)**.
   hand is replaced by the pattern you choose, following the chord of each bar on your own beats (so it follows
   your rubato). The result is saved as a new song with its score, playback and exports. From the accompaniment
   screen ("Use it on my last song") or from a song's menu ("Add an accompaniment…").
-- **Updates from inside the app.** When the app opens it looks at this project's list of releases on GitHub; if
-  there is a newer version, a banner offers it and one tap downloads and installs it over the current one (your
-  scores and settings stay). Android asks you to confirm, and the first time to allow Scorebook to install apps.
-  Also in Settings → Updates, where the automatic check can be turned off. This is the only thing Scorebook uses
-  the internet for, and nothing is sent: listening, transcription and everything else run on the phone.
+- **It updates itself.** When the app opens it looks at this project's list of releases on GitHub. A newer
+  version is downloaded in the background (on Wi-Fi; on mobile data a banner offers it instead) and installed
+  when you leave the app, never while you are playing, keeping your scores and settings. Android decides how
+  silent this can be: the first time it asks you to confirm and to allow Scorebook to install apps; after that,
+  on Android 12 and newer, an app may update itself without asking. Where Android still wants a yes, a banner
+  asks for one tap. Settings → Updates has both switches (look for updates; update by itself) and a manual
+  check. This is the only thing Scorebook uses the internet for, and nothing is sent: listening, transcription
+  and everything else run on the phone.
 - **Practice stats.** Minutes this week with a 7-day chart, day streak, totals, most played keys, average tempo.
 - Dark stage theme, large score, screen stays on while listening.
 

@@ -5,7 +5,7 @@ import io.github.e1caro.scorebook.core.transcribe.NoteEvent
 /** Turns MIDI note-on/off (and the sustain pedal) into note events. */
 class MidiNoteTracker {
     private val open = HashMap<Int, Pair<Double, Int>>()
-    private val held = HashMap<Int, Pair<Double, Int>>() // released while the pedal is down
+    private val held = HashMap<Int, Triple<Double, Int, Double>>() // released while the pedal is down: onset, velocity, key release
     private var pedal = false
     private val done = ArrayList<NoteEvent>()
     private var nextId = 0
@@ -20,22 +20,24 @@ class MidiNoteTracker {
 
     fun noteOff(pitch: Int, t: Double) {
         val o = open.remove(pitch) ?: return
-        if (pedal) held[pitch] = o else done.add(NoteEvent.midi(nextId++, pitch, o.first, t, o.second))
+        if (pedal) held[pitch] = Triple(o.first, o.second, t) else done.add(NoteEvent.midi(nextId++, pitch, o.first, t, o.second))
     }
 
     fun sustain(down: Boolean, t: Double) {
         pedal = down
-        if (!down) { for ((p, o) in held) done.add(NoteEvent.midi(nextId++, p, o.first, t, o.second)); held.clear() }
+        if (!down) { for ((p, o) in held) done.add(NoteEvent.midi(nextId++, p, o.first, t, o.second).copy(keyOff = o.third)); held.clear() }
     }
 
     private fun close(pitch: Int, t: Double) {
-        (open.remove(pitch) ?: held.remove(pitch))?.let { done.add(NoteEvent.midi(nextId++, pitch, it.first, t, it.second)) }
+        open.remove(pitch)?.let { done.add(NoteEvent.midi(nextId++, pitch, it.first, t, it.second)) }
+        held.remove(pitch)?.let { done.add(NoteEvent.midi(nextId++, pitch, it.first, t, it.second).copy(keyOff = it.third)) }
     }
 
     /** All notes so far, the ones still sounding ending at [now]. */
     fun snapshot(now: Double): List<NoteEvent> {
         var id = nextId
-        return (done + (open + held).map { (p, o) -> NoteEvent.midi(id++, p, o.first, now, o.second) }).sortedBy { it.onset }
+        return (done + open.map { (p, o) -> NoteEvent.midi(id++, p, o.first, now, o.second) } +
+            held.map { (p, o) -> NoteEvent.midi(id++, p, o.first, now, o.second) }).sortedBy { it.onset }
     }
 
     fun finish(now: Double): List<NoteEvent> {

@@ -33,13 +33,13 @@ object Edits {
             events.mapNotNull { n ->
                 when {
                     n.onset >= e.from && n.onset < e.to -> null
-                    n.onset < e.from -> n.copy(offset = min(n.offset, e.from))
-                    else -> n.copy(onset = n.onset - gap, offset = n.offset - gap)
+                    n.onset < e.from -> n.copy(offset = min(n.offset, e.from), keyOff = if (n.keyOff >= 0) min(n.keyOff, e.from) else n.keyOff)
+                    else -> n.copy(onset = n.onset - gap, offset = n.offset - gap, keyOff = if (n.keyOff >= 0) n.keyOff - gap else n.keyOff)
                 }
             }
         }
         is Edit.Keep -> events.filter { it.onset >= e.from && it.onset < e.to }
-            .map { it.copy(onset = it.onset - e.from, offset = min(it.offset, e.to) - e.from) }
+            .map { it.copy(onset = it.onset - e.from, offset = min(it.offset, e.to) - e.from, keyOff = if (it.keyOff >= 0) min(it.keyOff, e.to) - e.from else it.keyOff) }
     }
 
     /** The take's recording after the same edits. */

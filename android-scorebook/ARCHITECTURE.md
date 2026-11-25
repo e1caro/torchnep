@@ -342,6 +342,12 @@ The app is installed from an APK, not from a store, so it updates itself:
   its data. Android only accepts an APK signed with the same key as the installed one, so a tampered download
   cannot be installed. Android asks the user to confirm; from Android 12 on, an app updating itself may be
   allowed to skip that after the first time.
+* **By itself:** on an unmetered connection the APK is fetched as soon as it is found and copied into an
+  installer session straight away (the slow part), which is then only committed when the app leaves the screen
+  (`ON_STOP`), so the app is never replaced under the player. The session asks for `USER_ACTION_NOT_REQUIRED`
+  and the app declares `UPDATE_PACKAGES_WITHOUT_USER_ACTION`; whether Android honours that is its decision
+  (Android 12+, after the user has allowed the app to install). If it answers "user action needed" while the app
+  is off screen, the session is dropped, the fact is remembered, and the banner asks for one tap next time.
 * It is the only network access in the app, and it only reads: nothing about the player or the music leaves the
   phone.
 

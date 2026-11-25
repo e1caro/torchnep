@@ -24,6 +24,11 @@ data class NoteEvent(
     val harmonicOf: Int = -1,
     /** The same key was already sounding just before: possibly a flicker inside a held note, not a new strike. */
     val sustained: Boolean = false,
+    /**
+     * From a MIDI keyboard, when the sustain pedal kept the note sounding: the moment the key itself was let go
+     * ([offset] is when the sound stopped, with the pedal). Negative: not known, or the same as [offset].
+     */
+    val keyOff: Double = -1.0,
 ) {
     val pitch: Int get() = options.first().pitch
     val audioTop: Double get() = options.first().audioP

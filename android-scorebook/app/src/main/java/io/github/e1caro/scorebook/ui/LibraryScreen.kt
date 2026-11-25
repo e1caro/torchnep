@@ -391,6 +391,19 @@ fun SettingsScreen(vm: ScorebookViewModel) {
         Section("UPDATES") {
             UpdateSettings(vm)
             Spacer(Modifier.height(12.dp))
+            var install by remember { mutableStateOf(vm.autoInstall) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text("Update by itself", color = Ink, fontSize = 16.sp)
+                    Text(
+                        "New versions are downloaded on Wi-Fi and installed when you leave the app, never while you play. " +
+                            "The first time, Android asks you to allow Scorebook to install apps; after that it does not ask (Android 12 and newer).",
+                        color = InkDim, fontSize = 13.sp, lineHeight = 18.sp,
+                    )
+                }
+                Switch(checked = install, onCheckedChange = { install = it; vm.autoInstall = it }, colors = SwitchDefaults.colors(checkedTrackColor = Gold, checkedThumbColor = Stage))
+            }
+            Spacer(Modifier.height(12.dp))
             var auto by remember { mutableStateOf(vm.autoUpdate) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {

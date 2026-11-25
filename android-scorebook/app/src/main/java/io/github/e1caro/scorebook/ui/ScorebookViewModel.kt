@@ -50,6 +50,7 @@ import io.github.e1caro.scorebook.core.score.ScoreBuilder
 import io.github.e1caro.scorebook.data.Exporter
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,10 +115,15 @@ data class TakeUi(
     val message: String? = null,
 )
 
-enum class UpdateState { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, DOWNLOADING, INSTALLING, FAILED }
+/** READY: downloaded and prepared; it installs when the app is left, or at once with a tap. */
+enum class UpdateState { IDLE, CHECKING, UP_TO_DATE, AVAILABLE, DOWNLOADING, READY, INSTALLING, FAILED }
 
 /** Updating the app from inside the app. [update]: the newer version, once one was found. */
-data class UpdateUi(val state: UpdateState = UpdateState.IDLE, val update: Update? = null, val progress: Float = 0f, val message: String? = null)
+data class UpdateUi(
+    val state: UpdateState = UpdateState.IDLE, val update: Update? = null, val progress: Float = 0f, val message: String? = null,
+    /** The installer session holding the prepared update (READY). */
+    val session: Int = -1,
+)
 
 enum class CheckState { LISTENING, ANALYZING, DONE }
 
@@ -266,6 +272,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun stopListening() {
+        installUpdateOnLeaving()
         stopCheck()
         active = false
         if (_listen.value.status == ListenStatus.RECORDING) worker.execute { recorder.forceStop()?.let { finishTake() } }
@@ -667,6 +674,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 val data = withContext(Dispatchers.IO) { repo.take(takeId) } ?: return@launch
                 val (t, score) = withContext(Dispatchers.Default) { analyze(data, song.title) }
                 _take.value = TakeUi(song.id, takeId, song.title, song.favorite, data, t, score, lib.takesOf(song.id), message = message)
+                _take.value?.let { scoreAudioFor(it) } // get the piano sound ready for the play button
             } finally {
                 _opening.value = false
             }
@@ -692,6 +700,25 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         if (wasPlaying) startPlayback(at)
     }
 
+    private var scoreAudio: Pair<String, kotlinx.coroutines.Deferred<Pair<ShortArray, Int>>>? = null
+
+    /**
+     * The score of [c] played by the piano sound. Making it takes a few seconds for a long piece on a phone, so it
+     * is started as soon as the score is on screen and shared with the play button: by the time the player
+     * presses it, the sound is usually ready. (Main thread only.)
+     */
+    private fun scoreAudioFor(c: TakeUi): kotlinx.coroutines.Deferred<Pair<ShortArray, Int>> {
+        val key = "${c.takeId}|${c.data.settings}|${c.data.overrides}|${c.data.edits}"
+        scoreAudio?.takeIf { it.first == key }?.let { return it.second }
+        val t = c.transcription
+        val made = viewModelScope.async(Dispatchers.Default) {
+            val synth = io.github.e1caro.scorebook.core.play.PianoSynth
+            synth.render(synth.voices(t), 22050) to 22050
+        }
+        scoreAudio = key to made
+        return made
+    }
+
     private fun startPlayback(from: Double) {
         val c = _take.value ?: return
         val pb = _playback.value
@@ -699,17 +726,12 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         player.stop()
         _playback.update { it.copy(preparing = true, playing = false) }
         playJob = viewModelScope.launch {
-            val audio = withContext(Dispatchers.Default) {
-                val key = "${c.takeId}|${pb.source}|${c.data.settings}|${c.data.overrides}|${c.data.edits}"
-                pcmCache?.takeIf { it.first == key }?.second ?: run {
-                    val made = when (pb.source) {
-                        PlaySource.SCORE -> io.github.e1caro.scorebook.core.play.PianoSynth.render(
-                            io.github.e1caro.scorebook.core.play.PianoSynth.voices(c.transcription), 22050) to 22050
-                        PlaySource.RECORDING -> io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(c.takeId))
-                            ?.let { (pcm, sr) -> io.github.e1caro.scorebook.core.library.Edits.apply(pcm, sr, c.data.edits) to sr }
-                    }
-                    if (made != null) pcmCache = key to made
-                    made
+            val audio: Pair<ShortArray, Int>? = when (pb.source) {
+                PlaySource.SCORE -> scoreAudioFor(c).await()
+                PlaySource.RECORDING -> withContext(Dispatchers.Default) {
+                    val key = "${c.takeId}|${c.data.edits}"
+                    pcmCache?.takeIf { it.first == key }?.second ?: io.github.e1caro.scorebook.audio.Player.readWav(repo.audioFile(c.takeId))
+                        ?.let { (pcm, sr) -> io.github.e1caro.scorebook.core.library.Edits.apply(pcm, sr, c.data.edits) to sr }?.also { pcmCache = key to it }
                 }
             }
             if (audio == null) {
@@ -765,6 +787,7 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 _library.value = newLib
             }
             _take.update { it?.copy(transcription = t, score = score, busy = false, message = message ?: it.message) }
+            _take.value?.let { scoreAudioFor(it) }
         }
     }
 
@@ -901,10 +924,14 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         checkForUpdate(manual = false)
     }
 
+    var autoInstall: Boolean
+        get() = prefs.autoInstall
+        set(v) { prefs.autoInstall = v }
+
     /** [manual]: asked for in Settings, so "you have the newest" and connection problems are said. */
     fun checkForUpdate(manual: Boolean) {
         val now = _update.value.state
-        if (now == UpdateState.CHECKING || now == UpdateState.DOWNLOADING || now == UpdateState.INSTALLING) return
+        if (now == UpdateState.CHECKING || now == UpdateState.DOWNLOADING || now == UpdateState.READY || now == UpdateState.INSTALLING) return
         if (manual) _update.update { it.copy(state = UpdateState.CHECKING, message = null) }
         updateJob = viewModelScope.launch {
             try {
@@ -912,6 +939,8 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
                 prefs.lastUpdateCheck = System.currentTimeMillis()
                 _update.value = if (found != null) UpdateUi(UpdateState.AVAILABLE, found)
                 else UpdateUi(if (manual) UpdateState.UP_TO_DATE else UpdateState.IDLE)
+                // by itself: fetch it now if the connection is not metered, so it is ready to install on leaving the app
+                if (found != null && prefs.autoInstall && withContext(Dispatchers.IO) { updater.unmetered() }) fetchUpdate(thenInstall = false)
             } catch (e: Exception) {
                 // no connection, or GitHub busy: when it was not asked for, nothing is said
                 _update.update { if (manual) UpdateUi(UpdateState.FAILED, it.update, message = "Could not look for updates. Is the phone online?") else it }
@@ -919,32 +948,78 @@ class ScorebookViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Downloads the newer version and hands it to Android's installer (which replaces the app, keeping its data). */
-    fun installUpdate() {
+    /**
+     * Downloads the newer version and prepares it in Android's installer. [thenInstall]: install at once (the
+     * player tapped the button); otherwise it waits, READY, until the app is left or the button is tapped.
+     */
+    private fun fetchUpdate(thenInstall: Boolean) {
         val u = _update.value.update ?: return
         val now = _update.value.state
         if (now == UpdateState.DOWNLOADING || now == UpdateState.INSTALLING) return
-        if (_listen.value.status == ListenStatus.RECORDING || _listen.value.status == ListenStatus.SAVING) {
-            _update.update { it.copy(state = UpdateState.FAILED, message = "Finish the take first: updating restarts the app") }
-            return
-        }
-        stopPlayback()
         io.github.e1caro.scorebook.data.Updater.installProblem.value = null
         _update.value = UpdateUi(UpdateState.DOWNLOADING, u)
         updateJob = viewModelScope.launch {
             try {
-                withContext(Dispatchers.IO) {
+                val session = withContext(Dispatchers.IO) {
                     val apk = updater.download(u) { p -> _update.update { it.copy(progress = p) } }
-                    _update.value = UpdateUi(UpdateState.INSTALLING, u, 1f)
-                    updater.install(apk)
+                    updater.prepare(apk)
                 }
+                _update.value = UpdateUi(UpdateState.READY, u, 1f, session = session)
+                if (thenInstall) installUpdate()
             } catch (e: Exception) {
                 _update.value = UpdateUi(UpdateState.FAILED, u, message = "The update could not be downloaded. Check the connection and free space, then try again.")
             }
         }
     }
 
+    /** The update button: download if needed, then install now (Android replaces the app, keeping its data). */
+    fun installUpdate() {
+        val cur = _update.value
+        val u = cur.update ?: return
+        if (cur.state == UpdateState.DOWNLOADING || cur.state == UpdateState.INSTALLING) return
+        if (_listen.value.status == ListenStatus.RECORDING || _listen.value.status == ListenStatus.SAVING) {
+            _update.update { it.copy(message = "Finish the take first: updating restarts the app") }
+            return
+        }
+        if (cur.state != UpdateState.READY || cur.session < 0) { fetchUpdate(thenInstall = true); return }
+        stopPlayback()
+        // the player is here and has tapped: Android can ask what it needs to
+        prefs.updateNeedsTap = false
+        io.github.e1caro.scorebook.data.Updater.needsConfirmation.value = false
+        _update.value = cur.copy(state = UpdateState.INSTALLING, message = null)
+        try {
+            updater.commit(cur.session)
+        } catch (e: Exception) {
+            // the prepared session is gone (the phone was restarted, for instance): start again
+            _update.value = UpdateUi(UpdateState.AVAILABLE, u)
+            fetchUpdate(thenInstall = true)
+        }
+    }
+
+    /**
+     * The app is being left. A prepared update is installed now, where it disturbs nobody: the next time the app
+     * is opened it is the new version. If Android insists on a confirmation, the update stays ready and the app
+     * asks for one tap next time ([needsUpdateTap]).
+     */
+    fun installUpdateOnLeaving() {
+        val cur = _update.value
+        if (!prefs.autoInstall || cur.state != UpdateState.READY || cur.session < 0) return
+        if (_listen.value.status == ListenStatus.RECORDING || _listen.value.status == ListenStatus.SAVING) return
+        if (prefs.updateNeedsTap) return // Android already said it wants a yes for this: wait for the tap
+        try {
+            updater.commit(cur.session)
+            // if it goes through, the process ends here; if Android wants a yes, the session is dropped by the receiver
+            _update.value = UpdateUi(UpdateState.AVAILABLE, cur.update)
+        } catch (e: Exception) {
+            _update.value = UpdateUi(UpdateState.AVAILABLE, cur.update)
+        }
+    }
+
+    /** Android would not install without asking: the banner asks the player to tap once. */
+    val needsUpdateTap: StateFlow<Boolean> = io.github.e1caro.scorebook.data.Updater.needsConfirmation
+
     init {
+        io.github.e1caro.scorebook.data.Updater.needsConfirmation.value = prefs.updateNeedsTap
         // the installer's own verdict (cancelled, no space, …) arrives separately
         viewModelScope.launch {
             io.github.e1caro.scorebook.data.Updater.installProblem.collect { problem ->
