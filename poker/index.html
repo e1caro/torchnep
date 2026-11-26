@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e2430">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Learn to play Texas Hold'em well: ten lessons, six drills and a six-player table where a coach grades every decision.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Poker Coach">
+  <title>Poker Coach</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="suit-H" viewBox="0 0 100 100"><path d="M50 92C22 68 4 52 4 31 4 16 15 6 29 6c9 0 16 5 21 13 5-8 12-13 21-13 14 0 25 10 25 25 0 21-18 37-46 61z"/></symbol>
+    <symbol id="suit-D" viewBox="0 0 100 100"><path d="M50 2C62 22 75 37 92 50 75 63 62 78 50 98 38 78 25 63 8 50 25 37 38 22 50 2z"/></symbol>
+    <symbol id="suit-S" viewBox="0 0 100 100"><path d="M50 4C36 24 6 38 6 60c0 14 11 23 24 23 9 0 15-4 18-9-1 10-5 17-14 22h32c-9-5-13-12-14-22 3 5 9 9 18 9 13 0 24-9 24-23C94 38 64 24 50 4z"/></symbol>
+    <symbol id="suit-C" viewBox="0 0 100 100"><circle cx="50" cy="27" r="20"/><circle cx="27" cy="57" r="20"/><circle cx="73" cy="57" r="20"/><circle cx="50" cy="50" r="12"/><path d="M43 50h14v6c0 16 4 28 15 38H28c11-10 15-22 15-38z"/></symbol>
+  </svg>
+
+  <div id="app">
+    <header class="bar">
+      <button class="icon-btn" id="back" type="button" aria-label="Back" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <span class="title" id="title">Poker Coach</span>
+      <button class="icon-btn" id="settingsBtn" type="button" aria-label="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>
+      </button>
+    </header>
+
+    <nav class="tabs" aria-label="Sections">
+      <button type="button" data-tab="learn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h6a2 2 0 0 1 2 2v12a2 2 0 0 0-2-2H4zM20 5h-6a2 2 0 0 0-2 2v12a2 2 0 0 1 2-2h6z"/></svg>Learn</button>
+      <button type="button" data-tab="drills"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".6"/></svg>Drills</button>
+      <button type="button" data-tab="play"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="10" height="14" rx="2" transform="rotate(-10 8 13)"/><rect x="11" y="4" width="10" height="14" rx="2" transform="rotate(8 16 11)"/></svg>Play</button>
+      <button type="button" data-tab="tools"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>Tools</button>
+    </nav>
+
+    <main id="view" tabindex="-1"></main>
+  </div>
+
+  <div id="sheet" class="sheet" hidden></div>
+
+  <script src="js/engine.js"></script>
+  <script src="js/lessons.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

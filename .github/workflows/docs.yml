@@ -74,6 +74,12 @@ jobs:
           cp -r blackjack site/blackjack
           rm -rf site/blackjack/tests site/blackjack/tools
 
+      - name: Add the Poker Coach app (served at /poker/, without its tests and tools)
+        run: |
+          node poker/tests/unit.js
+          cp -r poker site/poker
+          rm -rf site/poker/tests site/poker/tools
+
       - name: Upload the site
         if: github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
