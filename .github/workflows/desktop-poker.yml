@@ -1,0 +1,134 @@
+name: desktop-poker
+
+# Builds the Windows program (desktop-poker/: Poker Coach in one .exe) and runs the real .exe on Windows, where it
+# plays through itself (tests/selftest.js), is closed, has its window storage deleted and is opened again to check
+# that your progress comes back from saved.json.
+# - On a push to a claude/** or ccr-** branch or a pull request: the .exe and a picture of its window are attached to
+#   the run as artifacts.
+# - On a push to master that touches it, or run by hand (Actions > desktop-poker > Run workflow): also published as a
+#   release "Poker Coach for Windows 1.N" (tag poker-pc-N, never v* or poker-N, which belong to other workflows).
+
+on:
+  push:
+    branches: [master, "claude/**", "ccr-**"]
+    paths: ["desktop-poker/**", "poker/**", ".github/workflows/desktop-poker.yml"]
+  pull_request:
+    branches: [master]
+    paths: ["desktop-poker/**", "poker/**", ".github/workflows/desktop-poker.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-poker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: desktop-poker/go.mod
+          cache-dependency-path: desktop-poker/go.sum
+
+      - name: Test the engine (hand ranking, equity, charts, betting rules, side pots, drills)
+        run: node poker/tests/unit.js
+
+      - name: Build PokerCoach.exe
+        run: python3 desktop-poker/build.py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PokerCoach-windows
+          path: desktop-poker/dist/PokerCoach.exe
+          if-no-files-found: error
+
+  windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: PokerCoach-windows
+          path: dist
+
+      - name: Run the program and let it play through itself
+        shell: pwsh
+        run: |
+          "sha256 " + (Get-FileHash dist\PokerCoach.exe -Algorithm SHA256).Hash.ToLower()
+          New-Item -ItemType Directory -Force shots | Out-Null
+          function Play($mode) {
+            $log = Join-Path $PWD "selftest-$mode.log"
+            $env:POKER_SELFTEST = $log
+            $env:POKER_SELFTEST_MODE = $mode
+            $p = Start-Process -FilePath dist\PokerCoach.exe -PassThru
+            $null = $p.Handle
+            Start-Sleep -Seconds 6
+            if (-not $p.HasExited) { "window title: " + (Get-Process -Id $p.Id).MainWindowTitle }
+            if (-not $p.WaitForExit(420000)) { Stop-Process -Id $p.Id -Force; if (Test-Path $log) { Get-Content $log }; throw "the $mode play-through did not finish" }
+            if (Test-Path $log) { Get-Content $log } else { throw "the program wrote no log (exit code $($p.ExitCode))" }
+            if ($p.ExitCode -ne 0) { throw "the $mode play-through failed (exit code $($p.ExitCode))" }
+          }
+          Play "full"
+          # Closed: the window's own storage is deleted. Opened again, the lesson, the drill and the hands must come
+          # back from saved.json, the program's own copy.
+          $edge = { @(Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -match 'PokerCoach' }).Count }
+          for ($i = 0; $i -lt 30 -and (& $edge) -gt 0; $i++) { Start-Sleep -Seconds 1 }
+          $data = Join-Path $env:APPDATA 'PokerCoach'
+          "saved.json: " + $(if (Test-Path "$data\saved.json") { (Get-Item "$data\saved.json").Length.ToString() + " bytes" } else { "missing" })
+          Remove-Item -Recurse -Force "$data\EBWebView\Default\Local Storage" -ErrorAction Stop
+          "the window's storage was deleted"
+          Play "restart"
+
+      - name: A picture of the window as a person gets it
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          Remove-Item Env:POKER_SELFTEST -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath dist\PokerCoach.exe -PassThru
+          Start-Sleep -Seconds 10
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $b = [System.Windows.Forms.SystemInformation]::VirtualScreen
+          $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
+          $g.CopyFromScreen($b.Left, $b.Top, 0, 0, $bmp.Size)
+          $bmp.Save((Join-Path $PWD "shots\window.png"), [System.Drawing.Imaging.ImageFormat]::Png)
+          Stop-Process -Id $p.Id -Force
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: poker-screenshots
+          path: shots
+          if-no-files-found: ignore
+
+  release:
+    needs: windows
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: PokerCoach-windows
+          path: dist
+
+      - name: Publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: poker-pc-${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          name: Poker Coach for Windows 1.${{ github.run_number }}
+          body: |
+            Poker Coach for Windows 10 and 11: ten lessons on Texas Hold'em, six drills, and a six-player table where a coach grades every decision. One portable file, nothing to install, works offline.
+
+            **Install:** download `PokerCoach.exe` and run it. It is not signed, so the first time Windows SmartScreen says "Windows protected your PC": choose **More info**, then **Run anyway**. Your progress is kept in `%APPDATA%\PokerCoach`.
+          files: dist/PokerCoach.exe
+          make_latest: false
