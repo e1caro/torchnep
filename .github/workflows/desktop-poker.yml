@@ -1,10 +1,11 @@
 name: desktop-poker
 
-# Builds the Windows program (desktop-poker/: Poker Coach in one .exe) and runs the real .exe on Windows, where it
-# plays through itself (tests/selftest.js), is closed, has its window storage deleted and is opened again to check
-# that your progress comes back from saved.json.
-# - On a push to a claude/** or ccr-** branch or a pull request: the .exe and a picture of its window are attached to
-#   the run as artifacts.
+# Builds the Windows program (desktop-poker/: Poker Coach in one .exe) and its installer, and runs them on Windows:
+# the .exe plays through itself (tests/selftest.js), is closed, has its window storage deleted and is opened again to
+# check that your progress comes back from saved.json; then the installer is run silently, the installed program is
+# opened (it must find that progress), and it is uninstalled again (the progress must stay).
+# - On a push to a claude/** or ccr-** branch or a pull request: the .exe, the installer and a picture of the window
+#   are attached to the run as artifacts.
 # - On a push to master that touches it, or run by hand (Actions > desktop-poker > Run workflow): also published as a
 #   release "Poker Coach for Windows 1.N" (tag poker-pc-N, never v* or poker-N, which belong to other workflows).
 
@@ -38,13 +39,22 @@ jobs:
       - name: Test the engine (hand ranking, equity, charts, betting rules, side pots, drills)
         run: node poker/tests/unit.js
 
-      - name: Build PokerCoach.exe
-        run: python3 desktop-poker/build.py
+      - name: NSIS, for the installer
+        run: sudo apt-get install -y -q nsis
+
+      - name: Build PokerCoach.exe and PokerCoach-Setup.exe
+        env:
+          POKER_VERSION: 1.${{ github.run_number }}
+        run: |
+          python3 desktop-poker/build.py
+          test -f desktop-poker/dist/PokerCoach-Setup.exe
 
       - uses: actions/upload-artifact@v4
         with:
           name: PokerCoach-windows
-          path: desktop-poker/dist/PokerCoach.exe
+          path: |
+            desktop-poker/dist/PokerCoach.exe
+            desktop-poker/dist/PokerCoach-Setup.exe
           if-no-files-found: error
 
   windows:
@@ -63,11 +73,11 @@ jobs:
         run: |
           "sha256 " + (Get-FileHash dist\PokerCoach.exe -Algorithm SHA256).Hash.ToLower()
           New-Item -ItemType Directory -Force shots | Out-Null
-          function Play($mode) {
+          function Play($mode, $exe = 'dist\PokerCoach.exe') {
             $log = Join-Path $PWD "selftest-$mode.log"
             $env:POKER_SELFTEST = $log
             $env:POKER_SELFTEST_MODE = $mode
-            $p = Start-Process -FilePath dist\PokerCoach.exe -PassThru
+            $p = Start-Process -FilePath $exe -PassThru
             $null = $p.Handle
             Start-Sleep -Seconds 6
             if (-not $p.HasExited) { "window title: " + (Get-Process -Id $p.Id).MainWindowTitle }
@@ -85,6 +95,35 @@ jobs:
           Remove-Item -Recurse -Force "$data\EBWebView\Default\Local Storage" -ErrorAction Stop
           "the window's storage was deleted"
           Play "restart"
+
+          # The installer, as a person runs it but without its window: no administrator, nothing asked.
+          $p = Start-Process -FilePath dist\PokerCoach-Setup.exe -ArgumentList '/S' -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "the installer failed (exit code $($p.ExitCode))" }
+          $dir = Join-Path $env:LOCALAPPDATA 'Programs\PokerCoach'
+          $exe = Join-Path $dir 'PokerCoach.exe'
+          $start = Join-Path ([Environment]::GetFolderPath('Programs')) 'Poker Coach.lnk'
+          $desk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Poker Coach.lnk'
+          $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\PokerCoach'
+          foreach ($f in @($exe, (Join-Path $dir 'Uninstall.exe'), $start, $desk)) {
+            if (-not (Test-Path $f)) { throw "missing after the install: $f" }
+            "installed: $f"
+          }
+          if ((Get-FileHash $exe).Hash -ne (Get-FileHash dist\PokerCoach.exe).Hash) { throw "the installed program is not the one that was built" }
+          $lnk = (New-Object -ComObject WScript.Shell).CreateShortcut($start)
+          if ($lnk.TargetPath -ne $exe) { throw "the Start menu shortcut points at $($lnk.TargetPath)" }
+          $k = Get-ItemProperty $key
+          if ($k.DisplayName -ne 'Poker Coach') { throw "not listed in Settings > Apps" }
+          "Settings > Apps: $($k.DisplayName) $($k.DisplayVersion) by $($k.Publisher), $($k.EstimatedSize) KB, uninstalled by $($k.UninstallString)"
+          for ($i = 0; $i -lt 30 -and (& $edge) -gt 0; $i++) { Start-Sleep -Seconds 1 }
+          Play "restart" $exe     # the installed program opens and finds the progress of the runs above
+
+          # Uninstalled again (the uninstaller finishes from a copy of itself in TEMP: wait for it)
+          for ($i = 0; $i -lt 30 -and (& $edge) -gt 0; $i++) { Start-Sleep -Seconds 1 }
+          Start-Process -FilePath (Join-Path $dir 'Uninstall.exe') -ArgumentList '/S' -Wait
+          for ($i = 0; $i -lt 60 -and ((Test-Path $exe) -or (Test-Path $key)); $i++) { Start-Sleep -Seconds 1 }
+          foreach ($f in @($exe, $start, $desk, $key)) { if (Test-Path $f) { throw "still there after uninstalling: $f" } }
+          if (-not (Test-Path (Join-Path $env:APPDATA 'PokerCoach\saved.json'))) { throw "uninstalling removed your progress" }
+          "uninstalled: the program, its shortcuts and its entry are gone; your progress is still in %APPDATA%\PokerCoach"
 
       - name: A picture of the window as a person gets it
         shell: pwsh
@@ -127,8 +166,14 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Poker Coach for Windows 1.${{ github.run_number }}
           body: |
-            Poker Coach for Windows 10 and 11: ten lessons on Texas Hold'em, six drills, and a six-player table where a coach grades every decision. One portable file, nothing to install, works offline.
+            Poker Coach for Windows 10 and 11: ten lessons on Texas Hold'em, six drills, and a six-player table where a coach grades every decision. Works offline.
 
-            **Install:** download `PokerCoach.exe` and run it. It is not signed, so the first time Windows SmartScreen says "Windows protected your PC": choose **More info**, then **Run anyway**. Your progress is kept in `%APPDATA%\PokerCoach`.
-          files: dist/PokerCoach.exe
+            **Install:** download `PokerCoach-Setup.exe` and open it. It installs for you only (no administrator), puts Poker Coach in the Start menu and on the desktop, and lists it in Settings > Apps for uninstalling. Installing a newer version over an older one keeps your progress, and so does uninstalling.
+
+            **Or without installing:** `PokerCoach.exe` is the same program as one portable file; run it from anywhere.
+
+            Neither file is signed, so the first time Windows SmartScreen says "Windows protected your PC": choose **More info**, then **Run anyway**. Your progress is kept in `%APPDATA%\PokerCoach`.
+          files: |
+            dist/PokerCoach-Setup.exe
+            dist/PokerCoach.exe
           make_latest: false

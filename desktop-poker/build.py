@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Builds the desktop program: one Windows .exe holding Poker Coach (../poker).
+"""Builds the desktop program: one Windows .exe holding Poker Coach (../poker), and its installer.
 
-    python3 build.py              assemble frontend/ and cross-compile dist/PokerCoach.exe (needs Go)
+    python3 build.py              assemble frontend/, cross-compile dist/PokerCoach.exe (needs Go) and, when NSIS's
+                                  makensis is installed, build dist/PokerCoach-Setup.exe (installer/PokerCoach.nsi)
     python3 build.py --frontend   only assemble frontend/ (what the tests open in a browser)
+
+POKER_VERSION (for example 1.12) is the version the installer shows and writes to Settings > Apps.
 
 frontend/ is generated: the web app is copied in unchanged except that its typeface comes from fonts/ instead of the
 network, there is no web manifest (nothing to install), and overlay/store.js and keep.js are loaded first: they keep
@@ -75,7 +78,19 @@ def exe():
     print('dist/PokerCoach.exe: %.1f MB, sha256 %s' % (out.stat().st_size / 1e6, hashlib.sha256(out.read_bytes()).hexdigest()))
 
 
+def installer():
+    if not shutil.which('makensis'):
+        print('no makensis: dist/PokerCoach-Setup.exe not built (apt install nsis, or NSIS on Windows)')
+        return
+    version = os.environ.get('POKER_VERSION', '1.0')
+    assert re.fullmatch(r'[0-9][0-9.]*', version), 'POKER_VERSION must be a version number: %r' % version
+    subprocess.run(['makensis', '-V2', '-WX', '-DVERSION=' + version, 'installer/PokerCoach.nsi'], cwd=HERE, check=True)
+    out = HERE / 'dist' / 'PokerCoach-Setup.exe'
+    print('dist/PokerCoach-Setup.exe: %.1f MB, version %s' % (out.stat().st_size / 1e6, version))
+
+
 if __name__ == '__main__':
     frontend()
     if '--frontend' not in sys.argv:
         exe()
+        installer()

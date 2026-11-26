@@ -3,10 +3,18 @@
 One program, `PokerCoach.exe`, holding the web app of `../poker`: the ten lessons, the six drills, the table with its
 coach and the tools. It works offline: nothing is read from or sent to the network, the typeface included.
 
-It is a single portable file for Windows 10 and 11, nothing to install. It is not signed, so the first time Windows
-SmartScreen says "Windows protected your PC": choose **More info**, then **Run anyway**. The window is drawn with the
-WebView2 component that ships with Windows 11 and current Windows 10 (if it is missing, the program offers to fetch
-it). Your progress lives in `%APPDATA%\PokerCoach`; deleting that folder starts again from nothing.
+Each release `poker-pc-N` carries it two ways, for Windows 10 and 11:
+
+- **`PokerCoach-Setup.exe`**, the installer: it installs for you only (no administrator) into
+  `%LOCALAPPDATA%\Programs\PokerCoach`, puts Poker Coach in the Start menu and on the desktop, and lists it in
+  Settings > Apps, where it can be uninstalled. A newer installer run over an older version replaces the program and
+  keeps the rest; an open copy is asked to close first.
+- **`PokerCoach.exe`**, the same program as one portable file, to run from anywhere without installing.
+
+Neither is signed, so the first time Windows SmartScreen says "Windows protected your PC": choose **More info**, then
+**Run anyway**. The window is drawn with the WebView2 component that ships with Windows 11 and current Windows 10 (if
+it is missing, the program offers to fetch it). Your progress lives in `%APPDATA%\PokerCoach`, apart from the program:
+uninstalling leaves it, so installing again finds it; deleting that folder starts again from nothing.
 
 Your progress is kept twice there: in the window's own storage, and in `saved.json`, written a moment after every
 change. Each time the program starts, the page puts back what `saved.json` holds before the app reads anything (the
@@ -25,7 +33,9 @@ overlay/           store.js (a stand-in; inside the program main.go answers it) 
                    saved.json back at the start of a run and send it every change
 fonts/             Archivo (SIL OFL, see fonts/LICENSES.txt), so nothing comes from the network
 winres/            the icon (drawn by ../poker/tools/make-icons.js) and the Windows manifest
-build.py           assembles frontend/ from ../poker, then cross-compiles dist/PokerCoach.exe
+installer/         PokerCoach.nsi, the installer (NSIS 3), and icon.ico, made from winres/icon.png with Pillow
+build.py           assembles frontend/ from ../poker, cross-compiles dist/PokerCoach.exe and, with NSIS's
+                   makensis installed, builds dist/PokerCoach-Setup.exe
 tests/selftest.js  the play-through; the .exe runs it on itself when started with POKER_SELFTEST=<log file>
 tests/browser.js   runs the same play-through in Chromium against frontend/
 ```
@@ -35,13 +45,17 @@ tests/browser.js   runs the same play-through in Chromium against frontend/
 ## Build and test
 
 ```bash
-python3 build.py                      # needs Go 1.26; builds from Linux, macOS or Windows
+python3 build.py                      # needs Go 1.26; builds from Linux, macOS or Windows; the installer needs NSIS
+                                      # (apt install nsis); POKER_VERSION=1.12 sets its version
 python3 build.py --frontend           # only assemble frontend/
 (cd frontend && python3 -m http.server 8766) &
 node tests/browser.js http://localhost:8766/            # the play-through in Chromium (needs Playwright)
 ```
 
-`.github/workflows/desktop-poker.yml` builds the .exe and then runs it on a Windows machine, where the real window
-plays through itself (a lesson, a drill, the charts, the equity calculator, three hands), is closed, has its own
-storage deleted and is opened again to see that your progress comes back from `saved.json`. The .exe is attached to
-every run; a push to `master` (or running the workflow by hand) also publishes it as a release `poker-pc-N`.
+`.github/workflows/desktop-poker.yml` builds both and then runs them on a Windows machine. The real window plays
+through itself (a lesson, a drill, the charts, the equity calculator, three hands), is closed, has its own storage
+deleted and is opened again to see that your progress comes back from `saved.json`. Then the installer runs silently
+(`/S`); the workflow checks the files, both shortcuts and the Settings > Apps entry, opens the installed program (it
+must find the same progress), uninstalls it (`Uninstall.exe /S`) and checks that the program, its shortcuts and its
+entry are gone and your progress is not. Both files are attached to every run; a push to `master` (or running the
+workflow by hand) also publishes them as a release `poker-pc-N`.
