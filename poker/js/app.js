@@ -513,7 +513,7 @@
     if (L.raise) {
       if (T.street === 'preflop') {
         const std = PK.preflopRaiseTo(T, 0);
-        sizes = [[std, T.raises === 0 ? 'Standard' : '3×' ], [Math.round(T.currentBet + potNow + L.toCall), 'Pot'], [L.raise.max, 'All-in']];
+        sizes = [[std, 'Standard'], [Math.round(T.currentBet + potNow + L.toCall), 'Pot'], [L.raise.max, 'All-in']];
         if (T.raises === 0) sizes.unshift([Math.round(2 * PK.BB + T.limpers * PK.BB), 'Min']);
       } else {
         const base = (f) => Math.round(T.currentBet + (potNow + L.toCall) * f);
