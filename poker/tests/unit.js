@@ -344,5 +344,94 @@ test('drills: answers agree with the evaluator, the charts and the arithmetic', 
   }
 });
 
+test('new drills: name your hand, combos, river math, call or fold, push or fold', () => {
+  const R = PK.rng(31);
+  const seen = new Set();
+  for (let k = 0; k < 300; k++) {
+    const d = PK.drillNameHand(R);
+    eq(d.answer, PK.handName(d.hole, d.board));
+    ok(d.choices.includes(d.answer) && d.choices.length === 4);
+    ok(new Set(d.board.map(PK.rankOf)).size === d.board.length, 'an unpaired board');
+    const cat = PK.category(PK.evaluate(d.hole.concat(d.board)));
+    if (d.answer === 7) eq(cat, 5); if (d.answer === 6) eq(cat, 4); if (d.answer === 5) eq(cat, 3); if (d.answer === 4) eq(cat, 2);
+    seen.add(d.answer);
+  }
+  eq(seen.size, PK.HAND_NAMES.length, 'every name comes up');
+  for (let k = 0; k < 200; k++) {
+    const d = PK.drillCombos(R);
+    const dead = new Set(d.board.concat(d.hole));
+    const live = PK.freshDeck().filter((c) => !dead.has(c));
+    let n = 0;
+    for (let i = 0; i < live.length; i++) for (let j = i + 1; j < live.length; j++) {
+      const a = live[i], b = live[j];
+      if (d.kind === 'sets') n += PK.rankOf(a) === PK.rankOf(b) && d.board.some((c) => PK.rankOf(c) === PK.rankOf(a)) ? 1 : 0;
+      else n += PK.parseRange(d.name).has(PK.handClass(a, b)) ? 1 : 0;
+    }
+    eq(d.answer, n, 'counted by brute force: ' + (d.name || 'sets'));
+    ok(d.choices.includes(d.answer) && d.choices.length === 4);
+  }
+  for (let k = 0; k < 200; k++) {
+    const d = PK.drillRiver(R), f = d.f;
+    near(d.answer, d.kind === 'bluff' ? f / (1 + f) : d.kind === 'defend' ? 1 / (1 + f) : f / (1 + 2 * f), 1e-12);
+    ok(d.choices.includes(d.answer) && d.choices.length === 4, 'four distinct choices');
+  }
+  for (let k = 0; k < 12; k++) {
+    const d = PK.drillPostflop(R, 1500);
+    near(d.need, d.bet / (d.pot + 2 * d.bet), 1e-12);
+    ok(Math.abs(d.equity - d.need) >= 0.05, 'no close spots');
+    eq(d.answer, d.equity > d.need ? 'call' : 'fold');
+    ok(PK.CHARTS[d.spot.yourChart].call.has(PK.handClass(d.hole[0], d.hole[1])), 'your hand is one you would have called with');
+  }
+  for (let k = 0; k < 300; k++) {
+    const d = PK.drillPushFold(R);
+    eq(PK.handClass(d.combo[0], d.combo[1]), d.hand);
+    eq(d.answer, PK.PUSH[d.hand][d.kind] > d.stack ? d.kind : 'fold');
+  }
+});
+
+test('push or fold: the solved ranges look like the published equilibrium', () => {
+  const share = (set) => PK.rangePct(set);
+  near(share(PK.pushRange(10)), 0.58, 0.03, 'pushes at 10 bb');
+  near(share(PK.callRange(10)), 0.37, 0.03, 'calls at 10 bb');
+  for (const s of [5, 8, 10, 12, 15, 20]) ok(share(PK.callRange(s)) < share(PK.pushRange(s)), 'calling is tighter than pushing at ' + s + ' bb');
+  for (const h of PK.HANDS) {
+    if (h.pair || h.hi === 12) eq(PK.PUSH[h.name].push, 20.5, h.name + ' pushes at any stack up to 20 bb');
+    ok(PK.PUSH[h.name].push >= 1 && PK.PUSH[h.name].call >= 1, h.name);
+  }
+  for (const n of ['AA', 'KK', 'QQ', 'AKs', 'AKo']) eq(PK.PUSH[n].call, 20.5);
+  ok(PK.PUSH['72o'].push < 2.5 && PK.PUSH['32o'].push < 2.5, 'the worst hands push only when nearly blinded out');
+});
+
+test('what the lessons say agrees with the engine', () => {
+  const P = PK.PUSH, pctOf = (s) => Math.round(PK.rangePct(s) * 100);
+  eq([P.K2o.push, P.Q2o.push, P['72o'].push, P.K4o.push], [11.5, 7, 1.5, 13]);
+  eq([P['22'].call, P.K9o.call, P['87s'].call], [14.5, 16.5, 6.5]);
+  eq([pctOf(PK.pushRange(10)), pctOf(PK.callRange(10)), pctOf(PK.pushRange(5)), pctOf(PK.pushRange(20))], [58, 37, 73, 41]);
+  const K72 = C('Ks 7d 2c');
+  eq([PK.rangeCombos(PK.parseRange('AK'), K72).length, PK.rangeCombos(PK.parseRange('KK'), K72).length], [12, 3]);
+  eq([PK.rangeCombos(PK.parseRange('AA'), C('As')).length, PK.rangeCombos(PK.parseRange('AK'), C('As')).length], [3, 12]);
+  eq(PK.rangeCombos(PK.parseRange('AK'), C('Ac 8d 3s')).length, 12);
+  eq(PK.rangeCombos(PK.parseRange('KK'), C('Kh Kc')).length, 1);
+  eq([pctOf(PK.CHARTS['open.UTG'].raise), pctOf(PK.CHARTS['open.BTN'].raise)], [18, 44]);
+  eq([PK.chartAction('open.BTN', 'K8o'), PK.chartAction('open.UTG', 'K9o'), PK.chartAction('vsEarly.IP', 'AJo'), PK.chartAction('vsLate.BB', 'K5s')], ['raise', 'fold', 'fold', 'call']);
+  for (const n of ['87s', 'K9s', 'A4o']) ok(PK.CHARTS['vsLate.BB'].call.has(n), n + ' is a big blind call against the button');
+  // the three spots of "Reading hands street by street"
+  const R = PK.rng(17);
+  const spot = (hole, board, f, pressure) => {
+    const b = C(board), h = C(hole);
+    const theirs = PK.rangeCombos(PK.CHARTS['open.BTN'].raise, b.concat(h));
+    return PK.equity([{ hand: h }, { range: theirs, accept: (x) => R() < Math.pow(PK.quickStrength(x, b), pressure) }], b, { samples: 30000, rng: R }).equity[0];
+  };
+  near(spot('8s 7s', 'Ts 6d 2s', 0.5, 0.8), 0.51, 0.02);
+  near(spot('Ad 4c', 'Kh Qh 9c', 0.75, 1.1), 0.15, 0.02);
+  near(spot('Kd 9d', 'Kc 7h 3s', 1, 1.4), 0.57, 0.02);
+  const L = require(path.join(__dirname, '..', 'js', 'lessons.js'));
+  eq(L.LESSONS.length, 15);
+  for (const l of L.LESSONS) {
+    ok(l.quiz.length === 3 && l.quiz.every((q) => q.answer >= 0 && q.answer < q.options.length), l.id + ': its check');
+    if (l.drill) ok(L.DRILLS.some((d) => d.id === l.drill), l.id + ': its drill exists');
+  }
+});
+
 console.log('\n' + passed + ' passed, ' + failed + ' failed');
 process.exit(failed ? 1 : 0);

@@ -166,7 +166,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Poker Coach for Windows 1.${{ github.run_number }}
           body: |
-            Poker Coach for Windows 10 and 11: ten lessons on Texas Hold'em, six drills, and a six-player table where a coach grades every decision. Works offline.
+            Poker Coach for Windows 10 and 11: fifteen lessons on Texas Hold'em, eleven drills, and a six-player table where a coach grades every decision. Works offline.
 
             **Install:** download `PokerCoach-Setup.exe` and open it. It installs for you only (no administrator), puts Poker Coach in the Start menu and on the desktop, and lists it in Settings > Apps for uninstalling. Installing a newer version over an older one keeps your progress, and so does uninstalling.
 

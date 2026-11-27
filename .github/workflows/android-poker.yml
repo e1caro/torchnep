@@ -115,7 +115,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Poker Coach 1.${{ github.run_number }}
           body: |
-            ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notes) || 'Poker Coach for Android: ten lessons on Texas Hold''em, six drills, and a six-player table where a coach grades every decision. Works offline.' }}
+            ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notes) || 'Poker Coach for Android: fifteen lessons on Texas Hold''em, eleven drills, and a six-player table where a coach grades every decision. Works offline.' }}
 
             **Install on Android:** download `PokerCoach-1.${{ github.run_number }}.apk` on the phone, open it and allow "Install unknown apps" for your browser when asked.
 

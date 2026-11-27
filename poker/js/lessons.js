@@ -1,7 +1,8 @@
-/* The lessons: ten steps from the hand ranking to bankroll and mindset. Plain data read by app.js.
- * In the text: {{cards As Kd}} draws cards, {{grid open.BTN}} a chart, {{ladder}} the hand ranking, {{seats}} the
- * seats of a six-player table, {{odds}} the table of outs. Every figure was worked out with js/engine.js
- * (equities from 300,000 runouts, counts by enumeration), not copied from elsewhere. */
+/* The lessons: fifteen steps from the hand ranking to bankroll and mindset. Plain data read by app.js.
+ * In the text: {{cards As Kd}} draws cards, {{grid open.BTN}} a chart, {{push 10}} and {{call 10}} the push-or-fold
+ * ranges at a stack, {{ladder}} the hand ranking, {{seats}} the seats of a six-player table, {{odds}} the table of
+ * outs. Every figure was worked out with js/engine.js (equities by simulation, counts by enumeration, the push-or-fold
+ * ranges by tools/push-fold.js), not copied from elsewhere; tests/unit.js checks the ones that can drift. */
 (function (root) {
   'use strict';
   const LESSONS = [
@@ -33,6 +34,21 @@
         { q: 'Who acts first before the flop?', options: ['The small blind', 'The player to the left of the big blind', 'The button'], answer: 1, why: 'Before the flop the blinds act last, because they already have chips in. Under the gun, left of the big blind, starts.' },
         { q: 'The big blind is 1 bb and someone raises to 3 bb. What is the smallest re-raise?', options: ['To 4 bb', 'To 5 bb', 'To 6 bb'], answer: 1, why: 'The raise added 2 bb, so the next one must add at least 2 more: to 5 bb.' },
         { q: 'You are all-in for 20 bb and two players behind you each put in 60 bb. What can you win?', options: ['All 140 bb', '20 bb from each of them, 60 bb in all with your own', 'Nothing: you have no chips left'], answer: 1, why: 'The main pot is 20 bb from each of the three of you. The other 80 bb are a side pot between the two of them.' },
+      ],
+    },
+    {
+      id: 'yourhand', title: 'Reading your own hand', drill: 'namehand',
+      intro: 'Made hands and draws, the different pairs, and why the board decides how strong you are.',
+      sections: [
+        { h: 'Made hands and draws', body: `<p>A <em>made hand</em> is what you hold now: a pair, two pair, a set. A <em>draw</em> is what you might make: four cards to a flush or to a straight. One hand can be both, and you count both before you act.</p>{{cards Ah Kh}}<p class="cap">On K♠ 7♥ 2♥ this is top pair with the best kicker, and a draw to the best flush.</p>` },
+        { h: 'Not all pairs are equal', body: `<ul><li><b>Overpair</b>: a pocket pair above every board card. Q♣Q♦ on J♠ 7♥ 2♦.</li><li><b>Top pair</b>: one of your cards pairs the highest board card; the other is your <em>kicker</em>. A♠K♦ on K♣ 7♥ 2♠ is top pair, top kicker; K♥5♣ on the same board is top pair with a weak kicker, and loses to every better king.</li><li><b>Middle and bottom pair</b>: pairing a lower board card, like 7♠6♠ on K♣ 7♥ 2♠.</li><li><b>Underpair</b>: a pocket pair below the top card, like 5♥5♦ on K♣ 7♥ 2♠.</li></ul>` },
+        { h: 'Sets, trips and two pair', body: `<ul><li><b>Set</b>: a pocket pair and one more on the board, like 7♠7♦ on K♣ 7♥ 2♠. Hidden and very strong.</li><li><b>Trips</b>: one of your cards and a pair on the board, like K♦7♣ on 7♠ 7♥ 2♣. Strong, but easier to see coming, and the kicker matters.</li><li><b>Two pair</b>: both of your cards pair the board, like K♦7♣ on K♣ 7♥ 2♠.</li></ul><p>Careful on a paired board: with A♥5♥ on K♠ K♦ 5♣ your five cards are two pair, but everyone shares the kings. What you really hold is a pair of fives, and any king or any pocket pair from sixes up beats it.</p>` },
+        { h: 'Strength depends on the board', body: `<p>Top pair, good kicker is strong on K♠ 7♦ 2♣: few draws, few better hands. On J♥ T♥ 9♣ the same top pair is in trouble: straights are already possible, and two pairs, sets and draws are everywhere. Ask two questions on every flop: what do I have, and how many hands that would play like this beat me?</p>` },
+      ],
+      quiz: [
+        { q: 'You hold Q♣ Q♦ and the flop is J♠ 7♥ 2♦. What do you have?', options: ['Top pair', 'An overpair', 'A set'], answer: 1, why: 'A pocket pair above every card on the board is an overpair.' },
+        { q: 'You hold A♥ 5♥ and the board is K♠ K♦ 5♣. How strong is it really?', options: ['Very strong: two pair', 'A pair of fives: the kings belong to everyone', 'Nothing at all'], answer: 1, why: 'Your best five cards are kings and fives, but every player shares the kings. Any king, or any pocket pair from sixes up, beats you.' },
+        { q: 'You hold 7♠ 7♦ and the flop is K♣ 7♥ 2♠. What do you have?', options: ['Two pair', 'Trips', 'A set'], answer: 2, why: 'A pocket pair plus one on the board is a set.' },
       ],
     },
     {
@@ -139,6 +155,66 @@
       ],
     },
     {
+      id: 'handreading', title: 'Reading hands street by street', drill: 'postflop',
+      intro: 'Start from what they did before the flop, take hands out with every action, then compare with the price.',
+      sections: [
+        { h: 'Start before the flop', body: `<p>An opponent's range begins with what they did before the flop. An under-the-gun raise is about the best 18% of hands, a button raise 44%. A big blind that only called has few of the very best hands, because it would have re-raised them.</p>` },
+        { h: 'Every action takes hands out', body: `<p>A flop bet from the preflop raiser is still wide: on most flops they bet with much of their range. A bet on the turn, and again on the river, leaves fewer bluffs and more strong hands; a check leaves fewer strong ones. Big bets usually mean stronger ranges than small ones.</p><p>Some players break the pattern: a maniac bets with anything, a rock only with the goods. Adjust to who is betting.</p>` },
+        { h: 'Which hands hit this board?', body: `<p>On K♠ 7♦ 2♣ an under-the-gun raiser has many kings (AK, KQ, KJ), the sets KK, 77 and 22, and the big pairs. The big blind's calls hold fewer big kings, because it re-raises AK, but more sevens and small pairs. The player whose range fits the board better can bet more often.</p>{{grid open.UTG}}` },
+        { h: 'Put a number on it', body: `<p>The coach at the table and the drill <em>Call or fold after the flop</em> do exactly this: they take the opener's chart, lean it toward strong hands for each bet (more for bigger bets), and compare your share of the pot with the price. Three spots after the button raises and you call in the big blind:</p><ul><li>8♠7♠ on T♠ 6♦ 2♠, they bet 3 bb into 5.5. You need 26%; a flush draw and a gutshot give you about 51%. Call, or raise.</li><li>A♦4♣ on K♥ Q♥ 9♣, they bet 4 bb into 5.5. You need 30% and have about 15%. Fold.</li><li>K♦9♦ on K♣ 7♥ 3♠, they bet the pot. You need 33% and have about 57%: top pair is good enough to call.</li></ul>` },
+      ],
+      quiz: [
+        { q: 'A rock raises under the gun and bets the flop, the turn and the river. Their range is:', options: ['Mostly strong hands', 'Mostly bluffs', 'Anything'], answer: 0, why: 'A tight early raise, then three bets: few bluffs are left.' },
+        { q: 'Which flop suits an under-the-gun raiser better than the big blind that called?', options: ['A♠ K♦ 4♣', '7♠ 6♦ 5♣'], answer: 0, why: 'The raiser has AA, KK, AK and AQ; the big blind re-raised most of those and calls with more small connected cards and pairs.' },
+        { q: 'Against most players, which flop bet says more strength?', options: ['A third of the pot', 'The size of the pot'], answer: 1, why: 'Bigger bets are made with stronger ranges: the coach leans their range further toward strong hands for a pot-sized bet.' },
+      ],
+    },
+    {
+      id: 'combos', title: 'Counting combinations', drill: 'combos',
+      intro: 'How many ways a hand can be dealt, and how the cards you see change it.',
+      sections: [
+        { h: 'Each hand is several hands', body: `<p>AK can be dealt 16 ways: 4 suited and 12 offsuit. A pair can be dealt 6 ways. Counting these <em>combinations</em> tells you which hands are likely and which only look scary.</p>` },
+        { h: 'The cards you see take combinations away', body: `<p>On K♠ 7♦ 2♣ three kings are left. AK now has 3 × 4 = 12 combinations, and KK only 3 (three kings taken two at a time: 3 × 2 ÷ 2). Each set, KK, 77 and 22, has 3 combinations: 9 sets in all.</p>` },
+        { h: 'Blockers', body: `<p>Your own cards count too. Holding A♠, your opponent has only 3 combinations of AA (not 6) and 12 of AK (not 16). With the A♥ and three hearts on the board, nobody else can hold the best flush. Cards that make your opponent's strong hands less likely are called <em>blockers</em>: they make good bluffs and good brave calls.</p>` },
+        { h: 'Value against bluffs: count them', body: `<p>Say you read that they bet the river with sets, 9 combinations, and with flush draws that missed, 12 combinations. You beat only the bluffs: you win 12 times in 21, about 57%. A pot-sized bet asks for 33%: call.</p>` },
+      ],
+      quiz: [
+        { q: 'The flop is A♣ 8♦ 3♠. How many combinations of AK are possible?', options: ['16', '12', '9'], answer: 1, why: 'Three aces are left: 3 × 4 kings = 12.' },
+        { q: 'You hold K♥ K♣. How many combinations of KK can your opponent hold?', options: ['6', '3', '1'], answer: 2, why: 'Only two kings are left, so there is one way to hold them both.' },
+        { q: 'The flop is Q♠ 9♦ 4♣. How many combinations make a set?', options: ['3', '9', '12'], answer: 1, why: 'Three of each board rank are left, 3 ways to pair them: 3 + 3 + 3 = 9.' },
+      ],
+    },
+    {
+      id: 'river', title: 'Bluffs and bluff-catchers', drill: 'river',
+      intro: 'River math: how often a bluff must work, how often to call, how many of your bets can be bluffs.',
+      sections: [
+        { h: 'On the river it is all or nothing', body: `<p>No card is to come: against any one hand you either win or lose. Decisions come down to the price against how often they are bluffing.</p>` },
+        { h: 'How often a bluff must work', body: `<p>A bluff risks the bet to win the pot. It breaks even when they fold</p><p class="formula">bet ÷ (pot + bet)</p><p>of the time: 33% for half the pot, 50% for a pot-sized bet, 67% for twice the pot. Small bluffs need fewer folds, but against players who call too much even those fail.</p>` },
+        { h: 'How often to defend', body: `<p>From the other side: if you fold more than bet ÷ (pot + bet) of your hands, any two cards make money bluffing you. To stop that, keep going (call or raise) with at least</p><p class="formula">pot ÷ (pot + bet)</p><p>of your range: 67% against half the pot, 50% against a pot-sized bet. This <em>minimum defence</em> matters against players who bluff well. Against a rock who never bluffs, fold more; against a maniac, call more.</p>` },
+        { h: 'Your own bets: how many bluffs', body: `<p>When you bet, your opponent's price is bet ÷ (pot + 2 × bet). If that share of your bets are bluffs, calling and folding earn them the same: about one bluff for two value bets with a pot-sized bet (33%), one for three with half the pot (25%).</p><p>Pick bluffs that cannot win at showdown and that hold cards your opponent needs to call.</p>` },
+      ],
+      quiz: [
+        { q: 'You bluff the size of the pot. How often must they fold for it to make money?', options: ['33%', '50%', '67%'], answer: 1, why: 'You risk 1 pot to win 1 pot: 1 ÷ (1 + 1) = 50%.' },
+        { q: 'A good player bets half the pot on the river. What is the least share of your hands you should keep going with?', options: ['33%', '50%', '67%'], answer: 2, why: 'Pot ÷ (pot + bet) = 1 ÷ 1.5 = 67%.' },
+        { q: 'You bet the pot on the river. About what share of your bets can be bluffs?', options: ['One in three', 'One in two', 'None'], answer: 0, why: 'Their price is 1 ÷ (1 + 2) = 33%: one bluff for two value bets.' },
+      ],
+    },
+    {
+      id: 'pushfold', title: 'Short stacks: push or fold', drill: 'pushfold',
+      intro: 'With 20 big blinds or less, all-in or fold, and which hands are worth it.',
+      sections: [
+        { h: 'Stack size changes the game', body: `<p>With 100 bb you can raise, see flops and fold to pressure. With 15 bb or less a normal raise puts a large share of your stack in, and you can no longer fold to a re-raise. The simple, strong answer is all-in or fold.</p>` },
+        { h: 'Why all-in works', body: `<p>A push wins the blinds every time they fold, and still has equity when called. Your opponent must call with a hand good enough to win often against your whole pushing range. Calling needs a better hand than pushing, because a call can never win by a fold.</p>` },
+        { h: 'The chart', body: `<p>Folded to you in the small blind, against the big blind alone and with no antes, the solved game says: with 10 bb push 58% of hands, and the big blind calls with 37%. The fewer chips, the more you push: 73% at 5 bb, 41% at 20 bb.</p>{{push 10}}{{call 10}}<p>The charts for every stack are under Tools, <em>Push or fold</em>.</p>` },
+        { h: 'Hands to remember', body: `<p>Every ace and every pair pushes at 20 bb and below. K2o pushes up to 11.5 bb, Q2o up to 7, 72o only at 1.5 or less. The big blind calls 22 up to 14.5 bb and K9o up to 16.5, but 87s only up to 6.5.</p><p>These numbers are for heads-up play or when everyone else has folded, without antes. Antes make the pot bigger and the ranges wider; close to the prize places of a tournament, push and call tighter.</p>` },
+      ],
+      quiz: [
+        { q: 'Folded to you in the small blind with 8 bb and K♦ 4♣.', options: ['Push all-in', 'Fold'], answer: 0, why: 'K4o pushes up to 13 bb.' },
+        { q: 'With 10 bb, who needs the stronger hand: the player who pushes or the one who calls?', options: ['The one who pushes', 'The one who calls'], answer: 1, why: 'A push also wins when they fold; a call only wins at showdown. The big blind calls 37% against a 58% push.' },
+        { q: 'The small blind pushes 15 bb and you hold 8♠ 7♠ in the big blind.', options: ['Call', 'Fold'], answer: 1, why: '87s calls only up to 6.5 bb: against a 15 bb push it is too weak.' },
+      ],
+    },
+    {
       id: 'mind', title: 'Bankroll and mindset', drill: null,
       intro: 'Variance, how much money to sit down with, and how to keep improving.',
       sections: [
@@ -157,11 +233,16 @@
 
   const DRILLS = [
     { id: 'showdown', title: 'Which hand wins?', about: 'Two hands and a board: pick the winner, or a split.', target: 20, lesson: 'hands' },
+    { id: 'namehand', title: 'Name your hand', about: 'Your cards and a flop or turn: what do you have?', target: 20, lesson: 'yourhand' },
     { id: 'preflop', title: 'Open, call or fold', about: 'A seat, the action before you and your hand: play it by the chart.', target: 30, lesson: 'starting' },
     { id: 'outs', title: 'Count the outs', about: 'A draw on the flop or the turn: how many cards complete it?', target: 15, lesson: 'outs' },
     { id: 'potodds', title: 'Pot odds', about: 'The pot, a bet and your draw: the price, then call or fold.', target: 20, lesson: 'odds' },
     { id: 'equity', title: 'Who is ahead?', about: 'Two hands before the flop: how big a favourite is the first?', target: 15, lesson: 'outs' },
     { id: 'nuts', title: 'Find the nuts', about: 'A board: which two cards would make the best hand?', target: 15, lesson: 'reading' },
+    { id: 'postflop', title: 'Call or fold after the flop', about: 'You called a raise and they bet the flop: is the price right for your hand?', target: 15, lesson: 'handreading' },
+    { id: 'combos', title: 'Count the combos', about: 'A board, maybe your cards: how many ways can they hold a hand?', target: 15, lesson: 'combos' },
+    { id: 'river', title: 'River math', about: 'How often a bluff must work, how often to defend, how many bets can be bluffs.', target: 15, lesson: 'river' },
+    { id: 'pushfold', title: 'Push or fold', about: 'Short-stacked in the blinds: all-in, call or fold by the solved chart.', target: 25, lesson: 'pushfold' },
   ];
 
   const api = { LESSONS, DRILLS };
