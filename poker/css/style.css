@@ -84,29 +84,67 @@ main { padding-top: 12px; outline: none; }
 .chips-row .cg { color: var(--muted); font-size: 0.82rem; width: 100%; }
 
 /* ---------- cards ---------- */
-.card { position: relative; display: inline-block; width: 2.5em; height: 3.5em; border-radius: 0.3em; overflow: hidden; color: var(--spade); vertical-align: middle; flex: none;
-  background: radial-gradient(120% 90% at 30% 15%, #fffdf6 0%, #f6efe0 55%, #e7dcc5 100%);
-  box-shadow: inset 0 0 0 1px rgba(24, 36, 43, 0.12), inset 0 -2px 0 rgba(24, 36, 43, 0.06), 0 1px 0 rgba(0, 0, 0, 0.3), 0 5px 12px rgba(0, 0, 0, 0.28); }
-.card .ix { position: absolute; left: 0.15em; top: 0.14em; display: flex; flex-direction: column; align-items: center; width: 0.95em; }
-.card .ix b { font-weight: 800; font-stretch: var(--cond); font-size: 1.02em; line-height: 0.92; letter-spacing: -0.05em; }
-.card .ix svg { width: 0.62em; height: 0.62em; margin-top: 0.05em; fill: currentColor; }
-.card .ix.rev { left: auto; top: auto; right: 0.15em; bottom: 0.14em; transform: rotate(180deg); }
-.card .pip { position: absolute; left: 50%; top: 50%; width: 1.3em; height: 1.3em; transform: translate(-45%, -45%); fill: currentColor; filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.6)); }
-.card.mini .ix { left: 0.18em; top: 0.16em; width: auto; }
-.card.mini .ix b { font-size: 1.3em; }
-.card.mini .ix svg { width: 0.85em; height: 0.85em; }
-.card.mini .ix.rev { display: none; }
-.card.mini .pip { left: auto; top: auto; right: 0.16em; bottom: 0.16em; width: 1em; height: 1em; transform: none; filter: none; }
+/* A card is sized by its font-size (2.5em by 3.5em). Its parts: .ix (the rank, with a small suit under it), .pip (the
+ * big suit) and, on a jack, queen or king, .crown. Four decks place and colour those parts differently; the deck is
+ * the data-deck of the body (Settings), or of any element around a card (the samples in Settings). */
+.card { position: relative; display: inline-block; width: 2.5em; height: 3.5em; border-radius: 0.3em; overflow: hidden; vertical-align: middle; flex: none; color: var(--spade);
+  background: linear-gradient(160deg, #fffaf0, #e6dcc6); box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.26); }
 .card.h { color: var(--heart); }
 .card.d { color: var(--diamond); }
 .card.c { color: var(--club); }
-.card.back { background-color: #1d4859; border: 0;
-  background-image: radial-gradient(circle at 50% 50%, #e4573d 0 0.3em, rgba(228, 87, 61, 0) 0.32em),
-    radial-gradient(circle at 50% 50%, rgba(242, 235, 220, 0) 0 0.44em, rgba(242, 235, 220, 0.6) 0.46em 0.52em, rgba(242, 235, 220, 0) 0.54em),
-    repeating-linear-gradient(45deg, rgba(242, 235, 220, 0.11) 0 1px, rgba(0, 0, 0, 0) 1px 0.28em),
-    repeating-linear-gradient(-45deg, rgba(242, 235, 220, 0.11) 0 1px, rgba(0, 0, 0, 0) 1px 0.28em);
-  box-shadow: inset 0 0 0 0.13em #f2ebdc, inset 0 0 0 0.2em #1d4859, inset 0 0 0 0.24em rgba(242, 235, 220, 0.35), 0 1px 0 rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.3); }
-.card.slot { background: transparent; box-shadow: none; border: 1.5px dashed rgba(242, 235, 220, 0.22); }
+.card svg { position: absolute; fill: currentColor; }
+.card .ix { position: absolute; left: 0.2em; top: 0.16em; display: flex; flex-direction: column; align-items: center; }
+.card .ix b { font-weight: 800; font-stretch: var(--cond); font-size: 1.5em; line-height: 0.9; letter-spacing: -0.05em; }
+.card .ix svg { position: static; display: none; }
+.card .pip { right: 0.2em; bottom: 0.2em; width: 1.35em; height: 1.35em; }
+.card .crown { display: none; }
+
+/* Jumbo: the rank big in one corner, the suit big in the other. This is the base above. */
+
+/* Classic: a corner index, the suit in the middle, a crown on the court cards, a fine frame */
+[data-deck="classic"] .card { background: radial-gradient(130% 100% at 30% 10%, #fffef9, #f3ecdd 60%, #e4d9c2); }
+[data-deck="classic"] .card::after { content: ''; position: absolute; inset: 0.2em; border: 1px solid currentColor; border-radius: 0.16em; opacity: 0.22; pointer-events: none; }
+[data-deck="classic"] .card .ix { left: 0.3em; top: 0.3em; }
+[data-deck="classic"] .card .ix b { font-size: 1.08em; }
+[data-deck="classic"] .card .ix svg { display: block; width: 0.56em; height: 0.56em; margin-top: 0.08em; }
+[data-deck="classic"] .card .pip { right: auto; bottom: auto; left: 60%; top: 64%; width: 1.25em; height: 1.25em; transform: translate(-50%, -50%); }
+[data-deck="classic"] .card.ace .pip { width: 1.6em; height: 1.6em; }
+[data-deck="classic"] .card.face .pip { top: 74%; width: 0.95em; height: 0.95em; }
+[data-deck="classic"] .card.face .crown { display: block; left: 60%; top: 50%; width: 1.15em; height: 0.58em; transform: translate(-50%, -50%); }
+[data-deck="classic"] .card.mini::after { display: none; }
+[data-deck="classic"] .card.mini .ix { left: 0.2em; top: 0.16em; }
+[data-deck="classic"] .card.mini .ix b { font-size: 1.4em; }
+[data-deck="classic"] .card.mini .ix svg, [data-deck="classic"] .card.mini .crown { display: none; }
+[data-deck="classic"] .card.mini .pip { left: auto; top: auto; right: 0.18em; bottom: 0.18em; width: 1.05em; height: 1.05em; transform: none; }
+
+/* Solid: the whole card in the colour of its suit, as many online rooms draw them */
+[data-deck="solid"] .card { color: #fff; background: linear-gradient(165deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 42%, rgba(0, 0, 0, 0.16)), #2c3b45; }
+[data-deck="solid"] .card.h, [data-deck="solid"] .card.d { background-color: #c5362e; }
+.four-color[data-deck="solid"] .card.d, .four-color [data-deck="solid"] .card.d { background-color: #2563b8; }
+.four-color[data-deck="solid"] .card.c, .four-color [data-deck="solid"] .card.c { background-color: #1f8a55; }
+[data-deck="solid"] .card .pip { opacity: 0.92; }
+
+/* Night: a dark card, the rank and the suit lit in the colour of the suit */
+[data-deck="night"] .card { color: #e9eff2; background: linear-gradient(165deg, #1a3644, #0b1921 70%); box-shadow: inset 0 0 0 1.5px currentColor, 0 4px 10px rgba(0, 0, 0, 0.4); }
+[data-deck="night"] .card.h, [data-deck="night"] .card.d { color: #ff6f6a; }
+.four-color[data-deck="night"] .card.d, .four-color [data-deck="night"] .card.d { color: #5aa9ff; }
+.four-color[data-deck="night"] .card.c, .four-color [data-deck="night"] .card.c { color: #4fdc93; }
+[data-deck="night"] .card .pip { right: auto; left: 50%; bottom: 0.3em; width: 1.3em; height: 1.3em; transform: translateX(-50%); filter: drop-shadow(0 0 0.22em currentColor); }
+[data-deck="night"] .card.mini .pip { left: auto; right: 0.16em; bottom: 0.16em; width: 1.05em; height: 1.05em; transform: none; filter: none; }
+
+/* the backs: one for each deck */
+.card.back, [data-deck] .card.back { color: transparent; background: #1d4859 repeating-linear-gradient(45deg, rgba(0, 0, 0, 0) 0 0.2em, rgba(242, 235, 220, 0.16) 0.2em 0.26em); box-shadow: inset 0 0 0 0.13em #efe6d2, 0 1px 0 rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.3); }
+.card.back::after, [data-deck] .card.back::after { display: none; }
+[data-deck="classic"] .card.back { background:
+    repeating-linear-gradient(45deg, rgba(242, 235, 220, 0.3) 0 1px, rgba(0, 0, 0, 0) 1px 0.3em),
+    repeating-linear-gradient(-45deg, rgba(242, 235, 220, 0.3) 0 1px, rgba(0, 0, 0, 0) 1px 0.3em), #a8332a;
+  box-shadow: inset 0 0 0 0.15em #f5eede, inset 0 0 0 0.21em #a8332a, inset 0 0 0 0.25em rgba(245, 238, 222, 0.7), 0 1px 0 rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.3); }
+[data-deck="solid"] .card.back { background: radial-gradient(circle at 50% 50%, #e4573d 0 0.3em, rgba(0, 0, 0, 0) 0.32em), radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0 0.5em, #efe6d2 0.52em 0.6em, rgba(0, 0, 0, 0) 0.62em), linear-gradient(165deg, #25586c, #163d4c);
+  box-shadow: inset 0 0 0 0.12em #efe6d2, 0 1px 0 rgba(0, 0, 0, 0.3), 0 4px 10px rgba(0, 0, 0, 0.3); }
+[data-deck="night"] .card.back { background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 0 0.46em, #4fdcc0 0.48em 0.55em, rgba(0, 0, 0, 0) 0.57em), linear-gradient(165deg, #1a3644, #0b1921 70%);
+  box-shadow: inset 0 0 0 1.5px #4fdcc0, 0 0 0.5em rgba(79, 220, 192, 0.25), 0 4px 10px rgba(0, 0, 0, 0.4); }
+.card.slot, [data-deck] .card.slot { background: transparent; box-shadow: none; border: 1.5px dashed rgba(242, 235, 220, 0.22); }
+.card.slot::after, [data-deck] .card.slot::after { display: none; }
 .card.mini { font-size: 11px; }
 .card.deal { animation: deal 0.46s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 @keyframes deal { from { opacity: 0.2; transform: translateY(-16px) rotateY(90deg) scale(0.9); } }
@@ -313,7 +351,7 @@ body[data-view="play"] #app { padding-bottom: calc(var(--nav-h) + 8px + env(safe
 @keyframes think { 50% { box-shadow: 0 0 0 2px rgba(9, 29, 37, 0.9), 0 0 0 6px var(--ring); } }
 .plate .nm { display: block; font-size: 0.8rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .plate .style { display: block; font-size: 0.64rem; color: var(--muted); font-stretch: var(--cond); white-space: nowrap; }
-.plate .stk { display: block; font-size: 0.8rem; font-variant-numeric: tabular-nums; font-weight: 700; color: #ffe9b0; }
+.plate .stk { display: block; white-space: nowrap; font-size: 0.8rem; font-variant-numeric: tabular-nums; font-weight: 700; color: #ffe9b0; }
 .plate .pos { position: absolute; top: -9px; left: -6px; padding: 1px 5px; border-radius: 6px; background: var(--deep-2); font-size: 0.6rem; font-weight: 700; color: var(--muted); box-shadow: 0 0 0 1px var(--line); }
 .seat.acting .plate { box-shadow: 0 0 0 2px var(--bone), 0 0 22px rgba(242, 235, 220, 0.35); }
 .seat.out .plate { opacity: 0.5; }
@@ -343,9 +381,9 @@ body[data-view="play"] #app { padding-bottom: calc(var(--nav-h) + 8px + env(safe
 .seat.hero .act { bottom: auto; top: -22px; }
 .me { display: flex; align-items: center; gap: 14px; min-height: 70px; padding: 0 2px; }
 .me .cardrow.big .card { font-size: 19px; }
-.me .cardrow { gap: 0; }
-.me .cardrow .card:first-child { transform: rotate(-5deg) translateY(2px); }
-.me .cardrow .card:last-child { transform: rotate(5deg) translate(-4px, 2px); }
+.me .cardrow { gap: 3px; }
+.me .cardrow .card:first-child { transform: rotate(-3deg) translateY(1px); }
+.me .cardrow .card:last-child { transform: rotate(3deg) translateY(1px); }
 .me .made { font-weight: 600; font-size: 0.98rem; }
 .side { display: contents; }
 .coach { min-height: 54px; order: 2; flex: none; }
@@ -392,6 +430,11 @@ body[data-view="play"] #app { padding-bottom: calc(var(--nav-h) + 8px + env(safe
 .row.col { flex-direction: column; align-items: flex-start; gap: 8px; }
 .row input[type="checkbox"] { width: 24px; height: 24px; accent-color: var(--call); flex: none; }
 .seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.decks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; width: 100%; }
+.deck-opt { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--felt-dark); cursor: pointer; font-weight: 600; text-align: left; }
+.deck-opt.on { border-color: var(--bone); box-shadow: 0 0 0 1px var(--bone); }
+.deck-opt .cardrow { gap: 3px; flex-wrap: nowrap; }
+.deck-opt .card { font-size: 13px; }
 .rv-top { display: flex; flex-wrap: wrap; gap: 14px 26px; }
 .rv-top .card { font-size: 12px; }
 .shown { color: var(--muted); margin-top: 10px; }
@@ -408,8 +451,9 @@ body[data-view="play"] #app { padding-bottom: calc(var(--nav-h) + 8px + env(safe
 .log li.raise { color: var(--bone); }
 
 @media (max-width: 999px) {
-  .center .board .card .ix.rev { display: none; }
-  .center .board .card .pip { width: 1.15em; height: 1.15em; transform: translate(-32%, -28%); }
+  /* the board cards of a phone are too small for a crown: the court cards there are drawn like the others */
+  [data-deck="classic"] .center .board .card.face .crown { display: none; }
+  [data-deck="classic"] .center .board .card.face .pip { top: 64%; width: 1.25em; height: 1.25em; }
   .fb.small { padding: 6px 10px; font-size: 0.84rem; }
   .fb.small > span:last-child { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
 }

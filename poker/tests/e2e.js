@@ -159,6 +159,22 @@ function ok(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
         }
       });
     }
+    await test(tag + ': the card designs: Jumbo first, another one chosen in Settings is kept', async () => {
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'jumbo', 'Jumbo is the default');
+      await p.click('#settingsBtn');
+      ok(await p.locator('.deck-opt').count() === 4, 'four designs offered');
+      ok(await p.locator('.deck-opt.on').getAttribute('data-deck-pick') === 'jumbo');
+      await p.click('[data-deck-pick="night"]');
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'night', 'the page takes the new design at once');
+      const dark = await p.evaluate(() => getComputedStyle(document.querySelector('.deck-opt.on .card')).backgroundImage);
+      ok(/gradient/.test(dark), 'the cards are drawn in it');
+      await p.keyboard.press('Escape');
+      await p.reload();
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'night', 'kept after a reload');
+      await p.click('#settingsBtn'); await p.click('[data-deck-pick="jumbo"]'); await p.keyboard.press('Escape');
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'jumbo');
+    });
+
     await p.context().close();
   }
 

@@ -43,6 +43,11 @@ raise, `1` to `6` the bet sizes, `Enter` next hand; in a drill `1` to `5` answer
 **Tools**: every chart, an equity calculator (a hand against a hand or a range, on any board), the table of outs, and
 the push-or-fold ranges for every stack from 2 to 20 big blinds.
 
+**Cards**: four designs to choose from in Settings, each with its own back, all drawn in CSS and SVG: **Jumbo** (the
+default: the rank big in one corner, the suit big in the other), **Classic** (a corner index, the suit in the middle,
+crowns on the court cards), **Solid** (the whole card in the colour of its suit) and **Night** (dark cards with lit
+marks). The four-colour switch (diamonds blue, clubs green) works with all of them.
+
 **The table** deals each hand from the middle, slides bets out as chips, sweeps them into the pot at the end of a
 street, turns the cards over at a showdown and pushes the pot to the winner. Most of this motion is skipped at the
 fast speed setting, and all of it when the device asks for reduced motion.
@@ -92,7 +97,7 @@ The browser keeps three things: your progress and settings (`poker.v1`), the tab
 cd poker
 python3 -m http.server 8000          # then open http://localhost:8000
 node tests/unit.js                   # 20 tests, Node only, about 10 seconds
-BASE=http://localhost:8000 node tests/e2e.js   # 18 tests in Chromium (needs Playwright)
+BASE=http://localhost:8000 node tests/e2e.js   # 20 tests in Chromium (needs Playwright)
 ```
 
 The unit tests count every five-card hand, check equities against known matchups and exact enumeration, read the

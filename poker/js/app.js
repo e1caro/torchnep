@@ -12,7 +12,7 @@
   function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
   function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage full or off */ } }
   const P = Object.assign({ v: 1, lessons: {}, drills: {}, settings: {}, stats: PK.emptyStats() }, load(KEY) || {});
-  P.settings = Object.assign({ hints: true, speed: 'normal', mix: 'mixed', fourColor: true }, P.settings);
+  P.settings = Object.assign({ hints: true, speed: 'normal', mix: 'mixed', fourColor: true, deck: 'jumbo' }, P.settings);
   P.stats = Object.assign(PK.emptyStats(), P.stats);
   const saveP = () => store(KEY, P);
   let T = load(TABLE_KEY);
@@ -23,11 +23,15 @@
   // ---------- drawing ----------
   const SUIT_ID = ['S', 'H', 'D', 'C'], SUIT_CL = ['s', 'h', 'd', 'c'], SUIT_WORD = ['spades', 'hearts', 'diamonds', 'clubs'];
   const RANK_SHOW = (r) => (r === 'T' ? '10' : r);
+  // The parts every deck draws from (css/style.css places them): the rank with a small suit under it, the big suit,
+  // and a crown on the jack, queen and king.
   function card(c, cls) {
     const r = PK.RANKS[c >> 2], s = c & 3, use = `<use href="#suit-${SUIT_ID[s]}"/>`;
-    const ix = `<b>${RANK_SHOW(r)}</b><svg aria-hidden="true">${use}</svg>`;
-    return `<span class="card ${SUIT_CL[s]} ${cls || ''}" role="img" aria-label="${PK.RANK_NAME[c >> 2]} of ${SUIT_WORD[s]}"><span class="ix">${ix}</span><svg class="pip" aria-hidden="true">${use}</svg><span class="ix rev" aria-hidden="true">${ix}</span></span>`;
+    const court = 'JQK'.includes(r);
+    return `<span class="card ${SUIT_CL[s]}${court ? ' face' : r === 'A' ? ' ace' : ''} ${cls || ''}" role="img" aria-label="${PK.RANK_NAME[c >> 2]} of ${SUIT_WORD[s]}"><span class="ix"><b>${RANK_SHOW(r)}</b><svg aria-hidden="true">${use}</svg></span>` +
+      `<svg class="pip" aria-hidden="true">${use}</svg>${court ? `<svg class="crown" aria-hidden="true"><use href="#crown-${r}"/></svg>` : ''}</span>`;
   }
+  const DECKS = [['jumbo', 'Jumbo'], ['classic', 'Classic'], ['solid', 'Solid'], ['night', 'Night']];
   const cards = (list, cls) => list.map((c) => card(c, cls)).join('');
   const back = (cls) => `<span class="card back ${cls || ''}" aria-label="a card face down"></span>`;
   const slot = () => '<span class="card slot" aria-hidden="true"></span>';
@@ -804,6 +808,7 @@
     openSheet(`<h2>Settings</h2>
       <label class="row"><span><b>Coach hints</b><small>The chart's play before the flop, your equity and the price after it, before you act. Grades come after you act either way.</small></span><input type="checkbox" id="setHints" ${S.hints ? 'checked' : ''}></label>
       <div class="row col"><b>Speed of the other players</b>${seg('speed', [['fast', 'Fast'], ['normal', 'Normal'], ['slow', 'Slow']])}</div>
+      <div class="row col"><b>Cards</b><div class="decks">${DECKS.map(([k, t]) => `<button class="deck-opt${S.deck === k ? ' on' : ''}" data-deck-pick="${k}"><span class="cardrow" data-deck="${k}">${cards(PK.parseCards('As Kh 7d'))}${back()}</span>${t}</button>`).join('')}</div></div>
       <label class="row"><span><b>Four-colour deck</b><small>Diamonds blue and clubs green, as most online rooms do: flushes are easier to see.</small></span><input type="checkbox" id="setColors" ${S.fourColor ? 'checked' : ''}></label>
       <div class="row col"><b>Opponents at a new table</b>${seg('mix', [['soft', 'Soft'], ['mixed', 'Mixed'], ['tough', 'Tough']])}<small>Soft: mostly calling stations. Mixed: one of each kind and two regulars. Tough: regulars and a maniac.</small></div>
       <div class="row col"><button class="btn" id="newTable">Leave this table and sit at a new one</button></div>
@@ -845,6 +850,7 @@
     if (t.id === 'openSettings' || t.id === 'settingsBtn') { settingsSheet(); return; }
     if (t.id === 'reviewLast') { reviewSheet(HANDS[0]); return; }
     if (t.dataset.review !== undefined) { reviewSheet(HANDS[+t.dataset.review]); return; }
+    if (t.dataset.deckPick) { P.settings.deck = t.dataset.deckPick; saveP(); applySettings(); settingsSheet(); return; }
     if (t.dataset.set) { P.settings[t.dataset.set] = t.dataset.val; saveP(); settingsSheet(); if (view.name === 'play') drawTable(); return; }
     if (t.id === 'newTable') { stopLoop(); T = null; ensureTable(); lastActs = {}; feedback = null; closeSheet(); go('play'); return; }
     if (t.id === 'resetStats') { if (confirm('Clear your play statistics and hand history?')) { P.stats = PK.emptyStats(); HANDS = []; store(HANDS_KEY, HANDS); saveP(); render(); } return; }
@@ -890,11 +896,14 @@
     if (view.name !== 'learn') { go('learn'); return true; }
     return false;
   }
-  function applySettings() { document.body.classList.toggle('four-color', !!P.settings.fourColor); }
+  function applySettings() {
+    document.body.classList.toggle('four-color', !!P.settings.fourColor);
+    document.body.dataset.deck = DECKS.some((d) => d[0] === P.settings.deck) ? P.settings.deck : 'jumbo';
+  }
   $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
   // what the Android app asks when Back is pressed: true when the page handled it
-  window.PokerApp = { back: goBack, get state() { return T; }, get progress() { return P; }, get drill() { return D; }, get advice() { return advice; }, go, deal, heroAct, PK };
+  window.PokerApp = { back: goBack, get state() { return T; }, get progress() { return P; }, get drill() { return D; }, get advice() { return advice; }, go, deal, heroAct, PK, cardHTML: card, backHTML: back };
   applySettings();
   const start = (location.hash || '').replace('#', '');
   go(TABS.includes(start) ? start : 'learn');
