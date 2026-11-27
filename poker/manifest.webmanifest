@@ -2,7 +2,7 @@
   "id": "./index.html",
   "name": "Poker Coach",
   "short_name": "Poker Coach",
-  "description": "Learn to play Texas Hold'em well: lessons, drills and a six-player table where a coach grades every decision.",
+  "description": "Learn to play Texas Hold'em well: fifteen lessons, eleven drills and a six-player table where a coach grades every decision.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

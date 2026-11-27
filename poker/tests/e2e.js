@@ -34,7 +34,7 @@ function ok(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
     const p = await open(w, h, { touch });
 
     await test(tag + ': the lessons, the hero chart and every tab', async () => {
-      ok(await p.locator('.path li').count() === 10, 'ten lessons');
+      ok(await p.locator('.path li').count() === 15, 'fifteen lessons');
       ok(await p.locator('.hero-block .grid i').count() === 169, 'the hero chart');
       ok(await p.locator('#back').isHidden(), 'no Back on the first screen');
       for (const tab of ['drills', 'play', 'tools', 'learn']) {
@@ -44,7 +44,7 @@ function ok(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
     });
 
     await test(tag + ': a lesson check, then Back returns to the list', async () => {
-      await p.click('.path li:nth-child(6) button');
+      await p.click('.path li:nth-child(7) button');
       ok((await p.textContent('#title')) === 'Outs and equity');
       await p.click('[data-quiz="0"][data-opt="2"]'); // 15 outs: right
       await p.click('[data-quiz="1"][data-opt="0"]'); // wrong
@@ -57,7 +57,7 @@ function ok(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
     });
 
     await test(tag + ': every drill answers, with the keyboard on a computer', async () => {
-      for (const id of ['showdown', 'preflop', 'outs', 'potodds', 'equity', 'nuts']) {
+      for (const id of ['showdown', 'namehand', 'preflop', 'outs', 'potodds', 'equity', 'nuts', 'postflop', 'combos', 'river', 'pushfold']) {
         await p.evaluate((d) => window.PokerApp.go('drill', d), id);
         for (let k = 0; k < 3; k++) {
           if (touch) await p.locator('#dq .opt').first().click();
@@ -82,6 +82,17 @@ function ok(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
       const t = await p.textContent('.eq-res');
       const e = parseFloat(/You: ([\d.]+)%/.exec(t)[1]);
       ok(e > 55 && e < 59.5, 'AKs against the top 10% (about 57%): ' + e);
+    });
+
+    await test(tag + ': the push-or-fold tool: every stack, pushing wider than calling', async () => {
+      await p.evaluate(() => window.PokerApp.go('pushfold'));
+      for (const x of ['5', '15']) {
+        await p.click(`[data-push="${x}"]`);
+        const n = await p.locator('.pf-pair .grid').count();
+        ok(n === 2, 'two charts');
+        const push = await p.locator('.pf-pair .grid-fig:first-child .grid i.r').count(), call = await p.locator('.pf-pair .grid-fig:last-child .grid i.c').count();
+        ok(push > call && call > 0, x + ' bb: ' + push + ' pushing hands, ' + call + ' calling');
+      }
     });
 
     await test(tag + ': five hands at the table, graded, counted and listed', async () => {
@@ -148,6 +159,22 @@ function ok(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
         }
       });
     }
+    await test(tag + ': the card designs: Jumbo first, another one chosen in Settings is kept', async () => {
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'jumbo', 'Jumbo is the default');
+      await p.click('#settingsBtn');
+      ok(await p.locator('.deck-opt').count() === 4, 'four designs offered');
+      ok(await p.locator('.deck-opt.on').getAttribute('data-deck-pick') === 'jumbo');
+      await p.click('[data-deck-pick="night"]');
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'night', 'the page takes the new design at once');
+      const dark = await p.evaluate(() => getComputedStyle(document.querySelector('.deck-opt.on .card')).backgroundImage);
+      ok(/gradient/.test(dark), 'the cards are drawn in it');
+      await p.keyboard.press('Escape');
+      await p.reload();
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'night', 'kept after a reload');
+      await p.click('#settingsBtn'); await p.click('[data-deck-pick="jumbo"]'); await p.keyboard.press('Escape');
+      ok(await p.evaluate(() => document.body.dataset.deck) === 'jumbo');
+    });
+
     await p.context().close();
   }
 

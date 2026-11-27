@@ -55,7 +55,7 @@
     var outside = performance.getEntriesByType('resource').map(function (r) { return r.name; })
       .filter(function (u) { return u.indexOf(location.origin) !== 0 && !/^(data|blob):/.test(u); });
     ok(!outside.length, 'asked the network for ' + outside.join(', '));
-    ok($$('.path li').length === 10, 'the ten lessons are not listed');
+    ok($$('.path li').length === 15, 'the fifteen lessons are not listed');
     await api.Report('      ' + innerWidth + 'x' + innerHeight + ', ' + navigator.userAgent);
   });
 

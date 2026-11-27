@@ -1,6 +1,6 @@
 # Poker Coach for Windows
 
-One program, `PokerCoach.exe`, holding the web app of `../poker`: the ten lessons, the six drills, the table with its
+One program, `PokerCoach.exe`, holding the web app of `../poker`: the fifteen lessons, the eleven drills, the table with its
 coach and the tools. It works offline: nothing is read from or sent to the network, the typeface included.
 
 Each release `poker-pc-N` carries it two ways, for Windows 10 and 11:

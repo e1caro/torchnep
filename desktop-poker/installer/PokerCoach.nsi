@@ -48,7 +48,7 @@ VIAddVersionKey "LegalCopyright" "Free software under the GNU GPL v3"
 !define MUI_UNICON "icon.ico"
 !define MUI_ABORTWARNING
 !define MUI_WELCOMEPAGE_TITLE "Poker Coach ${VERSION}"
-!define MUI_WELCOMEPAGE_TEXT "This puts Poker Coach on this computer: ten lessons on Texas Hold'em, six drills, and a six-player table where a coach grades every decision.$\r$\n$\r$\nIt installs for you only, so no administrator is needed, and it works offline. If you have played before, your progress is kept.$\r$\n$\r$\nChoose Next to continue."
+!define MUI_WELCOMEPAGE_TEXT "This puts Poker Coach on this computer: fifteen lessons on Texas Hold'em, eleven drills, and a six-player table where a coach grades every decision.$\r$\n$\r$\nIt installs for you only, so no administrator is needed, and it works offline. If you have played before, your progress is kept.$\r$\n$\r$\nChoose Next to continue."
 !define MUI_FINISHPAGE_RUN "$INSTDIR\PokerCoach.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "Open Poker Coach now"
 

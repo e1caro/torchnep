@@ -12,7 +12,7 @@
   function load(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
   function store(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage full or off */ } }
   const P = Object.assign({ v: 1, lessons: {}, drills: {}, settings: {}, stats: PK.emptyStats() }, load(KEY) || {});
-  P.settings = Object.assign({ hints: true, speed: 'normal', mix: 'mixed', fourColor: true }, P.settings);
+  P.settings = Object.assign({ hints: true, speed: 'normal', mix: 'mixed', fourColor: true, deck: 'jumbo' }, P.settings);
   P.stats = Object.assign(PK.emptyStats(), P.stats);
   const saveP = () => store(KEY, P);
   let T = load(TABLE_KEY);
@@ -23,10 +23,15 @@
   // ---------- drawing ----------
   const SUIT_ID = ['S', 'H', 'D', 'C'], SUIT_CL = ['s', 'h', 'd', 'c'], SUIT_WORD = ['spades', 'hearts', 'diamonds', 'clubs'];
   const RANK_SHOW = (r) => (r === 'T' ? '10' : r);
+  // The parts every deck draws from (css/style.css places them): the rank with a small suit under it, the big suit,
+  // and a crown on the jack, queen and king.
   function card(c, cls) {
-    const r = PK.RANKS[c >> 2], s = c & 3;
-    return `<span class="card ${SUIT_CL[s]} ${cls || ''}" role="img" aria-label="${PK.RANK_NAME[c >> 2]} of ${SUIT_WORD[s]}"><b>${RANK_SHOW(r)}</b><svg aria-hidden="true"><use href="#suit-${SUIT_ID[s]}"/></svg></span>`;
+    const r = PK.RANKS[c >> 2], s = c & 3, use = `<use href="#suit-${SUIT_ID[s]}"/>`;
+    const court = 'JQK'.includes(r);
+    return `<span class="card ${SUIT_CL[s]}${court ? ' face' : r === 'A' ? ' ace' : ''} ${cls || ''}" role="img" aria-label="${PK.RANK_NAME[c >> 2]} of ${SUIT_WORD[s]}"><span class="ix"><b>${RANK_SHOW(r)}</b><svg aria-hidden="true">${use}</svg></span>` +
+      `<svg class="pip" aria-hidden="true">${use}</svg>${court ? `<svg class="crown" aria-hidden="true"><use href="#crown-${r}"/></svg>` : ''}</span>`;
   }
+  const DECKS = [['jumbo', 'Jumbo'], ['classic', 'Classic'], ['solid', 'Solid'], ['night', 'Night']];
   const cards = (list, cls) => list.map((c) => card(c, cls)).join('');
   const back = (cls) => `<span class="card back ${cls || ''}" aria-label="a card face down"></span>`;
   const slot = () => '<span class="card slot" aria-hidden="true"></span>';
@@ -39,17 +44,20 @@
 
   function grid(key, opts) {
     opts = opts || {};
-    const ch = PK.CHARTS[key];
+    const ch = typeof key === 'string' ? PK.CHARTS[key] : key;
     const cells = PK.HANDS.map((h) => {
-      const a = ch.raise.has(h.name) ? 'r' : ch.call.has(h.name) ? 'c' : 'f';
+      const a = ch.raise.has(h.name) ? (ch.callColour ? 'c' : 'r') : ch.call.has(h.name) ? 'c' : 'f';
       return `<i class="${a}${opts.mark === h.name ? ' mark' : ''}" style="--d:${h.row + h.col}">${h.name}</i>`;
     }).join('');
     const r = PK.rangePct(ch.raise), c = PK.rangePct(ch.call);
-    const raiseWord = key.startsWith('open') || key.startsWith('vsLimp') ? 'Raise' : key === 'vs3bet.IP' || key === 'vs3bet.OOP' ? 'Raise again (4-bet)' : key === 'vs4bet' ? 'All-in' : 'Re-raise (3-bet)';
-    const legend = `<span class="lg r">${raiseWord} ${pct(r)}</span>` + (c ? `<span class="lg c">Call ${pct(c)}</span>` : '') + `<span class="lg f">Fold ${pct(1 - r - c)}</span>`;
+    const raiseWord = ch.words || (key.startsWith('open') || key.startsWith('vsLimp') ? 'Raise' : key === 'vs3bet.IP' || key === 'vs3bet.OOP' ? 'Raise again (4-bet)' : key === 'vs4bet' ? 'All-in' : 'Re-raise (3-bet)');
+    const legend = `<span class="lg ${ch.callColour ? 'c' : 'r'}">${raiseWord} ${pct(r)}</span>` + (c ? `<span class="lg c">Call ${pct(c)}</span>` : '') + `<span class="lg f">Fold ${pct(1 - r - c)}</span>`;
     return `<figure class="grid-fig${opts.hero ? ' hero' : ''}"><div class="grid${opts.animate && !reduced ? ' animate' : ''}">${cells}</div>` +
-      `<figcaption>${opts.caption === false ? '' : `<span class="gt">${esc(PK.CHART_TITLE[key])}</span>`}<span class="legend">${legend}</span></figcaption></figure>`;
+      `<figcaption>${opts.caption === false ? '' : `<span class="gt">${esc(ch.title || PK.CHART_TITLE[key])}</span>`}<span class="legend">${legend}</span></figcaption></figure>`;
   }
+  const NONE = new Set();
+  const pushChart = (stack) => ({ raise: PK.pushRange(stack), call: NONE, words: 'Push all-in', title: 'Small blind, ' + stack + ' bb, folded to you' });
+  const callChart = (stack) => ({ raise: PK.callRange(stack), call: NONE, words: 'Call', callColour: true, title: 'Big blind, facing a push of ' + stack + ' bb' });
   const LADDER = [
     ['Straight flush', '9s 8s 7s 6s 5s', 40, 'Five in a row, one suit. A-K-Q-J-T of one suit is a royal flush.'],
     ['Four of a kind', 'Qc Qd Qh Qs 7d', 624, ''],
@@ -80,6 +88,8 @@
     return suitText(html)
       .replace(/\{\{cards ([^}]+)\}\}/g, (m, cs) => `<div class="cardrow">${cards(PK.parseCards(cs))}</div>`)
       .replace(/\{\{grid ([^}]+)\}\}/g, (m, k) => grid(k.trim()))
+      .replace(/\{\{push ([\d.]+)\}\}/g, (m, x) => grid(pushChart(+x)))
+      .replace(/\{\{call ([\d.]+)\}\}/g, (m, x) => grid(callChart(+x)))
       .replace(/\{\{ladder\}\}/g, ladder)
       .replace(/\{\{seats\}\}/g, seatsDiagram)
       .replace(/\{\{odds\}\}/g, () => oddsTable());
@@ -89,7 +99,7 @@
   let view = { name: 'learn' };
   let sheet = null;
   const TABS = ['learn', 'drills', 'play', 'tools'];
-  const PARENT = { lesson: 'learn', drill: 'drills', chart: 'tools', equity: 'tools', odds: 'tools', stats: 'play' };
+  const PARENT = { lesson: 'learn', drill: 'drills', chart: 'tools', equity: 'tools', odds: 'tools', pushfold: 'tools', stats: 'play' };
   function go(name, arg, opts) {
     if (name !== 'play') stopLoop();
     view = { name, arg };
@@ -108,7 +118,7 @@
   }
   const TITLES = {
     learn: () => 'Poker Coach', lesson: (id) => lessonById(id).title, drills: () => 'Drills', drill: (id) => drillById(id).title,
-    play: () => 'Table', tools: () => 'Tools', chart: () => 'Charts', equity: () => 'Equity calculator', odds: () => 'Outs and odds', stats: () => 'Your play',
+    play: () => 'Table', tools: () => 'Tools', chart: () => 'Charts', equity: () => 'Equity calculator', odds: () => 'Outs and odds', pushfold: () => 'Push or fold', stats: () => 'Your play',
   };
   const lessonById = (id) => PKL.LESSONS.find((l) => l.id === id);
   const drillById = (id) => PKL.DRILLS.find((d) => d.id === id);
@@ -122,7 +132,7 @@
     const passed = PKL.DRILLS.filter((d) => drillState(d.id).best >= d.target).length;
     const nIdx = next ? L.indexOf(next) + 1 : 0;
     return `<section class="hero-block">
-      <div class="hero-text"><h1 class="display">Learn to play Hold'em well</h1>
+      <div class="hero-text"><div class="hero-fan${!P.seenHero && !reduced ? ' animate' : ''}" aria-hidden="true">${card(PK.parseCard('As'))}${card(PK.parseCard('Ah'))}</div><h1 class="display">Learn to play Hold'em well</h1>
       <p class="lede">Raise these hands when it is folded to you on the button, fold the rest. The ${L.length} lessons show why, the drills make it automatic, and the table puts it to work with a coach watching every decision.</p></div>
       ${grid('open.BTN', { hero: true, animate: !P.seenHero })}
     </section>
@@ -197,6 +207,11 @@
       case 'potodds': { const q = (function f() { const x = PK.drillPotOdds(R); return x.close ? f() : x; })(); q.type = R() < 0.5 ? 'need' : 'decide'; return q; }
       case 'equity': return PK.drillEquity(R);
       case 'nuts': return PK.drillNuts(R);
+      case 'namehand': return PK.drillNameHand(R);
+      case 'combos': return PK.drillCombos(R);
+      case 'river': return PK.drillRiver(R);
+      case 'postflop': return PK.drillPostflop(R);
+      case 'pushfold': return PK.drillPushFold(R);
     }
   }
   VIEWS.drill = (id) => {
@@ -241,8 +256,32 @@
     if (id === 'nuts') return `<p class="prompt">Which two cards make the best possible hand on this board?</p>
       <div class="board">${cards(q.board)}</div>
       <div class="opts grid2">${q.options.map((o, i) => `<button class="opt hand-opt" data-ans="${i}"><kbd>${i + 1}</kbd>${cards(o.hand, 'mini')}</button>`).join('')}</div>`;
+    if (id === 'namehand') return `<p class="prompt">What do you have?</p>
+      <div class="board">${cards(q.board)}${q.board.length === 3 ? slot() + slot() : slot()}</div><div class="cardrow big">${cards(q.hole)}</div>
+      <div class="opts col">${q.choices.map((c, i) => opt(c, PK.HAND_NAMES[c], i + 1)).join('')}</div>`;
+    if (id === 'postflop') return `<p class="prompt">${esc(q.spot.story)} The flop comes, you ${q.spot.you === 'BB' ? 'check, ' : ''}and ${WHO[q.spot.they]} bets <b>${q.bet} bb</b> into <b>${q.pot} bb</b>.</p>
+      <div class="board">${cards(q.board)}${slot()}${slot()}</div><div class="cardrow big">${cards(q.hole)}</div>
+      <div class="opts row">${opt('fold', 'Fold', 1)}${opt('call', 'Call', 2)}</div>`;
+    if (id === 'combos') {
+      const label = (n) => n.length === 2 ? n : n.length === 3 ? n.slice(0, 2) + (n[2] === 's' ? ' suited' : ' offsuit') : n;
+      const what = q.kind === 'sets' ? 'How many combinations make <b>a set</b> on this flop?' : `How many combinations of <b>${label(q.name)}</b>${q.name.length === 2 && q.name[0] !== q.name[1] ? ' (any suits)' : ''} can your opponent hold?`;
+      return `<p class="prompt">${what}</p><div class="board">${cards(q.board)}</div>${q.hole.length ? `<p class="hl">You hold</p><div class="cardrow">${cards(q.hole)}</div>` : ''}
+        <div class="opts row">${q.choices.map((c, i) => opt(c, String(c), i + 1)).join('')}</div>`;
+    }
+    if (id === 'river') {
+      const ask = q.kind === 'bluff' ? `You bet <b>${q.bet} bb</b> into <b>${q.pot} bb</b> on the river as a bluff. How often must they fold for it to make money?`
+        : q.kind === 'defend' ? `A good player bets <b>${q.bet} bb</b> into <b>${q.pot} bb</b> on the river. What share of your hands must you keep (call or raise) so that their bluffs do not make money?`
+          : `You bet <b>${q.words}</b> on the river. What share of your bets can be bluffs, so that calling and folding earn your opponent the same?`;
+      return `<p class="prompt">${ask}</p><div class="opts row">${q.choices.map((v, i) => opt(v.toFixed(4), pct(v), i + 1)).join('')}</div>`;
+    }
+    if (id === 'pushfold') {
+      const ask = q.kind === 'push' ? `Folded to you in the small blind. You have <b>${q.stack} bb</b>; the big blind covers you.` : `The small blind pushes all-in for <b>${q.stack} bb</b>. You are in the big blind.`;
+      return `<p class="prompt">${ask}</p><div class="cardrow big">${cards(q.combo)}</div>
+        <div class="opts row">${q.kind === 'push' ? opt('push', 'Push all-in', 1) : opt('call', 'Call', 1)}${opt('fold', 'Fold', 2)}</div>`;
+    }
     return '';
   }
+  const upTo = (x) => (x >= 20.5 ? 'at every stack up to 20 bb and beyond' : 'up to ' + x + ' bb');
   function answerDrill(v) {
     if (!D || D.done) return;
     const { id, q } = D, s = drillState(id), d = drillById(id);
@@ -277,8 +316,26 @@
     } else if (id === 'nuts') {
       right = +v === q.answer;
       text = `<b>The nuts: ${q.nut.toLowerCase()}</b>${q.nutCombos > 1 ? ` (${q.nutCombos} combinations make it)` : ''}.<ul class="nutlist">${q.options.map((o) => `<li>${cards(o.hand, 'mini')} ${esc(o.desc)}</li>`).join('')}</ul>`;
+    } else if (id === 'namehand') {
+      right = +v === q.answer;
+      text = `<b>${PK.HAND_NAMES[q.answer]}</b>: ${esc(q.made)}${q.draws.length ? ', with ' + esc(q.draws.join(' and ')) : ''}.${q.texture.words ? ' The board: ' + esc(q.texture.words) + '.' : ''}`;
+    } else if (id === 'postflop') {
+      right = v === q.answer;
+      text = `You call ${q.bet} to win ${q.pot} + ${q.bet}: you need <b>${pct(q.need)}</b>. Against the hands ${WHO[q.spot.they]} raises and then bets ${q.words} with, you have about <b>${pct(q.equity)}</b> (${esc(q.made)}${q.draws.length ? ', ' + esc(q.draws.join(', ')) : ''}). <b>${q.answer === 'call' ? 'Call' : 'Fold'}.</b>${q.raise ? ' With this much, raising is even better.' : ''}`;
+    } else if (id === 'combos') {
+      right = +v === q.answer;
+      text = `<b>${q.answer}</b>: ${esc(q.why)}.${q.full !== q.answer ? ` With no cards in sight it would be ${q.full}.` : ''}`;
+    } else if (id === 'river') {
+      right = Math.abs(+v - q.answer) < 0.0005;
+      const f = q.kind === 'bluff' ? `bet ÷ (pot + bet) = ${q.bet} ÷ ${q.pot + q.bet}` : q.kind === 'defend' ? `pot ÷ (pot + bet) = ${q.pot} ÷ ${q.pot + q.bet}` : `bet ÷ (pot + 2 bets), for ${q.words}`;
+      text = `${f} = <b>${pct(q.answer)}</b>.`;
+    } else if (id === 'pushfold') {
+      right = v === q.answer;
+      const did = q.kind === 'push' ? 'pushes' : 'calls';
+      text = `<b>${q.hand} ${did} ${upTo(q.limit)}</b>; you have ${q.stack} bb: ${q.answer === 'fold' ? 'fold' : q.kind === 'push' ? 'push' : 'call'}.` + grid(q.kind === 'push' ? pushChart(q.stack) : callChart(q.stack), { mark: q.hand });
     }
     D.done = true;
+    D.rightAns = rightAns(id, q);
     s.total++;
     if (right) { s.right++; s.streak++; s.best = Math.max(s.best, s.streak); } else s.streak = 0;
     const justPassed = right && s.streak === d.target;
@@ -286,8 +343,7 @@
     document.querySelectorAll('#dq .opt').forEach((b) => {
       b.disabled = true;
       const a = b.dataset.ans;
-      const isRight = id === 'potodds' && D.q.type === 'need' ? Math.abs(+a - q.need) < 0.001 : id === 'showdown' || id === 'preflop' || (id === 'potodds') ? a === String(q.answer) : +a === (id === 'outs' ? q.count : q.answer);
-      b.classList.toggle('right', isRight);
+      b.classList.toggle('right', a === D.rightAns);
       b.classList.toggle('wrong', a === String(v) && !right);
     });
     $('#dfeed').innerHTML = `<div class="vrow"><span class="verdict ${right ? 'good' : 'bad'}">${right ? 'Right' : 'Not this time'}</span><button class="btn primary" id="nextQ">Next question<kbd>Enter</kbd></button></div>` +
@@ -295,8 +351,16 @@
     const streak = document.querySelector('.streak');
     streak.innerHTML = `<span class="meter big" aria-hidden="true"><i style="width:${Math.min(100, (s.streak / d.target) * 100)}%"></i></span><span><b>${s.streak}</b> in a row. Best ${s.best}, target ${d.target}${s.best >= d.target ? ' (passed)' : ''}.</span>`;
     $('#nextQ').focus({ preventScroll: true });
+    if (right && (justPassed || s.streak % 10 === 0)) burst($('.verdict'), justPassed ? 24 : 12, 100);
     const fb = $('#dfeed').getBoundingClientRect();
     if (fb.top > window.innerHeight - 140) window.scrollBy({ top: fb.top - window.innerHeight * 0.45, behavior: reduced ? 'auto' : 'smooth' });
+  }
+  // the data-ans of the right button
+  function rightAns(id, q) {
+    if (id === 'potodds') return q.type === 'need' ? q.need.toFixed(4) : q.answer;
+    if (id === 'river') return q.answer.toFixed(4);
+    if (id === 'outs') return String(q.count);
+    return String(q.answer);
   }
   function nextQuestion() { if (!D) return; D = { id: D.id, q: newQuestion(D.id), done: false }; render(); }
 
@@ -305,6 +369,7 @@
     <li><button data-go="chart"><b>Charts</b><span>Every preflop chart: raising first in, facing a raise, after a re-raise.</span></button></li>
     <li><button data-go="equity"><b>Equity calculator</b><span>Your hand against another hand or a range, on any board.</span></button></li>
     <li><button data-go="odds"><b>Outs and odds</b><span>From the number of outs to the chance of hitting, and the price of a call.</span></button></li>
+    <li><button data-go="pushfold"><b>Push or fold</b><span>Short-stacked in the blinds: what to push and what to call, at every stack from 2 to 20 bb.</span></button></li>
     <li><button data-go="stats"><b>Your play</b><span>Hands, results, how often you played like the coach, your leaks and the hands you played.</span></button></li>
   </ul>`;
   const CHART_GROUPS = [
@@ -365,6 +430,14 @@
     EQ.result = { e: e.equity[0], w: e.win[0], t: e.tie[0], n: e.samples, exact: !EQ.range && EQ.board.length >= 3 };
     render();
   }
+  const PF_STACKS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20];
+  VIEWS.pushfold = (stack) => {
+    stack = +stack || P.lastPush || 10;
+    return `<p class="lede">Folded to the small blind, against the big blind alone, no antes. The ranges are the solved push-or-fold game: neither player can do better by changing theirs.</p>
+      <div class="chips-row"><span class="cg">Your stack in big blinds</span>${PF_STACKS.map((x) => `<button class="chip${x === stack ? ' on' : ''}" data-push="${x}">${x}</button>`).join('')}</div>
+      <div class="pf-pair">${grid(pushChart(stack))}${grid(callChart(stack))}</div>
+      <p class="note">Calling needs a stronger hand than pushing: a push also wins when the big blind folds.</p>`;
+  };
   VIEWS.odds = () => `<p class="lede">With two cards to come you hit by the river about outs × 4 percent of the time; with one card, outs × 2. The exact figures:</p>
     ${oddsTable([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18])}
     <h2>The price of a call</h2><table class="mini"><thead><tr><th>They bet</th><th>You need</th></tr></thead><tbody>
@@ -412,6 +485,14 @@
     if (!T) { T = PK.newTable({ mix: P.settings.mix }); T.sessionHands = 0; T.sessionWon = 0; saveT(); }
     return T;
   }
+  const CHIPS = [[250, 'k'], [50, 'r'], [10, 'g'], [5, 'w']];
+  function chipStack(chips) {
+    const out = [];
+    for (const [v, c] of CHIPS) { let n = Math.floor(chips / v); chips -= n * v; while (n-- > 0 && out.length < 6) out.push(c); }
+    if (!out.length) out.push('w');
+    return `<span class="stack" style="--n:${out.length}">${out.reverse().map((c, k) => `<i class="pchip ${c}" style="--k:${k}"></i>`).join('')}</span>`;
+  }
+  const STYLE_INITIAL = (s) => (s.hero ? '<svg aria-hidden="true"><use href="#suit-S"/></svg>' : esc(s.name.charAt(0)));
   // seat i drawn at place (i - 0) around the table: you at the bottom, then clockwise
   function seatHTML(i) {
     const s = T.seats[i], pos = T.street === 'idle' ? '' : PK.seatPos(T, i);
@@ -419,12 +500,12 @@
     const la = lastActs[i];
     const won = T.street === 'done' && T.result && T.result.winners.includes(i);
     const holeHTML = !s.hole ? '' : s.hero ? '' : s.folded ? '' : (s.shown || (T.street === 'done' && T.result && T.result.showdown && !s.folded)) ? cards(s.hole, 'mini') : back('mini') + back('mini');
-    const style = s.hero ? '' : `<span class="style ${s.style}">${PK.STYLES[s.style].name}</span>`;
+    const style = s.hero ? '' : `<span class="style ${s.style}" title="${PK.STYLES[s.style].name}: ${esc(PK.STYLES[s.style].about)}">${PK.STYLES[s.style].short}</span>`;
     return `<div class="seat p${i}${acting ? ' acting' : ''}${s.folded && T.street !== 'idle' ? ' out' : ''}${won ? ' won' : ''}${s.hero ? ' hero' : ''}" data-seat="${i}">
-      <div class="plate"><b class="nm">${esc(s.name)}</b>${style}<span class="stk">${bb(s.stack)}</span>${pos ? `<span class="pos">${pos}</span>` : ''}</div>
+      <div class="plate"><span class="av ${s.hero ? 'you' : s.style}" aria-hidden="true">${STYLE_INITIAL(s)}</span><span class="pt"><b class="nm">${esc(s.name)}</b>${style}<span class="stk">${bb(s.stack)}</span></span>${pos ? `<span class="pos">${pos}</span>` : ''}</div>
       <div class="hole">${holeHTML}</div>
       ${la ? `<span class="act ${la.type}">${esc(la.text)}</span>` : ''}
-      ${s.bet > 0 ? `<span class="bet"><i class="chip-dot"></i>${PK.fmtBB(s.bet)}</span>` : ''}
+      ${s.bet > 0 ? `<span class="bet">${chipStack(s.bet)}<span class="amt">${PK.fmtBB(s.bet)}</span></span>` : ''}
       ${T.button === i && T.street !== 'idle' ? '<span class="dbtn" aria-label="dealer button">D</span>' : ''}
     </div>`;
   }
@@ -432,7 +513,7 @@
     ensureTable();
     return `<section class="play">
       <div class="table-area"><div class="felt" id="felt">${[1, 2, 3, 4, 5, 0].map(seatHTML).join('')}
-        <div class="center"><div class="board" id="board"></div><div class="pot" id="pot"></div></div></div></div>
+        <div class="center"><div class="board" id="board"></div><div class="pot" id="pot"></div></div><div class="print" aria-hidden="true">Poker Coach</div></div></div>
       <div class="me" id="me"></div>
       <div class="actions" id="actions"></div>
       <aside class="side"><div class="coach" id="coach" aria-live="polite"></div><ol class="tlog" id="tlog" aria-label="This hand so far"></ol></aside>
@@ -440,10 +521,15 @@
     </section>`;
   };
   AFTER.play = () => drawTable();
+  let prevStreet = null, prevHand = -1, prevBets = [];
   function drawTable() {
     if (view.name !== 'play' || !T) return;
     const felt = $('#felt');
     if (!felt) return;
+    const motion = !reduced && P.settings.speed !== 'fast';
+    const sameHand = prevHand === T.handNo;
+    const oldBets = motion ? [...felt.querySelectorAll('.bet .stack')].map((el) => ({ r: el.getBoundingClientRect(), html: el.outerHTML })) : [];
+    const wasDone = prevStreet === 'done';
     // seats
     [1, 2, 3, 4, 5, 0].forEach((i) => {
       const el = felt.querySelector(`[data-seat="${i}"]`);
@@ -457,7 +543,8 @@
     b.innerHTML = T.board.map((c, k) => card(c, k >= shownBoard && !reduced ? 'deal' : '')).join('') + Array(5 - T.board.length).fill(slot()).join('');
     shownBoard = T.board.length;
     const potNow = T.street === 'done' ? 0 : PK.pot(T);
-    $('#pot').innerHTML = T.street === 'idle' ? '' : T.street === 'done' ? resultLine() : `Pot <b>${bb(potNow)}</b>`;
+    const behind = T.seats.reduce((a, x) => a + x.total - x.bet, 0); // what earlier streets put in the middle
+    $('#pot').innerHTML = T.street === 'idle' ? '' : T.street === 'done' ? resultLine() : `${behind > 0 ? chipStack(behind) : ''}<span>Pot <b>${bb(potNow)}</b></span>`;
     // your turn: the coach looks at the spot at once
     let fresh = false;
     if (T.toAct === 0 && T.street !== 'done' && !advice) { advice = PK.coachAdvice(T); raiseTo = 0; fresh = true; if (!T.decisions) T.decisions = []; }
@@ -470,9 +557,80 @@
     drawActions();
     $('#tlog').innerHTML = T.log.map((l) => `<li class="${l.kind}">${esc(l.text)}</li>`).join('');
     if (fresh) { const a = $('#actions').getBoundingClientRect(); if (a.bottom > window.innerHeight - 64) $('#actions').scrollIntoView({ block: 'end', behavior: reduced ? 'auto' : 'smooth' }); }
+    if (motion) animateTable(felt, { sameHand, oldBets, wasDone });
+    prevStreet = T.street; prevHand = T.handNo; prevBets = T.seats.map((x) => x.bet);
     $('#tmeta').innerHTML = `<span>Hand ${T.handNo || 0}</span><span>This table ${T.sessionWon >= 0 ? '+' : ''}${bb(T.sessionWon || 0)} over ${T.sessionHands || 0} hands</span><button class="linkish" id="openSettings">Settings</button>`;
   }
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+  // ---------- motion: everything here answers something that just happened at the table ----------
+  const centreOf = (r) => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+  function fly(html, from, to, opts) {
+    opts = opts || {};
+    const el = document.createElement('div');
+    el.className = 'flying';
+    el.innerHTML = html;
+    el.style.left = from.x + 'px';
+    el.style.top = from.y + 'px';
+    document.body.appendChild(el);
+    const a = el.animate([{ transform: 'translate(-50%, -50%)', opacity: 1 }, { transform: `translate(calc(-50% + ${to.x - from.x}px), calc(-50% + ${to.y - from.y}px))`, opacity: opts.fade ? 0 : 1 }],
+      { duration: opts.duration || 420, delay: opts.delay || 0, easing: 'cubic-bezier(.3,.7,.2,1)', fill: 'both' });
+    a.onfinish = () => el.remove();
+  }
+  function animateTable(felt, o) {
+    const centre = centreOf(felt.querySelector('.center').getBoundingClientRect());
+    if (!o.sameHand && T.street === 'preflop') {
+      // a new hand: the cards come from the middle of the table, one round at a time, starting left of the button
+      const order = [1, 2, 3, 4, 5, 6].map((k) => (T.button + k) % 6);
+      const targets = order.map((i) => (i === 0 ? [...document.querySelectorAll('#me .card')] : [...felt.querySelectorAll(`[data-seat="${i}"] .hole .card`)]));
+      for (let round = 0; round < 2; round++) targets.forEach((list, k) => {
+        const el = list[round];
+        if (!el) return;
+        const c = centreOf(el.getBoundingClientRect());
+        el.animate([{ transform: `translate(${centre.x - c.x}px, ${centre.y - c.y}px) rotate(-30deg) scale(.5)`, opacity: 0 }, { transform: 'none', opacity: 1 }],
+          { duration: 360, delay: (round * 6 + k) * 55, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
+      });
+      return;
+    }
+    if (!o.sameHand) return;
+    // a bet: the chips go out from the player to the line
+    T.seats.forEach((s, i) => {
+      if (s.bet > (prevBets[i] || 0) && prevStreet === T.street) {
+        const bet = felt.querySelector(`[data-seat="${i}"] .bet`), plate = felt.querySelector(`[data-seat="${i}"] .plate`);
+        if (!bet || !plate) return;
+        const a = centreOf(plate.getBoundingClientRect()), b = centreOf(bet.getBoundingClientRect());
+        bet.animate([{ transform: `translate(${a.x - b.x}px, ${a.y - b.y}px) scale(.6)`, opacity: 0 }, { transform: 'none', opacity: 1 }], { duration: 300, easing: 'cubic-bezier(.3,.7,.2,1)' });
+      }
+    });
+    // a street ends: the bets are swept into the pot
+    if (prevStreet !== T.street && o.oldBets.length) o.oldBets.forEach((b, k) => fly(b.html, centreOf(b.r), centre, { delay: k * 40, fade: T.street === 'done' }));
+    // the hand ends: the pot goes to the winners; the opponents' cards turn over at a showdown
+    if (T.street === 'done' && !o.wasDone && T.result) {
+      if (T.result.showdown) felt.querySelectorAll('.seat:not(.hero) .hole .card:not(.back)').forEach((el, k) => el.animate([{ transform: 'rotateY(90deg)' }, { transform: 'none' }], { duration: 320, delay: 120 + k * 60, easing: 'ease-out', fill: 'backwards' }));
+      T.result.pots.forEach((pt, k) => pt.winners.forEach((w) => {
+        const plate = felt.querySelector(`[data-seat="${w}"] .plate`);
+        if (!plate) return;
+        fly(chipStack(Math.floor(pt.amount / pt.winners.length)), centre, centreOf(plate.getBoundingClientRect()), { delay: 380 + k * 200, duration: 560 });
+      }));
+      if (T.seats[0].stack > T.seats[0].startStack) burst(felt.querySelector('[data-seat="0"] .plate'), 14, 700);
+    }
+  }
+  // a handful of chips thrown up from an element: a won pot, a passed drill
+  function burst(el, n, delay) {
+    if (!el || reduced) return;
+    const c = centreOf(el.getBoundingClientRect()), colours = ['r', 'g', 'w', 'k'];
+    for (let k = 0; k < n; k++) {
+      const d = document.createElement('i');
+      d.className = 'pchip flying-chip ' + colours[k % 4];
+      d.style.left = c.x + 'px'; d.style.top = c.y + 'px';
+      document.body.appendChild(d);
+      const ang = (Math.PI * 2 * k) / n + Math.random() * 0.5, dist = 50 + Math.random() * 60;
+      const a = d.animate([{ transform: 'translate(-50%, -50%) scale(.4)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(ang) * dist}px), calc(-50% + ${Math.sin(ang) * dist - 30}px)) scale(1) rotate(${Math.random() * 360}deg)`, opacity: 1, offset: 0.6 },
+        { transform: `translate(calc(-50% + ${Math.cos(ang) * dist * 1.2}px), calc(-50% + ${Math.sin(ang) * dist + 40}px)) scale(.8)`, opacity: 0 }],
+      { duration: 900, delay: (delay || 0) + k * 12, easing: 'cubic-bezier(.2,.7,.3,1)', fill: 'both' });
+      a.onfinish = () => d.remove();
+    }
+  }
   function resultLine() {
     const wins = T.log.filter((l) => l.kind === 'win').map((l) => esc(l.text));
     return `<span class="res">${wins.join('<br>')}</span>`;
@@ -650,6 +808,7 @@
     openSheet(`<h2>Settings</h2>
       <label class="row"><span><b>Coach hints</b><small>The chart's play before the flop, your equity and the price after it, before you act. Grades come after you act either way.</small></span><input type="checkbox" id="setHints" ${S.hints ? 'checked' : ''}></label>
       <div class="row col"><b>Speed of the other players</b>${seg('speed', [['fast', 'Fast'], ['normal', 'Normal'], ['slow', 'Slow']])}</div>
+      <div class="row col"><b>Cards</b><div class="decks">${DECKS.map(([k, t]) => `<button class="deck-opt${S.deck === k ? ' on' : ''}" data-deck-pick="${k}"><span class="cardrow" data-deck="${k}">${cards(PK.parseCards('As Kh 7d'))}${back()}</span>${t}</button>`).join('')}</div></div>
       <label class="row"><span><b>Four-colour deck</b><small>Diamonds blue and clubs green, as most online rooms do: flushes are easier to see.</small></span><input type="checkbox" id="setColors" ${S.fourColor ? 'checked' : ''}></label>
       <div class="row col"><b>Opponents at a new table</b>${seg('mix', [['soft', 'Soft'], ['mixed', 'Mixed'], ['tough', 'Tough']])}<small>Soft: mostly calling stations. Mixed: one of each kind and two regulars. Tough: regulars and a maniac.</small></div>
       <div class="row col"><button class="btn" id="newTable">Leave this table and sit at a new one</button></div>
@@ -677,6 +836,7 @@
     if (t.dataset.quiz !== undefined) { answerQuiz(+t.dataset.quiz, +t.dataset.opt); return; }
     if (t.dataset.ans !== undefined) { answerDrill(t.dataset.ans); return; }
     if (t.id === 'nextQ') { nextQuestion(); return; }
+    if (t.dataset.push) { P.lastPush = +t.dataset.push; saveP(); view.arg = t.dataset.push; render(); return; }
     if (t.dataset.chart) { P.lastChart = t.dataset.chart; saveP(); view.arg = t.dataset.chart; render(); return; }
     if (t.dataset.eqslot) { EQ.slot = t.dataset.eqslot; if (EQ.slot === 'b' && EQ.range) EQ.range = null; EQ[EQ.slot] = []; EQ.result = null; render(); return; }
     if (t.dataset.range) { EQ.range = t.dataset.range; EQ.b = []; EQ.slot = EQ.a.length < 2 ? 'a' : 'board'; EQ.result = null; render(); return; }
@@ -690,6 +850,7 @@
     if (t.id === 'openSettings' || t.id === 'settingsBtn') { settingsSheet(); return; }
     if (t.id === 'reviewLast') { reviewSheet(HANDS[0]); return; }
     if (t.dataset.review !== undefined) { reviewSheet(HANDS[+t.dataset.review]); return; }
+    if (t.dataset.deckPick) { P.settings.deck = t.dataset.deckPick; saveP(); applySettings(); settingsSheet(); return; }
     if (t.dataset.set) { P.settings[t.dataset.set] = t.dataset.val; saveP(); settingsSheet(); if (view.name === 'play') drawTable(); return; }
     if (t.id === 'newTable') { stopLoop(); T = null; ensureTable(); lastActs = {}; feedback = null; closeSheet(); go('play'); return; }
     if (t.id === 'resetStats') { if (confirm('Clear your play statistics and hand history?')) { P.stats = PK.emptyStats(); HANDS = []; store(HANDS_KEY, HANDS); saveP(); render(); } return; }
@@ -735,11 +896,14 @@
     if (view.name !== 'learn') { go('learn'); return true; }
     return false;
   }
-  function applySettings() { document.body.classList.toggle('four-color', !!P.settings.fourColor); }
+  function applySettings() {
+    document.body.classList.toggle('four-color', !!P.settings.fourColor);
+    document.body.dataset.deck = DECKS.some((d) => d[0] === P.settings.deck) ? P.settings.deck : 'jumbo';
+  }
   $('#sheet').addEventListener('click', (e) => { if (e.target.id === 'sheet') closeSheet(); });
 
   // what the Android app asks when Back is pressed: true when the page handled it
-  window.PokerApp = { back: goBack, get state() { return T; }, get progress() { return P; }, get drill() { return D; }, get advice() { return advice; }, go, deal, heroAct, PK };
+  window.PokerApp = { back: goBack, get state() { return T; }, get progress() { return P; }, get drill() { return D; }, get advice() { return advice; }, go, deal, heroAct, PK, cardHTML: card, backHTML: back };
   applySettings();
   const start = (location.hash || '').replace('#', '');
   go(TABS.includes(start) ? start : 'learn');

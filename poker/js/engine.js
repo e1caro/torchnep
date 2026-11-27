@@ -197,6 +197,9 @@
   // How each starting hand does against one random hand, all five cards dealt (Monte Carlo, 400,000 runouts each,
   // tools/hand-equity.js). It orders the hands for the opponents and for "the top 20% of hands".
   const EQ_VS_RANDOM = 'AA85.1 AKs67.0 AQs66.1 AJs65.4 ATs64.7 A9s62.7 A8s61.9 A7s61.1 A6s59.8 A5s60.0 A4s59.1 A3s58.2 A2s57.4 AKo65.2 KK82.4 KQs63.5 KJs62.6 KTs61.8 K9s60.1 K8s58.3 K7s57.5 K6s56.6 K5s55.8 K4s54.9 K3s54.1 K2s53.3 AQo64.4 KQo61.4 QQ80.0 QJs60.3 QTs59.5 Q9s57.7 Q8s56.0 Q7s54.4 Q6s53.6 Q5s52.8 Q4s51.8 Q3s51.1 Q2s50.1 AJo63.7 KJo60.6 QJo58.1 JJ77.4 JTs57.5 J9s55.6 J8s54.0 J7s52.3 J6s50.5 J5s49.9 J4s49.1 J3s48.4 J2s47.5 ATo62.7 KTo59.9 QTo57.3 JTo55.3 TT74.9 T9s54.1 T8s52.2 T7s50.6 T6s48.9 T5s47.3 T4s46.5 T3s45.6 T2s44.8 A9o60.8 K9o57.8 Q9o55.3 J9o53.2 T9o51.4 9972.2 98s50.7 97s49.1 96s47.4 95s45.7 94s43.9 93s43.3 92s42.3 A8o59.9 K8o55.9 Q8o53.4 J8o51.5 T8o49.7 98o48.2 8869.3 87s47.9 86s46.2 85s44.6 84s42.7 83s41.0 82s40.1 A7o58.8 K7o55.1 Q7o51.8 J7o49.6 T7o47.8 97o46.3 87o45.1 7766.2 76s45.3 75s43.6 74s41.9 73s40.0 72s38.2 A6o57.7 K6o54.3 Q6o51.1 J6o47.8 T6o46.0 96o44.6 86o43.2 76o42.2 6663.3 65s43.1 64s41.4 63s39.7 62s37.8 A5o57.9 K5o53.4 Q5o50.0 J5o47.2 T5o44.2 95o42.7 85o41.4 75o40.5 65o39.9 5560.4 54s41.4 53s39.8 52s37.9 A4o56.9 K4o52.2 Q4o49.2 J4o46.1 T4o43.4 94o40.6 84o39.4 74o38.5 64o38.0 54o38.1 4457.0 43s38.7 42s36.9 A3o55.8 K3o51.5 Q3o48.2 J3o45.2 T3o42.8 93o40.0 83o37.5 73o36.6 63o36.1 53o36.4 43o35.3 3353.7 32s35.9 A2o54.8 K2o50.5 Q2o47.3 J2o44.3 T2o41.6 92o39.1 82o36.8 72o34.6 62o34.0 52o34.5 42o33.3 32o32.2 2250.4';
+  // The push-or-fold equilibrium, small blind against big blind, no antes (tools/push-fold.js): for each hand the
+  // biggest stack in big blinds at which the small blind pushes / the big blind calls; 20.5 means 20 bb and more.
+  const PUSH_FOLD = 'AA:20.5/20.5 AKs:20.5/20.5 AQs:20.5/20.5 AJs:20.5/20.5 ATs:20.5/20.5 A9s:20.5/20.5 A8s:20.5/20.5 A7s:20.5/20.5 A6s:20.5/20.5 A5s:20.5/20.5 A4s:20.5/20.5 A3s:20.5/20.5 A2s:20.5/20.5 AKo:20.5/20.5 KK:20.5/20.5 KQs:20.5/20.5 KJs:20.5/20.5 KTs:20.5/20.5 K9s:20.5/20.5 K8s:20.5/17.5 K7s:20.5/15.5 K6s:20.5/14 K5s:20.5/13 K4s:20.5/12 K3s:20.5/11 K2s:19/10.5 AQo:20.5/20.5 KQo:20.5/20.5 QQ:20.5/20.5 QJs:20.5/20.5 QTs:20.5/20.5 Q9s:20.5/16 Q8s:20.5/12.5 Q7s:20.5/10.5 Q6s:20.5/9.5 Q5s:20.5/8.5 Q4s:17/8.5 Q3s:13/7.5 Q2s:13/7 AJo:20.5/20.5 KJo:20.5/20.5 QJo:20.5/19.5 JJ:20.5/20.5 JTs:20.5/17.5 J9s:20.5/13.5 J8s:20.5/10.5 J7s:20.5/8.5 J6s:17.5/7 J5s:16/6.5 J4s:14/6 J3s:10.5/5.5 J2s:8.5/5.5 ATo:20.5/20.5 KTo:20.5/20.5 QTo:20.5/15 JTo:20.5/12.5 TT:20.5/20.5 T9s:20.5/11 T8s:20.5/9 T7s:20.5/7 T6s:20.5/6 T5s:11.5/5 T4s:10/5 T3s:7/4.5 T2s:6.5/4.5 A9o:20.5/20.5 K9o:20.5/16.5 Q9o:20.5/11.5 J9o:20.5/9 T9o:20.5/8 99:20.5/20.5 98s:20.5/8 97s:20.5/7 96s:20.5/5.5 95s:14.5/5 94s:5/4 93s:4.5/4 92s:3/3.5 A8o:20.5/20.5 K8o:18.5/13.5 Q8o:13/9.5 J8o:12/7.5 T8o:14.5/6.5 98o:20.5/6 88:20.5/20.5 87s:20.5/6.5 86s:20.5/5.5 85s:19/4.5 84s:10/4 83s:2.5/3.5 82s:2.5/3.5 A7o:20.5/20.5 K7o:15.5/12 Q7o:10/7.5 J7o:8.5/6 T7o:9/5.5 97o:11/5 87o:16/4.5 77:20.5/20.5 76s:20.5/5 75s:20.5/4.5 74s:13.5/4 73s:2.5/3.5 72s:2/3 A6o:20.5/20.5 K6o:15/11 Q6o:9.5/7 J6o:6.5/5 T6o:5.5/4.5 96o:5/4 86o:7/4 76o:10.5/4 66:20.5/20.5 65s:20.5/4.5 64s:15/4 63s:9/3.5 62s:2/3 A5o:20.5/20.5 K5o:14/10 Q5o:8.5/6.5 J5o:6/5 T5o:4/3.5 95o:3/3.5 85o:2.5/3.5 75o:2.5/3.5 65o:2/3.5 55:20.5/20.5 54s:20.5/4.5 53s:10.5/4 52s:2/3.5 A4o:20.5/18 K4o:13/9 Q4o:8/6 J4o:5/4.5 T4o:3.5/3.5 94o:2.5/3 84o:2/3 74o:2/3 64o:2/3 54o:2/3 44:20.5/20.5 43s:7.5/3.5 42s:1.5/3 A3o:20.5/16.5 K3o:12/8.5 Q3o:7.5/5.5 J3o:5/4 T3o:3/3.5 93o:2.5/3 83o:1.5/2.5 73o:1.5/2.5 63o:1.5/3 53o:1.5/3 43o:1.5/3 33:20.5/20.5 32s:1.5/3 A2o:20.5/15.5 K2o:11.5/8 Q2o:7/5.5 J2o:4.5/4 T2o:3/3.5 92o:2/3 82o:1.5/2.5 72o:1.5/2.5 62o:1.5/2.5 52o:1.5/2.5 42o:1/2.5 32o:1/2.5 22:20.5/14.5';
   const EQUITY = {};
   for (const tok of EQ_VS_RANDOM.split(' ')) { const m = /^([2-9TJQKA]{2}[so]?)(\d+\.\d)$/.exec(tok); EQUITY[m[1]] = +m[2] / 100; }
 
@@ -531,10 +534,10 @@
 
   // ---------- the table ----------
   const STYLES = {
-    reg: { name: 'Regular', about: 'Plays the charts and bets with a reason.', loose: 1, aggr: 1, bluff: 0.18, sticky: 0 },
-    rock: { name: 'Rock', about: 'Very tight. When a rock raises, believe it.', loose: 0.55, aggr: 0.8, bluff: 0.05, sticky: -0.05 },
-    station: { name: 'Calling station', about: 'Calls far too much and rarely raises. Bet your good hands, do not bluff.', loose: 1.9, aggr: 0.35, bluff: 0.04, sticky: 0.14 },
-    maniac: { name: 'Maniac', about: 'Raises and bluffs a lot. Call down lighter, let them bet.', loose: 1.8, aggr: 1.9, bluff: 0.45, sticky: 0.05 },
+    reg: { name: 'Regular', short: 'Regular', about: 'Plays the charts and bets with a reason.', loose: 1, aggr: 1, bluff: 0.18, sticky: 0 },
+    rock: { name: 'Rock', short: 'Rock', about: 'Very tight. When a rock raises, believe it.', loose: 0.55, aggr: 0.8, bluff: 0.05, sticky: -0.05 },
+    station: { name: 'Calling station', short: 'Station', about: 'Calls far too much and rarely raises. Bet your good hands, do not bluff.', loose: 1.9, aggr: 0.35, bluff: 0.04, sticky: 0.14 },
+    maniac: { name: 'Maniac', short: 'Maniac', about: 'Raises and bluffs a lot. Call down lighter, let them bet.', loose: 1.8, aggr: 1.9, bluff: 0.45, sticky: 0.05 },
   };
   const BOT_NAMES = ['Ana', 'Bruno', 'Carmen', 'Diego', 'Elena', 'Félix', 'Gloria', 'Hugo', 'Inés', 'Jorge', 'Lola', 'Mateo',
     'Nuria', 'Óscar', 'Paula', 'Quique', 'Rosa', 'Sergio', 'Teresa', 'Víctor', 'Yolanda', 'Zoe'];
@@ -1150,6 +1153,148 @@
     }
   }
 
+  // Name your hand: your two cards and an unpaired flop or turn, where every name has one meaning.
+  const HAND_NAMES = ['Nothing yet', 'A weak pair', 'Top pair', 'An overpair', 'Two pair', 'A set', 'A straight', 'A flush'];
+  function handName(hole, board) {
+    const sc = evaluate(hole.concat(board)), cat = sc >> 20, top = Math.max(...board.map(rankOf)), hr = hole.map(rankOf);
+    if (cat >= 5) return 7;
+    if (cat === 4) return 6;
+    if (cat === 3) return 5;              // on an unpaired board three of a kind is a pocket pair that hit
+    if (cat === 2) return 4;              // ... and two pair uses both of your cards
+    if (cat === 1) { const p = nib(sc, 0); return hr[0] === hr[1] ? (p > top ? 3 : 1) : p === top ? 2 : 1; }
+    return 0;
+  }
+  const NAME_WEIGHTS = [2, 3, 3, 1, 1, 1, 1, 1];
+  function drillNameHand(R) {
+    let want = randInt(R, NAME_WEIGHTS.reduce((a, b) => a + b, 0));
+    want = NAME_WEIGHTS.findIndex((w) => (want -= w) < 0);
+    for (let t = 0; ; t++) {
+      const d = shuffle(freshDeck(), R);
+      const board = dealFrom(d, R() < 0.6 ? 3 : 4);
+      if (new Set(board.map(rankOf)).size < board.length) continue;
+      const hole = dealFrom(d, 2);
+      const answer = handName(hole, board);
+      if (answer !== want && t < 50000) continue;
+      const cls = classify(hole, board);
+      const choices = new Set([answer]);
+      while (choices.size < 4) choices.add(randInt(R, HAND_NAMES.length));
+      return { hole, board, answer, choices: [...choices].sort((a, b) => a - b), made: cls.made, draws: cls.draws, outs: cls.outs.length, texture: texture(board) };
+    }
+  }
+
+  // Count the combos: how many ways a hand can be held once the cards you can see are taken out.
+  const COMBO_HANDS = ['AA', 'KK', 'QQ', 'JJ', 'TT', '77', 'AK', 'AKs', 'AKo', 'AQ', 'KQ', 'KQs', 'AJs', 'QJ', 'JT', 'T9s', 'A5s', '98s'];
+  function comboWhy(name, dead) {
+    const set = parseRange(name), first = [...set][0], h = HANDS[HAND_INDEX[first]];
+    const left = (r) => 4 - dead.filter((c) => rankOf(c) === r).length;
+    if (h.pair) { const n = left(h.hi); return n + ' ' + RANK_PLURAL[h.hi] + ' left: ' + n + ' × ' + (n - 1) + ' ÷ 2 = ' + (n * (n - 1)) / 2; }
+    const a = left(h.hi), b = left(h.lo), total = rangeCombos(set, dead).length;
+    const nm = (r) => RANK_PLURAL[r];
+    if (set.size === 2) return a + ' ' + nm(h.hi) + ' × ' + b + ' ' + nm(h.lo) + ' = ' + a * b;
+    if (first.endsWith('s')) return 'one ' + RANK_NAME[h.hi] + ' and one ' + RANK_NAME[h.lo] + ' of the same suit: ' + total + ' suit' + (total === 1 ? '' : 's') + ' still have both';
+    return a + ' × ' + b + ' = ' + a * b + ', less the ' + (a * b - total) + ' suited one' + (a * b - total === 1 ? '' : 's') + ' = ' + total;
+  }
+  function drillCombos(R) {
+    for (;;) {
+      const d = shuffle(freshDeck(), R);
+      const board = dealFrom(d, 3), hole = R() < 0.45 ? dealFrom(d, 2) : [];
+      const dead = board.concat(hole);
+      if (R() < 0.25) { // sets
+        if (new Set(board.map(rankOf)).size < 3) continue;
+        let n = 0;
+        const parts = [];
+        for (const c of board) { const left = 3 - hole.filter((x) => rankOf(x) === rankOf(c)).length; n += (left * (left - 1)) / 2; parts.push(left === 3 ? '3' : String((left * (left - 1)) / 2)); }
+        return finishCombos(R, { kind: 'sets', board, hole, answer: n, full: 9, why: 'a set is a pocket pair of a board rank; each rank has 3 cards left, 3 ways to pair them' + (n !== 9 ? ', fewer where you hold one' : '') + ': ' + parts.join(' + ') + ' = ' + n });
+      }
+      const name = pick(R, COMBO_HANDS);
+      const set = parseRange(name);
+      const n = rangeCombos(set, dead).length, full = comboCount(set);
+      if (n === full && R() < 0.75) continue; // most questions should have cards in the way
+      if (n === 0) continue;
+      return finishCombos(R, { kind: 'hand', name, board, hole, answer: n, full, why: comboWhy(name, dead) });
+    }
+  }
+  function finishCombos(R, q) {
+    const pool = [1, 2, 3, 4, 6, 8, 9, 12, 16].filter((x) => x !== q.answer);
+    const choices = new Set([q.answer]);
+    if (q.full !== q.answer) choices.add(q.full);
+    while (choices.size < 4) choices.add(pick(R, pool));
+    q.choices = [...choices].sort((a, b) => a - b);
+    return q;
+  }
+
+  // River math: how often a bluff must work, how often to defend, how many of your bets may be bluffs.
+  const RIVER_SIZES = [[0.25, 'a quarter of the pot'], [1 / 3, 'a third of the pot'], [0.5, 'half the pot'], [2 / 3, 'two thirds of the pot'], [0.75, 'three quarters of the pot'], [1, 'the pot'], [1.5, 'one and a half pots'], [2, 'twice the pot']];
+  const RIVER_KINDS = {
+    bluff: (f) => f / (1 + f),           // the bet risked against what it wins: bet ÷ (pot + bet)
+    defend: (f) => 1 / (1 + f),          // pot ÷ (pot + bet): the share of your range that must go on
+    ratio: (f) => f / (1 + 2 * f),       // bluffs in your betting range: bet ÷ (pot + 2 bets), the caller's price
+  };
+  function drillRiver(R) {
+    const kind = pick(R, Object.keys(RIVER_KINDS));
+    const [f, words] = pick(R, RIVER_SIZES);
+    const pot = pick(R, [6, 8, 10, 12, 16, 20, 24, 30, 40]);
+    const bet = Math.round(pot * f * 2) / 2;
+    const answer = RIVER_KINDS[kind](f);
+    const others = RIVER_SIZES.map(([g]) => RIVER_KINDS[kind](g)).concat(Object.keys(RIVER_KINDS).map((k) => RIVER_KINDS[k](f)));
+    const choices = [answer];
+    for (const x of shuffle(others, R)) if (choices.every((y) => Math.abs(Math.round(y * 100) - Math.round(x * 100)) >= 3)) choices.push(x);
+    return { kind, f, words, pot, bet, answer, choices: choices.slice(0, 4).sort((a, b) => a - b) };
+  }
+
+  // Call or fold after the flop: you called a raise, they bet the flop. Their range is their opening chart, leaning
+  // toward strength the bigger the bet; your hand comes from your calling chart. Close spots are left out.
+  const POSTFLOP_SPOTS = [
+    { you: 'BB', they: 'BTN', yourChart: 'vsLate.BB', pot: 5.5, story: 'The button raises to 2.5 bb and you call in the big blind.' },
+    { you: 'BB', they: 'UTG', yourChart: 'vsEarly.BB', pot: 5.5, story: 'Under the gun raises to 2.5 bb and you call in the big blind.' },
+    { you: 'BTN', they: 'CO', yourChart: 'vsLate.IP', pot: 6.5, story: 'The cutoff raises to 2.5 bb and you call on the button; the blinds fold.' },
+    { you: 'CO', they: 'HJ', yourChart: 'vsEarly.IP', pot: 6.5, story: 'The hijack raises to 2.5 bb and you call in the cutoff; the blinds fold.' },
+  ];
+  const BET_PRESSURE = [[1 / 3, 0.5, 'a third of the pot'], [0.5, 0.8, 'half the pot'], [0.75, 1.1, 'three quarters of the pot'], [1, 1.4, 'the pot']];
+  function drillPostflop(R, samples) {
+    for (;;) {
+      const spot = pick(R, POSTFLOP_SPOTS);
+      const [f, pressure, words] = pick(R, BET_PRESSURE);
+      const d = shuffle(freshDeck(), R);
+      const board = dealFrom(d, 3);
+      const mine = rangeCombos(CHARTS[spot.yourChart].call, board);
+      const hole = pick(R, mine);
+      const theirs = rangeCombos(CHARTS['open.' + spot.they].raise, board.concat(hole));
+      const accept = (h) => R() < Math.pow(quickStrength(h, board), pressure);
+      const e = equity([{ hand: hole }, { range: theirs, accept }], board, { samples: samples || 3000, rng: R }).equity[0];
+      const bet = Math.round(spot.pot * f * 2) / 2;
+      const need = bet / (spot.pot + 2 * bet);
+      if (Math.abs(e - need) < 0.05) continue;
+      if (e > need && R() < (f < 0.4 ? 0.6 : 0.3)) continue; // keep the folds coming: most small bets are easy calls
+      const cls = classify(hole, board);
+      return { spot, f, words, pressure, board, hole, pot: spot.pot, bet, need, equity: e, answer: e > need ? 'call' : 'fold', raise: e >= 0.68, made: cls.made, draws: cls.draws };
+    }
+  }
+
+  // Push or fold: the small blind all-in or out, and the big blind calling it, by the equilibrium of tools/push-fold.js.
+  const PUSH = {};
+  for (const tok of PUSH_FOLD.split(' ')) { const m = /^(\w+):([\d.]+)\/([\d.]+)$/.exec(tok); PUSH[m[1]] = { push: +m[2], call: +m[3] }; }
+  const pushRange = (stack) => new Set(HANDS.filter((h) => PUSH[h.name].push >= stack).map((h) => h.name));
+  const callRange = (stack) => new Set(HANDS.filter((h) => PUSH[h.name].call >= stack).map((h) => h.name));
+  const PUSH_STACKS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20];
+  function drillPushFold(R) {
+    for (;;) {
+      const kind = R() < 0.6 ? 'push' : 'call';
+      const stack = pick(R, PUSH_STACKS);
+      let name;
+      if (R() < 0.7) {
+        const near = HANDS.filter((h) => Math.abs(PUSH[h.name][kind] - stack) <= 3.5 && PUSH[h.name][kind] !== stack).map((h) => h.name);
+        if (!near.length) continue;
+        name = pick(R, near);
+      } else { const all = []; for (const h of HANDS) for (let k = 0; k < h.combos; k++) all.push(h.name); name = pick(R, all); }
+      const limit = PUSH[name][kind];
+      if (limit === stack) continue;
+      const combo = pick(R, combosOf(name));
+      if (R() < 0.5) combo.reverse();
+      return { kind, stack, hand: name, combo, limit, answer: limit > stack ? (kind === 'push' ? 'push' : 'call') : 'fold' };
+    }
+  }
+
   // ---------- statistics of your play ----------
   function emptyStats() {
     return { hands: 0, won: 0, vpip: 0, pfr: 0, threeBet: 0, threeBetChance: 0, sawFlop: 0, wtsd: 0, wsd: 0, wonHands: 0,
@@ -1163,6 +1308,7 @@
     equity, rangeCombos, classify, quickStrength, countOuts, texture, STYLES, TABLE_MIX, newTable, seatPos, inHand, pot, pots, startHand, legal, act,
     runOutStep, finish, fmtBB, bbStr, rangeOf, equityVsField, preflopAdvice, preflopRaiseTo, preSituation, botAction, coachAdvice, grade, pct,
     drillShowdown, drillPreflop, drillOuts, drillPotOdds, drillEquity, drillNuts, EQ_BUCKETS, EDGE, emptyStats,
+    HAND_NAMES, handName, drillNameHand, drillCombos, drillRiver, RIVER_KINDS, drillPostflop, POSTFLOP_SPOTS, PUSH, pushRange, callRange, drillPushFold,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = PK;
   else root.PK = PK;
