@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Eighth Rank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&amp;family=Marcellus&amp;family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600&amp;family=Libre+Caslon+Display&amp;family=Instrument+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Symbols+2&amp;text=%E2%99%9A%E2%99%9B%E2%99%9C%E2%99%9D%E2%99%9E%E2%99%9F&amp;display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="#learn"><span class="brand-sq">8</span><span class="brand-name">Eighth Rank</span></a>
+  <nav class="tabs tabs-top" aria-label="Sections">
+    <a href="#learn" data-tab="learn">Learn</a>
+    <a href="#puzzles" data-tab="puzzles">Puzzles</a>
+    <a href="#play" data-tab="play">Play</a>
+    <a href="#openings" data-tab="openings">Openings</a>
+    <a href="#vision" data-tab="vision">Vision</a>
+  </nav>
+  <div class="me">
+    <span class="streak" id="streak"></span>
+    <span class="lvl" id="lvl"></span>
+    <div class="xpbar" aria-hidden="true"><i id="xpfill"></i></div>
+    <button type="button" class="chip" id="skinbtn" aria-haspopup="true" aria-expanded="false">Style</button>
+  </div>
+</header>
+<main id="main">
+  <section id="v-learn" class="view"></section>
+  <section id="v-puzzles" class="view" hidden></section>
+  <section id="v-play" class="view" hidden></section>
+  <section id="v-openings" class="view" hidden></section>
+  <section id="v-vision" class="view" hidden></section>
+</main>
+<nav class="tabs tabs-bottom" aria-label="Sections">
+  <a href="#learn" data-tab="learn">Learn</a>
+  <a href="#puzzles" data-tab="puzzles">Puzzles</a>
+  <a href="#play" data-tab="play">Play</a>
+  <a href="#openings" data-tab="openings">Openings</a>
+  <a href="#vision" data-tab="vision">Vision</a>
+</nav>
+<div id="skins" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="engine.js"></script>
+<script src="content.js"></script>
+<script src="puzzles.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
