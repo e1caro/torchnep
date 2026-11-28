@@ -945,7 +945,12 @@
     dark = th === 'dark' || (th !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     return dark ? 'midnight' : 'ivory';
   }
-  function applySkin() { document.documentElement.setAttribute('data-skin', skinNow()); }
+  function applySkin() {
+    var skin = skinNow(), native = window.ChessNative;
+    document.documentElement.setAttribute('data-skin', skin);
+    // the Android app paints the screen edges (camera cutout, bars when swiped in) in the colour of the page
+    try { if (native && native.bars) native.bars(getComputedStyle(document.documentElement).getPropertyValue('--bg').trim(), skin === 'midnight' || skin === 'walnut'); } catch (e) { /* an older app */ }
+  }
   function skinCards() {
     return SKINS.map(function (k) {
       var on = skinNow() === k[0];

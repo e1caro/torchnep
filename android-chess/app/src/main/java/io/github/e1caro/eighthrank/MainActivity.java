@@ -5,12 +5,16 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.DisplayCutout;
 import android.view.View;
 import android.view.WindowInsets;
+import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -45,6 +49,10 @@ import java.util.zip.ZipInputStream;
  * https://appassets.androidplatform.net, a secure origin served by the app itself, so storage works exactly like on
  * the web and the app needs no network. Links to other sites open in the browser.
  *
+ * The app takes the whole screen: the status bar and the navigation buttons are hidden and come back for a moment
+ * with a swipe from the edge. The page tells the app its background colour (window.ChessNative.bars), which is
+ * used around a camera cutout and behind the bars while they show.
+ *
  * A WebView has no clipboard of its own for pages, so the app adds one as window.ChessNative.copy.
  *
  * Updates itself: each release (tag chess-N) carries web.zip, the whole web app. When one is newer than what the app
@@ -58,6 +66,7 @@ public class MainActivity extends Activity {
     private static final String RELEASES = "https://api.github.com/repos/e1caro/torchnep/releases?per_page=100";
 
     private WebView web;
+    private FrameLayout root;
     private String home; // the app's own page: packed in the APK, or a newer downloaded copy
     private int shown; // the web version on screen (the APK's own one is its versionCode)
     private volatile boolean ready; // a newer web version is downloaded and waits for the next resume
@@ -111,9 +120,16 @@ public class MainActivity extends Activity {
             }
         });
 
-        // Android 15+ draws apps edge to edge: keep the page clear of the status bar, the navigation buttons,
-        // the camera cutout and the keyboard (a WebView ignores its own padding, so the frame takes it).
-        FrameLayout root = new FrameLayout(this);
+        // The page is drawn edge to edge under hidden bars: keep it clear of the camera cutout and the keyboard, and
+        // of the bars on a phone that will not hide them (a WebView ignores its own padding, so the frame takes it).
+        if (Build.VERSION.SDK_INT >= 28) {
+            WindowManager.LayoutParams lp = getWindow().getAttributes();
+            lp.layoutInDisplayCutoutMode = Build.VERSION.SDK_INT >= 30
+                    ? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+                    : WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(lp);
+        }
+        root = new FrameLayout(this);
         root.setBackgroundColor(getColor(R.color.bg));
         root.addView(web, new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
         setContentView(root);
@@ -123,7 +139,14 @@ public class MainActivity extends Activity {
                 v.setPadding(bars.left, bars.top, bars.right, bars.bottom);
                 return WindowInsets.CONSUMED;
             });
+        } else if (Build.VERSION.SDK_INT >= 28) {
+            root.setOnApplyWindowInsetsListener((v, in) -> {
+                DisplayCutout cut = in.getDisplayCutout();
+                if (cut != null) v.setPadding(cut.getSafeInsetLeft(), cut.getSafeInsetTop(), cut.getSafeInsetRight(), cut.getSafeInsetBottom());
+                return in;
+            });
         }
+        fullScreen();
 
         // Back closes the style menu, goes from a lesson or an opening to its list, then to Learn, and leaves from there.
         if (Build.VERSION.SDK_INT >= 33) {
@@ -133,6 +156,27 @@ public class MainActivity extends Activity {
         if (state == null || state.getInt("webVer", 0) != shown || web.restoreState(state) == null) web.loadUrl(home);
         cleanOld(shown);
         new Thread(this::checkUpdate).start();
+    }
+
+    /** Hides the status bar and the navigation buttons; a swipe from the edge shows them for a moment. */
+    @SuppressWarnings("deprecation")
+    private void fullScreen() {
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController c = getWindow().getInsetsController();
+            if (c == null) return;
+            c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            c.hide(WindowInsets.Type.systemBars());
+        } else {
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    | View.SYSTEM_UI_FLAG_FULLSCREEN | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                    | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
+        }
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean has) {
+        super.onWindowFocusChanged(has);
+        if (has) fullScreen(); // the bars come back with a dialog, the keyboard or another app on top
     }
 
     private void goBackOrFinish() {
@@ -169,6 +213,7 @@ public class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         web.onResume();
+        fullScreen();
         // switch to a downloaded version (progress is saved after every step), else look for one
         if (ready) { ready = false; recreate(); }
         else new Thread(this::checkUpdate).start();
@@ -280,6 +325,26 @@ public class MainActivity extends Activity {
 
     /** What the web app can call as window.ChessNative.* (these run on a background thread). */
     private class Bridge {
+        /** The colour of the page ("#0d1320") and whether it is a dark one, sent whenever the style changes. */
+        @JavascriptInterface
+        public void bars(final String color, final boolean dark) {
+            runOnUiThread(() -> {
+                try {
+                    int c = Color.parseColor(color);
+                    root.setBackgroundColor(c);
+                    getWindow().setStatusBarColor(c);
+                    getWindow().setNavigationBarColor(c);
+                    if (Build.VERSION.SDK_INT >= 30) {
+                        WindowInsetsController ic = getWindow().getInsetsController();
+                        int light = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
+                        if (ic != null) ic.setSystemBarsAppearance(dark ? 0 : light, light);
+                    }
+                } catch (Exception ignored) {
+                    // not a colour: the bars keep the one they have
+                }
+            });
+        }
+
         @JavascriptInterface
         public void copy(final String text) {
             runOnUiThread(() -> {
