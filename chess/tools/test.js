@@ -35,6 +35,7 @@ for (const unit of COURSE) for (const les of unit.lessons) for (const [i, st] of
     if (n < 3) fail(tag + ' puzzle pool too small: ' + n);
     continue;
   }
+  if (st.t === 'quiz' && st.status && Chess.status(Chess.fromFEN(st.fen)) !== st.status) fail(tag + ' is ' + Chess.status(Chess.fromFEN(st.fen)) + ', not ' + st.status);
   if (st.t !== 'move') continue;
   const s = Chess.fromFEN(st.fen), moves = Chess.legal(s);
   const sans = moves.map((m) => Chess.san(s, m, moves));

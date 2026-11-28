@@ -133,11 +133,16 @@
     this.draw();
     this.promo.innerHTML = '<div>' + hits.map(function (m, k) { return '<button type="button" data-k="' + k + '" aria-label="' + PN[m.promo.toLowerCase()] + '">' + piece(m.promo) + '</button>'; }).join('') + '</div>';
     this.promo.hidden = false;
-    this.promo.onclick = function (e) {
+    // The press that opened the picker is followed by a click that lands on it: so the choice is taken on the next
+    // press (and on a click only when it comes from the keyboard), never on that first click.
+    var choose = function (e) {
       var b = e.target.closest('button');
+      e.preventDefault();
       self.promo.hidden = true;
       if (b) self.onMove(hits[+b.dataset.k]);
     };
+    this.promo.onpointerdown = choose;
+    this.promo.onclick = function (e) { if (e.detail === 0) choose(e); };
   };
   Board.prototype.down = function (i, e) {
     this.pick(i);
@@ -198,7 +203,7 @@
   /* ---------- learn ---------- */
   var LESSONS = [];
   COURSE.forEach(function (u) { u.lessons.forEach(function (l) { l.unit = u; LESSONS.push(l); }); });
-  var FAST = { board: 1, rook: 1, bishop: 1, queen: 1, knight: 1, king: 1, pawn: 1, check: 1, mate: 1, stalemate: 1, castle: 1, count: 1, principles: 1, fork: 1, pin: 1, backrank: 1, scholar: 1, queenmate: 1, threat: 1, double: 1, rookmate: 1, capture: 1, kingsafety: 1, battery: 1, exam2: 1, exam3: 1, exam4: 1, exam5: 1, exam6: 1, exam7: 1 };
+  var FAST = { board: 1, rook: 1, bishop: 1, queen: 1, knight: 1, king: 1, pawn: 1, check: 1, mate: 1, stalemate: 1, castle: 1, count: 1, principles: 1, fork: 1, pin: 1, backrank: 1, scholar: 1, queenmate: 1, threat: 1, double: 1, rookmate: 1, capture: 1, kingsafety: 1, battery: 1, ismate: 1, counting: 1, exam2: 1, exam3: 1, exam4: 1, exam5: 1, exam6: 1, exam7: 1 };
   var STARTS = [
     { start: 2, name: 'New to chess', note: 'Begin with the board and the pieces.', rating: 400, opp: 1 },
     { start: 3, name: 'I know how the pieces move', note: 'Skip the pieces. Begin with check, mate and castling.', rating: 600, opp: 1 },
@@ -508,7 +513,7 @@
         '<p class="say">' + (this.review ? 'You missed this one before. ' : '') + TASK[p.k] + '</p><div class="fb ' + (kind || '') + '" aria-live="polite">' + (text || '') + '</div>' +
         '<div class="row pin">' + (this.over ? '<button type="button" class="btn primary" id="pnext">Next puzzle</button>' : '<button type="button" class="btn" id="phint">Hint</button><button type="button" class="btn" id="psol">Show the move</button><button type="button" class="btn" id="pnext">Skip</button>') + '</div>' +
         '<div class="field"><span>Puzzle type</span>' + seg('kinds', [['all', 'All'], ['m1', 'Mate in 1'], ['win', 'Win material'], ['m2', 'Mate in 2'], ['miss', 'My misses']], S.kind) + '</div>' +
-        '<p class="meta">' + n + ' of ' + PUZZLES.length + ' puzzles solved \u00b7 ' + Object.keys(S.missed).length + ' to review</p>';
+        '<p class="meta">' + n + ' solved \u00b7 ' + Object.keys(S.missed).length + ' to review</p>';
     },
     rate: function (won) {
       var e = 1 / (1 + Math.pow(10, (this.p.r - S.rating) / 400));
@@ -556,6 +561,16 @@
 
   /* ---------- play ---------- */
   var LEVELS = [[1, 'Beginner'], [2, 'Casual'], [3, 'Club'], [4, 'Strong']];
+  /* positions to practise against the computer: you always play White */
+  var PRACTICE = [
+    ['A normal game', C.START, ''],
+    ['Queen and king mate', '8/8/8/4k3/8/8/8/Q3K3 w - - 0 1', 'Checkmate the lone king. Drive him to the edge, bring your own king, and watch out for stalemate.'],
+    ['Rook and king mate', '8/8/8/4k3/8/8/8/R3K3 w - - 0 1', 'Checkmate with the rook. Cut the king off, bring your own king, and mate on the edge.'],
+    ['Two rooks mate', '8/8/8/4k3/8/8/8/R3K2R w - - 0 1', 'Climb the ladder: the rooks take turns giving check.'],
+    ['King and pawn', '4k3/8/8/8/3K4/4P3/8/8 w - - 0 1', 'Escort the pawn to the eighth rank. King first, pawn second.'],
+    ['Win with an extra queen', 'rnb1kbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1', 'Black starts without a queen. Develop, trade pieces and make the extra queen count.'],
+    ['Win with an extra rook', '1nbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQk - 0 1', 'Black starts a rook down. Trade pieces whenever you can: every trade makes the extra rook bigger.']
+  ];
   function choose(s, level, ply) {
     if (level === 1) {
       var r1 = C.rank(s, 1);
@@ -600,6 +615,7 @@
         '<div class="row pin"><button type="button" class="btn primary" id="gnew">New game</button><button type="button" class="btn" id="gundo">Take back</button><button type="button" class="btn" id="ghint">Hint</button></div>' +
         '<div class="field"><span>Opponent</span>' + seg('glevel', LEVELS, S.level) + '</div>' +
         '<div class="field"><span>You play</span>' + seg('gcolor', [['w', 'White'], ['b', 'Black']], S.color) + '</div>' +
+        '<div class="field"><label for="gfrom">Start from</label><select id="gfrom" class="sel">' + PRACTICE.map(function (x, k) { return '<option value="' + k + '">' + x[0] + '</option>'; }).join('') + '</select></div>' +
         '<label class="check"><input type="checkbox" id="gcoach"' + (S.coach ? ' checked' : '') + '> Coach rates my moves</label>';
       P.addEventListener('click', function (e) {
         var b = e.target.closest('button');
@@ -607,18 +623,24 @@
         var grp = b.parentNode.id;
         if (grp === 'glevel' || grp === 'gcolor') {
           Array.prototype.forEach.call(b.parentNode.children, function (x) { x.classList.toggle('on', x === b); x.setAttribute('aria-pressed', x === b); });
-          if (grp === 'glevel') { S.level = +b.dataset.v; persist(); } else { S.color = b.dataset.v; persist(); self.start(); }
+          if (grp === 'glevel') { S.level = +b.dataset.v; persist(); } else { S.color = b.dataset.v; persist(); self.from = 0; $('#gfrom').value = '0'; self.start(); }
         } else if (b.id === 'gnew') self.start();
         else if (b.id === 'gundo') self.undo();
         else if (b.id === 'ghint') self.hint();
       });
       $('#gcoach').addEventListener('change', function (e) { S.coach = e.target.checked; persist(); self.verdict = null; self.sync(); });
+      $('#gfrom').addEventListener('change', function (e) { self.from = +e.target.value; self.start(); });
       this.board.moves = function () { return self.over || self.busy || self.s.turn !== S.color ? [] : C.legal(self.s); };
       this.board.onMove = function (m) { self.mine(m); };
       this.start();
     },
     start: function () {
-      this.tok++; this.s = C.fromFEN(C.START); this.hist = []; this.over = false; this.busy = false; this.verdict = null; this.result = null;
+      var pre = PRACTICE[this.from || 0];
+      if (this.from && S.color !== 'w') {
+        S.color = 'w'; persist();
+        Array.prototype.forEach.call($('#gcolor').children, function (x) { var on = x.dataset.v === 'w'; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on); });
+      }
+      this.tok++; this.s = C.fromFEN(pre[1]); this.hist = []; this.over = false; this.busy = false; this.verdict = null; this.result = null;
       this.board.flip = S.color === 'b';
       this.sync();
       if (S.color === 'b') this.think();
@@ -628,7 +650,7 @@
       show(B, s, { last: m || null, anim: m || null });
       $('#gstat').textContent = this.result || (s.turn === S.color ? (st === 'check' ? 'Check. Your move' : 'Your move') : 'Computer is thinking');
       $('#coach').innerHTML = v ? '<span class="badge ' + v.cls + '">' + v.badge + '</span><div><b>' + v.label + '</b><p>' + v.text + '</p></div>' :
-        '<span class="badge">♟</span><div><b>Coach</b><p>' + (S.coach ? 'Play a move and I will rate it: ! best, ?! inaccuracy, ? mistake, ?? blunder.' : 'Coach is off. You are on your own.') + '</p></div>';
+        '<span class="badge">♟</span><div><b>Coach</b><p>' + (this.from ? PRACTICE[this.from][2] : S.coach ? 'Play a move and I will rate it: ! best, ?! inaccuracy, ? mistake, ?? blunder.' : 'Coach is off. You are on your own.') + '</p></div>';
       for (i = 0; i < this.hist.length; i += 2) html += '<span class="no">' + (i / 2 + 1) + '.</span><span>' + this.hist[i].san + '</span><span>' + (this.hist[i + 1] ? this.hist[i + 1].san : '') + '</span>';
       var sheet = $('#sheet');
       sheet.innerHTML = html; sheet.scrollTop = sheet.scrollHeight;
@@ -647,7 +669,7 @@
       else if (this.hist.filter(function (h) { return h.key === k; }).length >= 3) msg = 'Draw by repetition';
       this.result = msg; this.over = !!msg;
       this.sync(m);
-      if (won) gain([20, 40, 70, 110][level - 1], 'win');
+      if (won) gain(this.from ? 25 : [20, 40, 70, 110][level - 1], 'win');
       else if (msg && st !== 'checkmate') gain(10, 'draw');
       if (!this.over && s.turn !== S.color) this.think();
     },

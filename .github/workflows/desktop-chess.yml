@@ -166,7 +166,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           name: Eighth Rank for Windows 1.${{ github.run_number }}
           body: |
-            Eighth Rank for Windows 10 and 11: a chess course of 49 lessons in six ranks with a test closing each rank, 220 puzzles, 12 openings with 49 lines to explore and train, a computer opponent with a coach that rates every move, and two board-vision drills. Works offline.
+            Eighth Rank for Windows 10 and 11: a chess course of 56 lessons in six ranks with a test closing each rank, 1,000 puzzles, 16 openings with 61 lines to explore and train, a computer opponent with a coach that rates every move, endgame positions to practise against it, and two board-vision drills. Works offline.
 
             **Install:** download `EighthRank-Setup.exe` and open it. It installs for you only (no administrator), puts Eighth Rank in the Start menu and on the desktop, and lists it in Settings > Apps for uninstalling. Installing a newer version over an older one keeps your progress, and so does uninstalling.
 

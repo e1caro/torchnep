@@ -34,10 +34,23 @@
   var E = window.__er, C = window.Chess, S = E.S;
   var mode = window.__selftestMode || 'full';
   var NAMES = { q: 'queen', r: 'rook', b: 'bishop', n: 'knight' };
+  // A tap as the window gets it: a press, then a click on whatever is under the finger by then (the promotion picker
+  // when the press opened it). Driving the board by its functions instead once hid a picker that closed itself.
+  function press(el) {
+    el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 }));
+  }
+  function tap(B, i) {
+    press(B.cell(i));
+    (B.promo.hidden ? B.cell(i) : B.promo).dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+  }
   // plays a move on a board the way a person does: the piece, then the square (and the piece to promote to)
   function play(B, m) {
-    B.pick(m.from); B.pick(m.to);
-    if (!B.promo.hidden) B.promo.querySelector('[aria-label="' + NAMES[m.promo.toLowerCase()] + '"]').click();
+    tap(B, m.from); tap(B, m.to);
+    if (!m.promo) return;
+    ok(!B.promo.hidden, 'the promotion picker did not stay open');
+    var b = B.promo.querySelector('[aria-label="' + NAMES[m.promo.toLowerCase()] + '"]');
+    press(b);
+    b.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
   }
 
   if (mode === 'restart') {
@@ -71,7 +84,7 @@
     $('#begin').click();
     await until(function () { return $('.hero'); }, 3000, 'the course page');
     ok(S.start === 3 && S.rating === 600, 'level ' + S.start + ', rating ' + S.rating);
-    ok($$('.lesson').length === 49, $$('.lesson').length + ' lessons listed');
+    ok($$('.lesson').length === 56, $$('.lesson').length + ' lessons listed');
     ok($$('.unit.skipped').length === 1, 'rank 2 is not marked as skipped');
   });
 
@@ -79,7 +92,7 @@
     E.Learn.open('fork');
     var B = E.Learn.board, moves = [null, ['d5', 'c7'], ['b5', 'd6'], ['d3', 'd4']];
     for (var k = 0; k < moves.length; k++) {
-      if (moves[k]) { B.pick(C.idx(moves[k][0])); B.pick(C.idx(moves[k][1])); }
+      if (moves[k]) { tap(B, C.idx(moves[k][0])); tap(B, C.idx(moves[k][1])); }
       await until(function () { return !$('#v-learn #next').hidden; }, 3000, 'Continue after step ' + (k + 1));
       $('#v-learn #next').click();
     }
@@ -87,6 +100,18 @@
     await until(function () { return Array.from(document.fonts).some(function (f) { return f.family.replace(/"/g, '') === 'Noto Sans Symbols 2' && f.status === 'loaded'; }); }, 5000, 'the bundled chess pieces');
     var main = $('#main');
     ok(innerHeight < 300 || main.scrollHeight <= main.clientHeight + 1, 'the lesson does not fit the window without scrolling');
+  });
+
+  await step('a pawn promotes: the picker stays open, and the piece chosen appears', async function () {
+    E.Learn.open('promotion');
+    var B = E.Learn.board, fen = '8/4P1k1/8/8/8/8/8/4K3 w - - 0 1';
+    play(B, C.fromSAN(C.fromFEN(fen), 'e8=Q'));
+    await until(function () { return !$('#v-learn #next').hidden; }, 3000, 'the promotion to be accepted');
+    ok(B.pos[C.idx('e8')] === 'Q', 'there is no queen on e8');
+    $('#v-learn #next').click();
+    play(B, C.fromSAN(C.fromFEN('8/2q1P1k1/8/8/8/8/8/4K3 w - - 0 1'), 'e8=N'));
+    await until(function () { return !$('#v-learn #next').hidden; }, 3000, 'the promotion to a knight');
+    ok(B.pos[C.idx('e8')] === 'N', 'there is no knight on e8');
   });
 
   await step('a puzzle: solved on the board, and the rating moves', async function () {
@@ -100,13 +125,13 @@
     }
     ok(E.Puz.over, 'the puzzle was not solved');
     ok(Object.keys(S.solved).length === 1 && S.rating > before, 'solved ' + Object.keys(S.solved).length + ', rating ' + before + ' to ' + S.rating);
-    ok(window.PUZZLES.length >= 200, window.PUZZLES.length + ' puzzles');
+    ok(window.PUZZLES.length >= 600, window.PUZZLES.length + ' puzzles');
   });
 
   await step('an opening line trained from memory, and its first dot is filled', async function () {
     location.hash = '#openings';
     await until(function () { return E.Open.board; }, 3000, 'the openings');
-    ok(window.OPENINGS.length === 12, window.OPENINGS.length + ' openings');
+    ok(window.OPENINGS.length === 16, window.OPENINGS.length + ' openings');
     E.Open.open('italian');
     ok($$('#v-openings [data-line]').length === 5, 'the Italian does not list five lines');
     E.Open.train(0);

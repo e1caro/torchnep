@@ -441,8 +441,74 @@ var MORE2 = {
     }
   ]
 };
+/* ---- fourth wave: seven more lessons ---- */
+var MORE3 = {
+  2: [
+    {
+      id: 'setup', name: 'Setting up', icon: 'q', steps: [
+        { t: 'info', fen: Chess.START, marks: ['d1', 'd8'], text: 'Rooks go in the corners, knights beside them, then the bishops. *The queen goes on her own colour*: the white queen on a light square, the black queen on a dark one. The king takes the square that is left, and the pawns fill the rank in front.' },
+        { t: 'quiz', fen: Chess.START, q: 'On which square does the white queen start?', options: ['d1', 'e1'], answer: 0, why: 'd1 is a light square, and the white queen starts on her own colour. The two queens face each other on the d-file.' },
+        { t: 'quiz', fen: Chess.START, q: 'Which piece stands next to each rook at the start?', options: ['A knight', 'A bishop'], answer: 0, why: 'Rook, knight, bishop from each corner inward.' },
+        { t: 'quiz', q: 'Who makes the first move of the game?', options: ['White, always', 'Black, always', 'Whoever wins a coin toss'], answer: 0, why: 'White moves first and the players then take turns. You may never pass.' }
+      ]
+    }
+  ],
+  3: [
+    {
+      id: 'ismate', name: 'Mate or not?', icon: 'k', steps: [
+        { t: 'quiz', fen: '3R2k1/5ppp/8/8/8/8/8/6K1 b - - 0 1', status: 'checkmate', arrows: [['d8', 'g8']], q: 'Black is in check. Go through the three escapes: move, block, capture. Is it checkmate?', options: ['Checkmate', 'Not mate'], answer: 0, why: 'No flight square, nothing can block on e8 or f8, nothing attacks the rook.' },
+        { t: 'quiz', fen: '3R2k1/5pp1/7p/8/8/8/8/6K1 b - - 0 1', status: 'check', arrows: [['d8', 'g8']], q: 'One pawn has moved. Is it checkmate now?', options: ['Checkmate', 'Not mate'], answer: 1, why: 'The king steps to h7. One pawn move made all the difference.' },
+        { t: 'quiz', fen: 'r2R2k1/5ppp/8/8/8/8/8/6K1 b - - 0 1', status: 'check', arrows: [['d8', 'g8']], q: 'The pawns are back, but Black has a rook on a8. Checkmate?', options: ['Checkmate', 'Not mate'], answer: 1, why: 'The rook on a8 captures the attacker. Always check all three escapes.' },
+        { t: 'quiz', fen: '6k1/6Q1/6K1/8/8/8/8/8 b - - 0 1', status: 'checkmate', q: 'The queen gives check from the square right in front of the king. Checkmate?', options: ['Checkmate', 'Not mate'], answer: 0, why: 'The king cannot take the queen because the white king protects her.' },
+        { t: 'quiz', fen: '6k1/6Q1/8/8/8/8/8/6K1 b - - 0 1', status: 'check', q: 'The same check, but the white king is far away. Checkmate?', options: ['Checkmate', 'Not mate'], answer: 1, why: 'Nothing protects the queen, so the king simply takes her. A piece that gives check next to the king needs a guard.' }
+      ]
+    }
+  ],
+  4: [
+    {
+      id: 'tempo', name: 'Winning time', icon: 'n', steps: [
+        { t: 'info', fen: 'rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3', arrows: [['b1', 'c3']], text: 'A move is also called a *tempo*. You win one when you develop a piece and attack something at the same time: your opponent has to spend a move answering instead of developing.' },
+        { t: 'move', fen: 'rnb1kbnr/ppp1pppp/8/3q4/8/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3', text: 'The black queen has come out early. Develop a piece and attack her.', accept: ['Nc3'], done: 'She must move again, and you are a move ahead in development.' },
+        { t: 'quiz', q: 'In the opening, how often should one piece move, as a rule?', options: ['Once, until the others are out', 'As often as it finds a nicer square'], answer: 0, why: 'Every second move by the same piece is a move the others did not get. Bring out all of them first.' }
+      ]
+    },
+    {
+      id: 'counting', name: 'Attackers and defenders', icon: 'r', steps: [
+        { t: 'info', fen: '3r2k1/5ppp/5n2/3p4/8/2N3P1/5PBP/3R2K1 w - - 0 1', arrows: [['d1', 'd5'], ['c3', 'd5'], ['g2', 'd5']], text: 'To win a defended piece you need *more attackers than it has defenders*. Count them: three white pieces attack the pawn on d5, and two black pieces defend it.' },
+        { t: 'move', fen: '3r2k1/5ppp/5n2/3p4/8/2N3P1/5PBP/3R2K1 w - - 0 1', text: 'Three against two. Win the pawn, and begin with a minor piece.', accept: ['Nxd5', 'Bxd5'], alt: { Rxd5: 'It works out here, but never lead with your most valuable attacker. Begin with a minor piece.' }, done: 'After all the captures you are a pawn up. Begin with the cheapest attacker and keep the most valuable for last.' },
+        { t: 'quiz', q: 'A pawn is attacked twice and defended twice. Can you win it?', options: ['Yes', 'No'], answer: 1, why: 'With equal numbers the last capture belongs to the defender. You need one more attacker than there are defenders.' }
+      ]
+    }
+  ],
+  5: [
+    {
+      id: 'overload', name: 'The overloaded piece', icon: 'r', steps: [
+        { t: 'info', fen: '3r2k1/5ppp/3b4/8/8/8/5PPP/3RR1K1 w - - 0 1', arrows: [['d8', 'd6'], ['d8', 'e8']], text: 'A piece with two jobs is *overloaded*. The black rook guards the bishop on d6 and also the back rank. It cannot do both.' },
+        { t: 'move', fen: '3r2k1/5ppp/3b4/8/8/8/5PPP/3RR1K1 w - - 0 1', text: 'Make the rook choose between its two jobs.', accept: ['Rxd6'], then: [['Rxd6', 1]], done: 'If the rook takes back it leaves the back rank, and Re8 is checkmate. If it stays, you have won a bishop.' }
+      ]
+    }
+  ],
+  6: [
+    {
+      id: 'support', name: 'Queen with a helper', icon: 'q', steps: [
+        { t: 'info', fen: '6k1/5pp1/7p/8/8/6Q1/1B3PPP/6K1 w - - 0 1', arrows: [['b2', 'g7'], ['g3', 'g7']], text: 'Most checkmates are a queen landing next to the king on a square that another piece protects. Learn to see the helper first: a bishop on the long diagonal, a knight on g5, a pawn on f6.' },
+        { t: 'move', fen: '6k1/5pp1/7p/8/8/6Q1/1B3PPP/6K1 w - - 0 1', text: 'The bishop looks down the long diagonal. Finish it.', mateIn: 1, done: 'Queen takes on g7, guarded from the far corner of the board.' },
+        { t: 'move', fen: '5rk1/5pp1/8/6NQ/8/8/5PPP/6K1 w - - 0 1', text: 'The h-pawn is gone and a knight stands on g5. Mate in one.', mateIn: 1, done: 'Queen and knight against h7: the reason castled players think twice before letting a knight reach g5.' }
+      ]
+    }
+  ],
+  7: [
+    {
+      id: 'rules7', name: 'Endgame rules of thumb', icon: 'r', steps: [
+        { t: 'quiz', fen: '6k1/1R3ppp/8/8/8/8/5PPP/6K1 w - - 0 1', arrows: [['b7', 'f7']], q: 'Where is a rook strongest in the endgame?', options: ['On its own back rank, guarding', 'On the seventh rank, attacking pawns from the side'], answer: 1, why: 'On the seventh rank the rook attacks the pawns that have not moved and cuts the king off on the back rank.' },
+        { t: 'quiz', q: 'Each side has a bishop, one on light squares and one on dark. You are a pawn up. What should you expect?', options: ['An easy win', 'A likely draw'], answer: 1, why: 'Bishops of opposite colours never meet, so the defender can blockade on squares your bishop cannot touch. These endings are famous for being drawn.' },
+        { t: 'quiz', q: 'You are a pawn up in a rook ending. Which trade helps you most?', options: ['Pawns', 'Pieces'], answer: 1, why: 'Trade pieces when ahead, pawns when behind. With the rooks off, the extra pawn usually wins a king and pawn ending.' }
+      ]
+    }
+  ]
+};
 COURSE.forEach(function (u) {
-  u.lessons = u.lessons.concat(MORE[u.rank] || [], MORE2[u.rank] || [], [{ id: 'exam' + u.rank, name: 'Rank ' + u.rank + ' test', icon: 'k', exam: true, steps: EXAMS[u.rank] }]);
+  u.lessons = u.lessons.concat(MORE[u.rank] || [], MORE2[u.rank] || [], MORE3[u.rank] || [], [{ id: 'exam' + u.rank, name: 'Rank ' + u.rank + ' test', icon: 'k', exam: true, steps: EXAMS[u.rank] }]);
 });
 
 /* ---- openings: every opening is a small tree of named lines ---- */
@@ -535,6 +601,41 @@ OPENINGS.push(
       { n: 'Main line with Qa5', idea: 'Recapture with the queen and tuck her away on a5.', m: 'e4 d5 exd5 Qxd5 Nc3 Qa5 d4 Nf6 Nf3 c6 Bc4 Bf5', t: { 0: 'King\'s pawn.', 1: 'The Scandinavian: challenge it at once.', 2: 'White takes.', 3: 'Recapture with the queen.', 4: 'White develops with tempo.', 5: 'The safest square, out of reach of the minor pieces.', 6: 'White takes the centre.', 7: 'Development.', 8: 'Development.', 9: 'A retreat path for the queen and a guard on d5.', 10: 'The bishop aims at f7.', 11: 'Your bishop gets out before e6. A solid setup.' } },
       { n: 'Modern (2...Nf6)', idea: 'Develop first and take the pawn back with the knight.', m: 'e4 d5 exd5 Nf6 d4 Nxd5 Nf3 g6 Be2 Bg7 O-O O-O', t: { 3: 'Develop first, recapture later.', 4: 'White gives the pawn back.', 5: 'Now the knight takes, with no loss of time.', 6: 'Development.', 7: 'A fianchetto against the centre.', 8: 'Modest development.', 9: 'The bishop presses on d4.', 10: 'Castles.', 11: 'Castles. Next comes c5 against the centre.' } },
       { n: 'Retreat to d6', idea: 'Keep the queen central and flexible.', m: 'e4 d5 exd5 Qxd5 Nc3 Qd6 d4 Nf6 Nf3 a6', t: { 5: 'A modern square: the queen watches d4 and stays central.', 6: 'Centre.', 7: 'Development.', 8: 'Development.', 9: 'Keeps a knight out of b5 and prepares b5 or Bg4.' } }
+    ]
+  }
+);
+/* ---- four more openings ---- */
+OPENINGS.push(
+  {
+    id: 'vienna', name: 'Vienna Game', side: 'w', idea: 'A quiet second move that keeps the f-pawn free to advance.',
+    lines: [
+      { n: 'Vienna Gambit', idea: 'Push f4 with the knight already out.', m: 'e4 e5 Nc3 Nf6 f4 d5 fxe5 Nxe4 Nf3 Be7 d4 O-O Bd3', t: { 0: 'Centre first.', 1: 'Black answers in kind.', 2: 'The Vienna: guard e4 and keep the f-pawn free.', 3: 'The most natural reply, attacking e4.', 4: 'The Vienna Gambit: a King\'s Gambit with the knight already developed.', 5: 'The best answer: strike back in the centre.', 6: 'Take the pawn that matters.', 7: 'The knight takes, with an eye on a queen check at h4.', 8: 'Stops that check and develops.', 9: 'Development.', 10: 'A broad centre.', 11: 'Castles.', 12: 'Challenge the strong knight. You have space, Black has the outpost.' } },
+      { n: 'The copycat trap', idea: 'Black copies your moves once too often.', m: 'e4 e5 Nc3 Nc6 Bc4 Bc5 Qg4 Qf6 Nd5 Qxf2+ Kd1', t: { 3: 'Black copies.', 4: 'Development, with an eye on f7.', 5: 'Still copying.', 6: 'An early queen move with a point: g7 is attacked.', 7: 'A natural defence that fails.', 8: 'The knight hits the queen and c7 at once.', 9: 'The check looks strong but leads nowhere.', 10: 'The king steps aside. Now c7 and g7 both hang and Black cannot hold them.' } },
+      { n: 'Quiet line', idea: 'Bishop first, then f4 when everything is ready.', m: 'e4 e5 Nc3 Nf6 Bc4 Nc6 d3 Bc5 f4 d6 Nf3', t: { 4: 'A calmer path: the bishop first.', 5: 'Development.', 6: 'Solid, and it frees the c1 bishop.', 7: 'Black mirrors.', 8: 'The f-pawn push the Vienna was made for.', 9: 'Black holds e5.', 10: 'Development. Next comes Na4 to trade off the strong bishop.' } }
+    ]
+  },
+  {
+    id: 'petrov', name: 'Petrov Defence', side: 'b', idea: 'Answer the attack on e5 with an attack on e4.',
+    lines: [
+      { n: 'Classical', idea: 'Chase the knight first, then take on e4.', m: 'e4 e5 Nf3 Nf6 Nxe5 d6 Nf3 Nxe4 d4 d5 Bd3 Be7 O-O O-O', t: { 0: 'King\'s pawn.', 1: 'The same.', 2: 'Attack on e5.', 3: 'The Petrov: counterattack instead of defending.', 4: 'White takes.', 5: 'Chase the knight first. Taking on e4 at once loses to Qe2.', 6: 'Back.', 7: 'Now the pawn is safely regained.', 8: 'Centre.', 9: 'Support the knight.', 10: 'Development, pressing on e4.', 11: 'Development.', 12: 'Castles.', 13: 'Castles. A solid, equal game.' } },
+      { n: 'Four Knights', idea: 'White defends e4. Mirror the development.', m: 'e4 e5 Nf3 Nf6 Nc3 Nc6 Bb5 Bb4 O-O O-O d3 d6', t: { 4: 'White defends e4 instead of taking.', 5: 'Now it is a Four Knights Game.', 6: 'The Spanish bishop.', 7: 'Mirror it.', 8: 'Castles.', 9: 'Castles.', 10: 'Solid.', 11: 'Solid. Symmetry, and an even game.' } },
+      { n: 'Central attack (3.d4)', idea: 'White opens the centre. Take e4 and develop.', m: 'e4 e5 Nf3 Nf6 d4 Nxe4 Bd3 d5 Nxe5 Nd7 Nxd7 Bxd7 O-O Bd6', t: { 4: 'White strikes in the centre instead.', 5: 'Take the pawn.', 6: 'Attack on the knight.', 7: 'Support it.', 8: 'White regains the pawn.', 9: 'Challenge the strong knight at once.', 10: 'Trade.', 11: 'Recapture and develop.', 12: 'Castles.', 13: 'Active development and equal chances.' } }
+    ]
+  },
+  {
+    id: 'pirc', name: 'Pirc Defence', side: 'b', idea: 'Let White build a centre, then undermine it from the fianchetto.',
+    lines: [
+      { n: 'Classical', idea: 'Quiet development on both sides.', m: 'e4 d6 d4 Nf6 Nc3 g6 Nf3 Bg7 Be2 O-O O-O c6', t: { 0: 'King\'s pawn.', 1: 'A modest start that keeps options open.', 2: 'Full centre.', 3: 'Attack e4 at once.', 4: 'Defend it.', 5: 'The fianchetto is the point.', 6: 'Development.', 7: 'The bishop bears down on d4.', 8: 'Quiet development.', 9: 'Castles.', 10: 'Castles.', 11: 'Prepares b5 and gives the queen the c7 square. A flexible setup.' } },
+      { n: 'Austrian Attack', idea: 'White pushes three pawns. Hit back with c5.', m: 'e4 d6 d4 Nf6 Nc3 g6 f4 Bg7 Nf3 c5 dxc5 Qa5 Bd3 Qxc5', t: { 6: 'The Austrian Attack: three pawns abreast.', 7: 'Keep developing.', 8: 'Development.', 9: 'Strike before White has castled.', 10: 'White takes.', 11: 'The pin on c3 wins the pawn back.', 12: 'Development.', 13: 'The pawn is regained and your queen is active.' } },
+      { n: '150 Attack', idea: 'White lines up queen and bishop. Start queenside play first.', m: 'e4 d6 d4 Nf6 Nc3 g6 Be3 Bg7 Qd2 c6 f3 b5', t: { 6: 'A simple plan: Be3, Qd2, then trade off your bishop with Bh6.', 7: 'Develop anyway.', 8: 'Queen and bishop line up.', 9: 'Delay castling and start on the queenside.', 10: 'Supports e4 and prepares g4.', 11: 'Counterplay before White\'s attack lands.' } }
+    ]
+  },
+  {
+    id: 'dutch', name: 'Dutch Defence', side: 'b', idea: 'Take e4 away from White with the f-pawn and play on the kingside.',
+    lines: [
+      { n: 'Leningrad', idea: 'A King\'s Indian with the f-pawn already pushed.', m: 'd4 f5 g3 Nf6 Bg2 g6 Nf3 Bg7 O-O O-O c4 d6', t: { 0: 'Queen\'s pawn.', 1: 'The Dutch: the f-pawn takes e4 away from White.', 2: 'The best setup against it.', 3: 'Development.', 4: 'The long diagonal.', 5: 'The Leningrad: fianchetto your own bishop.', 6: 'Development.', 7: 'Your own long diagonal.', 8: 'Castles.', 9: 'Castles.', 10: 'Space.', 11: 'Prepares e5. A fighting position.' } },
+      { n: 'Stonewall', idea: 'Four pawns hold e4 for good.', m: 'd4 f5 g3 Nf6 Bg2 e6 Nf3 d5 O-O Bd6 c4 c6', t: { 5: 'A different structure.', 6: 'Development.', 7: 'The Stonewall: pawns on d5, e6 and f5 hold e4.', 8: 'Castles.', 9: 'The best square for your good bishop.', 10: 'Pressure on d5.', 11: 'The wall is complete. Your knight will live on e4.' } },
+      { n: 'Classical', idea: 'Modest development, then e5.', m: 'd4 f5 c4 Nf6 Nc3 e6 Nf3 Be7 g3 O-O Bg2 d6', t: { 2: 'White takes space first.', 3: 'Development.', 4: 'Development.', 5: 'Opens the bishop.', 6: 'Development.', 7: 'A modest square.', 8: 'The fianchetto arrives anyway.', 9: 'Castles.', 10: 'The long diagonal.', 11: 'Flexible: e5 is next.' } }
     ]
   }
 );

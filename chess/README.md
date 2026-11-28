@@ -3,11 +3,11 @@
 A chess course that runs in the browser with no build step: open `index.html` from any web server.
 The Windows program is built from these same files by [`../desktop-chess`](../desktop-chess).
 
-- **Learn**: 49 lessons in six ranks, from how the pieces move to endgames. Each rank ends with a test. A start
+- **Learn**: 56 lessons in six ranks, from how the pieces move to endgames. Each rank ends with a test. A start
   screen asks your level, so you skip what you know, and a fast track keeps only the lessons that decide most games.
 - **Puzzles**: mate in 1, win material and mate in 2, with a rating. Puzzles you miss come back.
-- **Play**: a computer opponent at four strengths, with a coach that rates every move.
-- **Openings**: 12 openings as trees of named lines (49 in all), to explore and to train from memory.
+- **Play**: a computer opponent at four strengths, with a coach that rates every move, and endgame positions to practise.
+- **Openings**: 16 openings as trees of named lines (61 in all), to explore and to train from memory.
 - **Vision**: two 30-second drills for knowing the board without the labels.
 
 ## Files
@@ -23,5 +23,5 @@ The Windows program is built from these same files by [`../desktop-chess`](../de
 
 ```
 node tools/test.js    # move counts of the engine, every lesson position, every opening line
-node tools/gen.js     # adds puzzles from engine-vs-engine games (keeps the ones already there)
+node tools/gen.js     # --part and --merge: adds puzzles from engine-vs-engine games (keeps the ones already there)
 ```
