@@ -997,5 +997,20 @@
   var hot = window.claude && window.claude.hot;
   if (hot && hot.snapshot) hot.snapshot(function () { return { S: S }; });
   if (hot && hot.ready) hot.ready(start); else start((hot && hot.data) || {});
-  window.__er = { S: S, Learn: Learn, Puz: Puz, Play: Play, Open: Open, Vis: Vis };
+  /* the phone's Back button: closes the style menu, leaves a lesson or an opening, then goes to Learn; false = leave the app */
+  function back() {
+    var menu = $('#skins'), t = (location.hash || '').slice(1);
+    if (!VIEWS[t]) t = 'learn';
+    if (!menu.hidden) { menu.hidden = true; return true; }
+    if (t === 'learn') {
+      if (!Learn.cur) return false;
+      if (S.start) Learn.home(); else Learn.setup();
+      toTop();
+      return true;
+    }
+    if (t === 'openings' && Open.cur) { if (Open.mode === 'map') Open.list(); else Open.open(Open.cur.id); return true; }
+    location.hash = '#learn';
+    return true;
+  }
+  window.__er = { S: S, Learn: Learn, Puz: Puz, Play: Play, Open: Open, Vis: Vis, back: back };
 })();
